@@ -1,3 +1,5 @@
+const OWNER_WITH_CURATED_DATA = 'nirav2000';
+
 const grid = document.getElementById('grid');
 const statusEl = document.getElementById('status');
 const usernameInput = document.getElementById('username');
@@ -9,10 +11,7 @@ const tileTemplate = document.getElementById('tileTemplate');
 let cachedPagesRepos = [];
 
 const repoUrl = (owner, repo) => `https://github.com/${owner}/${repo}`;
-const pagesUrl = (repo) =>
-  repo.homepage && repo.homepage.trim()
-    ? repo.homepage.trim()
-    : `https://${repo.owner.login}.github.io/${repo.name}/`;
+const fallbackImage = (owner, repo) => `https://opengraph.githubassets.com/1/${owner}/${repo}`;
 
 const formatDate = (iso) => {
   try {
@@ -31,15 +30,35 @@ function setStatus(message, isError = false) {
   statusEl.classList.toggle('error', isError);
 }
 
+function normalizeRepo(curatedRepo) {
+  return {
+    name: curatedRepo.name,
+    title: curatedRepo.title || curatedRepo.name,
+    blurb: curatedRepo.blurb || 'Interactive app published with GitHub Pages.',
+    image: curatedRepo.image || fallbackImage(OWNER_WITH_CURATED_DATA, curatedRepo.name),
+    appUrl: curatedRepo.appUrl,
+    repoUrl: curatedRepo.repoUrl,
+    updatedAt: curatedRepo.updatedAt
+  };
+}
+
+async function fetchCuratedAppsData() {
+  const response = await fetch('apps-data.json', { headers: { Accept: 'application/json' } });
+  if (!response.ok) {
+    throw new Error(`Unable to load apps-data.json (${response.status}).`);
+  }
+
+  const data = await response.json();
+  return data.map(normalizeRepo);
+}
+
 async function fetchAllRepos(username, endpointType = 'users') {
   let page = 1;
   const repos = [];
 
   while (true) {
     const url = `https://api.github.com/${endpointType}/${encodeURIComponent(username)}/repos?per_page=100&page=${page}&sort=updated&type=owner`;
-    const response = await fetch(url, {
-      headers: { Accept: 'application/vnd.github+json' }
-    });
+    const response = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
 
     if (response.status === 404 && endpointType === 'users') {
       return fetchAllRepos(username, 'orgs');
@@ -64,6 +83,18 @@ async function fetchAllRepos(username, endpointType = 'users') {
   return repos;
 }
 
+function toGenericCard(repo) {
+  return {
+    name: repo.name,
+    title: repo.name,
+    blurb: repo.description || 'Interactive app published with GitHub Pages.',
+    image: fallbackImage(repo.owner.login, repo.name),
+    appUrl: repo.homepage && repo.homepage.trim() ? repo.homepage.trim() : `https://${repo.owner.login}.github.io/${repo.name}/`,
+    repoUrl: repoUrl(repo.owner.login, repo.name),
+    updatedAt: repo.pushed_at
+  };
+}
+
 function applyView() {
   const query = searchInput.value.trim().toLowerCase();
   const sortMode = sortSelect.value;
@@ -71,11 +102,11 @@ function applyView() {
   let repos = [...cachedPagesRepos];
 
   if (query) {
-    repos = repos.filter((repo) => repo.name.toLowerCase().includes(query));
+    repos = repos.filter((repo) => `${repo.name} ${repo.title}`.toLowerCase().includes(query));
   }
 
   if (sortMode === 'updated') {
-    repos.sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
+    repos.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   } else {
     repos.sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -98,15 +129,16 @@ function renderTiles(repos, query = '') {
 
   for (const repo of repos) {
     const clone = tileTemplate.content.cloneNode(true);
-    clone.querySelector('.tile-title').textContent = repo.name;
-    clone.querySelector('.tile-description').textContent = repo.description || 'No repository description provided.';
-    clone.querySelector('.tile-meta').textContent = `Updated ${formatDate(repo.pushed_at)}`;
+    const imageEl = clone.querySelector('.tile-image');
+    imageEl.src = repo.image;
+    imageEl.alt = `${repo.title} preview image`;
 
-    const appLink = clone.querySelector('.app-link');
-    appLink.href = pagesUrl(repo);
+    clone.querySelector('.tile-title').textContent = repo.title;
+    clone.querySelector('.tile-description').textContent = repo.blurb;
+    clone.querySelector('.tile-meta').textContent = `Updated ${formatDate(repo.updatedAt)} · ${repo.name}`;
 
-    const repoLink = clone.querySelector('.repo-link');
-    repoLink.href = repoUrl(repo.owner.login, repo.name);
+    clone.querySelector('.app-link').href = repo.appUrl;
+    clone.querySelector('.repo-link').href = repo.repoUrl;
 
     grid.appendChild(clone);
   }
@@ -128,8 +160,12 @@ async function loadDashboard() {
   loadBtn.disabled = true;
 
   try {
-    const repos = await fetchAllRepos(username);
-    cachedPagesRepos = repos.filter((repo) => repo.has_pages);
+    if (username.toLowerCase() === OWNER_WITH_CURATED_DATA) {
+      cachedPagesRepos = await fetchCuratedAppsData();
+    } else {
+      const repos = await fetchAllRepos(username);
+      cachedPagesRepos = repos.filter((repo) => repo.has_pages).map(toGenericCard);
+    }
     applyView();
   } catch (error) {
     cachedPagesRepos = [];

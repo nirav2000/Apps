@@ -1,13 +1,15 @@
 # Apps
 
-A no-framework HTML/CSS/JS dashboard that discovers repositories with GitHub Pages enabled and displays them as clickable tiles.
+A no-framework HTML/CSS/JS dashboard that aggregates GitHub Pages apps into one place.
 
 ## Features
 
-- Auto-discovers GitHub Pages apps for any username or org.
+- Curated app blurbs for `nirav2000` repositories with GitHub Pages enabled.
+- Visual preview image for every app tile.
 - Live filtering by app/repository name.
 - Sorting by name or latest update.
 - Direct links to each deployed app and source repository.
+- Fallback mode for other usernames/orgs using live GitHub API discovery.
 
 ## Run locally
 

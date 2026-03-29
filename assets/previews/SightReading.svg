@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420" role="img" aria-label="SightReading preview">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a2b4b"/>
+      <stop offset="100%" stop-color="#0d1528"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="420" fill="url(#g)" rx="24"/>
+  <circle cx="96" cy="96" r="52" fill="#7bb1ff"/>
+  <text x="96" y="112" font-size="54" text-anchor="middle">📚</text>
+  <text x="170" y="92" fill="#ebf1ff" font-family="Arial, sans-serif" font-size="40" font-weight="700">Sightreading Split Practice (Grade 2)</text>
+  <text x="170" y="138" fill="#95a2c3" font-family="Arial, sans-serif" font-size="24">SightReading</text>
+  <foreignObject x="48" y="182" width="704" height="190">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; color: #d9e6ff; font-size: 30px; line-height: 1.35;">
+      Develop reading confidence with structured phonics and comprehension activities.
+    </div>
+  </foreignObject>
+</svg>

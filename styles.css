@@ -110,6 +110,16 @@ button:focus-visible {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
+
+.tile-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 0.7rem;
+  border: 1px solid var(--card-border);
+  background: #0c1425;
+}
+
 .tile-title {
   margin: 0;
   font-size: 1.1rem;
