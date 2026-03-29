@@ -13,17 +13,23 @@
     </header>
 
     <section class="controls" aria-label="Dashboard controls">
-      <label for="username">GitHub username</label>
-      <input id="username" name="username" type="text" value="nirav2000" autocomplete="off" />
+      <div class="field">
+        <label for="username">GitHub username</label>
+        <input id="username" name="username" type="text" value="nirav2000" autocomplete="off" />
+      </div>
 
-      <label for="search">Filter apps</label>
-      <input id="search" name="search" type="text" placeholder="Type app/repo name..." autocomplete="off" />
+      <div class="field">
+        <label for="search">Filter apps</label>
+        <input id="search" name="search" type="text" placeholder="Type app/repo name..." autocomplete="off" />
+      </div>
 
-      <label for="sort">Sort by</label>
-      <select id="sort" name="sort">
-        <option value="name">Name (A-Z)</option>
-        <option value="updated">Last updated</option>
-      </select>
+      <div class="field">
+        <label for="sort">Sort by</label>
+        <select id="sort" name="sort">
+          <option value="name">Name (A-Z)</option>
+          <option value="updated">Last updated</option>
+        </select>
+      </div>
 
       <button id="loadBtn" type="button">Load Apps</button>
     </section>
@@ -35,10 +41,14 @@
 
     <template id="tileTemplate">
       <article class="tile">
-        <img class="tile-image" alt="" loading="lazy" />
-        <h2 class="tile-title"></h2>
-        <p class="tile-description"></p>
-        <p class="tile-meta"></p>
+        <a class="tile-image-link" target="_blank" rel="noopener noreferrer">
+          <img class="tile-image" alt="" loading="lazy" />
+        </a>
+        <div class="tile-body">
+          <h2 class="tile-title"></h2>
+          <p class="tile-description"></p>
+          <p class="tile-meta"></p>
+        </div>
         <div class="tile-links">
           <a class="btn primary app-link" target="_blank" rel="noopener noreferrer">Open App</a>
           <a class="btn repo-link" target="_blank" rel="noopener noreferrer">Repository</a>

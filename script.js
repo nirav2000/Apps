@@ -11,7 +11,8 @@ const tileTemplate = document.getElementById('tileTemplate');
 let cachedPagesRepos = [];
 
 const repoUrl = (owner, repo) => `https://github.com/${owner}/${repo}`;
-const fallbackImage = (owner, repo) => `https://opengraph.githubassets.com/1/${owner}/${repo}`;
+const fallbackImage = (owner, repo) => `https://image.thum.io/get/width/1200/crop/700/noanimate/https://${owner}.github.io/${repo}/`;
+const fallbackRepoCard = (owner, repo) => `https://opengraph.githubassets.com/1/${owner}/${repo}`;
 
 const formatDate = (iso) => {
   try {
@@ -132,7 +133,11 @@ function renderTiles(repos, query = '') {
     const imageEl = clone.querySelector('.tile-image');
     imageEl.src = repo.image;
     imageEl.alt = `${repo.title} preview image`;
+    imageEl.addEventListener('error', () => {
+      imageEl.src = fallbackRepoCard((repo.repoUrl.split('/')[3] || OWNER_WITH_CURATED_DATA), repo.name);
+    }, { once: true });
 
+    clone.querySelector('.tile-image-link').href = repo.appUrl;
     clone.querySelector('.tile-title').textContent = repo.title;
     clone.querySelector('.tile-description').textContent = repo.blurb;
     clone.querySelector('.tile-meta').textContent = `Updated ${formatDate(repo.updatedAt)} · ${repo.name}`;
