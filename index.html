@@ -9,12 +9,22 @@
   <body>
     <header class="header">
       <h1>GitHub Pages Super Dashboard</h1>
-      <p>Discover every repository with GitHub Pages enabled and launch apps from one place.</p>
+      <p>One place to browse every GitHub Pages app and click through instantly.</p>
     </header>
 
     <section class="controls" aria-label="Dashboard controls">
-      <label for="username">GitHub Username</label>
+      <label for="username">GitHub username</label>
       <input id="username" name="username" type="text" value="nirav2000" autocomplete="off" />
+
+      <label for="search">Filter apps</label>
+      <input id="search" name="search" type="text" placeholder="Type app/repo name..." autocomplete="off" />
+
+      <label for="sort">Sort by</label>
+      <select id="sort" name="sort">
+        <option value="name">Name (A-Z)</option>
+        <option value="updated">Last updated</option>
+      </select>
+
       <button id="loadBtn" type="button">Load Apps</button>
     </section>
 
@@ -27,6 +37,7 @@
       <article class="tile">
         <h2 class="tile-title"></h2>
         <p class="tile-description"></p>
+        <p class="tile-meta"></p>
         <div class="tile-links">
           <a class="btn primary app-link" target="_blank" rel="noopener noreferrer">Open App</a>
           <a class="btn repo-link" target="_blank" rel="noopener noreferrer">Repository</a>

@@ -7,6 +7,7 @@
   --muted: #95a2c3;
   --accent: #7bb1ff;
   --accent-strong: #4f95ff;
+  --danger: #ff8c8c;
 }
 
 * {
@@ -41,12 +42,22 @@ main {
 .controls {
   margin: 1.5rem auto;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
-  align-items: center;
+  align-items: end;
+}
+
+.controls label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.controls > * {
+  width: 100%;
 }
 
 input,
+select,
 button {
   border-radius: 0.625rem;
   border: 1px solid var(--card-border);
@@ -54,7 +65,8 @@ button {
   padding: 0.65rem 0.8rem;
 }
 
-input {
+input,
+select {
   background: #0c1425;
   color: var(--text);
 }
@@ -76,6 +88,10 @@ button:focus-visible {
   min-height: 1.5rem;
 }
 
+#status.error {
+  color: var(--danger);
+}
+
 .tile-grid {
   margin-top: 0.5rem;
   display: grid;
@@ -89,7 +105,7 @@ button:focus-visible {
   border-radius: 0.875rem;
   padding: 1rem;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr auto auto;
   gap: 0.75rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
@@ -104,6 +120,12 @@ button:focus-visible {
   color: var(--muted);
   font-size: 0.95rem;
   line-height: 1.4;
+}
+
+.tile-meta {
+  margin: 0;
+  color: #b8c7ea;
+  font-size: 0.83rem;
 }
 
 .tile-links {
@@ -128,7 +150,7 @@ button:focus-visible {
   font-weight: 600;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 760px) {
   .controls {
     grid-template-columns: 1fr;
   }
