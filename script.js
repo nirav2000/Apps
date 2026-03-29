@@ -1,5 +1,18 @@
 const OWNER_WITH_CURATED_DATA = 'nirav2000';
 
+const GENERATED_PREVIEW_BY_REPO = {
+  Apps: 'apps.svg',
+  Feesight: 'feesight.svg',
+  'japanese-learning-app': 'japanese-learning.svg',
+  MentalAbacus: 'mental-abacus.svg',
+  Phonics: 'phonics.svg',
+  's-fractions': 's-fractions.svg',
+  SightReading: 'sight-reading.svg',
+  TT38: 'tt38.svg',
+  ML: 'ml.svg',
+  'UI-template': 'ui-template.svg'
+};
+
 const grid = document.getElementById('grid');
 const statusEl = document.getElementById('status');
 const usernameInput = document.getElementById('username');
@@ -11,8 +24,12 @@ const tileTemplate = document.getElementById('tileTemplate');
 let cachedPagesRepos = [];
 
 const repoUrl = (owner, repo) => `https://github.com/${owner}/${repo}`;
-const fallbackImage = (owner, repo) => `https://image.thum.io/get/width/1200/crop/700/noanimate/https://${owner}.github.io/${repo}/`;
+const screenshotImage = (owner, repo) => `https://image.thum.io/get/width/1200/crop/700/noanimate/https://${owner}.github.io/${repo}/`;
 const fallbackRepoCard = (owner, repo) => `https://opengraph.githubassets.com/1/${owner}/${repo}`;
+const generatedPreviewPath = (repoName) => {
+  const file = GENERATED_PREVIEW_BY_REPO[repoName];
+  return file ? `dashboard_brand/previews/${file}` : null;
+};
 
 const formatDate = (iso) => {
   try {
@@ -36,7 +53,7 @@ function normalizeRepo(curatedRepo) {
     name: curatedRepo.name,
     title: curatedRepo.title || curatedRepo.name,
     blurb: curatedRepo.blurb || 'Interactive app published with GitHub Pages.',
-    image: curatedRepo.image || fallbackImage(OWNER_WITH_CURATED_DATA, curatedRepo.name),
+    image: generatedPreviewPath(curatedRepo.name) || curatedRepo.image || screenshotImage(OWNER_WITH_CURATED_DATA, curatedRepo.name),
     appUrl: curatedRepo.appUrl,
     repoUrl: curatedRepo.repoUrl,
     updatedAt: curatedRepo.updatedAt
@@ -89,7 +106,7 @@ function toGenericCard(repo) {
     name: repo.name,
     title: repo.name,
     blurb: repo.description || 'Interactive app published with GitHub Pages.',
-    image: fallbackImage(repo.owner.login, repo.name),
+    image: generatedPreviewPath(repo.name) || screenshotImage(repo.owner.login, repo.name),
     appUrl: repo.homepage && repo.homepage.trim() ? repo.homepage.trim() : `https://${repo.owner.login}.github.io/${repo.name}/`,
     repoUrl: repoUrl(repo.owner.login, repo.name),
     updatedAt: repo.pushed_at
@@ -131,11 +148,17 @@ function renderTiles(repos, query = '') {
   for (const repo of repos) {
     const clone = tileTemplate.content.cloneNode(true);
     const imageEl = clone.querySelector('.tile-image');
+    const owner = repo.repoUrl.split('/')[3] || OWNER_WITH_CURATED_DATA;
+
     imageEl.src = repo.image;
     imageEl.alt = `${repo.title} preview image`;
-    imageEl.addEventListener('error', () => {
-      imageEl.src = fallbackRepoCard((repo.repoUrl.split('/')[3] || OWNER_WITH_CURATED_DATA), repo.name);
-    }, { once: true });
+    imageEl.addEventListener(
+      'error',
+      () => {
+        imageEl.src = fallbackRepoCard(owner, repo.name);
+      },
+      { once: true }
+    );
 
     clone.querySelector('.tile-image-link').href = repo.appUrl;
     clone.querySelector('.tile-title').textContent = repo.title;

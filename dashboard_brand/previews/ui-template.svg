@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420" role="img" aria-label="UI Template preview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0e1730"/>
+      <stop offset="100%" stop-color="#132a57"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.78" cy="0.15" r="0.8">
+      <stop offset="0%" stop-color="#40d4ff" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#40d4ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <style>
+    .scan { opacity: 0.24; }
+  </style>
+  <rect width="800" height="420" rx="24" fill="url(#bg)"/>
+  <rect width="800" height="420" rx="24" fill="url(#halo)"/>
+  
+  <g stroke="#7be7ff" stroke-opacity="0.45">
+    <path d="M0 60 H800 M0 120 H800 M0 180 H800 M0 240 H800 M0 300 H800" />
+    <path d="M80 0 V420 M160 0 V420 M240 0 V420 M320 0 V420 M400 0 V420" />
+  </g>
+  <rect class="scan" x="0" y="40" width="800" height="10" fill="#7be7ff">
+    <animate attributeName="y" values="40;360;40" dur="4.6s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="34" y="30" width="732" height="360" rx="18" fill="none" stroke="#7be7ff" stroke-opacity="0.32"/>
+  <text x="58" y="86" fill="#93a7d1" font-family="Inter, Segoe UI, Arial" font-size="20">dashboard brand preview</text>
+  <text x="58" y="152" fill="#e9f1ff" font-family="Inter, Segoe UI, Arial" font-size="50" font-weight="700">UI Template</text>
+  <text x="58" y="196" fill="#93a7d1" font-family="Inter, Segoe UI, Arial" font-size="28">Design System Generator</text>
+  <g transform="translate(58 258)">
+    <rect width="170" height="44" rx="11" fill="#40d4ff" opacity="0.25"/>
+    <text x="22" y="30" fill="#e9f1ff" font-family="Inter, Segoe UI, Arial" font-size="22" font-weight="600">Live App</text>
+  </g>
+  <g transform="translate(244 258)">
+    <rect width="170" height="44" rx="11" fill="none" stroke="#7be7ff" opacity="0.7"/>
+    <text x="25" y="30" fill="#e9f1ff" font-family="Inter, Segoe UI, Arial" font-size="22">Repository</text>
+  </g>
+</svg>

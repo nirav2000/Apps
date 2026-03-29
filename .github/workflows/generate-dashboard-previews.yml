@@ -1,0 +1,33 @@
+name: Generate Dashboard Previews
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['**']
+    paths:
+      - 'dashboard_brand/**'
+      - 'apps-data.json'
+
+jobs:
+  generate-and-commit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Generate previews
+        run: python dashboard_brand/generate_previews.py
+      - name: Commit generated previews if changed
+        run: |
+          if [[ -n "$(git status --porcelain dashboard_brand/previews)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add dashboard_brand/previews
+            git commit -m "chore: regenerate dashboard SVG previews"
+            git push
+          else
+            echo "No preview changes detected; nothing to commit."
+          fi

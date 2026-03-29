@@ -1,0 +1,79 @@
+{
+  "entries": [
+    {
+      "id": "apps",
+      "title": "GitHub Pages Super Dashboard",
+      "subtitle": "Apps",
+      "output_file": "apps.svg",
+      "motif": "grid"
+    },
+    {
+      "id": "feesight",
+      "title": "Feesight",
+      "subtitle": "School Fees Analyser",
+      "output_file": "feesight.svg",
+      "motif": "bars",
+      "palette": { "accent": "#8effd1", "glow": "#53f6c3" }
+    },
+    {
+      "id": "japanese-learning-app",
+      "title": "Japanese Learning",
+      "subtitle": "Spaced Repetition",
+      "output_file": "japanese-learning.svg",
+      "motif": "nodes",
+      "palette": { "accent": "#ffb084", "glow": "#ff8a5b" }
+    },
+    {
+      "id": "mental-abacus",
+      "title": "Mental Abacus",
+      "subtitle": "Soroban Trainer",
+      "output_file": "mental-abacus.svg",
+      "motif": "traces"
+    },
+    {
+      "id": "phonics",
+      "title": "Phonics",
+      "subtitle": "Reading Trainer",
+      "output_file": "phonics.svg",
+      "motif": "nodes",
+      "palette": { "accent": "#f8cf74", "glow": "#f6b13d" }
+    },
+    {
+      "id": "s-fractions",
+      "title": "s-fractions",
+      "subtitle": "Worksheet Generator",
+      "output_file": "s-fractions.svg",
+      "motif": "bars"
+    },
+    {
+      "id": "sight-reading",
+      "title": "SightReading",
+      "subtitle": "Music Practice",
+      "output_file": "sight-reading.svg",
+      "motif": "traces",
+      "palette": { "accent": "#d4a4ff", "glow": "#a66dff" }
+    },
+    {
+      "id": "tt38",
+      "title": "TT38",
+      "subtitle": "Times Table Challenge",
+      "output_file": "tt38.svg",
+      "motif": "bars"
+    },
+    {
+      "id": "ml",
+      "title": "ML Repo Dashboard",
+      "subtitle": "Machine Learning Projects",
+      "output_file": "ml.svg",
+      "motif": "grid"
+    },
+    {
+      "id": "ui-template",
+      "title": "UI Template",
+      "subtitle": "Design System Generator",
+      "output_file": "ui-template.svg",
+      "motif": "grid",
+      "palette": { "accent": "#7be7ff", "glow": "#40d4ff" }
+    }
+  ]
+}

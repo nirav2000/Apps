@@ -1,0 +1,18 @@
+:root {
+  color-scheme: dark;
+  --bg: #070b17;
+  --card: #121f3a;
+  --card-border: #2a3f65;
+  --text: #ebf1ff;
+  --muted: #9baad0;
+  --accent: #7bb1ff;
+  --accent-strong: #4f95ff;
+  --danger: #ff8c8c;
+
+  --font-base: Inter, Segoe UI, Roboto, Arial, sans-serif;
+  --step--1: 0.9rem;
+  --step-0: 1rem;
+  --step-1: 1.2rem;
+  --step-2: 1.45rem;
+  --step-3: 2rem;
+}
