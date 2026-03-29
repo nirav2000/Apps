@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GitHub Pages Super Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="header">
+      <h1>GitHub Pages Super Dashboard</h1>
+      <p>Discover every repository with GitHub Pages enabled and launch apps from one place.</p>
+    </header>
+
+    <section class="controls" aria-label="Dashboard controls">
+      <label for="username">GitHub Username</label>
+      <input id="username" name="username" type="text" value="nirav2000" autocomplete="off" />
+      <button id="loadBtn" type="button">Load Apps</button>
+    </section>
+
+    <main>
+      <p id="status" role="status" aria-live="polite"></p>
+      <section id="grid" class="tile-grid" aria-label="GitHub Pages apps"></section>
+    </main>
+
+    <template id="tileTemplate">
+      <article class="tile">
+        <h2 class="tile-title"></h2>
+        <p class="tile-description"></p>
+        <div class="tile-links">
+          <a class="btn primary app-link" target="_blank" rel="noopener noreferrer">Open App</a>
+          <a class="btn repo-link" target="_blank" rel="noopener noreferrer">Repository</a>
+        </div>
+      </article>
+    </template>
+
+    <script src="script.js" type="module"></script>
+  </body>
+</html>

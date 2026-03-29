@@ -1,0 +1,135 @@
+:root {
+  color-scheme: dark;
+  --bg: #070b17;
+  --card: #11192d;
+  --card-border: #253554;
+  --text: #ebf1ff;
+  --muted: #95a2c3;
+  --accent: #7bb1ff;
+  --accent-strong: #4f95ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  background: radial-gradient(1200px circle at 15% -10%, #1a2b4b 10%, var(--bg) 60%);
+  padding: 1.25rem;
+}
+
+.header,
+.controls,
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.header h1 {
+  margin-bottom: 0.35rem;
+}
+
+.header p {
+  margin-top: 0;
+  color: var(--muted);
+}
+
+.controls {
+  margin: 1.5rem auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+input,
+button {
+  border-radius: 0.625rem;
+  border: 1px solid var(--card-border);
+  font-size: 1rem;
+  padding: 0.65rem 0.8rem;
+}
+
+input {
+  background: #0c1425;
+  color: var(--text);
+}
+
+button {
+  background: var(--accent-strong);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+button:hover,
+button:focus-visible {
+  filter: brightness(1.1);
+}
+
+#status {
+  color: var(--muted);
+  min-height: 1.5rem;
+}
+
+.tile-grid {
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.tile {
+  background: linear-gradient(180deg, #172239 0%, var(--card) 100%);
+  border: 1px solid var(--card-border);
+  border-radius: 0.875rem;
+  padding: 1rem;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.tile-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.tile-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.tile-links {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  text-decoration: none;
+  border: 1px solid var(--card-border);
+  border-radius: 0.625rem;
+  padding: 0.45rem 0.75rem;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: #001b49;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+}
