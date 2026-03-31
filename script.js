@@ -1,6 +1,13 @@
 const OWNER_WITH_CURATED_DATA = 'nirav2000';
 
 
+const APP_SPECIFIC_PREVIEWS = {
+  Apps: 'dashboard_brand/previews/apps-dashboard-live.svg',
+  'ML-pong-evolution': 'https://nirav2000.github.io/ML/dashboard_brand/previews/pong-evolution.svg',
+  'ML-pong-duel': 'https://nirav2000.github.io/ML/dashboard_brand/previews/pong-duel.svg',
+  ML: 'https://nirav2000.github.io/ML/dashboard_brand/previews/ml.svg'
+};
+
 const grid = document.getElementById('grid');
 const statusEl = document.getElementById('status');
 const usernameInput = document.getElementById('username');
@@ -38,12 +45,13 @@ function normalizeRepo(curatedRepo) {
   const owner = (curatedRepo.repoUrl?.split('/')[3] || OWNER_WITH_CURATED_DATA).trim();
   const repo = (curatedRepo.repoUrl?.split('/')[4] || curatedRepo.name).trim();
   const fallbackImage = curatedRepo.image || screenshotFromUrl(curatedRepo.appUrl) || screenshotImage(owner, repo);
+  const curatedPreview = APP_SPECIFIC_PREVIEWS[curatedRepo.name] || APP_SPECIFIC_PREVIEWS[repo] || null;
 
   return {
     name: curatedRepo.name,
     title: curatedRepo.title || curatedRepo.name,
     blurb: curatedRepo.blurb || 'Interactive app published with GitHub Pages.',
-    image: fallbackImage,
+    image: curatedPreview || fallbackImage,
     fallbackImage,
     appUrl: curatedRepo.appUrl,
     repoUrl: curatedRepo.repoUrl,
@@ -95,11 +103,12 @@ async function fetchAllRepos(username, endpointType = 'users') {
 function toGenericCard(repo) {
   const appUrl = repo.homepage && repo.homepage.trim() ? repo.homepage.trim() : `https://${repo.owner.login}.github.io/${repo.name}/`;
   const fallbackImage = screenshotFromUrl(appUrl);
+  const curatedPreview = APP_SPECIFIC_PREVIEWS[repo.name] || null;
   return {
     name: repo.name,
     title: repo.name,
     blurb: repo.description || 'Interactive app published with GitHub Pages.',
-    image: fallbackImage,
+    image: curatedPreview || fallbackImage,
     fallbackImage,
     appUrl,
     repoUrl: repoUrl(repo.owner.login, repo.name),
@@ -176,12 +185,14 @@ function renderTiles(repos, query = '') {
 function toggleSearch() {
   const isHidden = searchField.hasAttribute('hidden');
   if (isHidden) {
+    document.body.classList.add('search-mode');
     searchField.removeAttribute('hidden');
     searchToggle.setAttribute('aria-expanded', 'true');
     searchInput.focus();
     return;
   }
 
+  document.body.classList.remove('search-mode');
   searchField.setAttribute('hidden', '');
   searchToggle.setAttribute('aria-expanded', 'false');
   if (searchInput.value.trim()) {

@@ -8,12 +8,17 @@
   </head>
   <body>
     <header class="header">
-      <h1>GitHub Pages Super Dashboard</h1>
+      <div class="header-top">
+        <h1>GitHub Pages Super Dashboard</h1>
+        <button id="searchToggle" class="search-toggle" type="button" aria-expanded="false" aria-controls="searchField" title="Search apps">
+          🔍
+        </button>
+      </div>
       <p>One place to browse every GitHub Pages app, with app blurbs and visual previews.</p>
     </header>
 
     <section class="controls" aria-label="Dashboard controls">
-      <div class="field">
+      <div class="field" id="usernameField">
         <label for="username">GitHub username</label>
         <input id="username" name="username" type="text" value="nirav2000" autocomplete="off" />
       </div>
@@ -23,11 +28,8 @@
         <input id="search" name="search" type="text" placeholder="Type app/repo name..." autocomplete="off" />
       </div>
 
-      <button id="searchToggle" class="search-toggle" type="button" aria-expanded="false" aria-controls="searchField" title="Search apps">
-        🔎
-      </button>
 
-      <div class="field">
+      <div class="field" id="sortField">
         <label for="sort">Sort by</label>
         <select id="sort" name="sort">
           <option value="updated" selected>Last updated</option>
