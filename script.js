@@ -145,8 +145,10 @@ function renderTiles(repos, query = '') {
     return;
   }
 
-  for (const repo of repos) {
+  for (const [index, repo] of repos.entries()) {
     const clone = tileTemplate.content.cloneNode(true);
+    const tileEl = clone.querySelector('.tile');
+    tileEl.style.setProperty('--tile-index', index);
     const imageEl = clone.querySelector('.tile-image');
     const owner = repo.repoUrl.split('/')[3] || OWNER_WITH_CURATED_DATA;
 

@@ -7,7 +7,12 @@ body {
   min-height: 100vh;
   font-family: var(--font-base);
   color: var(--text);
-  background: radial-gradient(1200px circle at 12% -10%, #1a2b4b 10%, var(--bg) 60%);
+  background:
+    radial-gradient(1200px circle at 12% -10%, #1a2b4b 10%, transparent 60%),
+    radial-gradient(900px circle at 110% 30%, #1a3f7a 0%, transparent 55%),
+    var(--bg);
+  background-size: 100% 100%, 100% 100%, auto;
+  animation: ambientShift 16s ease-in-out infinite alternate;
   padding: 1.25rem;
 }
 
@@ -61,19 +66,29 @@ input,
 select {
   background: #08142a;
   color: var(--text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus-visible,
+select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(123, 177, 255, 0.15);
+  outline: none;
 }
 
 button {
-  background: var(--accent-strong);
+  background: linear-gradient(120deg, #3f86ef, var(--accent-strong));
   color: #fff;
   cursor: pointer;
-  transition: filter 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
   font-weight: 600;
 }
 
 button:hover,
 button:focus-visible {
-  filter: brightness(1.1);
+  transform: translateY(-1px);
+  filter: brightness(1.07);
+  box-shadow: 0 8px 20px rgba(60, 130, 255, 0.35);
 }
 
 #status {
@@ -101,12 +116,24 @@ button:focus-visible {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
   display: grid;
   grid-template-rows: auto 1fr auto;
+  transform: translateY(0);
+  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+  animation: tileReveal 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--tile-index, 0) * 45ms);
+}
+
+.tile:hover,
+.tile:focus-within {
+  transform: translateY(-4px);
+  border-color: #5f8ad1;
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.38);
 }
 
 .tile-image-link {
   display: block;
   background: #0b1326;
   border-bottom: 1px solid var(--card-border);
+  overflow: hidden;
 }
 
 .tile-image {
@@ -114,6 +141,14 @@ button:focus-visible {
   aspect-ratio: 16 / 9;
   object-fit: cover;
   display: block;
+  transform: scale(1);
+  transition: transform 0.5s ease, filter 0.4s ease;
+}
+
+.tile:hover .tile-image,
+.tile:focus-within .tile-image {
+  transform: scale(1.03);
+  filter: saturate(1.08);
 }
 
 .tile-body {
@@ -152,6 +187,13 @@ button:focus-visible {
   padding: 0.5rem 0.85rem;
   color: var(--text);
   font-size: var(--step-0);
+  transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.btn:hover,
+.btn:focus-visible {
+  transform: translateY(-1px);
+  border-color: #5f8ad1;
 }
 
 .btn.primary {
@@ -159,6 +201,38 @@ button:focus-visible {
   border-color: transparent;
   color: #001b49;
   font-weight: 700;
+}
+
+@keyframes tileReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ambientShift {
+  0% {
+    background-position: 0% 0%, 100% 0%, 0 0;
+  }
+
+  100% {
+    background-position: 6% 4%, 96% 10%, 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @media (max-width: 900px) {
