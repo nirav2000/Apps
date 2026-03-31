@@ -2,7 +2,7 @@ const OWNER_WITH_CURATED_DATA = 'nirav2000';
 
 
 const APP_SPECIFIC_PREVIEWS = {
-  Apps: 'dashboard_brand/previews/apps-dashboard-live.svg',
+  Apps: 'dashboard_brand/previews/apps-super-dashboard.svg',
   'ML-ml101': 'https://nirav2000.github.io/ML/dashboard_brand/previews/ml101.svg',
   'ML-pong-evolution': 'https://nirav2000.github.io/ML/dashboard_brand/previews/pong-evolution.svg',
   'ML-pong-rl': 'https://nirav2000.github.io/ML/dashboard_brand/previews/pong-rl.svg',
