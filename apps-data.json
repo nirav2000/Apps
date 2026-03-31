@@ -250,5 +250,23 @@
     "blurb": "Generate reusable UI templates and design tokens for faster prototyping.",
     "updatedAt": "2026-02-06T00:36:12Z",
     "image": "https://image.thum.io/get/width/1200/crop/700/noanimate/https://nirav2000.github.io/UI-template/"
+  },
+  {
+    "name": "ML-pong-evolution",
+    "repoUrl": "https://github.com/nirav2000/ML",
+    "appUrl": "https://nirav2000.github.io/ML/pong_evolution.html",
+    "title": "Pong Evolution",
+    "blurb": "Track reinforcement-learning progress in Pong across evolving training runs.",
+    "updatedAt": "2026-03-19T09:43:41Z",
+    "image": "https://image.thum.io/get/width/1200/crop/700/noanimate/https://nirav2000.github.io/ML/pong_evolution.html"
+  },
+  {
+    "name": "ML-pong-duel",
+    "repoUrl": "https://github.com/nirav2000/ML",
+    "appUrl": "https://nirav2000.github.io/ML/pong_duel.html",
+    "title": "Pong Duel",
+    "blurb": "Compare competing Pong agents head-to-head with live score outcomes.",
+    "updatedAt": "2026-03-19T09:43:41Z",
+    "image": "https://image.thum.io/get/width/1200/crop/700/noanimate/https://nirav2000.github.io/ML/pong_duel.html"
   }
 ]
