@@ -21,39 +21,69 @@ def escape(value: str) -> str:
 
 def dashboard_art() -> str:
     return '''
+    <defs>
+      <clipPath id="tileViewport">
+        <rect x="84" y="268" width="1032" height="384" rx="22"/>
+      </clipPath>
+    </defs>
+
     <g opacity="0.95">
       <rect x="84" y="154" width="1032" height="88" rx="18" fill="#0e2441" stroke="#3c5f8d"/>
       <rect x="108" y="176" width="240" height="44" rx="12" fill="#0b1f3a" stroke="#456b9a"/>
       <rect x="368" y="176" width="240" height="44" rx="12" fill="#0b1f3a" stroke="#456b9a"/>
       <rect x="628" y="176" width="176" height="44" rx="12" fill="#0b1f3a" stroke="#456b9a"/>
-      <rect id="loadBtn" x="824" y="176" width="268" height="44" rx="12" fill="#4f95ff">
-        <animate attributeName="fill" values="#4f95ff;#6db0ff;#4f95ff" dur="2.6s" repeatCount="indefinite"/>
-      </rect>
+      <rect x="824" y="176" width="268" height="44" rx="12" fill="#4f95ff"/>
       <text x="906" y="204" fill="#ffffff" font-family="Inter, Segoe UI, Arial" font-size="20" font-weight="700">Load Apps</text>
 
-      <g id="cardsGroup">
-        <rect x="84" y="268" width="330" height="384" rx="22" fill="#132847" stroke="#3f6494"/>
-        <rect x="434" y="268" width="330" height="384" rx="22" fill="#132847" stroke="#3f6494"/>
-        <rect x="784" y="268" width="330" height="384" rx="22" fill="#132847" stroke="#3f6494"/>
+      <g clip-path="url(#tileViewport)">
+        <g>
+          <animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 -158;0 -158" keyTimes="0;0.35;0.75;1" dur="8s" repeatCount="indefinite"/>
 
-        <rect x="84" y="268" width="330" height="176" rx="22" fill="#10305a"/>
-        <rect x="434" y="268" width="330" height="176" rx="22" fill="#10305a"/>
-        <rect x="784" y="268" width="330" height="176" rx="22" fill="#10305a"/>
+          <g>
+            <rect x="84" y="268" width="330" height="384" rx="22" fill="#132847" stroke="#3f6494"/>
+            <rect x="434" y="268" width="330" height="384" rx="22" fill="#132847" stroke="#3f6494"/>
+            <rect x="784" y="268" width="330" height="384" rx="22" fill="#132847" stroke="#3f6494"/>
 
-        <rect x="112" y="590" width="126" height="38" rx="12" fill="#7bb1ff"/>
-        <rect x="252" y="590" width="126" height="38" rx="12" fill="none" stroke="#5c83b5"/>
-        <rect x="462" y="590" width="126" height="38" rx="12" fill="#7bb1ff"/>
-        <rect x="602" y="590" width="126" height="38" rx="12" fill="none" stroke="#5c83b5"/>
-        <rect x="812" y="590" width="126" height="38" rx="12" fill="#7bb1ff"/>
-        <rect x="952" y="590" width="126" height="38" rx="12" fill="none" stroke="#5c83b5"/>
-        <animateTransform attributeName="transform" type="translate" values="0 0; 0 -26; 0 0" dur="7s" repeatCount="indefinite"/>
+            <rect x="84" y="268" width="330" height="176" rx="22" fill="#10305a"/>
+            <rect x="434" y="268" width="330" height="176" rx="22" fill="#10305a"/>
+            <rect x="784" y="268" width="330" height="176" rx="22" fill="#10305a"/>
+
+            <text x="108" y="476" fill="#e9f1ff" font-family="Inter, Segoe UI, Arial" font-size="26" font-weight="700">Tense Matching Game</text>
+            <text x="458" y="476" fill="#e9f1ff" font-family="Inter, Segoe UI, Arial" font-size="26" font-weight="700">Pong Evolution</text>
+            <text x="808" y="476" fill="#e9f1ff" font-family="Inter, Segoe UI, Arial" font-size="26" font-weight="700">MLGA101</text>
+
+            <rect x="112" y="590" width="126" height="38" rx="12" fill="#7bb1ff"/>
+            <rect x="252" y="590" width="126" height="38" rx="12" fill="none" stroke="#5c83b5"/>
+            <rect x="462" y="590" width="126" height="38" rx="12" fill="#7bb1ff"/>
+            <rect x="602" y="590" width="126" height="38" rx="12" fill="none" stroke="#5c83b5"/>
+            <rect x="812" y="590" width="126" height="38" rx="12" fill="#7bb1ff"/>
+            <rect x="952" y="590" width="126" height="38" rx="12" fill="none" stroke="#5c83b5"/>
+          </g>
+
+          <g transform="translate(0, 158)">
+            <rect x="84" y="268" width="330" height="384" rx="22" fill="#132847" stroke="#3f6494"/>
+            <rect x="434" y="268" width="330" height="384" rx="22" fill="#132847" stroke="#3f6494"/>
+            <rect x="784" y="268" width="330" height="384" rx="22" fill="#132847" stroke="#3f6494"/>
+
+            <rect x="84" y="268" width="330" height="176" rx="22" fill="#10305a"/>
+            <rect x="434" y="268" width="330" height="176" rx="22" fill="#10305a"/>
+            <rect x="784" y="268" width="330" height="176" rx="22" fill="#10305a"/>
+
+            <text x="108" y="476" fill="#e9f1ff" font-family="Inter, Segoe UI, Arial" font-size="26" font-weight="700">Pong Compare Lab</text>
+            <text x="458" y="476" fill="#e9f1ff" font-family="Inter, Segoe UI, Arial" font-size="26" font-weight="700">Pong RL</text>
+            <text x="808" y="476" fill="#e9f1ff" font-family="Inter, Segoe UI, Arial" font-size="26" font-weight="700">Fractions</text>
+          </g>
+        </g>
       </g>
 
-      <path d="M970 306 L986 334 L998 328 L982 300 Z" fill="#e9f1ff" stroke="#1f3558" stroke-width="2">
-        <animateTransform attributeName="transform" type="translate" values="-70 -58; 0 0; 0 0" dur="7s" repeatCount="indefinite"/>
+      <path d="M0 0 L0 30 L8 23 L14 37 L20 34 L14 20 L24 20 Z"
+            fill="#f5fbff" stroke="#203c5f" stroke-width="2"
+            transform="translate(760 210)">
+        <animateTransform attributeName="transform" type="translate" values="760 210;170 576;170 576" keyTimes="0;0.35;1" dur="8s" repeatCount="indefinite"/>
       </path>
-      <circle cx="998" cy="328" r="0" fill="#7bb1ff" opacity="0.6">
-        <animate attributeName="r" values="0;18;0" begin="2.1s" dur="0.8s" repeatCount="indefinite"/>
+
+      <circle cx="205" cy="608" r="0" fill="#8bc5ff" opacity="0.45">
+        <animate attributeName="r" values="0;18;0;0" keyTimes="0;0.1;0.22;1" begin="2.8s" dur="8s" repeatCount="indefinite"/>
       </circle>
     </g>
     '''
