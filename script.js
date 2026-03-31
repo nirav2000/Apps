@@ -5,7 +5,8 @@ const APP_SPECIFIC_PREVIEWS = {
   Apps: 'dashboard_brand/previews/apps-dashboard-live.svg',
   'ML-pong-evolution': 'https://nirav2000.github.io/ML/dashboard_brand/previews/pong-evolution.svg',
   'ML-pong-duel': 'https://nirav2000.github.io/ML/dashboard_brand/previews/pong-duel.svg',
-  ML: 'https://nirav2000.github.io/ML/dashboard_brand/previews/ml.svg'
+  ML: 'https://nirav2000.github.io/ML/dashboard_brand/previews/ml.svg',
+  'ML-GA-MLGA101': 'dashboard_brand/previews/ml-ga101.svg'
 };
 
 const grid = document.getElementById('grid');
@@ -15,6 +16,7 @@ const loadBtn = document.getElementById('loadBtn');
 const searchInput = document.getElementById('search');
 const searchToggle = document.getElementById('searchToggle');
 const searchField = document.getElementById('searchField');
+const searchPanel = document.getElementById('searchPanel');
 const sortSelect = document.getElementById('sort');
 const tileTemplate = document.getElementById('tileTemplate');
 
@@ -183,17 +185,15 @@ function renderTiles(repos, query = '') {
 
 
 function toggleSearch() {
-  const isHidden = searchField.hasAttribute('hidden');
+  const isHidden = searchPanel.hasAttribute('hidden');
   if (isHidden) {
-    document.body.classList.add('search-mode');
-    searchField.removeAttribute('hidden');
+    searchPanel.removeAttribute('hidden');
     searchToggle.setAttribute('aria-expanded', 'true');
     searchInput.focus();
     return;
   }
 
-  document.body.classList.remove('search-mode');
-  searchField.setAttribute('hidden', '');
+  searchPanel.setAttribute('hidden', '');
   searchToggle.setAttribute('aria-expanded', 'false');
   if (searchInput.value.trim()) {
     searchInput.value = '';

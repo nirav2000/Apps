@@ -44,7 +44,7 @@ main {
 .controls {
   margin: 1.5rem auto;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.9rem;
   align-items: end;
 }
@@ -111,19 +111,10 @@ button:focus-visible {
   align-items: center;
 }
 
-.field-search[hidden] {
+#searchPanel[hidden] {
   display: none;
 }
 
-body.search-mode #usernameField,
-body.search-mode #sortField,
-body.search-mode #loadBtn {
-  display: none;
-}
-
-body.search-mode .controls {
-  grid-template-columns: 1fr;
-}
 
 #status {
   color: var(--muted);

@@ -268,5 +268,14 @@
     "blurb": "Compare competing Pong agents head-to-head with live score outcomes.",
     "updatedAt": "2026-03-19T09:43:41Z",
     "image": "https://image.thum.io/get/width/1200/crop/700/noanimate/https://nirav2000.github.io/ML/pong_duel.html"
+  },
+  {
+    "name": "ML-GA-MLGA101",
+    "repoUrl": "https://github.com/nirav2000/ML-GA",
+    "appUrl": "https://nirav2000.github.io/ML-GA/MLGA101.html",
+    "title": "MLGA101 Evolution Lab",
+    "blurb": "A browser-based genetic algorithm sandbox where agents evolve movement DNA to reach a target.",
+    "updatedAt": "2026-03-16T15:23:25Z",
+    "image": "https://image.thum.io/get/width/1200/crop/700/noanimate/https://nirav2000.github.io/ML-GA/MLGA101.html"
   }
 ]
