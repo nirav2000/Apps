@@ -18,10 +18,14 @@
         <input id="username" name="username" type="text" value="nirav2000" autocomplete="off" />
       </div>
 
-      <div class="field">
+      <div class="field field-search" id="searchField" hidden>
         <label for="search">Filter apps</label>
         <input id="search" name="search" type="text" placeholder="Type app/repo name..." autocomplete="off" />
       </div>
+
+      <button id="searchToggle" class="search-toggle" type="button" aria-expanded="false" aria-controls="searchField" title="Search apps">
+        🔎
+      </button>
 
       <div class="field">
         <label for="sort">Sort by</label>

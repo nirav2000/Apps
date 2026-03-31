@@ -1,23 +1,13 @@
 const OWNER_WITH_CURATED_DATA = 'nirav2000';
 
-const GENERATED_PREVIEW_BY_REPO = {
-  Apps: 'apps.svg',
-  Feesight: 'feesight.svg',
-  'japanese-learning-app': 'japanese-learning.svg',
-  MentalAbacus: 'mental-abacus.svg',
-  Phonics: 'phonics.svg',
-  's-fractions': 's-fractions.svg',
-  SightReading: 'sight-reading.svg',
-  TT38: 'tt38.svg',
-  ML: 'ml.svg',
-  'UI-template': 'ui-template.svg'
-};
 
 const grid = document.getElementById('grid');
 const statusEl = document.getElementById('status');
 const usernameInput = document.getElementById('username');
 const loadBtn = document.getElementById('loadBtn');
 const searchInput = document.getElementById('search');
+const searchToggle = document.getElementById('searchToggle');
+const searchField = document.getElementById('searchField');
 const sortSelect = document.getElementById('sort');
 const tileTemplate = document.getElementById('tileTemplate');
 
@@ -27,11 +17,6 @@ const repoUrl = (owner, repo) => `https://github.com/${owner}/${repo}`;
 const screenshotFromUrl = (url) => `https://image.thum.io/get/width/1200/crop/700/noanimate/${url}`;
 const screenshotImage = (owner, repo) => screenshotFromUrl(`https://${owner}.github.io/${repo}/`);
 const fallbackRepoCard = (owner, repo) => `https://opengraph.githubassets.com/1/${owner}/${repo}`;
-const generatedPreviewPath = (repoName) => {
-  const file = GENERATED_PREVIEW_BY_REPO[repoName];
-  return file ? `dashboard_brand/previews/${file}` : null;
-};
-
 const formatDate = (iso) => {
   try {
     return new Date(iso).toLocaleDateString(undefined, {
@@ -58,7 +43,7 @@ function normalizeRepo(curatedRepo) {
     name: curatedRepo.name,
     title: curatedRepo.title || curatedRepo.name,
     blurb: curatedRepo.blurb || 'Interactive app published with GitHub Pages.',
-    image: generatedPreviewPath(repo) || fallbackImage,
+    image: fallbackImage,
     fallbackImage,
     appUrl: curatedRepo.appUrl,
     repoUrl: curatedRepo.repoUrl,
@@ -114,7 +99,7 @@ function toGenericCard(repo) {
     name: repo.name,
     title: repo.name,
     blurb: repo.description || 'Interactive app published with GitHub Pages.',
-    image: generatedPreviewPath(repo.name) || fallbackImage,
+    image: fallbackImage,
     fallbackImage,
     appUrl,
     repoUrl: repoUrl(repo.owner.login, repo.name),
@@ -187,6 +172,24 @@ function renderTiles(repos, query = '') {
   setStatus(`Showing ${repos.length} of ${sourceCount} GitHub Pages ${appWord}.`);
 }
 
+
+function toggleSearch() {
+  const isHidden = searchField.hasAttribute('hidden');
+  if (isHidden) {
+    searchField.removeAttribute('hidden');
+    searchToggle.setAttribute('aria-expanded', 'true');
+    searchInput.focus();
+    return;
+  }
+
+  searchField.setAttribute('hidden', '');
+  searchToggle.setAttribute('aria-expanded', 'false');
+  if (searchInput.value.trim()) {
+    searchInput.value = '';
+    applyView();
+  }
+}
+
 async function loadDashboard() {
   const username = usernameInput.value.trim();
 
@@ -217,6 +220,7 @@ async function loadDashboard() {
 
 sortSelect.value = 'updated';
 loadBtn.addEventListener('click', loadDashboard);
+searchToggle.addEventListener('click', toggleSearch);
 usernameInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
     event.preventDefault();
