@@ -6,6 +6,13 @@
       "subtitle": "Browse · Filter · Launch",
       "tag": "Dashboard",
       "variant": "dashboard"
+    },
+    {
+      "slug": "pong-evolution-local",
+      "title": "Pong Evolution",
+      "subtitle": "Mutation · Selection · Improvement",
+      "tag": "Arcade sim",
+      "variant": "evolution"
     }
   ]
 }
