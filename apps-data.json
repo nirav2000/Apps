@@ -277,5 +277,32 @@
     "blurb": "A browser-based genetic algorithm sandbox where agents evolve movement DNA to reach a target.",
     "updatedAt": "2026-03-16T15:23:25Z",
     "image": "https://image.thum.io/get/width/1200/crop/700/noanimate/https://nirav2000.github.io/ML-GA/MLGA101.html"
+  },
+  {
+    "name": "ML-ml101",
+    "repoUrl": "https://github.com/nirav2000/ML",
+    "appUrl": "https://nirav2000.github.io/ML/ML101.html",
+    "title": "ML101",
+    "blurb": "Interactive model behavior playground for beginner-friendly machine-learning experimentation.",
+    "updatedAt": "2026-03-19T09:43:41Z",
+    "image": "https://image.thum.io/get/width/1200/crop/700/noanimate/https://nirav2000.github.io/ML/ML101.html"
+  },
+  {
+    "name": "ML-pong-rl",
+    "repoUrl": "https://github.com/nirav2000/ML",
+    "appUrl": "https://nirav2000.github.io/ML/pong_RL/pong_RL.html",
+    "title": "Pong RL",
+    "blurb": "A tabular Q-learning Pong demo with reward-driven policy learning over episodes.",
+    "updatedAt": "2026-03-19T09:43:41Z",
+    "image": "https://image.thum.io/get/width/1200/crop/700/noanimate/https://nirav2000.github.io/ML/pong_RL/pong_RL.html"
+  },
+  {
+    "name": "ML-pong-compare",
+    "repoUrl": "https://github.com/nirav2000/ML",
+    "appUrl": "https://nirav2000.github.io/ML/pong_compare.html",
+    "title": "Pong Compare Lab",
+    "blurb": "Side-by-side comparison shell for Evolution vs RL Pong experiments.",
+    "updatedAt": "2026-03-19T09:43:41Z",
+    "image": "https://image.thum.io/get/width/1200/crop/700/noanimate/https://nirav2000.github.io/ML/pong_compare.html"
   }
 ]
