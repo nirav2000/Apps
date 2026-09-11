@@ -304,5 +304,61 @@
     "blurb": "Side-by-side comparison shell for Evolution vs RL Pong experiments.",
     "updatedAt": "2026-03-19T09:43:41Z",
     "image": "https://image.thum.io/get/width/1200/crop/700/noanimate/https://nirav2000.github.io/ML/pong_compare.html"
+  },
+  {
+    "name": "LearnLatin",
+    "title": "Learn Latin",
+    "blurb": "Beginner Latin with tappable sentences, guided practice and response-time history.",
+    "repoUrl": "https://github.com/nirav2000/LearnLatin",
+    "appUrl": "https://nirav2000.github.io/LearnLatin/",
+    "updatedAt": "2026-09-11T00:00:00Z"
+  },
+  {
+    "name": "Kk-syllabus",
+    "title": "KKSyllabus",
+    "blurb": "Learning, spelling and vocabulary practice.",
+    "repoUrl": "https://github.com/nirav2000/Kk-syllabus",
+    "appUrl": "https://nirav2000.github.io/Kk-syllabus/",
+    "updatedAt": "2026-09-11T00:00:00Z"
+  },
+  {
+    "name": "Openday",
+    "title": "School Open Days",
+    "blurb": "School visit dates and planning.",
+    "repoUrl": "https://github.com/nirav2000/Openday",
+    "appUrl": "https://nirav2000.github.io/Openday/",
+    "updatedAt": "2026-09-11T00:00:00Z"
+  },
+  {
+    "name": "House-preview",
+    "title": "House Preview",
+    "blurb": "Preview colours and finishes.",
+    "repoUrl": "https://github.com/nirav2000/House-preview",
+    "appUrl": "https://nirav2000.github.io/House-preview/",
+    "updatedAt": "2026-09-11T00:00:00Z"
+  },
+  {
+    "name": "3dviewer",
+    "title": "3D Viewer",
+    "blurb": "View your house models.",
+    "repoUrl": "https://github.com/nirav2000/3dviewer",
+    "appUrl": "https://nirav2000.github.io/3dviewer/",
+    "updatedAt": "2026-09-11T00:00:00Z"
+  },
+  {
+    "name": "MemoryMastery",
+    "title": "Memory Mastery",
+    "blurb": "Practise memory techniques.",
+    "repoUrl": "https://github.com/nirav2000/MemoryMastery",
+    "appUrl": "https://nirav2000.github.io/MemoryMastery/",
+    "updatedAt": "2026-09-11T00:00:00Z"
+  },
+  {
+    "name": "Grammar-Tree-Coach",
+    "title": "Grammar Tree Coach",
+    "blurb": "Explore grammar and sentence structure.",
+    "repoUrl": "https://github.com/nirav2000/Grammar-Tree-Coach",
+    "appUrl": "https://nirav2000.github.io/Grammar-Tree-Coach/",
+    "updatedAt": "2026-09-11T00:00:00Z"
   }
 ]

@@ -53,6 +53,28 @@ async function loadDashboard() {
   try {
     if (username.toLowerCase() === OWNER_WITH_CURATED_DATA) {
       cachedPagesRepos = await fetchCuratedAppsData();
+      applyCurrentView();
+      try {
+        const repos = await fetchAllRepos(username);
+        const curated = new Map(cachedPagesRepos.map(card => [card.repoUrl.toLowerCase().replace(/\/$/, ''), card]));
+        for (const repo of repos.filter(repo => repo.has_pages)) {
+          const live = toGenericCard(repo);
+          const key = live.repoUrl.toLowerCase().replace(/\/$/, '');
+          curated.set(key, { ...live, ...(curated.get(key) || {}), updatedAt: live.updatedAt });
+        }
+        cachedPagesRepos = [...curated.values()];
+        localStorage.setItem('apps-discovered-v1', JSON.stringify(cachedPagesRepos));
+      } catch (error) {
+        try {
+          const cached = JSON.parse(localStorage.getItem('apps-discovered-v1') || '[]');
+          const cards = new Map(cachedPagesRepos.map(card => [card.repoUrl, card]));
+          cached.forEach(card => { if (!cards.has(card.repoUrl)) cards.set(card.repoUrl, card); });
+          cachedPagesRepos = [...cards.values()];
+        } catch { /* Curated catalogue remains usable. */ }
+        applyCurrentView();
+        setStatus(statusEl, `Showing saved apps. Automatic discovery could not refresh: ${error.message}`, true);
+        return;
+      }
     } else {
       const repos = await fetchAllRepos(username);
       cachedPagesRepos = repos.filter((repo) => repo.has_pages).map(toGenericCard);

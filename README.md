@@ -22,3 +22,6 @@ Open `index.html` in a browser.
 ```bash
 python dashboard_brand/generate_previews.py
 ```
+# Automatic discovery
+
+On every dashboard load, the curated catalogue is merged with all public repositories that GitHub reports as having Pages enabled. Existing titles, descriptions and previews are preserved; new apps use the repository name and description. No token or scheduled job is required. A last-successful local cache keeps discovered apps visible during API outages or rate limits. Private repositories and apps hosted elsewhere are not automatically discovered.
