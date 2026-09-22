@@ -1,6 +1,6 @@
 (function(){
   const KEY='firebase-usage-monitor.v1', LIMIT=31;
-  const detect=()=>{const p=location.pathname.split('/').filter(Boolean)[0]||'root';return p.toLowerCase()};
+  const detect=()=>window.FIREBASE_USAGE_APP||((location.pathname.split('/').filter(Boolean)[0]||'root').toLowerCase());
   const day=()=>new Date().toISOString().slice(0,10);
   const hour=()=>new Date().toISOString().slice(0,13)+':00';
   const load=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{"version":1,"days":{}}')}catch{return{version:1,days:{}}}};
