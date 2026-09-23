@@ -58,9 +58,12 @@
     }
   }
   async function fetchCloud(date=day()){
-    const r=await fetch(CLOUD+'/day?date='+encodeURIComponent(date),{cache:'no-store'});
-    if(!r.ok)throw new Error('Cloud usage '+r.status);
-    return r.json();
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+    try{
+      const r=await fetch(CLOUD+'/day?date='+encodeURIComponent(date),{cache:'no-store',signal:controller.signal});
+      if(!r.ok)throw new Error('Cloud usage '+r.status);
+      return await r.json();
+    }finally{clearTimeout(timer)}
   }
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&localStorage.getItem(KEY+'.dirty')==='1'){const last=Number(localStorage.getItem(KEY+'.lastSync')||0);if(Date.now()-last>=MIN_HIDE_SYNC)syncCloud(true)}});
   window.addEventListener('online',()=>syncCloud(false));
