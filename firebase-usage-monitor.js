@@ -14,7 +14,7 @@
     if(localStorage.getItem(KEY)||!localStorage.getItem(LEGACY))return;
     try{
       const old=JSON.parse(localStorage.getItem(LEGACY)),d=empty();
-      for(const [date,x] of Object.entries(old.days||{}))d.days[date]={targets:{legacy:{project:'legacy/unknown',database:'(default)',apps:x.apps||{}}},hours:x.hours||{}};
+      for(const [date,x] of Object.entries(old.days||{}))d.days[date]={targets:{legacy:{project:'kk-syllabus',database:'(default)',apps:x.apps||{}}},hours:x.hours||{}};
       localStorage.setItem(KEY,JSON.stringify(d));
     }catch{}
   }
