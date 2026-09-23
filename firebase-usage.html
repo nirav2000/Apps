@@ -28,16 +28,19 @@
 
 <div class="card"><h2>How the cloud monitor works</h2><p class="muted">Instrumented apps keep counters locally and upload one compact cumulative snapshot periodically to a Cloudflare Worker. The snapshot is stored in R2, not Firestore, so monitoring does not create Firestore reads or writes. The dashboard reads those snapshots only when opened or refreshed. Google Cloud Monitoring remains the authoritative source for total Firestore usage, including traffic from uninstrumented devices, the Firebase Console and backend services.</p></div>
 </div><script>
+const $=id=>document.getElementById(id);
+const datePick=$('datePick'),cloudMode=$('cloudMode'),localMode=$('localMode'),refreshButton=$('refresh'),statusEl=$('status'),cloudDot=$('cloudDot'),readsEl=$('reads'),writesEl=$('writes'),projectsEl=$('projects'),appsCountEl=$('appsCount'),readsNoteEl=$('readsNote'),writesNoteEl=$('writesNote'),deviceCountEl=$('deviceCount'),drillEl=$('drill'),hourlyEl=$('hourly');
+
 const today=()=>new Date().toISOString().slice(0,10);datePick.value=today();let mode='cloud',view=null;
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 function normalizeLocal(date){const d=FirebaseUsageMonitor.data(),x=d.days?.[date]||{targets:{},hours:{}};return{version:2,date,deviceCount:1,targets:x.targets||{},hours:x.hours||{},generatedAt:null}}
 function totals(data){let R=0,W=0,apps=new Set();for(const t of Object.values(data.targets||{}))for(const [name,a] of Object.entries(t.apps||{})){apps.add(name);R+=a.reads||0;W+=a.writes||0}return{R,W,apps:apps.size,targets:Object.keys(data.targets||{}).length}}
 function render(data){
-  view=data;const t=totals(data);reads.textContent=t.R.toLocaleString();writes.textContent=t.W.toLocaleString();projects.textContent=t.targets;appsCount.textContent=t.apps;
-  deviceCount.textContent=(data.deviceCount||0)+' device'+((data.deviceCount||0)===1?'':'s');
-  readsNote.textContent=mode==='cloud'?'Instrumented cloud-observed':'Observed in this browser';writesNote.textContent=readsNote.textContent;
+  view=data;const t=totals(data);readsEl.textContent=t.R.toLocaleString();writesEl.textContent=t.W.toLocaleString();projectsEl.textContent=t.targets;appsCountEl.textContent=t.apps;
+  deviceCountEl.textContent=(data.deviceCount||0)+' device'+((data.deviceCount||0)===1?'':'s');
+  readsNoteEl.textContent=mode==='cloud'?'Instrumented cloud-observed':'Observed in this browser';writesNoteEl.textContent=readsNoteEl.textContent;
   const entries=Object.entries(data.targets||{}).sort((a,b)=>{const A=Object.values(a[1].apps||{}).reduce((n,x)=>n+(x.reads||0)+(x.writes||0),0),B=Object.values(b[1].apps||{}).reduce((n,x)=>n+(x.reads||0)+(x.writes||0),0);return B-A});
-  drill.innerHTML=entries.map(([key,target])=>{
+  drillEl.innerHTML=entries.map(([key,target])=>{
     const apps=Object.entries(target.apps||{}).sort((a,b)=>(b[1].reads+b[1].writes)-(a[1].reads+a[1].writes));
     const tr=apps.reduce((n,[,a])=>n+(a.reads||0),0),tw=apps.reduce((n,[,a])=>n+(a.writes||0),0);
     return '<section class="project"><div class="project-head"><div><strong>'+esc(target.project||key)+'</strong><div class="muted small">Database: '+esc(target.database||'(default)')+'</div></div><div class="counts"><span class="reads">'+tr.toLocaleString()+' reads</span><span class="writes">'+tw.toLocaleString()+' writes</span></div></div><div class="apps">'+apps.map(([name,a])=>{
@@ -46,18 +49,18 @@ function render(data){
     }).join('')+'</div></section>';
   }).join('')||'<div class="empty">No instrumented activity for this date.</div>';
   const hs=[...Array(24)].map((_,i)=>String(i).padStart(2,'0')),m=Math.max(1,...Object.values(data.hours||{}).flatMap(h=>[h.reads||0,h.writes||0]));
-  hourly.innerHTML=hs.map(h=>{const key=Object.keys(data.hours||{}).find(v=>v.slice(11,13)===h),z=data.hours?.[key]||{};return '<div class="col" title="'+h+':00 · '+(z.reads||0)+' reads · '+(z.writes||0)+' writes"><div class="r" style="height:'+(100*(z.reads||0)/m)+'%"></div><div class="w" style="height:'+(100*(z.writes||0)/m)+'%"></div></div>'}).join('');
+  hourlyEl.innerHTML=hs.map(h=>{const key=Object.keys(data.hours||{}).find(v=>v.slice(11,13)===h),z=data.hours?.[key]||{};return '<div class="col" title="'+h+':00 · '+(z.reads||0)+' reads · '+(z.writes||0)+' writes"><div class="r" style="height:'+(100*(z.reads||0)/m)+'%"></div><div class="w" style="height:'+(100*(z.writes||0)/m)+'%"></div></div>'}).join('');
 }
 async function load(){
-  status.textContent='Loading…';cloudDot.classList.remove('live');
-  if(mode==='local'){render(normalizeLocal(datePick.value));status.textContent='This browser only';return}
+  statusEl.textContent='Loading…';cloudDot.classList.remove('live');
+  if(mode==='local'){render(normalizeLocal(datePick.value));statusEl.textContent='This browser only';return}
   try{
     await FirebaseUsageMonitor.syncCloud(true);
     const data=await FirebaseUsageMonitor.fetchCloud(datePick.value);render(data);cloudDot.classList.add('live');
-    status.textContent='Cloud snapshot'+(data.generatedAt?' · '+new Date(data.generatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'');
-  }catch(e){status.textContent='Cloud unavailable — showing this browser';render(normalizeLocal(datePick.value))}
+    statusEl.textContent='Cloud snapshot'+(data.generatedAt?' · '+new Date(data.generatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'');
+  }catch(e){statusEl.textContent='Cloud unavailable — showing this browser';render(normalizeLocal(datePick.value))}
 }
 cloudMode.onclick=()=>{mode='cloud';cloudMode.classList.add('active');localMode.classList.remove('active');load()};
 localMode.onclick=()=>{mode='local';localMode.classList.add('active');cloudMode.classList.remove('active');load()};
-refresh.onclick=load;datePick.onchange=load;window.addEventListener('firebase-usage-monitor:update',()=>{if(mode==='local')load()});load();
+refreshButton.onclick=load;datePick.onchange=load;window.addEventListener('firebase-usage-monitor:update',()=>{if(mode==='local')load()});load();
 </script></body></html>
