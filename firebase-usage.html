@@ -1,13 +1,63 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Firebase Usage Monitor</title>
 <style>
-:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;color:#142033;background:#f4f7f9}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1100px;margin:auto;padding:24px}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.card{background:#fff;border:1px solid #dce3e8;border-radius:18px;padding:18px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.metric strong{font-size:32px;display:block}.muted{color:#66727d}.warn{color:#a75b00}.bad{color:#b42318}.bars{display:grid;gap:10px}.barrow{display:grid;grid-template-columns:120px 1fr 72px;gap:10px;align-items:center}.bar{height:14px;border-radius:999px;background:#e9eef2;overflow:hidden}.fill{height:100%;background:#1f7aec}.fill.w{background:#e58b18}.hourly{display:grid;grid-template-columns:repeat(24,1fr);height:150px;align-items:end;gap:3px}.col{display:flex;gap:2px;align-items:end;height:100%}.r,.w{width:50%;min-height:1px;border-radius:3px 3px 0 0}.r{background:#1f7aec}.w{background:#e58b18}button,a.btn{border:0;border-radius:12px;padding:10px 14px;background:#102033;color:#fff;text-decoration:none;font-weight:700}input{padding:9px;border:1px solid #ccd5db;border-radius:10px;width:90px}
-</style><script src="./firebase-usage-monitor.js"></script></head><body><div class="wrap">
-<div class="top"><div><h1>Firebase usage monitor</h1><p class="muted">Per-app client activity recorded on this browser. Google Cloud Monitoring remains the authoritative project total.</p></div><a class="btn" href="./">Apps</a></div>
-<div class="card"><div class="grid"><div class="metric"><span>Reads today</span><strong id="reads">0</strong><small>Local observed</small></div><div class="metric"><span>Writes today</span><strong id="writes">0</strong><small>Local observed</small></div><div class="metric"><span>Free-tier reads</span><strong>50k</strong></div><div class="metric"><span>Free-tier writes</span><strong>20k</strong></div></div></div>
-<div class="card"><div class="top"><div><h2>Early warning</h2><p class="muted">Warn locally when this browser sees unusual activity.</p></div><div>Reads <input id="rt" type="number" value="1000"> Writes <input id="wt" type="number" value="1000"> <button id="save">Save</button> <button id="notify">Enable notifications</button></div></div></div>
-<div class="card"><h2>By app today</h2><div id="apps" class="bars"></div></div>
-<div class="card"><h2>Hourly activity</h2><div class="hourly" id="hourly"></div><p class="muted">Blue = reads · orange = writes</p></div>
-<div class="card"><h2>What this does not count</h2><p class="muted">This client monitor can attribute operations we instrument in your apps. It cannot see Firestore traffic from other devices, Firebase Console, Cloud Functions, or uninstrumented code. Use Google Cloud Monitoring alerts for authoritative project-wide protection.</p></div>
+:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;color:#142033;background:#f4f7f9}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1180px;margin:auto;padding:22px}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.card{background:#fff;border:1px solid #dce3e8;border-radius:18px;padding:18px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.metric strong{font-size:30px;display:block}.muted{color:#66727d}.small{font-size:13px}.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#eef3f7;font-size:12px}.ok{color:#08783e}.warn{color:#a75b00}.bad{color:#b42318}.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,a.btn,select,input{border:1px solid #ccd5db;border-radius:11px;padding:9px 12px;background:#fff;color:#142033;font:inherit}button.primary,a.btn{background:#102033;color:#fff;border-color:#102033;text-decoration:none;font-weight:700}button.active{background:#102033;color:#fff}.project{border:1px solid #e0e6eb;border-radius:15px;margin:12px 0;overflow:hidden}.project-head{padding:14px 15px;background:#f8fafb;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.apps{padding:0 15px 12px}.app{border-top:1px solid #edf1f4;padding:12px 0}.app:first-child{border-top:0}.app-title{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.counts{display:flex;gap:12px;font-variant-numeric:tabular-nums}.reads{color:#1769aa}.writes{color:#a75b00}.ops{margin-top:9px;width:100%;border-collapse:collapse;font-size:13px}.ops th,.ops td{text-align:left;padding:7px;border-top:1px solid #edf1f4}.ops td:nth-child(n+2),.ops th:nth-child(n+2){text-align:right}.hourly{display:grid;grid-template-columns:repeat(24,1fr);height:130px;align-items:end;gap:3px}.col{display:flex;gap:2px;align-items:end;height:100%}.r,.w{width:50%;min-height:1px;border-radius:3px 3px 0 0}.r{background:#1f7aec}.w{background:#e58b18}.empty{padding:22px;text-align:center;color:#66727d}.statusline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dot{width:8px;height:8px;border-radius:50%;background:#9aa5ae}.dot.live{background:#159947}@media(max-width:620px){.wrap{padding:14px}.ops{font-size:12px}.project-head{align-items:flex-start}}
+</style><script src="./firebase-usage-monitor.js?v=2"></script></head><body><div class="wrap">
+<div class="top"><div><h1>Firebase usage monitor</h1><p class="muted">Project → database → app → operation. Cloud snapshots are batched outside Firestore.</p></div><a class="btn" href="./">Apps</a></div>
+
+<div class="card">
+  <div class="top">
+    <div class="controls">
+      <button id="cloudMode" class="active">Cloud</button><button id="localMode">This browser</button>
+      <input id="datePick" type="date">
+      <button id="refresh" class="primary">Refresh</button>
+    </div>
+    <div class="statusline"><span id="cloudDot" class="dot"></span><span id="status" class="muted small">Loading…</span></div>
+  </div>
+</div>
+
+<div class="card"><div class="grid">
+  <div class="metric"><span>Reads</span><strong id="reads">0</strong><small id="readsNote">Observed</small></div>
+  <div class="metric"><span>Writes</span><strong id="writes">0</strong><small id="writesNote">Observed</small></div>
+  <div class="metric"><span>Projects / databases</span><strong id="projects">0</strong></div>
+  <div class="metric"><span>Apps</span><strong id="appsCount">0</strong></div>
+</div></div>
+
+<div class="card"><div class="top"><div><h2>Drill-down</h2><p class="muted">Expand an app to see which operation is creating the activity.</p></div><span id="deviceCount" class="pill">0 devices</span></div><div id="drill"></div></div>
+
+<div class="card"><h2>Hourly activity</h2><div class="hourly" id="hourly"></div><p class="muted small">Blue = reads · orange = writes</p></div>
+
+<div class="card"><h2>How the cloud monitor works</h2><p class="muted">Instrumented apps keep counters locally and upload one compact cumulative snapshot periodically to a Cloudflare Worker. The snapshot is stored in R2, not Firestore, so monitoring does not create Firestore reads or writes. The dashboard reads those snapshots only when opened or refreshed. Google Cloud Monitoring remains the authoritative source for total Firestore usage, including traffic from uninstrumented devices, the Firebase Console and backend services.</p></div>
 </div><script>
-const KEY='firebase-usage-monitor.v1';function data(){return FirebaseUsageMonitor.data()}function render(){const d=data(),k=new Date().toISOString().slice(0,10),x=d.days?.[k]||{apps:{},hours:{}};let R=0,W=0;for(const a of Object.values(x.apps||{})){R+=a.reads||0;W+=a.writes||0}reads.textContent=R.toLocaleString();writes.textContent=W.toLocaleString();const max=Math.max(1,...Object.values(x.apps||{}).flatMap(a=>[a.reads||0,a.writes||0]));apps.innerHTML=Object.entries(x.apps||{}).sort((a,b)=>(b[1].reads+b[1].writes)-(a[1].reads+a[1].writes)).map(([name,a])=>`<div><b>${name}</b><div class="barrow"><span>Reads</span><div class="bar"><div class="fill" style="width:${100*(a.reads||0)/max}%"></div></div><b>${a.reads||0}</b></div><div class="barrow"><span>Writes</span><div class="bar"><div class="fill w" style="width:${100*(a.writes||0)/max}%"></div></div><b>${a.writes||0}</b></div></div>`).join('')||'<p class="muted">No instrumented activity recorded on this browser yet.</p>';const hs=[...Array(24)].map((_,i)=>String(i).padStart(2,'0')),m=Math.max(1,...Object.values(x.hours||{}).flatMap(h=>[h.reads||0,h.writes||0]));hourly.innerHTML=hs.map(h=>{const key=Object.keys(x.hours||{}).find(v=>v.slice(11,13)===h),z=x.hours?.[key]||{};return `<div class="col" title="${h}:00 · ${z.reads||0} reads · ${z.writes||0} writes"><div class="r" style="height:${100*(z.reads||0)/m}%"></div><div class="w" style="height:${100*(z.writes||0)/m}%"></div></div>`}).join('')}save.onclick=()=>{FirebaseUsageMonitor.setThresholds({reads:+rt.value||1000,writes:+wt.value||1000});render()};notify.onclick=()=>FirebaseUsageMonitor.requestNotifications();window.addEventListener('firebase-usage-monitor:update',render);render();
+const today=()=>new Date().toISOString().slice(0,10);datePick.value=today();let mode='cloud',view=null;
+const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+function normalizeLocal(date){const d=FirebaseUsageMonitor.data(),x=d.days?.[date]||{targets:{},hours:{}};return{version:2,date,deviceCount:1,targets:x.targets||{},hours:x.hours||{},generatedAt:null}}
+function totals(data){let R=0,W=0,apps=new Set();for(const t of Object.values(data.targets||{}))for(const [name,a] of Object.entries(t.apps||{})){apps.add(name);R+=a.reads||0;W+=a.writes||0}return{R,W,apps:apps.size,targets:Object.keys(data.targets||{}).length}}
+function render(data){
+  view=data;const t=totals(data);reads.textContent=t.R.toLocaleString();writes.textContent=t.W.toLocaleString();projects.textContent=t.targets;appsCount.textContent=t.apps;
+  deviceCount.textContent=(data.deviceCount||0)+' device'+((data.deviceCount||0)===1?'':'s');
+  readsNote.textContent=mode==='cloud'?'Instrumented cloud-observed':'Observed in this browser';writesNote.textContent=readsNote.textContent;
+  const entries=Object.entries(data.targets||{}).sort((a,b)=>{const A=Object.values(a[1].apps||{}).reduce((n,x)=>n+(x.reads||0)+(x.writes||0),0),B=Object.values(b[1].apps||{}).reduce((n,x)=>n+(x.reads||0)+(x.writes||0),0);return B-A});
+  drill.innerHTML=entries.map(([key,target])=>{
+    const apps=Object.entries(target.apps||{}).sort((a,b)=>(b[1].reads+b[1].writes)-(a[1].reads+a[1].writes));
+    const tr=apps.reduce((n,[,a])=>n+(a.reads||0),0),tw=apps.reduce((n,[,a])=>n+(a.writes||0),0);
+    return '<section class="project"><div class="project-head"><div><strong>'+esc(target.project||key)+'</strong><div class="muted small">Database: '+esc(target.database||'(default)')+'</div></div><div class="counts"><span class="reads">'+tr.toLocaleString()+' reads</span><span class="writes">'+tw.toLocaleString()+' writes</span></div></div><div class="apps">'+apps.map(([name,a])=>{
+      const ops=Object.entries(a.ops||{}).sort((x,y)=>((y[1].reads||0)+(y[1].writes||0))-((x[1].reads||0)+(x[1].writes||0)));
+      return '<details class="app"><summary class="app-title"><strong>'+esc(name)+'</strong><span class="counts"><span class="reads">'+(a.reads||0).toLocaleString()+' R</span><span class="writes">'+(a.writes||0).toLocaleString()+' W</span></span></summary>'+(ops.length?'<table class="ops"><thead><tr><th>Operation</th><th>Reads</th><th>Writes</th><th>Deletes</th></tr></thead><tbody>'+ops.map(([op,o])=>'<tr><td>'+esc(op)+'</td><td>'+(o.reads||0).toLocaleString()+'</td><td>'+(o.writes||0).toLocaleString()+'</td><td>'+(o.deletes||0).toLocaleString()+'</td></tr>').join('')+'</tbody></table>':'<p class="muted small">No operation labels recorded.</p>')+'</details>';
+    }).join('')+'</div></section>';
+  }).join('')||'<div class="empty">No instrumented activity for this date.</div>';
+  const hs=[...Array(24)].map((_,i)=>String(i).padStart(2,'0')),m=Math.max(1,...Object.values(data.hours||{}).flatMap(h=>[h.reads||0,h.writes||0]));
+  hourly.innerHTML=hs.map(h=>{const key=Object.keys(data.hours||{}).find(v=>v.slice(11,13)===h),z=data.hours?.[key]||{};return '<div class="col" title="'+h+':00 · '+(z.reads||0)+' reads · '+(z.writes||0)+' writes"><div class="r" style="height:'+(100*(z.reads||0)/m)+'%"></div><div class="w" style="height:'+(100*(z.writes||0)/m)+'%"></div></div>'}).join('');
+}
+async function load(){
+  status.textContent='Loading…';cloudDot.classList.remove('live');
+  if(mode==='local'){render(normalizeLocal(datePick.value));status.textContent='This browser only';return}
+  try{
+    await FirebaseUsageMonitor.syncCloud(true);
+    const data=await FirebaseUsageMonitor.fetchCloud(datePick.value);render(data);cloudDot.classList.add('live');
+    status.textContent='Cloud snapshot'+(data.generatedAt?' · '+new Date(data.generatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'');
+  }catch(e){status.textContent='Cloud unavailable — showing this browser';render(normalizeLocal(datePick.value))}
+}
+cloudMode.onclick=()=>{mode='cloud';cloudMode.classList.add('active');localMode.classList.remove('active');load()};
+localMode.onclick=()=>{mode='local';localMode.classList.add('active');cloudMode.classList.remove('active');load()};
+refresh.onclick=load;datePick.onchange=load;window.addEventListener('firebase-usage-monitor:update',()=>{if(mode==='local')load()});load();
 </script></body></html>
