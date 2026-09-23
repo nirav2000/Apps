@@ -15,7 +15,7 @@
         </button>
       </div>
       <p>One place to browse every GitHub Pages app, with app blurbs and visual previews.</p>
-    <div style="margin-top:12px"><a href="firebase-usage.html" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#102033;color:white;text-decoration:none;font-weight:700">Firebase usage monitor</a></div></header>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a href="firebase-usage.html" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#102033;color:white;text-decoration:none;font-weight:700">Firebase usage monitor</a><a href="app-monitor.html" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#102033;color:white;text-decoration:none;font-weight:700">App monitor</a></div></header>
 
     <section id="searchPanel" class="controls" aria-label="Dashboard controls" hidden>
       <div class="field" id="usernameField">
@@ -63,5 +63,5 @@
     </template>
 
     <script src="js/app.js" type="module"></script>
-  </body>
+      <script>window.APP_MONITOR_APP="Apps";</script>\n    <script src="./app-monitor.js?v=1"></script>\n  </body>
 </html>
