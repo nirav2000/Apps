@@ -1,5 +1,5 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-const WORKER_BUILD='2026.09.24.apps-monitor-1';
+const WORKER_BUILD='2026.09.24.apps-monitor-2';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 // Legacy Snag R2 is bound read/write only during the migration window.
@@ -337,6 +337,13 @@ export default {
     const [legacy,dedicated]=await Promise.all([count(env.LEGACY_SNAG_MEDIA),count(env.APP_MONITOR_DATA)]);
     const passkeys=await appMonitorPasskeys(env),recovery=await getJSON(env,APP_MONITOR_SECURITY+'recovery.json');
     return Response.json({ok:true,legacy,dedicated,passkeyCount:passkeys.length,recoveryConfigured:!!recovery},{headers});
+  }
+  if(url.pathname==='/migration/keys'&&request.method==='GET'){
+    const supplied=request.headers.get('X-Migration-Token')||'';
+    if(!env.MIGRATION_TOKEN||supplied!==env.MIGRATION_TOKEN)return new Response('Unauthorized',{status:401,headers});
+    const keys=[];let cursor,truncated=true;
+    while(truncated){const page=await env.LEGACY_SNAG_MEDIA.list({prefix:'_app-monitor/',cursor,limit:1000});keys.push(...page.objects.map(x=>x.key));truncated=page.truncated;cursor=page.cursor}
+    return Response.json({ok:true,keys},{headers});
   }
   if(url.pathname.startsWith('/app-monitor/'))return appMonitorRoute(request,env,headers,url);
   return new Response('Not found',{status:404,headers});
