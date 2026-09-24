@@ -8,12 +8,12 @@
     <strong>First-use passkey setup</strong>
     <p class="small muted">Nobody can claim the first administrator merely by visiting this page. A one-time request must be approved from the authenticated GitHub repository before this browser is allowed to create the first passkey.</p>
     <div id="bootstrapStart"><button id="startBootstrap" class="primary" type="button">Create first-use setup request</button></div>
+    <p id="bootstrapStatus" class="small muted"></p>
     <div id="bootstrapSteps" class="bootstrap-steps hidden">
       <div><strong>1. Setup request</strong><div id="bootstrapRequestId" class="bootstrap-request"></div><button id="copyBootstrap" type="button">Copy request ID</button></div>
       <div><strong>2. Approve it in GitHub</strong><div class="small muted">Open the worker deployment workflow, choose <b>Run workflow</b>, paste the request ID into <b>App Monitor first-use setup request ID to approve</b>, then run it.</div><a class="btn" id="bootstrapGithub" href="https://github.com/nirav2000/snag/actions/workflows/deploy-media-worker.yml" target="_blank" rel="noopener">Open GitHub approval workflow</a></div>
       <div><strong>3. Create your passkey</strong><div class="controls"><input id="bootstrapPasskeyLabel" placeholder="e.g. Nirav iPhone / Bitwarden"><button id="continueBootstrap" class="primary" type="button">I’ve approved it — create passkey</button></div></div>
-      <div id="bootstrapStatus" class="small muted"></div>
-    </div>
+     </div>
   </div>
   <details class="auth-detail" id="recoveryDetails"><summary>Use recovery token</summary>
     <form id="recoveryLoginForm" class="auth-form" autocomplete="on">
@@ -91,14 +91,14 @@ async function recoveryLogin(token){
 }
 async function startBootstrap(){
  try{
-  E.startBootstrap.disabled=true;E.bootstrapStatus.textContent='Creating one-time setup request…';
+  E.startBootstrap.disabled=true;E.startBootstrap.textContent='Creating…';E.bootstrapStatus.textContent='Creating one-time setup request…';E.bootstrapStatus.className='small muted';
   bootstrapSecret=randomToken();
   const r=await jsonFetch('/bootstrap/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:bootstrapSecret})});
   if(r.status===409){E.bootstrapStatus.textContent=await r.text();return}if(!r.ok)throw new Error('Could not create setup request');
   const d=await r.json();bootstrapRequest=d.requestId;sessionStorage.setItem('app-monitor.bootstrap-request.v1',bootstrapRequest);sessionStorage.setItem('app-monitor.bootstrap-secret.v1',bootstrapSecret);
   E.bootstrapRequestId.textContent=bootstrapRequest;E.bootstrapSteps.classList.remove('hidden');E.bootstrapStart.classList.add('hidden');
   E.bootstrapStatus.textContent='Request expires '+new Date(d.expiresAt).toLocaleTimeString()+'. Approve only this request ID in GitHub, then return here.';
- }catch(e){E.bootstrapStatus.textContent=e.message||String(e);E.bootstrapStatus.className='small auth-error'}finally{E.startBootstrap.disabled=false}
+ }catch(e){E.bootstrapStatus.textContent='Setup request failed: '+(e.message||String(e));E.bootstrapStatus.className='small auth-error'}finally{E.startBootstrap.disabled=false;E.startBootstrap.textContent='Create first-use setup request'}
 }
 async function continueBootstrap(){
  if(!bootstrapRequest)return;
