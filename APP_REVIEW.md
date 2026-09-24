@@ -140,30 +140,11 @@ Recommended future project: a small dedicated Firebase project such as `apps-ide
 
 ---
 
-## 4. Passkey admin-auth framework
+## 4. Private administrator authentication
 
-Reference documentation:
+Private/admin surfaces use the shared `apps-passkey-auth.js` module rather than app-specific permanent bearer-token schemes.
 
-`PASSKEY_AUTH_FRAMEWORK.md`
-
-Shared browser module:
-
-`https://nirav2000.github.io/Apps/apps-passkey-auth.js?v=1`
-
-App Monitor is the first implementation. The framework separates cross-app user identity (`apps-auth.js`) from privileged administrator authentication.
-
-Key properties:
-
-- passkey-first WebAuthn with required user verification;
-- owner-approved first-use bootstrap through authenticated GitHub Actions rather than "first visitor wins";
-- one active bootstrap request, expiring after 30 minutes;
-- private server-side recovery hash;
-- 12-hour revocable admin sessions;
-- multiple independently revocable passkeys;
-- five-failure clearing of only the affected app's cached admin/session state;
-- reusable client API for future private/admin surfaces.
-
-Use this framework for new privileged interfaces instead of adding new permanent bearer-token schemes.
+Security-sensitive operational details, recovery arrangements and incident-response notes are intentionally maintained outside this public repository.
 
 ---
 
