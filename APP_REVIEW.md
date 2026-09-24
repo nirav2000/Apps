@@ -734,6 +734,15 @@ When an app improvement, fix or architectural suggestion is discussed but **not 
 
 ## Platform consolidation roadmap
 
+### P1 — Apps dashboard authentication and layout
+
+- [ ] Add authentication to the main `Apps` dashboard itself, using the shared/passkey-capable Apps authentication framework rather than a one-off login implementation.
+- [ ] Decide which Apps dashboard surfaces remain public versus authenticated-only; keep security/admin controls and any private operational data behind authentication.
+- [ ] Add reusable **panel layout/rearrangement** capability to the shared UI/component library, based on the draggable/reorderable panel approach used in Firebase Usage Monitor.
+- [ ] Make panel rearrangement a standard optional platform component so App Monitor, Firebase Usage Monitor, the Apps dashboard and future dashboards can share the same implementation and persistence behaviour.
+- [ ] Support saved per-device/user panel order and visibility, with a reset-to-default layout option.
+- [ ] Include panel-layout/rearrangement in the shared module/component catalogue and platform manifest capability list.
+
 ### P1 — Apps Platform loader and manifest
 
 - [ ] Replace separate shared script tags with one versioned Apps Platform loader.
