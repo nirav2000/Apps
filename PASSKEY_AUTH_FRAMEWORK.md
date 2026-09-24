@@ -55,22 +55,23 @@ A public "register the first passkey" button is **not sufficient**. Whoever visi
 
 The framework uses an out-of-band owner approval:
 
-1. Browser asks the Worker to create one random, 30-minute setup request.
-2. The Worker allows only one active setup request.
-3. Browser shows the request ID.
-4. Owner opens the authenticated GitHub Actions workflow.
-5. Owner manually runs the workflow with that exact request ID.
-6. GitHub Actions writes an approval record to private R2 using Cloudflare credentials held as GitHub secrets.
-7. Browser asks the Worker to verify approval.
-8. Only an approved, unexpired, current request may start WebAuthn registration.
-9. WebAuthn requires user verification.
-10. Worker stores the new passkey public key.
-11. Bootstrap becomes unavailable as soon as a passkey exists.
-12. The approval is consumed/deleted.
-13. Any migrated/old recovery credential is invalidated.
-14. Worker returns a normal short-lived admin session.
+1. Browser generates a high-entropy setup secret that remains in that browser session.
+2. Browser asks the Worker to create a random, 30-minute setup request and sends the setup secret over HTTPS.
+3. Worker stores only the setup secret's hash and returns a public request ID.
+4. Browser shows only the request ID; the private setup secret is never shown in GitHub.
+5. Owner opens the authenticated GitHub Actions workflow.
+6. Owner manually runs the workflow with that exact request ID.
+7. GitHub Actions writes an approval record to private R2 using Cloudflare credentials held as GitHub secrets.
+8. Browser asks the Worker to verify approval and proves possession of the browser-only setup secret.
+9. Only an approved, unexpired, current request with the matching setup proof may start WebAuthn registration.
+10. WebAuthn requires user verification.
+11. Worker stores the new passkey public key.
+12. Bootstrap becomes unavailable as soon as a passkey exists.
+13. The approval is consumed/deleted.
+14. Any migrated/old recovery credential is invalidated.
+15. Worker returns a normal short-lived admin session.
 
-This means an attacker who merely discovers the public page cannot take ownership. They would also need control of the authenticated GitHub repository workflow or the Cloudflare account.
+This means an attacker who merely discovers the public page or even learns an approved request ID cannot take ownership. They would need both the browser-bound setup proof and the GitHub approval, or control of the GitHub/Cloudflare root of trust. A competing browser can at most cause a temporary setup denial before approval; it cannot use another browser's approved request to register a passkey.
 
 ## Normal passkey sign-in
 
