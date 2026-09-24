@@ -1,6 +1,6 @@
 (function(){
 'use strict';if(window.AppMonitor||window.APP_MONITOR_DISABLED)return;
-const CLOUD='https://snag-media-api.nirav2000-github.workers.dev/app-monitor',DEVICE_KEY='app-monitor.v1.device',CANONICAL_DEVICE_KEY='apps-platform.v1.device';
+const CLOUD='https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor',DEVICE_KEY='app-monitor.v1.device',CANONICAL_DEVICE_KEY='apps-platform.v1.device';
 const pad=n=>String(n).padStart(2,'0'),date=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
 const clean=(v,n=160)=>String(v??'').trim().slice(0,n),makeId=p=>p+(crypto.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
 const app=clean(window.APP_MONITOR_APP||((location.hostname==='nirav2000.github.io'?(location.pathname.split('/').filter(Boolean)[0]||'root'):location.hostname)||'unknown'),80);
