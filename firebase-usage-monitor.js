@@ -1,5 +1,5 @@
 (function(){
-  const KEY='firebase-usage-monitor.v3', V2='firebase-usage-monitor.v2', V1='firebase-usage-monitor.v1', LIMIT=31;
+  const KEY='firebase-usage-monitor.v3', V2='firebase-usage-monitor.v2', V1='firebase-usage-monitor.v1', CANONICAL_DEVICE_KEY='apps-platform.v1.device', LIMIT=31;
   const CLOUD='https://snag-media-api.nirav2000-github.workers.dev/usage';
   const ACTIVE_SYNC=5*60*1000, FIRST_SYNC=30*1000;
   const detectApp=()=>window.FIREBASE_USAGE_APP||((location.pathname.split('/').filter(Boolean)[0]||'root').toLowerCase());
@@ -12,7 +12,7 @@
   const empty=()=>({version:3,days:{}});
   const load=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'null')||empty()}catch{return empty()}};
   const rawSave=d=>localStorage.setItem(KEY,JSON.stringify(d));
-  const deviceId=()=>{let x=localStorage.getItem(KEY+'.device')||localStorage.getItem(V2+'.device');if(!x){x=(crypto.randomUUID?.()||('d-'+Date.now()+'-'+Math.random().toString(36).slice(2))).replace(/[^A-Za-z0-9._-]/g,'');}localStorage.setItem(KEY+'.device',x);return x};
+  const deviceId=()=>{let x=window.AppsAuth?.deviceId?.()||localStorage.getItem(CANONICAL_DEVICE_KEY)||localStorage.getItem(KEY+'.device')||localStorage.getItem(V2+'.device');if(!x){x=('d-'+(crypto.randomUUID?.()||Date.now()+'-'+Math.random().toString(36).slice(2))).replace(/[^A-Za-z0-9._-]/g,'');}localStorage.setItem(CANONICAL_DEVICE_KEY,x);localStorage.setItem(KEY+'.device',x);localStorage.setItem(V2+'.device',x);return x};
   const deviceInfo=()=>{
     const ua=navigator.userAgent||'',touch=navigator.maxTouchPoints||0;
     let kind='Browser';
@@ -26,7 +26,7 @@
     else if(/FxiOS|Firefox/i.test(ua))browser='Firefox';
     else if(/Safari/i.test(ua))browser='Safari';
     const id=deviceId(),short=id.slice(-4).toUpperCase();
-    return {kind,browser,label:kind+' · '+short};
+    return {kind,browser,label:window.AppsAuth?.deviceLabel?.()||kind+' · '+short};
   };
   function migrate(){
     if(localStorage.getItem(KEY))return;
