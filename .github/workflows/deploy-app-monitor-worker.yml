@@ -2,6 +2,13 @@ name: Deploy App Monitor worker
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "app-monitor-worker.js"
+      - "wrangler-app-monitor.jsonc"
+      - "package.json"
+      - ".github/workflows/deploy-app-monitor-worker.yml"
 
 permissions:
   contents: read
