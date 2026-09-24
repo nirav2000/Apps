@@ -587,3 +587,63 @@ For every new maintained web application:
 8. allow explicit opt-out only when monitoring is deliberately inappropriate
 
 The monitoring implementation, storage provider and analytics dashboard should remain independently replaceable without changing application business logic.
+
+
+---
+
+# 17. App Monitor versus Google Analytics
+
+App Monitor and a product-analytics service such as Google Analytics solve different problems.
+
+## App Monitor is best for
+
+- cross-app operational visibility;
+- exact Apps-platform device IDs;
+- explicit person/device aliases;
+- app authentication identity where deliberately supplied;
+- raw session records;
+- IP/network context available at the App Monitor server;
+- distinguishing first-party synthetic previews and other automation;
+- investigating unexpected access;
+- custom security/admin session views;
+- full control over the schema and retention.
+
+## Google Analytics is best for
+
+- standard acquisition/referrer reporting;
+- page/event engagement analytics;
+- funnels and journeys;
+- aggregate user/session/device reports;
+- campaign attribution;
+- standard analytics reporting and external benchmarking conventions.
+
+Google Analytics should not replace App Monitor for the current operational/security use case. GA4 automatically excludes known bot/spider traffic, which is useful for product analytics but conflicts with the App Monitor goal of retaining and classifying automated traffic. It also does not provide raw IP addresses as an analytics dimension.
+
+## Recommended architecture
+
+Use App Monitor as the **canonical operational/identity/automation ledger**.
+
+Optionally add a product-analytics provider later for richer behavioural analytics.
+
+If Google Analytics is added, extract aggregate reports through its Data API into the central dashboard rather than trying to make GA4 the source of truth for App Monitor identities.
+
+A combined dashboard could therefore show:
+
+~~~text
+App Monitor
+  -> operational sessions
+  -> aliases / people / devices
+  -> automation classification
+  -> network context
+
+Google Analytics (optional)
+  -> acquisition
+  -> engagement
+  -> events / funnels
+  -> aggregate product analytics
+
+Central Apps dashboard
+  -> presents both views without conflating them
+~~~
+
+The two datasets should remain labelled as different measurement systems rather than attempting to force session counts to match exactly.
