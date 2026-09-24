@@ -13,6 +13,10 @@ A no-framework HTML/CSS/JS dashboard that aggregates GitHub Pages apps into one 
 - Direct links to each deployed app and source repository.
 - Fallback mode for other usernames/orgs using live GitHub API discovery.
 
+## Architecture and monitoring review
+
+See [APP_REVIEW.md](APP_REVIEW.md) for the living register covering app persistence, Firebase projects/databases, authentication, Firebase usage instrumentation, App Monitor identity/device linkage, and the implementation backlog.
+
 ## Run locally
 
 Open `index.html` in a browser.
