@@ -10,15 +10,6 @@ const cors=(origin,allowed)=>({
   'Access-Control-Max-Age':'86400'
 });
 const allowedOrigin=(request,env)=>(request.headers.get('Origin')||'')===(env.ALLOWED_ORIGIN||'https://nirav2000.github.io');
-async function verifyFirebaseToken(request,env){
-  const h=request.headers.get('Authorization')||'';
-  if(!h.startsWith('Bearer '))throw new Response('Unauthorized',{status:401});
-  const token=h.slice(7);
-  const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key='+encodeURIComponent(env.FIREBASE_WEB_API_KEY),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token})});
-  if(!r.ok)throw new Response('Unauthorized',{status:401});
-  const data=await r.json();if(!data.users?.[0]?.localId)throw new Response('Unauthorized',{status:401});
-  return data.users[0];
-}
 const validDate=x=>/^\d{4}-\d{2}-\d{2}$/.test(x||'');
 const validDevice=x=>/^[A-Za-z0-9._-]{8,100}$/.test(x||'');
 const validSession=x=>/^[A-Za-z0-9._-]{8,120}$/.test(x||'');
@@ -75,69 +66,7 @@ async function appMonitorPasskeys(env){return listJSON(env,APP_MONITOR_SECURITY+
 async function bootstrapProof(request,record){const secret=request.headers.get('X-App-Monitor-Bootstrap')||'';if(!record?.proofHash||secret.length<32)return false;return (await sha256(secret))===record.proofHash}
 async function saveChallenge(env,kind,challenge,sessionHash=''){const id=randomSecret(18),record={version:2,id,kind,challenge,sessionHash,createdAt:new Date().toISOString()};await putJSON(env,APP_MONITOR_SECURITY+'challenges/'+id+'.json',record);return id}
 async function takeChallenge(env,id,kind){const key=APP_MONITOR_SECURITY+'challenges/'+String(id||'')+'.json',x=await getJSON(env,key);if(!x||x.kind!==kind||Date.now()-Date.parse(x.createdAt)>APP_MONITOR_CHALLENGE_MS)return null;await env.APP_MONITOR_DATA.delete(key);return x}
-function mergeUsage(target,out){
-  out.version=3;out.targets??={};out.hours??={};out.buckets??={};
-  for(const [key,t] of Object.entries(target?.targets||{})){
-    const T=out.targets[key]??={project:t.project||'unknown',database:t.database||'(default)',apps:{}};
-    for(const [app,a] of Object.entries(t.apps||{})){
-      const A=T.apps[app]??={reads:0,writes:0,deletes:0,listeners:0,ops:{}};
-      for(const n of ['reads','writes','deletes','listeners'])A[n]+=(Number(a[n])||0);
-      for(const [op,o] of Object.entries(a.ops||{})){
-        const O=A.ops[op]??={reads:0,writes:0,deletes:0,listeners:0};
-        for(const n of ['reads','writes','deletes','listeners'])O[n]+=(Number(o[n])||0);
-      }
-    }
-  }
-  for(const [h,v] of Object.entries(target?.hours||{})){
-    const H=out.hours[h]??={reads:0,writes:0,deletes:0};
-    for(const n of ['reads','writes','deletes'])H[n]+=(Number(v[n])||0);
-  }
-  for(const [b,v] of Object.entries(target?.buckets||{})){
-    const B=out.buckets[b]??={targets:{}};
-    for(const [key,t] of Object.entries(v.targets||{})){
-      const BT=B.targets[key]??={project:t.project||'unknown',database:t.database||'(default)',apps:{}};
-      for(const [app,a] of Object.entries(t.apps||{})){
-        const A=BT.apps[app]??={reads:0,writes:0,deletes:0,listeners:0,ops:{}};
-        for(const n of ['reads','writes','deletes','listeners'])A[n]+=(Number(a[n])||0);
-        for(const [op,o] of Object.entries(a.ops||{})){
-          const O=A.ops[op]??={reads:0,writes:0,deletes:0,listeners:0};
-          for(const n of ['reads','writes','deletes','listeners'])O[n]+=(Number(o[n])||0);
-        }
-      }
-    }
-  }
-  return out;
-}
-async function usageRoute(request,env,headers,url){
-  if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
-  headers={...headers,'Cache-Control':'no-store'};
-  if(url.pathname==='/usage/health')return Response.json({ok:true,service:'firebase-usage',build:WORKER_BUILD,storage:'r2-daily-snapshots'},{headers});
-  if(url.pathname==='/usage/snapshot'&&request.method==='POST'){
-    const len=Number(request.headers.get('Content-Length')||0);if(len>256*1024)return new Response('Payload too large',{status:413,headers});
-    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
-    if(!validDate(body.date)||!validDevice(body.deviceId)||![2,3].includes(body.version))return new Response('Invalid snapshot',{status:400,headers});
-    const snapshot={version:3,date:body.date,deviceId:body.deviceId,device:body.device||null,updatedAt:new Date().toISOString(),targets:body.targets||{},hours:body.hours||{},buckets:body.buckets||{}};
-    const key='_usage/v2/'+body.date+'/'+body.deviceId+'.json';
-    await env.APP_MONITOR_DATA.put(key,JSON.stringify(snapshot),{httpMetadata:{contentType:'application/json'}});
-    return Response.json({ok:true,date:body.date,updatedAt:snapshot.updatedAt},{headers});
-  }
-  if(url.pathname==='/usage/day'&&request.method==='GET'){
-    const date=url.searchParams.get('date');if(!validDate(date))return new Response('Invalid date',{status:400,headers});
-    const prefix='_usage/v2/'+date+'/';let cursor,objects=[],truncated=true;
-    while(truncated&&objects.length<1000){
-      const page=await env.APP_MONITOR_DATA.list({prefix,cursor,limit:1000});
-      objects.push(...page.objects);truncated=page.truncated;cursor=page.cursor;
-    }
-    const aggregate={version:3,date,deviceCount:objects.length,targets:{},hours:{},buckets:{},devices:[]};
-    for(const item of objects){
-      const obj=await env.APP_MONITOR_DATA.get(item.key);if(!obj)continue;
-      try{const snap=JSON.parse(await obj.text());aggregate.devices.push({deviceId:snap.deviceId,device:snap.device||null,updatedAt:snap.updatedAt,targets:snap.targets||{},hours:snap.hours||{},buckets:snap.buckets||{}});mergeUsage(snap,aggregate)}catch{}
-    }
-    aggregate.generatedAt=new Date().toISOString();
-    return Response.json(aggregate,{headers});
-  }
-  return new Response('Not found',{status:404,headers});
-}
+
 async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
@@ -375,7 +304,6 @@ async function appMonitorRoute(request,env,headers,url){
   }
   return new Response('Not found',{status:404,headers});
 }
-
 export default {
  async fetch(request,env){
   const origin=request.headers.get('Origin')||'',headers=cors(origin,env.ALLOWED_ORIGIN||'https://nirav2000.github.io');
