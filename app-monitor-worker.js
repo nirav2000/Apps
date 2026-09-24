@@ -1,8 +1,7 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-const WORKER_BUILD='2026.09.24.apps-monitor-2';
+const WORKER_BUILD='2026.09.24.apps-monitor-3';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
-// Legacy Snag R2 is bound read/write only during the migration window.
 const cors=(origin,allowed)=>({
   'Access-Control-Allow-Origin': origin===allowed?origin:allowed,
   'Access-Control-Allow-Methods':'PUT,POST,GET,OPTIONS',
@@ -309,42 +308,7 @@ export default {
   const origin=request.headers.get('Origin')||'',headers=cors(origin,env.ALLOWED_ORIGIN||'https://nirav2000.github.io');
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
   const url=new URL(request.url);
-  if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,r2Bound:!!env.APP_MONITOR_DATA,legacyBound:!!env.LEGACY_SNAG_MEDIA},{headers});
-  if(url.pathname==='/migration/copy'&&request.method==='POST'){
-    const supplied=request.headers.get('X-Migration-Token')||'';
-    if(!env.MIGRATION_TOKEN||supplied!==env.MIGRATION_TOKEN)return new Response('Unauthorized',{status:401,headers});
-    const prefix='_app-monitor/';let cursor,truncated=true,source=0,copied=0,failed=0;
-    while(truncated){
-      const page=await env.LEGACY_SNAG_MEDIA.list({prefix,cursor,limit:1000});
-      source+=page.objects.length;
-      for(const item of page.objects){
-        try{
-          const obj=await env.LEGACY_SNAG_MEDIA.get(item.key);if(!obj){failed++;continue}
-          const h={};obj.writeHttpMetadata?.(new Headers(h));
-          await env.APP_MONITOR_DATA.put(item.key,obj.body,{httpMetadata:obj.httpMetadata||undefined,customMetadata:obj.customMetadata||undefined});
-          copied++;
-        }catch(e){failed++;console.error('migration copy failed',item.key,e)}
-      }
-      truncated=page.truncated;cursor=page.cursor;
-    }
-    await putJSON(env,'_app-monitor/v2/migration.json',{version:1,sourceBucket:'snag-media',copiedAt:new Date().toISOString(),source,copied,failed});
-    return Response.json({ok:failed===0,source,copied,failed},{headers});
-  }
-  if(url.pathname==='/migration/status'&&request.method==='GET'){
-    const supplied=request.headers.get('X-Migration-Token')||'';
-    if(!env.MIGRATION_TOKEN||supplied!==env.MIGRATION_TOKEN)return new Response('Unauthorized',{status:401,headers});
-    const count=async bucket=>{let cursor,truncated=true,n=0;while(truncated){const p=await bucket.list({prefix:'_app-monitor/',cursor,limit:1000});n+=p.objects.length;truncated=p.truncated;cursor=p.cursor}return n};
-    const [legacy,dedicated]=await Promise.all([count(env.LEGACY_SNAG_MEDIA),count(env.APP_MONITOR_DATA)]);
-    const passkeys=await appMonitorPasskeys(env),recovery=await getJSON(env,APP_MONITOR_SECURITY+'recovery.json');
-    return Response.json({ok:true,legacy,dedicated,passkeyCount:passkeys.length,recoveryConfigured:!!recovery},{headers});
-  }
-  if(url.pathname==='/migration/keys'&&request.method==='GET'){
-    const supplied=request.headers.get('X-Migration-Token')||'';
-    if(!env.MIGRATION_TOKEN||supplied!==env.MIGRATION_TOKEN)return new Response('Unauthorized',{status:401,headers});
-    const keys=[];let cursor,truncated=true;
-    while(truncated){const page=await env.LEGACY_SNAG_MEDIA.list({prefix:'_app-monitor/',cursor,limit:1000});keys.push(...page.objects.map(x=>x.key));truncated=page.truncated;cursor=page.cursor}
-    return Response.json({ok:true,keys},{headers});
-  }
+  if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,r2Bound:!!env.APP_MONITOR_DATA},{headers});
   if(url.pathname.startsWith('/app-monitor/'))return appMonitorRoute(request,env,headers,url);
   return new Response('Not found',{status:404,headers});
  }
