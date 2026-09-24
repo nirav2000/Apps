@@ -709,6 +709,70 @@ Canonical shared device ID.
 
 When an app improvement, fix or architectural suggestion is discussed but **not implemented**, record it as an unchecked TODO in this register (or the relevant app's linked TODO register) so it can be selected and implemented later. Mark it complete only when the implementation has actually been made and verified.
 
+## Platform consolidation roadmap
+
+### P1 — Apps Platform loader and manifest
+
+- [ ] Replace separate shared script tags with one versioned Apps Platform loader.
+- [ ] Give every app a small declarative platform manifest containing app ID, repository, current version, enabled capabilities and service configuration.
+- [ ] Let the loader lazy-load only the capabilities each app requests, such as identity/auth, App Monitor, Firebase Usage, developer notes and version metadata.
+- [ ] Keep app-specific business code outside the shared platform.
+- [ ] Pin apps to a compatible platform major version rather than an unversioned mutable shared script.
+
+### P1 — shared UI components
+
+- [ ] Build shared Web Components for account/sign-in UI, developer/review notes, version/build badge and a small diagnostics/platform menu.
+- [ ] Use Shadow DOM or otherwise isolated styling so platform UI cannot accidentally inherit or break app CSS.
+- [ ] Allow apps to choose automatic placement, an explicit mount point, or no visible UI for each shared capability.
+
+### P1 — developer/review notes
+
+- [ ] Consolidate Openday developer notes, LearnLatin feedback, Beyond100 notes/review feed and Snag notes into one shared notes schema and service.
+- [ ] Preserve app-specific labels/anchors, but standardise note fields, statuses, review-feed publishing and implementation-status syncing.
+- [ ] Support local-first notes with optional authenticated cloud sync.
+- [ ] Move the common notes UI into the shared platform; apps should only declare anchors/labels where useful.
+
+### P1 — Version Lab / release metadata
+
+- [ ] Define one release/version manifest schema for all apps.
+- [ ] Generate release metadata from GitHub commits/tags/Actions where possible instead of hand-maintaining multiple version data formats.
+- [ ] Move the heavy Version Lab comparison UI to a central Apps-hosted tool that can open any registered app/repository/version.
+- [ ] Keep only a lightweight version badge/link inside each app unless an embedded Version Lab is explicitly needed.
+
+### P1 — common Firebase/data adapter
+
+- [ ] Extract Snag's Firestore wrapper pattern into a shared platform Firebase adapter.
+- [ ] Apps should request an instrumented Firestore client rather than calling Firebase directly and manually logging usage.
+- [ ] Standardise auth-state publication, error handling, retries, database/project identification and Firebase Usage attribution in that adapter.
+- [ ] Keep Firestore security rules and app data models app-specific, even when the client adapter is shared.
+
+### P2 — central identity and true cross-app SSO
+
+- [ ] Provision the dedicated Apps identity project already proposed above.
+- [ ] Use one shared account UI and identity model across all apps.
+- [ ] If a central login must authorise access to separate Firebase projects, implement a secure custom-token/token-broker service rather than sharing app databases.
+- [ ] Keep central identity, app authorisation and app business data as separate concerns.
+
+### P2 — additional cross-cutting platform services
+
+- [ ] Add shared client error/crash reporting and diagnostics.
+- [ ] Add feature flags / remote platform configuration with safe defaults and per-app overrides.
+- [ ] Add a common app-info/debug surface showing app version, platform version, auth state, device ID, Firebase target and monitor health.
+- [ ] Standardise offline/update notifications while keeping each app's service worker as an app-local thin shim because service-worker scope cannot be shared across sibling GitHub Pages app paths.
+- [ ] Standardise PWA manifest generation from a template while retaining per-app names, icons, colours and shortcuts.
+
+### Platform design rule
+
+Prefer a three-part shared platform:
+
+1. **Client SDK/loader** for identity, telemetry, Firebase adapters and events.
+2. **Reusable UI components** for login, notes, version/build information and diagnostics.
+3. **Central services/tools** for aggregation, aliases, review feeds and Version Lab.
+
+Do not force every cross-cutting feature into one monolithic imported JavaScript file.
+
+---
+
 # Architecture rules for new apps
 
 1. **App data remains siloed.** Give an app its own Firebase project when isolation/quota/rules justify it.
