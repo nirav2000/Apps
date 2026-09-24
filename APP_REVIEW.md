@@ -247,13 +247,13 @@ Client sync is instrumented for:
 
 - learner catalogue query;
 - profile descriptor writes;
-- event queries;
+- event queries, counted by documents returned (minimum one read for an empty query);
 - event batch writes;
-- progress metadata transactions.
+- progress metadata transaction reads and writes, including callback retries.
 
 Coverage status:
 
-**High for the main browser sync path; partial end-to-end.**
+**High for the main browser sync path; partial end-to-end.** The logger now declares `kk-syllabus/(default)` explicitly so these operations are not attributed to an `unknown` project.
 
 Known uncounted Firebase work:
 
@@ -482,7 +482,7 @@ The learner-profile module can resolve/migrate against the shared learner catalo
 Already instrumented before review:
 
 - note saves;
-- note sync query;
+- note sync query (now counted by documents returned rather than as a single query read);
 - changed-note writes;
 - review-config read;
 - review-feed writes;
@@ -625,6 +625,9 @@ Canonical shared device ID.
 - [x] Reuse central App Monitor aliases for device/auth/session-to-person assignment.
 - [x] Add LearnLatin to Firebase Usage Monitor and instrument its current Firestore sync path.
 - [x] Fill the reviewed Beyond100 Firebase-usage instrumentation gaps.
+- [x] Correct Kk-syllabus collection-query counts and transaction-read attribution.
+- [x] Correct Beyond100 note-query counts.
+- [x] Ensure Kk-syllabus is explicitly attributed to `kk-syllabus/(default)` and allow the shared logger to derive Beyond100's project from `BEYOND100_CLOUD`.
 - [x] Preserve central/app identity fields in the App Monitor Worker.
 
 ## Next platform work
@@ -702,6 +705,7 @@ Reviewed app changes include:
 - shared identity loader added to all six apps;
 - app Firebase-auth bridge added to Kk-syllabus, Openday, LearnLatin, beyond100 and Snag;
 - LearnLatin Firebase usage logging added;
-- Beyond100 missing usage instrumentation added;
+- Beyond100 missing usage instrumentation added and query counts corrected;
+- Kk-syllabus query/transaction read counts and project attribution corrected;
 - Snag App Monitor Worker extended to retain shared/app identity fields.
 
