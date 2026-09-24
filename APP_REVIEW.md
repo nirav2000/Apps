@@ -778,6 +778,18 @@ When an app improvement, fix or architectural suggestion is discussed but **not 
 - [ ] Standardise auth-state publication, error handling, retries, database/project identification and Firebase Usage attribution in that adapter.
 - [ ] Keep Firestore security rules and app data models app-specific, even when the client adapter is shared.
 
+### P1 — Global admin user-view / safe impersonation
+
+- [ ] Add a **global-admin "View as user" mode** across Apps so the owner can select a known user/person from App Monitor or the Apps dashboard and open an app exactly as that user would see it.
+- [ ] This must be a **non-destructive shadow/impersonation mode**: no writes to the user's real data, no changes to their auth/session state, no notifications, no read/unread changes, no "last seen" or activity side effects attributable to that user, and no disruption to the user's live experience.
+- [ ] Prefer a backend-issued short-lived **admin view token** containing the target user/app plus a mandatory `readOnly=true` / `impersonation=true` claim, rather than logging in as the user's actual credential.
+- [ ] Apps should resolve their normal UI using the target user's read model while routing all mutating actions through a guard that blocks writes or redirects them to a disposable sandbox/preview layer.
+- [ ] Clearly display a persistent **"Viewing as <user> — read only"** banner so the administrator cannot mistake impersonation mode for their own account.
+- [ ] Log every admin-view session separately with admin identity, target user, app, start/end time and reason; do not attribute those sessions to the target user's ordinary App Monitor activity.
+- [ ] Where an app cannot safely provide a true read-only impersonation path, fall back to a **snapshot/preview mode** built from copied data rather than touching the live user context.
+- [ ] Add entry points from App Monitor People/User views and the Apps admin dashboard: e.g. **Open app as this user**.
+- [ ] Build this as a reusable Apps Platform capability so each app opts into a standard interface instead of implementing custom impersonation logic.
+
 ### P2 — central identity and true cross-app SSO
 
 - [ ] Provision the dedicated Apps identity project already proposed above.
