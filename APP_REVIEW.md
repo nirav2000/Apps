@@ -684,6 +684,7 @@ Canonical shared device ID.
 
 ### P1 — monitoring quality
 
+- [ ] **Fix App Monitor presence semantics:** distinguish `Active` (visible/foreground and recently reporting), `Background/open tab` (hidden but browser session still exists), and `Inactive` (no recent report). Hidden/page-exit snapshots must not make a session count as active merely by updating `lastSeenAt`. Keep `last seen` separate from activity state; consider distinguishing foreground time from actual engaged interaction time.
 - [ ] Add a monitor “identity confidence/source” display: central auth, app auth, manual device alias, manual session alias or unassigned.
 - [ ] Add a cross-day person/device history view.
 - [ ] Add a “merge/link device” workflow for storage resets or a second browser on the same physical device.
@@ -703,6 +704,10 @@ Canonical shared device ID.
 - [ ] New Firestore apps should declare app/project/database once and obtain an instrumented Firestore interface rather than manually adding counters around each call.
 
 ---
+
+## Suggestions / deferred app work
+
+When an app improvement, fix or architectural suggestion is discussed but **not implemented**, record it as an unchecked TODO in this register (or the relevant app's linked TODO register) so it can be selected and implemented later. Mark it complete only when the implementation has actually been made and verified.
 
 # Architecture rules for new apps
 
