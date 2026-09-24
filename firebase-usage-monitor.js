@@ -3,7 +3,7 @@
   const CLOUD='https://snag-media-api.nirav2000-github.workers.dev/usage';
   const ACTIVE_SYNC=5*60*1000, FIRST_SYNC=30*1000;
   const detectApp=()=>window.FIREBASE_USAGE_APP||((location.pathname.split('/').filter(Boolean)[0]||'root').toLowerCase());
-  const detectProject=()=>window.FIREBASE_USAGE_PROJECT||window.SNAG_CLOUD?.primary?.projectId||window.SNAG_FIREBASE_CONFIG?.projectId||'unknown';
+  const detectProject=()=>window.FIREBASE_USAGE_PROJECT||window.SNAG_CLOUD?.primary?.projectId||window.SNAG_FIREBASE_CONFIG?.projectId||window.BEYOND100_CLOUD?.firebase?.projectId||'unknown';
   const detectDatabase=()=>window.FIREBASE_USAGE_DATABASE||'(default)';
   const pad=n=>String(n).padStart(2,'0');
   const day=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
