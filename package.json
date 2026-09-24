@@ -1,0 +1,15 @@
+{
+  "name": "apps-monitor-worker",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "deploy:monitor": "wrangler deploy -c wrangler-app-monitor.jsonc",
+    "check:monitor": "wrangler deploy --dry-run -c wrangler-app-monitor.jsonc"
+  },
+  "dependencies": {
+    "@simplewebauthn/server": "14.0.2"
+  },
+  "devDependencies": {
+    "wrangler": "^4.68.0"
+  }
+}
