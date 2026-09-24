@@ -110,7 +110,7 @@ async function loadSecurity(){
  E.recoveryStatus.className=d.recovery.needsRotation?'small auth-error':'small muted';
 }
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])),today=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};E.date.value=today();
-const TOKEN_STORE='app-monitor.access-token.v1';let key='',unlocked=false,raw=[],filtered=[],aliases=[];const time=v=>v?new Date(v).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'',dur=ms=>{const m=Math.round((Number(ms)||0)/60000);return m<60?m+'m':Math.floor(m/60)+'h '+m%60+'m'},active=s=>Date.now()-new Date(s.lastSeenAt||s.observedAt||0).getTime()<=600000,userKey=s=>s.identity?.uid||s.identity?.username||'';
+const time=v=>v?new Date(v).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'',dur=ms=>{const m=Math.round((Number(ms)||0)/60000);return m<60?m+'m':Math.floor(m/60)+'h '+m%60+'m'},active=s=>Date.now()-new Date(s.lastSeenAt||s.observedAt||0).getTime()<=600000,userKey=s=>s.identity?.uid||s.identity?.username||'';
 function dev(s){const d=s.device||{};return[d.label,d.kind,d.browser,d.os].filter(Boolean).join(' · ')||s.deviceId?.slice(-8)||'Unknown'}
 function aliasFor(type,id){if(!id)return null;return aliases.find(a=>a.type===type&&a.id===id)||null}
 function personOf(s){return aliasFor('session',s.sessionId)?.person||aliasFor('auth',s.identity?.uid)?.person||aliasFor('device',s.deviceId)?.person||s.identity?.username||''}
