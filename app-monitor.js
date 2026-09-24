@@ -34,9 +34,9 @@ function autoIdentity(){
  try{if(window.firebase?.auth)a.push(window.firebase.auth().currentUser)}catch{}
  for(const x of a){const n=norm(x);if(n)return n}return null
 }
-const startedAt=new Date().toISOString();let activeMs=0,lastTick=Date.now(),pageViews=1,lastPath=location.pathname+location.search,lastTitle=document.title||'',timer=null,pending=false,manual=null;
-function tick(){const now=Date.now();if(document.visibilityState!=='hidden')activeMs+=Math.max(0,now-lastTick);lastTick=now}
-function snap(){tick();const who={...(autoIdentity()||{}),...(manual||{})};return{version:1,date:date(),app,deviceId:deviceId(),sessionId:sessionId(),startedAt,lastSeenAt:new Date().toISOString(),activeMs:Math.round(activeMs),pageViews,path:clean(lastPath,500),title:clean(lastTitle,200),referrer:clean(document.referrer,500),device:device(),identity:Object.keys(who).length?who:null}}
+const startedAt=new Date().toISOString();let activeMs=0,lastTick=Date.now(),lastActiveAt=startedAt,pageViews=1,lastPath=location.pathname+location.search,lastTitle=document.title||'',timer=null,pending=false,manual=null;
+function tick(){const now=Date.now();if(document.visibilityState!=='hidden'){activeMs+=Math.max(0,now-lastTick);lastActiveAt=new Date(now).toISOString()}lastTick=now}
+function snap(){tick();const who={...(autoIdentity()||{}),...(manual||{})};return{version:1,date:date(),app,deviceId:deviceId(),sessionId:sessionId(),startedAt,lastSeenAt:new Date().toISOString(),lastActiveAt,visibility:document.visibilityState,activeMs:Math.round(activeMs),pageViews,path:clean(lastPath,500),title:clean(lastTitle,200),referrer:clean(document.referrer,500),device:device(),identity:Object.keys(who).length?who:null}}
 async function send(reason='heartbeat',force=false){if(pending&&!force)return{ok:false,skipped:'pending'};pending=true;const body=snap();body.reason=reason;const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);try{const r=await fetch(CLOUD+'/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true,cache:'no-store',signal:c.signal});if(!r.ok)throw new Error('App monitor '+r.status);dispatchEvent(new CustomEvent('app-monitor:sent',{detail:{reason,at:body.lastSeenAt}}));return{ok:true}}catch(e){dispatchEvent(new CustomEvent('app-monitor:error',{detail:{error:String(e)}}));return{ok:false,error:String(e)}}finally{clearTimeout(t);pending=false}}
 function schedule(ms=1500,reason='pageview'){clearTimeout(timer);timer=setTimeout(()=>send(reason,false),ms)}
 function notePage(){const p=location.pathname+location.search;if(p!==lastPath){lastPath=p;lastTitle=document.title||lastTitle;pageViews++;schedule()}}
@@ -44,7 +44,7 @@ for(const n of['pushState','replaceState']){const o=history[n];history[n]=functi
 addEventListener('popstate',()=>setTimeout(notePage,0));
 addEventListener('apps-auth:change',e=>{const n=norm(e.detail?.effectiveUser);if(n)manual=n;schedule(100,'identity-link')});
 document.addEventListener('visibilitychange',()=>{tick();if(document.visibilityState==='hidden')send('hidden',true)});
-addEventListener('pagehide',()=>{tick();send('pagehide',true)});addEventListener('online',()=>send('online'));setInterval(()=>send('heartbeat'),5*60*1000);
-window.AppMonitor={version:1,app,deviceId:deviceId(),sessionId:sessionId(),send,identify:v=>{manual=norm(v)||null;schedule(100,'identify');return manual},clearIdentity:()=>{manual=null;schedule(100,'identity-clear')},data:snap};
+addEventListener('pagehide',()=>{tick();send('pagehide',true)});addEventListener('online',()=>{if(document.visibilityState!=='hidden')send('online')});setInterval(()=>{if(document.visibilityState!=='hidden')send('heartbeat')},5*60*1000);
+window.AppMonitor={version:2,app,deviceId:deviceId(),sessionId:sessionId(),send,identify:v=>{manual=norm(v)||null;schedule(100,'identify');return manual},clearIdentity:()=>{manual=null;schedule(100,'identity-clear')},data:snap};
 schedule(2000,'start');
 })();
