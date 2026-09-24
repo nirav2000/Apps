@@ -1,13 +1,23 @@
 import { APP_SPECIFIC_PREVIEWS, OWNER_WITH_CURATED_DATA } from './constants.js';
 
 const repoUrl = (owner, repo) => `https://github.com/${owner}/${repo}`;
-const screenshotFromUrl = (url) => `https://image.thum.io/get/width/1200/crop/700/noanimate/${url}`;
+const previewTarget = (url) => {
+  try {
+    const target = new URL(url);
+    target.searchParams.set('app_monitor_source', 'apps-preview');
+    return target.toString();
+  } catch {
+    return url;
+  }
+};
+const screenshotFromUrl = (url) => `https://image.thum.io/get/width/1200/crop/700/noanimate/${previewTarget(url)}`;
 const screenshotImage = (owner, repo) => screenshotFromUrl(`https://${owner}.github.io/${repo}/`);
 
 function normalizeRepo(curatedRepo) {
   const owner = (curatedRepo.repoUrl?.split('/')[3] || OWNER_WITH_CURATED_DATA).trim();
   const repo = (curatedRepo.repoUrl?.split('/')[4] || curatedRepo.name).trim();
-  const fallbackImage = curatedRepo.image || screenshotFromUrl(curatedRepo.appUrl) || screenshotImage(owner, repo);
+  const storedImage = curatedRepo.image && !/image\.thum\.io/i.test(curatedRepo.image) ? curatedRepo.image : null;
+  const fallbackImage = storedImage || screenshotFromUrl(curatedRepo.appUrl) || screenshotImage(owner, repo);
   const curatedPreview = APP_SPECIFIC_PREVIEWS[curatedRepo.name] || APP_SPECIFIC_PREVIEWS[repo] || null;
 
   return {
