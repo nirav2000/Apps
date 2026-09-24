@@ -190,11 +190,11 @@ Client:
 
 Backend:
 
-Cloudflare Worker in `snag/cloudflare-worker.js`
+Dedicated Cloudflare Worker in `Apps/app-monitor-worker.js` (`apps-monitor-api`)
 
 Storage:
 
-Cloudflare R2 under `_app-monitor/`
+Dedicated Cloudflare R2 bucket `apps-monitor-data` under `_app-monitor/`
 
 Captured when available:
 
@@ -211,7 +211,7 @@ Captured when available:
 - approximate Cloudflare network geography
 - first/last seen timestamps
 
-The monitor sends an early snapshot, periodic heartbeats, and best-effort hidden/page-exit snapshots. It creates **no Firestore reads or writes**.
+The monitor sends an early snapshot, foreground-only periodic heartbeats, and best-effort hidden/page-exit snapshots. Foreground activity is tracked separately from a merely open/background tab. It creates **no Firestore reads or writes**.
 
 ### Privacy action
 
@@ -639,7 +639,7 @@ It now also publishes auth changes through `AppsAuth`, making it consistent with
 
 Backend:
 
-The Snag Cloudflare Worker hosts both Firebase Usage and App Monitor endpoints. It now retains central/app UID fields supplied by the shared identity layer.
+The Snag Cloudflare Worker no longer hosts App Monitor. Snag is now only a monitored client; App Monitor runs from the dedicated Apps Worker and dedicated R2 bucket.
 
 Device:
 
@@ -650,6 +650,9 @@ Canonical shared device ID.
 # Implementation status
 
 ## Completed 24 September 2026
+
+- [x] Dedicated App Monitor backend cutover: created `apps-monitor-api`, migrated all `_app-monitor/*` data to `apps-monitor-data`, verified passkey/recovery state, deleted migrated App Monitor objects from `snag-media`, removed App Monitor routes/dependencies from the Snag Worker, and removed the legacy Snag R2 binding from the dedicated Worker.
+- [x] Refreshed the main monitored apps to the current shared App Monitor client and ensured they load the shared Apps identity module before monitoring.
 
 - [x] Review all repos from Kk-syllabus onward.
 - [x] Establish this living review register.
@@ -692,7 +695,7 @@ Canonical shared device ID.
 
 ### P1 — monitoring quality
 
-- [ ] **Fix App Monitor presence semantics:** distinguish `Active` (visible/foreground and recently reporting), `Background/open tab` (hidden but browser session still exists), and `Inactive` (no recent report). Hidden/page-exit snapshots must not make a session count as active merely by updating `lastSeenAt`. Keep `last seen` separate from activity state; consider distinguishing foreground time from actual engaged interaction time.
+- [x] **Fix App Monitor presence semantics:** `Active` now requires recent foreground activity, hidden tabs stop periodic heartbeats, and snapshots carry foreground/visibility state so a background tab is not counted as active merely because it remains open.
 - [ ] Add a monitor “identity confidence/source” display: central auth, app auth, manual device alias, manual session alias or unassigned.
 - [ ] Add a cross-day person/device history view.
 - [ ] Add a “merge/link device” workflow for storage resets or a second browser on the same physical device.
