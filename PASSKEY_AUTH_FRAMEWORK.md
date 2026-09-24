@@ -190,6 +190,7 @@ The backend should expose the same logical endpoints used by the reference imple
 - `POST /security/recovery`
 - `POST /security/revoke-passkey`
 - `POST /security/revoke-session`
+- `POST /security/revoke-all-sessions`
 
 The exact URL prefix can vary by app.
 
@@ -209,7 +210,7 @@ After authentication:
 - show current session expiry;
 - provide sign-out;
 - provide passkey management;
-- provide session management;
+- provide session management, including revoke-all for incident response;
 - provide recovery rotation.
 
 ## Reference implementation status
