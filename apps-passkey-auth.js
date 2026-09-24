@@ -39,9 +39,10 @@ function create(config={}){
   async function rotateRecovery(token){const r=await fetcher('/security/recovery',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify({token})});if(!r.ok)throw new Error(await r.text());return r.json()}
   async function revokePasskey(id){const r=await fetcher('/security/revoke-passkey',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify({id})});if(!r.ok)throw new Error(await r.text());return r.json()}
   async function revokeSession(hash){const r=await fetcher('/security/revoke-session',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify({hash})});if(!r.ok)throw new Error(await r.text());return r.json()}
+  async function revokeAllSessions(){const r=await fetcher('/security/revoke-all-sessions',{method:'POST',headers:authHeaders()});if(!r.ok)throw new Error(await r.text());const out=await r.json();saveSession('','');return out}
   async function logout(){try{await fetcher('/auth/logout',{method:'POST',headers:authHeaders()})}finally{saveSession('','')}}
 
-  return {version:VERSION,status,authHeaders,restoreSession,validateSession,recoveryLogin,passkeyLogin,startBootstrap,bootstrapStatus,bootstrapRegister,registerPasskey,securityInfo,rotateRecovery,revokePasskey,revokeSession,logout,randomToken,clearCached:()=>saveSession('',''),get session(){return{token:sessionToken,expiresAt:sessionExpiresAt}}};
+  return {version:VERSION,status,authHeaders,restoreSession,validateSession,recoveryLogin,passkeyLogin,startBootstrap,bootstrapStatus,bootstrapRegister,registerPasskey,securityInfo,rotateRecovery,revokePasskey,revokeSession,revokeAllSessions,logout,randomToken,clearCached:()=>saveSession('',''),get session(){return{token:sessionToken,expiresAt:sessionExpiresAt}}};
 }
 
 window.AppsPasskeyAuth={version:VERSION,create,randomToken,requestOptions,creationOptions,authResponse,regResponse,b64uToBuf,bufToB64u};
