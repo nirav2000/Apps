@@ -140,6 +140,38 @@ Recommended future project: a small dedicated Firebase project such as `apps-ide
 
 ---
 
+# Firebase project isolation review
+
+The apps are conceptually siloed, but four still share the `kk-syllabus` Firebase project. This is a historical implementation choice, not a requirement of the new shared identity layer.
+
+| App | Current isolation | Direction |
+| --- | --- | --- |
+| Kk-syllabus | Own logical data inside `kk-syllabus` | Keep as the original project |
+| Openday | Shares `kk-syllabus` | Candidate for dedicated project or a lighter non-Firestore store; low-volume state makes migration straightforward once identity is settled |
+| LearnLatin | Shares `kk-syllabus` | Strong candidate for dedicated Firebase project because learning history is a distinct app dataset |
+| Comprehension | Local only | If cloud sync is added, start directly in a dedicated project rather than adding it to `kk-syllabus` |
+| beyond100 | Shares `kk-syllabus` | Strong candidate for dedicated Firebase project because it now has several Firestore subsystems and its own rules/operational profile |
+| Snag | Dedicated `snag-509418` | Already isolated; keep this model |
+
+### Migration order
+
+Do **not** split the remaining apps merely by changing Firebase config. Their current authorization depends on the `kk-syllabus` Firebase Authentication user/UID and some learning apps share learner catalogue conventions.
+
+Recommended order:
+
+1. finish/provision central Apps identity;
+2. decide whether per-app Firebase Authentication remains separate or is fed by a custom-token broker;
+3. create destination projects;
+4. copy rules/indexes/config;
+5. migrate data with reconciliation checks;
+6. switch one app at a time;
+7. retain the old project read-only for a defined rollback window;
+8. update this register and Firebase Usage targets.
+
+The shared Apps identity module is intentionally compatible with this direction: it can continue identifying the same person even when the app's data project changes.
+
+---
+
 # Monitoring architecture
 
 ## App Monitor
