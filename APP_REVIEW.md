@@ -180,6 +180,18 @@ The shared Apps identity module is intentionally compatible with this direction:
 
 ---
 
+# Third-party access/dependency audit
+
+Living register:
+
+`THIRD_PARTY_ACCESS_AUDIT.md`
+
+Use it to record third-party libraries, APIs, renderers, crawlers and analytics/infrastructure services that can access or execute Apps. The Thum.io screenshot renderer is the reference example: its automated browser can execute an app and therefore appear in App Monitor. Such traffic should be classified rather than silently discarded.
+
+Security-sensitive findings and secrets remain outside the public repository.
+
+---
+
 # Monitoring architecture
 
 ## App Monitor
