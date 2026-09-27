@@ -1,6 +1,6 @@
 # Apps Architecture & Review Register
 
-_Last updated: 24 September 2026_
+_Last updated: 27 September 2026_
 
 This is the living architecture, configuration and implementation register for the recent Apps portfolio, starting with **Kk-syllabus**. Update this file whenever an app changes its data store, Firebase project/database, authentication, monitoring, logging or shared platform integration.
 
@@ -854,3 +854,8 @@ Reviewed app changes include:
 - Kk-syllabus query/transaction read counts and project attribution corrected;
 - Snag App Monitor Worker extended to retain shared/app identity fields.
 
+
+
+### Release platform modules (27 September 2026)
+
+Shared account, privacy and billing primitives are now implemented in `Apps` and Snag is the first release app using them. Public apps can privacy-gate App Monitor and Firebase Usage cloud sync without disabling those systems for private/internal apps. Snag retains app-specific Firebase authorization, project tenancy and Stripe/R2 backend adapters while importing the reusable browser modules.
