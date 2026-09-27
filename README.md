@@ -29,3 +29,17 @@ python dashboard_brand/generate_previews.py
 # Automatic discovery
 
 On every dashboard load, the curated catalogue is merged with all public repositories that GitHub reports as having Pages enabled. Existing titles, descriptions and previews are preserved; new apps use the repository name and description. No token or scheduled job is required. A last-successful local cache keeps discovered apps visible during API outages or rate limits. Private repositories and apps hosted elsewhere are not automatically discovered.
+
+
+## Shared plug-and-play modules
+
+The Apps repository is the single-source library for cross-app capabilities:
+
+- `apps-auth.js` — canonical device identity and app/central identity bridge.
+- `apps-account.js` — reusable Firebase account lifecycle: anonymous protection, email/password sign-in, verification, reset, sign-out and deletion hooks.
+- `apps-privacy.js` — shared privacy preference storage/events for optional analytics and personalised monitoring.
+- `apps-billing.js` — provider-neutral billing client; each app supplies its authenticated billing endpoint and entitlement adapter.
+- `apps-platform.js` — convenience loader for the shared platform modules.
+- `app-monitor.js` and `firebase-usage-monitor.js` now support opt-in privacy gates, enabled per public-facing app.
+
+App repositories should keep authorization rules, domain data and provider-specific backend logic local, while importing these common modules instead of cloning account/privacy/billing code.
