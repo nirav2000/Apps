@@ -46,7 +46,13 @@ async function updatePassword(currentPassword,newPassword){
   if(String(newPassword||'').length<8)throw new Error('Use a password of at least 8 characters.');
   const c=A.authMod.EmailAuthProvider.credential(u.email,currentPassword);await A.authMod.reauthenticateWithCredential(u,c);await A.authMod.updatePassword(u,newPassword);return reload();
 }
+async function updateEmailAddress(currentPassword,newEmail){
+  const A=requireAdapter(),u=A.auth.currentUser,e=clean(newEmail,160);if(!u?.email)throw new Error('A protected email account is required.');if(!e||!e.includes('@'))throw new Error('Enter a valid new email address.');
+  const c=A.authMod.EmailAuthProvider.credential(u.email,currentPassword);await A.authMod.reauthenticateWithCredential(u,c);
+  if(typeof A.authMod.verifyBeforeUpdateEmail==='function'){await A.authMod.verifyBeforeUpdateEmail(u,e);return {verificationSent:true,email:e};}
+  await A.authMod.updateEmail(u,e);return reload();
+}
 async function deleteCurrentUser(){const A=requireAdapter();if(!A.auth.currentUser)throw new Error('No signed-in account.');return A.authMod.deleteUser(A.auth.currentUser)}
-const api={version:VERSION,bindFirebase,snapshot,ensureAnonymous,protectOrCreate,signIn,signOut,resetPassword,sendVerification,reload,updatePassword,deleteCurrentUser,onChange(fn){listeners.add(fn);fn(snapshot());return()=>listeners.delete(fn)}};
+const api={version:VERSION,bindFirebase,snapshot,ensureAnonymous,protectOrCreate,signIn,signOut,resetPassword,sendVerification,reload,updatePassword,updateEmailAddress,deleteCurrentUser,onChange(fn){listeners.add(fn);fn(snapshot());return()=>listeners.delete(fn)}};
 window.AppsAccount=api;
 })();
