@@ -70,6 +70,20 @@ async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
   if(url.pathname==='/app-monitor/health')return Response.json({ok:true,service:'app-monitor',build:WORKER_BUILD,storage:'r2-session-snapshots',adminProtected:true},{headers});
+  if(url.pathname==='/app-monitor/developer-config'&&request.method==='GET'){
+    const app=cleanKey(url.searchParams.get('app')||'');if(!app)return new Response('app required',{status:400,headers});
+    const saved=await getJSON(env,APP_MONITOR_SECURITY+'developer-config/'+app+'.json');
+    return Response.json({ok:true,app,userTelemetryOptOutVisible:saved?.userTelemetryOptOutVisible===true,updatedAt:saved?.updatedAt||null},{headers});
+  }
+  if(url.pathname==='/app-monitor/developer-config'&&request.method==='POST'){
+    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
+    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
+    const app=cleanKey(body.app||'');if(!app)return new Response('app required',{status:400,headers});
+    const value={version:1,app,userTelemetryOptOutVisible:body.userTelemetryOptOutVisible===true,updatedAt:new Date().toISOString()};
+    await putJSON(env,APP_MONITOR_SECURITY+'developer-config/'+app+'.json',value);
+    return Response.json({ok:true,...value},{headers});
+  }
+
   if(url.pathname==='/app-monitor/session'&&request.method==='POST'){
     const len=Number(request.headers.get('Content-Length')||0);if(len>64*1024)return new Response('Payload too large',{status:413,headers});
     let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
