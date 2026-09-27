@@ -80,7 +80,9 @@
       }
     }
   }
+  function privacyAllowsCloud(){return window.FIREBASE_USAGE_PRIVACY_GATE!==true||window.AppsPrivacy?.analyticsAllowed?.()===true}
   async function syncCloud(force=false){
+    if(!privacyAllowsCloud())return {ok:true,skipped:'privacy'};
     if(localStorage.getItem(KEY+'.dirty')!=='1')return {ok:true,skipped:'clean'};
     const last=Number(localStorage.getItem(KEY+'.lastSync')||0);
     if(!force&&last&&Date.now()-last<ACTIVE_SYNC){scheduleSync();return {ok:true,skipped:'recent'};}
@@ -118,10 +120,11 @@
     del:(n=1,l='delete',a,p,d)=>record('delete',n,l,a,p,d),
     listener:(n=1,l='listener',a,p,d)=>record('listener',n,l,a,p,d),
     configure:x=>{if(x?.app)window.FIREBASE_USAGE_APP=x.app;if(x?.project)window.FIREBASE_USAGE_PROJECT=x.project;if(x?.database)window.FIREBASE_USAGE_DATABASE=x.database;},
-    data:load,deviceId,deviceInfo,syncCloud,fetchCloud,
+    data:load,deviceId,deviceInfo,syncCloud,fetchCloud,privacyAllowsCloud,
     reset:()=>localStorage.removeItem(KEY),
     setThresholds:x=>localStorage.setItem(KEY+'.thresholds',JSON.stringify(x)),
     requestNotifications:()=>Notification?.requestPermission?.()
   };
   window.FirebaseUsageMonitor=api;
+  window.addEventListener('apps-privacy:change',()=>{if(privacyAllowsCloud())syncCloud(true)});
 })();
