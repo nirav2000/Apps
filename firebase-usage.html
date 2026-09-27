@@ -39,7 +39,7 @@
 const $=id=>document.getElementById(id);
 const E={date:$('datePick'),cloud:$('cloudMode'),local:$('localMode'),refresh:$('refresh'),status:$('status'),dot:$('cloudDot'),reads:$('reads'),writes:$('writes'),projects:$('projects'),apps:$('appsCount'),readsNote:$('readsNote'),writesNote:$('writesNote'),deviceCount:$('deviceCount'),drill:$('drill'),appFilters:$('appFilters'),deviceFilters:$('deviceFilters'),deviceBreakdown:$('deviceBreakdown'),chart:$('activityChart'),legend:$('chartLegend'),hourly:$('hourlyChart'),hourlyYAxis:$('hourlyYAxis'),fiveYAxis:$('fiveYAxis'),chartReads:$('chartReads'),chartWrites:$('chartWrites'),panelHost:$('panelHost')};
 const pad=n=>String(n).padStart(2,'0'),today=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};E.date.value=today();
-let mode='cloud',rawView=null,selectedApp='*',selectedDevice='*',chartMetric='reads';
+let mode='cloud',rawView=null,selectedApp=new URLSearchParams(location.search).get('app')||'*',selectedDevice='*',chartMetric='reads';
 const palette=['#1f7aec','#e58b18','#159947','#8b5cf6','#dc4f64','#0f9ca8','#795548','#607d8b','#c2185b','#7a8b00'];
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 function localView(date){const d=FirebaseUsageMonitor.data(),x=d.days?.[date]||{targets:{},hours:{},buckets:{}};return{version:3,date,deviceCount:1,targets:x.targets||{},hours:x.hours||{},buckets:x.buckets||{},devices:[{deviceId:FirebaseUsageMonitor.deviceId(),device:FirebaseUsageMonitor.deviceInfo(),updatedAt:new Date().toISOString(),targets:x.targets||{},hours:x.hours||{},buckets:x.buckets||{}}]}}
@@ -93,7 +93,7 @@ function renderDrill(data){
 }
 function render(){
   if(!rawView)return;renderFilters();renderDevices();const selected=selectedView(),data=filterApp(selected),t=totals(data);E.reads.textContent=t.R.toLocaleString();E.writes.textContent=t.W.toLocaleString();E.projects.textContent=t.targets;E.apps.textContent=t.apps;E.readsNote.textContent=mode==='cloud'?'Instrumented cloud-observed':'Observed in this browser';E.writesNote.textContent=E.readsNote.textContent;renderHourly(selected);renderFiveMinute(data);renderDrill(data);
-  E.appFilters.querySelectorAll('[data-app]').forEach(b=>b.onclick=()=>{selectedApp=b.dataset.app;render()});
+  E.appFilters.querySelectorAll('[data-app]').forEach(b=>b.onclick=()=>{selectedApp=b.dataset.app;const u=new URL(location.href);if(selectedApp==='*')u.searchParams.delete('app');else u.searchParams.set('app',selectedApp);history.replaceState({},'',u);render()});
   E.deviceFilters.querySelectorAll('[data-device]').forEach(b=>b.onclick=()=>{selectedDevice=b.dataset.device;selectedApp='*';render()});
 }
 async function load(){
