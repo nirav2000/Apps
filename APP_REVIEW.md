@@ -859,3 +859,24 @@ Reviewed app changes include:
 ### Release platform modules (27 September 2026)
 
 Shared account, privacy and billing primitives are now implemented in `Apps` and Snag is the first release app using them. Public apps can privacy-gate App Monitor and Firebase Usage cloud sync without disabling those systems for private/internal apps. Snag retains app-specific Firebase authorization, project tenancy and Stripe/R2 backend adapters while importing the reusable browser modules.
+
+
+### Architecture debt — shared Worker deployment credentials (27 September 2026)
+
+**Current workaround:** the shared App Monitor Worker source remains single-source in `nirav2000/Apps`, but Cloudflare deployment credentials are currently held in the Snag repository. Snag therefore contains a scheduled/deploy bridge that compares the shared Worker build with the deployed build and redeploys when they differ.
+
+**Why this is not ideal:**
+- a shared platform service should not depend on an unrelated application repository for deployment authority;
+- Snag becomes an infrastructure dependency for Apps-level services;
+- deployment ownership and audit history are split across repositories;
+- future shared Workers could accidentally repeat the same pattern;
+- hourly polling is less clean than direct deployment on source changes.
+
+**Target architecture:** move deployment authority back to the shared platform itself. Preferred options, in order:
+1. give `nirav2000/Apps` its own restricted Cloudflare deployment credentials;
+2. preferably use keyless/OIDC-style deployment if Cloudflare supports the required trust model for this workflow;
+3. alternatively create a dedicated `platform-infra` / `cloud-setup` deployment repository that owns shared-service credentials and deploys immutable source refs from `Apps`.
+
+**Exit criteria:** remove Snag's `deploy-shared-app-monitor.yml` bridge, deploy App Monitor directly from the shared platform/infra owner, and verify no application repository contains credentials or deployment responsibility for another app's shared service.
+
+**Priority:** medium. The current bridge is functional and avoids duplicating source code, but it should be reviewed before adding more shared backend services.
