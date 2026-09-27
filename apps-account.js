@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 if(window.AppsAccount)return;
-const VERSION=1;
+const VERSION=2;
 const listeners=new Set();
 let adapter=null;
 const clean=(v,n=180)=>String(v??'').trim().slice(0,n);
