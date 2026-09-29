@@ -46,7 +46,7 @@ The `Apps` repository provides the shared dashboard/platform components used by 
 
 ## 0. Reusable pronunciation / voice analysis
 
-Shared module: `apps-pronunciation.js` (v1).
+Shared module: `apps-pronunciation.js` (v2).
 
 Purpose: a plug-and-play child pronunciation practice component for learning apps. It owns microphone capture, a live stylised speech waveform, browser speech-recognition comparison, optional model-voice rhythm/intonation comparison, local-first audio handling, and a provider adapter for future phoneme-level assessment.
 
