@@ -1,9 +1,9 @@
 (function(){
 'use strict';
 if(window.AppsPlatform)return;
-const VERSION=4;
+const VERSION=5;
 const BASE=(document.currentScript?.src||'').replace(/\/[^/]*$/,'/');
-const modules=['apps-privacy.js?v=2','apps-auth.js?v=1','apps-account.js?v=2','apps-billing.js?v=1','apps-pronunciation.js?v=2'];
+const modules=['apps-privacy.js?v=2','apps-auth.js?v=1','apps-account.js?v=2','apps-billing.js?v=1','apps-pronunciation.js?v=3'];
 const globals={
   'apps-privacy':'AppsPrivacy',
   'apps-auth':'AppsAuth',
