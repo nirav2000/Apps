@@ -39,7 +39,7 @@ The Apps repository is the single-source library for cross-app capabilities:
 - `apps-account.js` — reusable Firebase account lifecycle: anonymous protection, email/password sign-in, verification, reset, sign-out and deletion hooks.
 - `apps-privacy.js` — shared privacy preference storage/events for optional analytics and personalised monitoring.
 - `apps-billing.js` — provider-neutral billing client; each app supplies its authenticated billing endpoint and entitlement adapter.
-- `apps-pronunciation.js` — reusable microphone waveform, speech comparison, rhythm/intonation analysis and pluggable pronunciation-scoring UI. Standalone test: `pronunciation-demo.html`.
+- `apps-pronunciation.js` — reusable microphone waveform, generated or teacher-recorded acoustic reference, speech comparison, rhythm/intonation analysis and pluggable pronunciation-scoring UI. `pronunciation-worker.js` securely generates default reference audio. Standalone test: `pronunciation-demo.html`.
 - `apps-platform.js` — convenience loader for the shared platform modules.
 - `app-monitor.js` and `firebase-usage-monitor.js` now support opt-in privacy gates, enabled per public-facing app.
 
