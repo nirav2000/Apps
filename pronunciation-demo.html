@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Apps Pronunciation Coach Demo</title>
+  <style>
+    body{margin:0;font:16px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f7fa;color:#172033}
+    main{max-width:900px;margin:0 auto;padding:24px}
+    .controls{display:grid;grid-template-columns:1fr 160px auto;gap:10px;margin:0 0 16px}
+    input,select,button{font:inherit;min-height:44px;border-radius:12px;border:1px solid #ccd5df;padding:9px 12px}
+    button{font-weight:700;background:#173c5e;color:white;border:0}
+    .note{color:#596a7b;font-size:13px;line-height:1.45;margin:10px 2px 18px}
+    @media(max-width:640px){main{padding:14px}.controls{grid-template-columns:1fr}.controls button{width:100%}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Shared pronunciation coach</h1>
+  <p class="note">Standalone test page for <code>apps-pronunciation.js</code>. Change the target, record a model voice if you want rhythm/intonation comparison, then record the child's attempt.</p>
+  <form id="demoControls" class="controls">
+    <input id="target" value="J’ai un chien noir et intelligent." aria-label="Target phrase">
+    <select id="lang" aria-label="Language">
+      <option value="fr-FR">French</option>
+      <option value="en-GB">English (UK)</option>
+    </select>
+    <button type="submit">Use phrase</button>
+  </form>
+  <div id="coach"></div>
+</main>
+<script src="apps-pronunciation.js?v=2"></script>
+<script>
+(function(){
+  const host=document.getElementById('coach');
+  let coach=AppsPronunciation.mount(host,{lang:'fr-FR',targetText:document.getElementById('target').value,title:'Pronunciation test'});
+  document.getElementById('demoControls').addEventListener('submit',function(e){
+    e.preventDefault();
+    coach.setTarget(document.getElementById('target').value,document.getElementById('lang').value);
+  });
+})();
+</script>
+</body>
+</html>
