@@ -39,7 +39,8 @@ The Apps repository is the single-source library for cross-app capabilities:
 - `apps-account.js` — reusable Firebase account lifecycle: anonymous protection, email/password sign-in, verification, reset, sign-out and deletion hooks.
 - `apps-privacy.js` — shared privacy preference storage/events for optional analytics and personalised monitoring.
 - `apps-billing.js` — provider-neutral billing client; each app supplies its authenticated billing endpoint and entitlement adapter.
+- `apps-pronunciation.js` — reusable microphone waveform, speech comparison, rhythm/intonation analysis and pluggable pronunciation-scoring UI.
 - `apps-platform.js` — convenience loader for the shared platform modules.
 - `app-monitor.js` and `firebase-usage-monitor.js` now support opt-in privacy gates, enabled per public-facing app.
 
-App repositories should keep authorization rules, domain data and provider-specific backend logic local, while importing these common modules instead of cloning account/privacy/billing code.
+App repositories should keep authorization rules, domain data and provider-specific backend logic local, while importing these common modules instead of cloning account/privacy/billing/pronunciation code.
