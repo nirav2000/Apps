@@ -2,7 +2,7 @@
 'use strict';
 if(window.AppsPronunciation)return;
 
-const VERSION=2;
+const VERSION=3;
 
 function css(){
   if(document.getElementById('appsPronunciationStyles'))return;
@@ -10,7 +10,7 @@ function css(){
   s.id='appsPronunciationStyles';
   s.textContent=`
 .apc{--apc-bg:#0d1724;--apc-panel:#142235;--apc-card:#1b2c43;--apc-text:#f6f8fb;--apc-muted:#aebdd0;--apc-accent:#64d8cb;--apc-good:#72d99a;--apc-warn:#ffd27a;--apc-bad:#ff8f8f;font:inherit;color:var(--apc-text);background:linear-gradient(145deg,#0d1724,#14283b);border-radius:22px;padding:18px;box-sizing:border-box;overflow:hidden}
-.apc *{box-sizing:border-box}.apc button,.apc input,.apc select{font:inherit}.apc-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}.apc-eyebrow{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--apc-muted);font-weight:800}.apc h3{margin:4px 0 0;font-size:22px}.apc-target{margin:14px 0;padding:14px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px}.apc-target strong{display:block;font-size:clamp(20px,4vw,30px);line-height:1.25}.apc-target small{display:block;color:var(--apc-muted);margin-top:5px}.apc-actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}.apc button{min-height:44px;border:0;border-radius:13px;padding:10px 14px;cursor:pointer;font-weight:750}.apc button:disabled{opacity:.48;cursor:not-allowed}.apc-primary{background:var(--apc-accent);color:#08211f}.apc-secondary{background:rgba(255,255,255,.1);color:var(--apc-text);border:1px solid rgba(255,255,255,.12)!important}.apc-danger{background:#5b2430;color:white}.apc-wave{position:relative;background:rgba(0,0,0,.22);border-radius:18px;padding:8px;overflow:hidden}.apc canvas{display:block;width:100%;height:150px}.apc-wave-label{position:absolute;left:14px;top:11px;background:rgba(5,13,22,.66);padding:5px 8px;border-radius:999px;font-size:11px;color:var(--apc-muted)}.apc-meter{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px}.apc-score{background:rgba(255,255,255,.065);border-radius:14px;padding:11px;min-width:0}.apc-score strong{display:block;font-size:22px}.apc-score span{color:var(--apc-muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}.apc-result{margin-top:13px;display:grid;grid-template-columns:1.2fr .8fr;gap:10px}.apc-transcript,.apc-feedback{background:rgba(255,255,255,.055);border-radius:14px;padding:13px}.apc-transcript p,.apc-feedback p{margin:6px 0 0;line-height:1.4}.apc-feedback ul{margin:7px 0 0;padding-left:20px}.apc-feedback li{margin:5px 0}.apc-note{margin:11px 1px 0;color:var(--apc-muted);font-size:12px;line-height:1.4}.apc-status{display:inline-flex;align-items:center;gap:7px;color:var(--apc-muted);font-size:12px}.apc-dot{width:8px;height:8px;border-radius:50%;background:var(--apc-muted)}.apc-dot.live{background:#ff6f78;box-shadow:0 0 0 5px rgba(255,111,120,.12)}.apc-ref{color:var(--apc-good)}.apc-hidden{display:none!important}
+.apc *{box-sizing:border-box}.apc button,.apc input,.apc select{font:inherit}.apc-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}.apc-eyebrow{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--apc-muted);font-weight:800}.apc h3{margin:4px 0 0;font-size:22px}.apc-target{margin:14px 0;padding:14px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px}.apc-target strong{display:block;font-size:clamp(20px,4vw,30px);line-height:1.25}.apc-target small{display:block;color:var(--apc-muted);margin-top:5px}.apc-model-status{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12px;color:var(--apc-muted)}.apc-model-status b{color:var(--apc-text)}.apc-actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}.apc button{min-height:44px;border:0;border-radius:13px;padding:10px 14px;cursor:pointer;font-weight:750}.apc button:disabled{opacity:.48;cursor:not-allowed}.apc-primary{background:var(--apc-accent);color:#08211f}.apc-secondary{background:rgba(255,255,255,.1);color:var(--apc-text);border:1px solid rgba(255,255,255,.12)!important}.apc-danger{background:#5b2430;color:white}.apc-wave{position:relative;background:rgba(0,0,0,.22);border-radius:18px;padding:8px;overflow:hidden}.apc canvas{display:block;width:100%;height:150px}.apc-wave-label{position:absolute;left:14px;top:11px;background:rgba(5,13,22,.66);padding:5px 8px;border-radius:999px;font-size:11px;color:var(--apc-muted)}.apc-meter{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px}.apc-score{background:rgba(255,255,255,.065);border-radius:14px;padding:11px;min-width:0}.apc-score strong{display:block;font-size:22px}.apc-score span{color:var(--apc-muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}.apc-result{margin-top:13px;display:grid;grid-template-columns:1.2fr .8fr;gap:10px}.apc-transcript,.apc-feedback{background:rgba(255,255,255,.055);border-radius:14px;padding:13px}.apc-transcript p,.apc-feedback p{margin:6px 0 0;line-height:1.4}.apc-feedback ul{margin:7px 0 0;padding-left:20px}.apc-feedback li{margin:5px 0}.apc-note{margin:11px 1px 0;color:var(--apc-muted);font-size:12px;line-height:1.4}.apc-status{display:inline-flex;align-items:center;gap:7px;color:var(--apc-muted);font-size:12px}.apc-dot{width:8px;height:8px;border-radius:50%;background:var(--apc-muted)}.apc-dot.live{background:#ff6f78;box-shadow:0 0 0 5px rgba(255,111,120,.12)}.apc-ref{color:var(--apc-good)}.apc-hidden{display:none!important}
 @media(max-width:620px){.apc{padding:14px;border-radius:18px}.apc-meter{grid-template-columns:repeat(2,minmax(0,1fr))}.apc-result{grid-template-columns:1fr}.apc canvas{height:126px}.apc-actions button{flex:1 1 42%}}
 `;
   document.head.appendChild(s);
@@ -91,17 +91,19 @@ function mount(target,options={}){
   if(!root)throw new Error('AppsPronunciation target not found');
   let opts={lang:'fr-FR',targetText:'Bonjour',title:'Pronunciation coach',...options};
   let stream=null,ctx=null,analyser=null,raf=0,recognition=null,recorder=null,chunks=[],started=0,lastFrame=0,mode=null;
-  let current=null,reference=null,lastResult=null,spokenText='',speechConfidence=null;
+  let current=null,reference=null,generatedReference=null,lastResult=null,spokenText='',speechConfidence=null;
+  let referenceLoadId=0,referenceAudio=null;
   root.innerHTML=`
   <section class="apc" aria-label="Pronunciation coach">
     <div class="apc-head">
       <div><div class="apc-eyebrow">VOICE LAB · PROTOTYPE</div><h3 class="apc-title"></h3></div>
       <div class="apc-status"><span class="apc-dot"></span><span class="apc-status-text">Ready</span></div>
     </div>
-    <div class="apc-target"><strong class="apc-target-text"></strong><small>Listen, then try to match the words, rhythm and rise/fall of the voice.</small></div>
+    <div class="apc-target"><strong class="apc-target-text"></strong><small>Listen, then try to match the words, rhythm and rise/fall of the voice.</small><div class="apc-model-status"><span>Reference:</span><b class="apc-model-label">Preparing…</b></div></div>
     <div class="apc-actions">
       <button type="button" class="apc-secondary apc-hear">🔊 Hear target</button>
-      <button type="button" class="apc-secondary apc-model">🎙 Record model</button>
+      <button type="button" class="apc-secondary apc-model">🎙 Replace model</button>
+      <button type="button" class="apc-secondary apc-generated apc-hidden">↺ Use generated model</button>
       <button type="button" class="apc-primary apc-record">● Child's turn</button>
       <button type="button" class="apc-danger apc-stop apc-hidden">■ Stop</button>
     </div>
@@ -117,14 +119,14 @@ function mount(target,options={}){
     </div>
     <div class="apc-result">
       <div class="apc-transcript"><div class="apc-eyebrow">WHAT THE BROWSER HEARD</div><p class="apc-heard">No attempt yet.</p></div>
-      <div class="apc-feedback"><div class="apc-eyebrow">COACHING CUE</div><ul class="apc-feedback-list"><li>Record a model voice first for rhythm and intonation comparison.</li></ul></div>
+      <div class="apc-feedback"><div class="apc-eyebrow">COACHING CUE</div><ul class="apc-feedback-list"><li>The app is preparing a default pronunciation model.</li></ul></div>
     </div>
-    <p class="apc-note">Audio stays in this browser by default. The browser speech recogniser is useful for a prototype but is not a phoneme-level pronunciation examiner. A stronger scoring service can be plugged into this same component later.</p>
+    <p class="apc-note">The generated reference is a consistent learning model, not a claim that only one accent is correct. A teacher recording can replace it. Student microphone audio stays in this browser unless a scoring adapter is explicitly configured.</p>
   </section>`;
 
   const q=s=>root.querySelector(s),canvas=q('.apc-canvas'),g=canvas.getContext('2d');
   const titleEl=q('.apc-title'),targetEl=q('.apc-target-text'),dot=q('.apc-dot'),status=q('.apc-status-text');
-  const modelBtn=q('.apc-model'),recordBtn=q('.apc-record'),stopBtn=q('.apc-stop'),hearBtn=q('.apc-hear');
+  const modelBtn=q('.apc-model'),generatedBtn=q('.apc-generated'),recordBtn=q('.apc-record'),stopBtn=q('.apc-stop'),hearBtn=q('.apc-hear'),modelLabel=q('.apc-model-label');
   function renderLabels(){titleEl.textContent=opts.title;targetEl.textContent=opts.targetText;}
   function setStatus(t,live=false){status.textContent=t;dot.classList.toggle('live',live);}
   function clearScores(){
@@ -147,6 +149,77 @@ function mount(target,options={}){
     g.strokeStyle=grad;g.lineWidth=5;g.beginPath();
     for(let x=0;x<w;x++){const y=mid+data[Math.floor(x*step)]*mid*amp*.78;if(x===0)g.moveTo(x,y);else g.lineTo(x,y);}g.stroke();
     g.strokeStyle='rgba(255,255,255,.14)';g.lineWidth=1;g.beginPath();g.moveTo(0,mid);g.lineTo(w,mid);g.stroke();
+  }
+  function analyseBuffer(buffer){
+    const data=buffer.getChannelData(0),sampleRate=buffer.sampleRate,frame=2048,hop=Math.max(512,Math.floor(sampleRate*.055));
+    const out={pitch:[],energy:[],voiced:0,frames:0,duration:buffer.duration,voicedRatio:0,audioBlob:null,audioUrl:null,source:'generated'};
+    for(let start=0;start+frame<data.length;start+=hop){
+      const slice=data.subarray(start,start+frame);let rms=0;
+      for(let i=0;i<slice.length;i++)rms+=slice[i]*slice[i];
+      rms=Math.sqrt(rms/slice.length);out.energy.push(rms);out.frames++;if(rms>.018)out.voiced++;
+      const p=autocorrelate(slice,sampleRate);if(p)out.pitch.push(p);
+    }
+    out.voicedRatio=out.frames?out.voiced/out.frames:0;
+    return out;
+  }
+  async function referenceFromBlob(blob,label){
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)throw new Error('Audio decoding is unavailable');
+    const ac=new AC();
+    try{
+      const buffer=await ac.decodeAudioData((await blob.arrayBuffer()).slice(0));
+      const ref=analyseBuffer(buffer);ref.audioBlob=blob;ref.audioUrl=URL.createObjectURL(blob);ref.source=label||'generated';
+      return ref;
+    }finally{try{await ac.close();}catch(e){}}
+  }
+  function disposeReference(ref){
+    if(ref&&ref.audioUrl)try{URL.revokeObjectURL(ref.audioUrl);}catch(e){}
+  }
+  function setReference(ref,label,isGenerated){
+    if(reference&&reference!==generatedReference&&reference!==ref)disposeReference(reference);
+    reference=ref||null;
+    if(isGenerated){if(generatedReference&&generatedReference!==ref)disposeReference(generatedReference);generatedReference=ref;}
+    modelLabel.textContent=label||'No acoustic model';
+    generatedBtn.classList.toggle('apc-hidden',!generatedReference||reference===generatedReference);
+    modelBtn.textContent=reference&&reference!==generatedReference?'✓ Re-record teacher model':'🎙 Replace model';
+    modelBtn.classList.toggle('apc-ref',!!reference&&reference!==generatedReference);
+  }
+  async function loadGeneratedReference(){
+    const id=++referenceLoadId;
+    if(typeof opts.referenceProvider!=='function'){
+      setReference(null,'Device voice only · record a model for acoustic scoring',false);
+      q('.apc-feedback-list').innerHTML='<li>Use “Hear target” for the device voice, or record a teacher model to unlock rhythm and intonation scoring.</li>';
+      return false;
+    }
+    setStatus('Preparing pronunciation model…');modelLabel.textContent='Generating…';recordBtn.disabled=true;
+    try{
+      const result=await opts.referenceProvider({targetText:opts.targetText,lang:opts.lang});
+      if(id!==referenceLoadId)return false;
+      let blob=null,label='Generated reference';
+      if(result instanceof Blob)blob=result;
+      else if(result instanceof ArrayBuffer)blob=new Blob([result],{type:'audio/wav'});
+      else if(result&&result.blob instanceof Blob){blob=result.blob;label=result.label||result.source||label;}
+      else if(result&&result.arrayBuffer instanceof ArrayBuffer){blob=new Blob([result.arrayBuffer],{type:result.type||'audio/wav'});label=result.label||result.source||label;}
+      if(!blob)throw new Error('No reference audio returned');
+      const ref=await referenceFromBlob(blob,label);
+      if(id!==referenceLoadId){disposeReference(ref);return false;}
+      setReference(ref,label,true);setStatus('Generated model ready');q('.apc-feedback-list').innerHTML='<li>Default pronunciation model ready. Listen once, then record the child.</li>';paintIdle();
+      return true;
+    }catch(e){
+      if(id!==referenceLoadId)return false;
+      setReference(null,'Generated model unavailable · device voice fallback',false);setStatus('Device voice fallback');
+      q('.apc-feedback-list').innerHTML='<li>The generated model is unavailable. “Hear target” still uses the device voice; record a teacher model for acoustic comparison.</li>';
+      return false;
+    }finally{if(id===referenceLoadId)recordBtn.disabled=false;}
+  }
+  function playReference(){
+    if(reference&&reference.audioUrl){
+      if(referenceAudio){try{referenceAudio.pause();}catch(e){}}
+      referenceAudio=new Audio(reference.audioUrl);referenceAudio.play().catch(()=>{});
+      return;
+    }
+    if(!('speechSynthesis'in window))return;
+    speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(opts.targetText);u.lang=opts.lang;u.rate=.86;speechSynthesis.speak(u);
   }
   function paintComparison(ref,trial){
     const w=canvas.width,h=canvas.height;g.clearRect(0,0,w,h);
@@ -221,7 +294,7 @@ function mount(target,options={}){
     stream=null;ctx=null;analyser=null;recorder=null;
     modelBtn.disabled=false;recordBtn.disabled=false;stopBtn.classList.add('apc-hidden');
     if(finishedMode==='reference'){
-      reference=current;modelBtn.textContent='✓ Re-record model';modelBtn.classList.add('apc-ref');setStatus('Reference ready');q('.apc-feedback-list').innerHTML='<li>Reference captured. Now record the child\'s attempt.</li>';paintIdle();return;
+      current.source='teacher recording';setReference(current,'Teacher-recorded model',false);setStatus('Teacher model ready');q('.apc-feedback-list').innerHTML='<li>Teacher model captured. It now replaces the generated reference for comparison.</li>';paintIdle();return;
     }
     setStatus('Scoring…');await scoreAttempt(current);if(reference)paintComparison(reference,current);else paintIdle();setStatus('Ready for another try');
   }
@@ -246,27 +319,30 @@ function mount(target,options={}){
       const faster=trial.duration<reference.duration;feedback.push((faster?'You were quicker than the model.':'You were slower than the model.')+' Try matching the model\'s pace and pauses.');
     }
     if(reference&&pitch!=null&&pitch<75)feedback.push('Match the rise and fall of the model voice rather than saying every part on one level.');
-    if(!reference)feedback.push('Record a model voice to unlock rhythm and intonation comparison.');
+    if(!reference)feedback.push('No acoustic reference is available, so rhythm and intonation are not being scored.');
     if(!spokenText)feedback.push('Word scoring is unavailable on this browser, so do not treat the overall score as a pronunciation mark.');
     if(!feedback.length)feedback.push('Very close. Repeat it once more and see if the score stays high rather than treating one attempt as mastery.');
     q('.apc-feedback-list').innerHTML=feedback.map(x=>'<li>'+String(x).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</li>').join('');
     root.dispatchEvent(new CustomEvent('apps-pronunciation:result',{bubbles:true,detail:out}));
   }
 
-  hearBtn.addEventListener('click',()=>{
-    if(!('speechSynthesis'in window))return;
-    speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(opts.targetText);u.lang=opts.lang;u.rate=.86;speechSynthesis.speak(u);
-  });
+  hearBtn.addEventListener('click',playReference);
   modelBtn.addEventListener('click',()=>begin('reference'));
+  generatedBtn.addEventListener('click',()=>{if(generatedReference){setReference(generatedReference,generatedReference.source||'Generated reference',true);setStatus('Generated model restored');paintIdle();}});
   recordBtn.addEventListener('click',()=>begin('attempt'));
   stopBtn.addEventListener('click',end);
-  renderLabels();clearScores();paintIdle();
+  renderLabels();clearScores();paintIdle();loadGeneratedReference();
 
   return {
-    setTarget(text,lang){opts.targetText=String(text||'').trim()||opts.targetText;if(lang)opts.lang=lang;reference=null;modelBtn.textContent='🎙 Record model';modelBtn.classList.remove('apc-ref');renderLabels();clearScores();q('.apc-feedback-list').innerHTML='<li>Record a model voice first for rhythm and intonation comparison.</li>';},
+    setTarget(text,lang){
+      opts.targetText=String(text||'').trim()||opts.targetText;if(lang)opts.lang=lang;
+      referenceLoadId++;disposeReference(reference);if(generatedReference&&generatedReference!==reference)disposeReference(generatedReference);
+      reference=null;generatedReference=null;modelBtn.classList.remove('apc-ref');generatedBtn.classList.add('apc-hidden');
+      renderLabels();clearScores();q('.apc-feedback-list').innerHTML='<li>Preparing the default pronunciation model for this target.</li>';loadGeneratedReference();
+    },
     getLastResult(){return lastResult;},
     getReference(){return reference;},
-    async destroy(){if(mode)await end();if(window.speechSynthesis)window.speechSynthesis.cancel();root.innerHTML='';},
+    async destroy(){referenceLoadId++;if(mode)await end();if(referenceAudio)try{referenceAudio.pause();}catch(e){}if(window.speechSynthesis)window.speechSynthesis.cancel();disposeReference(reference);if(generatedReference&&generatedReference!==reference)disposeReference(generatedReference);root.innerHTML='';},
     version:VERSION
   };
 }
