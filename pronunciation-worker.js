@@ -35,11 +35,11 @@ export default {
     const url=new URL(request.url);
 
     if(url.pathname==="/health"){
-      return json({ok:true,service:"apps-pronunciation-api",openaiConfigured:!!env.OPENAI_API_KEY},200,origin);
+      return json({ok:true,service:"apps-pronunciation-api",workersAIConfigured:!!env.AI,openaiConfigured:!!env.OPENAI_API_KEY},200,origin);
     }
     if(url.pathname!=="/reference"||request.method!=="POST")return json({error:"Not found"},404,origin);
     if(origin&&!ALLOWED_ORIGINS.has(origin))return json({error:"Origin not allowed"},403,origin);
-    if(!env.OPENAI_API_KEY)return json({error:"Reference generator is not configured"},503,origin);
+    if(!env.OPENAI_API_KEY&&!env.AI)return json({error:"Reference generator is not configured"},503,origin);
 
     let body;
     try{body=await request.json();}catch(e){return json({error:"Invalid JSON"},400,origin);}
@@ -55,36 +55,52 @@ export default {
       return new Response(cached.body,{status:cached.status,headers:h});
     }
 
-    const payload={
-      model:env.TTS_MODEL||"gpt-4o-mini-tts",
-      voice,
-      input:text,
-      instructions:languageInstructions(lang),
-      response_format:"wav",
-      speed:1
-    };
-    const upstream=await fetch("https://api.openai.com/v1/audio/speech",{
-      method:"POST",
-      headers:{"Authorization":"Bearer "+env.OPENAI_API_KEY,"Content-Type":"application/json"},
-      body:JSON.stringify(payload)
-    });
-    if(!upstream.ok){
-      let detail="Speech generation failed";
-      try{const err=await upstream.json();detail=err&&err.error&&err.error.message||detail;}catch(e){}
-      return json({error:detail},502,origin);
+    let bytes,contentType,modelLabel,voiceLabel;
+    if(env.OPENAI_API_KEY){
+      const payload={
+        model:env.TTS_MODEL||"gpt-4o-mini-tts",
+        voice,
+        input:text,
+        instructions:languageInstructions(lang),
+        response_format:"wav",
+        speed:1
+      };
+      const upstream=await fetch("https://api.openai.com/v1/audio/speech",{
+        method:"POST",
+        headers:{"Authorization":"Bearer "+env.OPENAI_API_KEY,"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+      });
+      if(!upstream.ok){
+        let detail="Speech generation failed";
+        try{const err=await upstream.json();detail=err&&err.error&&err.error.message||detail;}catch(e){}
+        return json({error:detail},502,origin);
+      }
+      bytes=await upstream.arrayBuffer();
+      contentType="audio/wav";modelLabel=payload.model;voiceLabel=voice;
+    }else{
+      try{
+        const language=(lang||"fr-FR").split("-")[0].toLowerCase();
+        const generated=await env.AI.run("@cf/myshell-ai/melotts",{prompt:text,lang:language});
+        if(!generated||!generated.audio)throw new Error("No audio returned");
+        const binary=atob(generated.audio),out=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++)out[i]=binary.charCodeAt(i);
+        bytes=out.buffer;contentType="audio/mpeg";modelLabel="@cf/myshell-ai/melotts";voiceLabel="Cloudflare multilingual model";
+      }catch(e){
+        return json({error:"Cloudflare pronunciation generation failed"},502,origin);
+      }
     }
 
-    const bytes=await upstream.arrayBuffer();
     const headers=new Headers({
-      "Content-Type":"audio/wav",
+      "Content-Type":contentType,
       "Cache-Control":"public, max-age=2592000, immutable",
-      "X-Pronunciation-Model":payload.model,
-      "X-Pronunciation-Voice":voice,
+      "X-Pronunciation-Model":modelLabel,
+      "X-Pronunciation-Voice":voiceLabel,
       "X-AI-Generated-Voice":"true",
+      "Access-Control-Expose-Headers":"X-Pronunciation-Model,X-Pronunciation-Voice,X-AI-Generated-Voice",
       ...cors(origin)
     });
     const response=new Response(bytes,{status:200,headers});
-    ctx.waitUntil(caches.default.put(key,new Response(bytes,{status:200,headers:{"Content-Type":"audio/wav","Cache-Control":"public, max-age=2592000, immutable","X-Pronunciation-Model":payload.model,"X-Pronunciation-Voice":voice,"X-AI-Generated-Voice":"true"}})));
+    ctx.waitUntil(caches.default.put(key,new Response(bytes,{status:200,headers:{"Content-Type":contentType,"Cache-Control":"public, max-age=2592000, immutable","X-Pronunciation-Model":modelLabel,"X-Pronunciation-Voice":voiceLabel,"X-AI-Generated-Voice":"true"}})));
     return response;
   }
 };
