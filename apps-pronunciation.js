@@ -2,7 +2,7 @@
 'use strict';
 if(window.AppsPronunciation)return;
 
-const VERSION=1;
+const VERSION=2;
 
 function css(){
   if(document.getElementById('appsPronunciationStyles'))return;
@@ -148,6 +148,23 @@ function mount(target,options={}){
     for(let x=0;x<w;x++){const y=mid+data[Math.floor(x*step)]*mid*amp*.78;if(x===0)g.moveTo(x,y);else g.lineTo(x,y);}g.stroke();
     g.strokeStyle='rgba(255,255,255,.14)';g.lineWidth=1;g.beginPath();g.moveTo(0,mid);g.lineTo(w,mid);g.stroke();
   }
+  function paintComparison(ref,trial){
+    const w=canvas.width,h=canvas.height;g.clearRect(0,0,w,h);
+    g.fillStyle='rgba(255,255,255,.025)';g.fillRect(0,0,w,h);
+    const rp=resample((ref&&ref.pitch)||[],64),tp=resample((trial&&trial.pitch)||[],64);
+    if(rp.length<4||tp.length<4){paintIdle();return;}
+    const all=rp.concat(tp),min=Math.min.apply(null,all),max=Math.max.apply(null,all),span=Math.max(30,max-min);
+    const y=v=>h-28-((v-min)/span)*(h-60);
+    const draw=(arr,stroke,width)=>{
+      g.strokeStyle=stroke;g.lineWidth=width;g.lineCap='round';g.lineJoin='round';g.beginPath();
+      arr.forEach((v,i)=>{const x=22+i*(w-44)/(arr.length-1),yy=y(v);if(i===0)g.moveTo(x,yy);else g.lineTo(x,yy);});
+      g.stroke();
+    };
+    draw(rp,'rgba(255,255,255,.46)',8);
+    draw(tp,'#6fe2d1',5);
+    g.font='24px system-ui, sans-serif';g.fillStyle='rgba(255,255,255,.65)';g.fillText('model',22,28);
+    g.fillStyle='#6fe2d1';g.fillText('child',116,28);
+  }
   function startRecognition(){
     spokenText='';speechConfidence=null;
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -206,7 +223,7 @@ function mount(target,options={}){
     if(finishedMode==='reference'){
       reference=current;modelBtn.textContent='✓ Re-record model';modelBtn.classList.add('apc-ref');setStatus('Reference ready');q('.apc-feedback-list').innerHTML='<li>Reference captured. Now record the child\'s attempt.</li>';paintIdle();return;
     }
-    setStatus('Scoring…');await scoreAttempt(current);paintIdle();setStatus('Ready for another try');
+    setStatus('Scoring…');await scoreAttempt(current);if(reference)paintComparison(reference,current);else paintIdle();setStatus('Ready for another try');
   }
   async function scoreAttempt(trial){
     const words=textScore(opts.targetText,spokenText),rhythm=reference?rhythmScore(reference,trial):null,pitch=reference?contourScore(reference.pitch,trial.pitch):null;
@@ -216,7 +233,7 @@ function mount(target,options={}){
     }
     const phoneme=provider&&Number.isFinite(provider.overall)?clamp(provider.overall,0,100):null;
     const available=[phoneme!=null?[phoneme,.65]:null,words!=null?[words,.55]:null,rhythm!=null?[rhythm,.2]:null,pitch!=null?[pitch,.25]:null].filter(Boolean);
-    const denom=available.reduce((s,x)=>s+x[1],0)||1,overall=Math.round(available.reduce((s,x)=>s+x[0]*x[1],0)/denom);
+    const denom=available.reduce((s,x)=>s+x[1],0),overall=available.length?Math.round(available.reduce((s,x)=>s+x[0]*x[1],0)/denom):null;
     const out={words,rhythm,pitch,overall,provider,transcript:spokenText,confidence:speechConfidence,duration:trial.duration,reference:!!reference};
     lastResult=out;
     const map={words,rhythm,pitch,overall};Object.keys(map).forEach(k=>{q('.apc-'+k).textContent=scoreLabel(map[k]);q('.apc-'+k+'-grade').textContent=grade(map[k]);});
@@ -249,7 +266,7 @@ function mount(target,options={}){
     setTarget(text,lang){opts.targetText=String(text||'').trim()||opts.targetText;if(lang)opts.lang=lang;reference=null;modelBtn.textContent='🎙 Record model';modelBtn.classList.remove('apc-ref');renderLabels();clearScores();q('.apc-feedback-list').innerHTML='<li>Record a model voice first for rhythm and intonation comparison.</li>';},
     getLastResult(){return lastResult;},
     getReference(){return reference;},
-    async destroy(){if(mode)await end();speechSynthesis&&speechSynthesis.cancel();root.innerHTML='';},
+    async destroy(){if(mode)await end();if(window.speechSynthesis)window.speechSynthesis.cancel();root.innerHTML='';},
     version:VERSION
   };
 }
