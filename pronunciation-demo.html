@@ -28,11 +28,20 @@
   </form>
   <div id="coach"></div>
 </main>
-<script src="apps-pronunciation.js?v=2"></script>
+<script src="apps-pronunciation.js?v=3"></script>
 <script>
 (function(){
   const host=document.getElementById('coach');
-  let coach=AppsPronunciation.mount(host,{lang:'fr-FR',targetText:document.getElementById('target').value,title:'Pronunciation test'});
+  const referenceProvider=async function(payload){
+    const response=await fetch('https://apps-pronunciation-api.nirav2000-github.workers.dev/reference',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({targetText:payload.targetText,lang:payload.lang})
+    });
+    if(!response.ok)throw new Error('Generated reference unavailable');
+    return {blob:await response.blob(),label:'AI-generated reference'};
+  };
+  let coach=AppsPronunciation.mount(host,{lang:'fr-FR',targetText:document.getElementById('target').value,title:'Pronunciation test',referenceProvider});
   document.getElementById('demoControls').addEventListener('submit',function(e){
     e.preventDefault();
     coach.setTarget(document.getElementById('target').value,document.getElementById('lang').value);
