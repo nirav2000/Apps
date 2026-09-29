@@ -164,8 +164,30 @@ async function logout(){
 async function listSessions(){return state.serviceBaseUrl?(await api('/v1/sessions')).sessions||[]:[]}
 async function revokeSession(sessionId){return api('/v1/sessions/'+encodeURIComponent(sessionId),{method:'DELETE'})}
 async function disableCurrentAccount(){return api('/v1/account/disable',{method:'POST'})}
-async function registerPasskey(label='Passkey'){return api('/v1/passkeys/register',{method:'POST',body:JSON.stringify({label})})}
-async function signInWithPasskey(payload){return api('/v1/passkeys/sign-in',{method:'POST',auth:false,headers:{'Content-Type':'application/json','X-Apps-Device':getDeviceId(),'X-Apps-App':state.appId},body:JSON.stringify(payload||{})})}
+const b64uToBuf=s=>{const p=String(s||'').replace(/-/g,'+').replace(/_/g,'/'),raw=atob(p+'='.repeat((4-p.length%4)%4)),u=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);return u.buffer};
+const bufToB64u=b=>{const u=new Uint8Array(b);let s='';for(const x of u)s+=String.fromCharCode(x);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+function publicKeyRequestOptions(o){return {...o,challenge:b64uToBuf(o.challenge),allowCredentials:(o.allowCredentials||[]).map(x=>({...x,id:b64uToBuf(x.id)}))}}
+function publicKeyCreationOptions(o){return {...o,challenge:b64uToBuf(o.challenge),user:{...o.user,id:b64uToBuf(o.user.id)},excludeCredentials:(o.excludeCredentials||[]).map(x=>({...x,id:b64uToBuf(x.id)}))}}
+function authCredentialJSON(c){return{id:c.id,rawId:bufToB64u(c.rawId),type:c.type,response:{authenticatorData:bufToB64u(c.response.authenticatorData),clientDataJSON:bufToB64u(c.response.clientDataJSON),signature:bufToB64u(c.response.signature),userHandle:c.response.userHandle?bufToB64u(c.response.userHandle):undefined},clientExtensionResults:c.getClientExtensionResults(),authenticatorAttachment:c.authenticatorAttachment||undefined}}
+function registrationCredentialJSON(c){const r=c.response;return{id:c.id,rawId:bufToB64u(c.rawId),type:c.type,response:{clientDataJSON:bufToB64u(r.clientDataJSON),attestationObject:bufToB64u(r.attestationObject),transports:r.getTransports?r.getTransports():[]},clientExtensionResults:c.getClientExtensionResults(),authenticatorAttachment:c.authenticatorAttachment||undefined}}
+async function registerPasskey(label='Passkey'){
+  if(!window.PublicKeyCredential||!navigator.credentials?.create)throw new Error('Passkeys are not supported in this browser.');
+  const start=await api('/v1/passkeys/register/options',{method:'POST',body:JSON.stringify({label})});
+  const credential=await navigator.credentials.create({publicKey:publicKeyCreationOptions(start.options)});
+  return api('/v1/passkeys/register/verify',{method:'POST',body:JSON.stringify({challengeId:start.challengeId,label,response:registrationCredentialJSON(credential)})});
+}
+async function signInWithPasskey(){
+  if(!window.PublicKeyCredential||!navigator.credentials?.get)throw new Error('Passkeys are not supported in this browser.');
+  const start=await api('/v1/passkeys/authenticate/options',{method:'POST',auth:false,headers:{'Content-Type':'application/json','X-Apps-Device':getDeviceId(),'X-Apps-App':state.appId},body:JSON.stringify({appId:state.appId})});
+  const credential=await navigator.credentials.get({publicKey:publicKeyRequestOptions(start.options)});
+  const verified=await api('/v1/passkeys/authenticate/verify',{method:'POST',auth:false,headers:{'Content-Type':'application/json','X-Apps-Device':getDeviceId(),'X-Apps-App':state.appId},body:JSON.stringify({challengeId:start.challengeId,response:authCredentialJSON(credential)})});
+  if(verified.firebaseCustomToken){
+    const fb=await ensureFirebase();
+    await fb.Auth.signInWithCustomToken(fb.auth,verified.firebaseCustomToken);
+    await refreshIdentity();
+  }
+  return verified;
+}
 async function getAuditHistory(){return (await api('/v1/audit')).events||[]}
 
 export const Auth={
