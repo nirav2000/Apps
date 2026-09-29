@@ -48,7 +48,8 @@ export default {
     if(!text||text.length>500)return json({error:"targetText must be 1-500 characters"},400,origin);
 
     const voice=String(body.voice||env.DEFAULT_TTS_VOICE||"cedar");
-    const key=cacheKey(text,lang,voice);
+    const provider=env.OPENAI_API_KEY?"openai":"cloudflare";
+    const key=cacheKey(text,lang,provider+":"+voice);
     const cached=await caches.default.match(key);
     if(cached){
       const h=new Headers(cached.headers);Object.entries(cors(origin)).forEach(([k,v])=>h.set(k,v));h.set("X-Pronunciation-Cache","HIT");
