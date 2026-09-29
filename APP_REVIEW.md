@@ -52,7 +52,13 @@ Purpose: a plug-and-play child pronunciation practice component for learning app
 
 Current first consumer: `InClass` French. InClass imports the shared module and supplies the current sentence target; it does not clone the analysis engine into the app repository. Prototype scores are stored as diagnostic metrics with `correct: null` so they are not treated as mastery evidence.
 
-Privacy rule: importing the module must never activate the microphone. Microphone permission is requested only after an explicit learner/parent recording action. The default module does not upload captured audio.
+Privacy rule: importing the module must never activate the microphone. Microphone permission is requested only after an explicit learner/parent recording action. The default module does not upload captured student audio.
+
+### Pronunciation worker deployment
+
+Generated reference audio is served by `apps-pronunciation-api`, whose source and Wrangler configuration live in the Apps repository. The worker sends only the lesson target text and language to the speech-generation API, requests WAV output, and caches identical reference phrases at the Cloudflare edge.
+
+As with App Monitor, Cloudflare deployment is delegated to the Snag repository because that repository currently hosts the shared Cloudflare deployment credentials. A dedicated `deploy-shared-pronunciation.yml` workflow checks out Apps/main and deploys the worker. The OpenAI key must remain a server-side GitHub/Worker secret; it must never be embedded in InClass or Apps client JavaScript.
 
 
 ## 1. Canonical device identity
