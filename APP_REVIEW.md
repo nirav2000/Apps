@@ -897,3 +897,22 @@ Shared account, privacy and billing primitives are now implemented in `Apps` and
 **Exit criteria:** remove Snag's `deploy-shared-app-monitor.yml` bridge, deploy App Monitor directly from the shared platform/infra owner, and verify no application repository contains credentials or deployment responsibility for another app's shared service.
 
 **Priority:** medium. The current bridge is functional and avoids duplicating source code, but it should be reviewed before adding more shared backend services.
+
+
+## Shared authentication platform — 29 September 2026
+
+New shared SDK: `auth/v1/index.js` with immutable release `auth/releases/1.0.0/index.js`.
+
+Architecture/docs:
+- `AUTH_ARCHITECTURE.md`
+- `AUTH_MIGRATION.md`
+- `AUTH_SERVICE_CONTRACT.md`
+- `AUTH_INTEGRATION_GUIDE.md`
+- `auth/FIRESTORE_RULES.rules`
+- `auth/CHANGELOG.md`
+
+The target model separates `globalUserId`, central authentication subject, per-app Firebase/app UID, learning-domain learner/student IDs, device IDs and auth sessions. App roles are opaque strings supplied by each app; the core auth package contains no app-specific business rules.
+
+Comprehension is the first proving-ground consumer. It is pinned to shared auth `v1.0.0` in shadow/device-only mode, so no login gate or data migration is introduced. Existing UID-coupled apps remain on their legacy authentication until adapters/mappings are tested.
+
+Permanent `pre-shared-auth` preservation branches were created for Apps, Comprehension, Snag, LearnLatin, beyond100, Next, InClass and Openday. Exact production SHAs are recorded in `AUTH_MIGRATION.md`. The current GitHub connector does not expose tag creation, so an immutable Git tag still needs to be created before any UID/data migration; this does not block the non-destructive shadow rollout.
