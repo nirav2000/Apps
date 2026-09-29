@@ -44,6 +44,17 @@ The `Apps` repository provides the shared dashboard/platform components used by 
 
 # Shared platform
 
+## 0. Reusable pronunciation / voice analysis
+
+Shared module: `apps-pronunciation.js` (v1).
+
+Purpose: a plug-and-play child pronunciation practice component for learning apps. It owns microphone capture, a live stylised speech waveform, browser speech-recognition comparison, optional model-voice rhythm/intonation comparison, local-first audio handling, and a provider adapter for future phoneme-level assessment.
+
+Current first consumer: `InClass` French. InClass imports the shared module and supplies the current sentence target; it does not clone the analysis engine into the app repository. Prototype scores are stored as diagnostic metrics with `correct: null` so they are not treated as mastery evidence.
+
+Privacy rule: importing the module must never activate the microphone. Microphone permission is requested only after an explicit learner/parent recording action. The default module does not upload captured audio.
+
+
 ## 1. Canonical device identity
 
 Shared module:
