@@ -783,6 +783,7 @@ When an app improvement, fix or architectural suggestion is discussed but **not 
 
 ### P1 — Version Lab / release metadata
 
+- [x] Shared browser/compare behaviour implemented in `apps-version-lab.js`: current releases preview the live deployed app; historical releases use declared frozen snapshots when present and fall back cleanly to Git source when not.
 - [ ] Define one release/version manifest schema for all apps.
 - [ ] Generate release metadata from GitHub commits/tags/Actions where possible instead of hand-maintaining multiple version data formats.
 - [ ] Move the heavy Version Lab comparison UI to a central Apps-hosted tool that can open any registered app/repository/version.
