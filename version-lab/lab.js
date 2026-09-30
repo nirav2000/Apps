@@ -24,7 +24,7 @@ function screenshotUrl(r){
   const target=rawSnapshot(r)||(r===releases[0]?selected.liveUrl:null);
   if(!target)return '';
   const u=new URL(target);
-  u.searchParams.set('version_lab_preview','1');
+  u.searchParams.set('version_lab_preview','1');u.searchParams.set('app_monitor_source','version-lab-preview');
   return 'https://image.thum.io/get/width/900/crop/520/noanimate/'+u.toString();
 }
 function dateLabel(r){
