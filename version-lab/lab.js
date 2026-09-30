@@ -112,8 +112,9 @@ function renderReleases(){
     const areas=(r.areas||[]).map(a=>'<span>'+esc(a.title||a.id)+'</span>').join('');
     const compare=i<releases.length-1?'<button class="primary" data-compare="'+esc(idOf(r))+'" data-with="'+esc(idOf(releases[i+1]))+'">Compare</button>':'';
     return '<article class="release-card '+(i===0?'current':'')+'">'+
+      '<div class="release-card-body release-card-intro"><h3>'+esc(r.title||'Checkpoint')+'</h3><p class="release-summary">'+esc(r.summary||'')+'</p></div>'+
       (img?'<div class="release-image"><img loading="lazy" src="'+esc(img)+'" alt="Snapshot preview of '+esc(r.title||versionOf(r))+'" onerror="this.closest(\'.release-image\').classList.add(\'image-failed\')"></div>':'')+
-      '<div class="release-card-body"><h3>'+esc(r.title||'Checkpoint')+'</h3><p class="release-summary">'+esc(r.summary||'')+'</p>'+
+      '<div class="release-card-body release-card-details">'+
       (areas?'<div class="area-tags">'+areas+'</div>':'')+
       '<div class="release-actions">'+compare+'<button data-review="'+esc(idOf(r))+'">Review changes</button>'+(rawSnapshot(r)?'<a href="'+esc(rawSnapshot(r))+'" target="_blank" rel="noopener">Open snapshot</a>':'')+'<a href="'+esc(source(r))+'" target="_blank" rel="noopener">Source</a></div>'+
       '<div class="release-technical">'+technical.map(x=>'<span>'+esc(x)+'</span>').join('')+'</div></div></article>';
