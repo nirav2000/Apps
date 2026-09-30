@@ -13,9 +13,15 @@ Installation is intentionally separate from normal app business code.
 
 These files are platform integration/configuration, not application Version Lab implementation.
 
-## First trial
+## Installation includes historical backfill
 
-Use an app that has never had a Version Lab. Run the **Version Lab checkpoint** workflow with a title, summary and change areas.
+For an existing repository, installation must not begin history only from today.
+
+Run the **Install Version Lab** workflow first. It plans meaningful historical checkpoints from Git history, reconstructs snapshots from exact historical SHAs, records their compatibility/data metadata, and creates a current **Version Lab adoption baseline**.
+
+Review the generated `version-lab-backfill-plan.json` for missing important milestones.
+
+After installation/backfill is validated, use the normal **Version Lab checkpoint** workflow for future meaningful releases.
 
 The reusable workflow will:
 
