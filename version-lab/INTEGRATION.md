@@ -8,7 +8,8 @@ Installation is intentionally separate from normal app business code.
 2. Copy `version-lab/templates/version-lab.yml` to `.github/workflows/version-lab.yml`.
 3. Register the app in `Apps/version-lab/apps.json` with `managed: true` and its release manifest URL:
    `<liveUrl>/version-lab-data/releases.json`.
-4. Do **not** add a Version Lab button or Version Lab JavaScript to the application's production UI.
+4. Copy `version-lab/templates/versionlabs/index.html` to `versionlabs/index.html`, replacing `__APP_ID__` with the registered app ID.
+5. Do **not** add a Version Lab button or Version Lab JavaScript to the application's normal production UI.
 
 These files are platform integration/configuration, not application Version Lab implementation.
 
@@ -28,7 +29,7 @@ The reusable workflow will:
 - validate the generated checkpoint;
 - commit the generated Version Lab artifacts back to the app.
 
-The developer then opens the central Version Lab to inspect the checkpoint.
+The developer can either open the central Version Lab directly or manually visit `<app>/versionlabs/`. The latter uses the shared App Monitor administrator passkey/session and redirects into the central Version Lab scoped to that app.
 
 ## Snapshot safety modes
 
@@ -42,7 +43,9 @@ The archived app may make normal network requests. Use only when the app is genu
 
 ### read-only-adapter
 
-Reserved for apps with a Version Lab adapter that redirects historical data access to a safe read-only compatibility source. The first release engine records the mode; adapter plumbing is the next compatibility layer.
+Preferred for data-backed apps. At checkpoint capture, Version Lab freezes and injects the shared read-only network adapter before historical app scripts. The adapter permits configured read origins/query transports while blocking known writes, unrecognised mutation requests, forms, beacons and WebSockets.
+
+This protects current production data from historical code, but does not itself create a historical database copy. See `READ_ONLY_ADAPTER.md`.
 
 ### source-only
 
@@ -50,8 +53,17 @@ No runnable snapshot is exposed; Git source remains available.
 
 ## Developer-only access
 
-The shared UI is centrally hosted at `/Apps/version-lab/` and validates the same administrator session used by App Monitor. Production apps expose no Version Lab route or button.
+The shared UI is centrally hosted at `/Apps/version-lab/` and validates the same administrator session used by App Monitor. A consuming app may expose the deliberately unlinked manual route `/versionlabs/`; this is only a developer passkey gateway/redirect and contains no Version Lab implementation or historical data. No Version Lab control appears in normal application navigation.
 
 ## AI coding agents
 
 Add a reference to `AI_AGENT_CONTRACT.md` in the app's agent/development instructions. An AI coder should request a checkpoint by triggering the app's Version Lab workflow after a meaningful feature is complete; it must not manufacture local snapshots/version pages.
+
+
+## AI-assisted installation
+
+For a new app chat/coding agent, point it at:
+
+`https://nirav2000.github.io/Apps/version-lab/INSTALL_FOR_AI.md`
+
+That document is the installation contract. The coding agent should follow it rather than designing its own versioning system.
