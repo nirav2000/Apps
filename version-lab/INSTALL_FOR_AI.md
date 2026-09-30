@@ -195,6 +195,12 @@ Normal Git commits are technical history and do not automatically become Version
 
 After a coherent feature, material design change or data-model change is complete, invoke the app's **Version Lab checkpoint** workflow.
 
+For bug fixes, verification is part of completion. Reproduce the reported failure where practical, verify the fix in the intended runtime/deployment, and check the immediately related behaviour. A verified user-facing fix that restores previously working behaviour, resolves a regression, or has meaningful comparison value **must create a Version Lab checkpoint**.
+
+Only genuinely trivial fixes may skip a checkpoint: for example spelling-only copy changes, comments/documentation-only edits, or similarly inconsequential internal changes with no user-visible behavioural effect. The size of the code diff is not the test: a one-character or one-line change that restores broken behaviour is significant.
+
+If a fix cannot yet be verified, report that limitation and create the checkpoint after verification rather than silently treating the work as a completed checkpoint-worthy fix.
+
 The coding agent supplies only:
 
 - title;
