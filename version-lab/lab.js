@@ -2,7 +2,7 @@
 'use strict';
 const CLOUD='https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor';
 const SESSION_STORE='app-monitor.admin-session.v2';
-const REVIEW_API='https://europe-west2-kk-syllabus.cloudfunctions.net/versionLabReview';
+const REVIEW_API=CLOUD+'/version-lab/review';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 let registry=[],selected=null,releases=[],comparisonNotes=[],decisions={};
