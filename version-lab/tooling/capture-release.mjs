@@ -96,7 +96,10 @@ if(fs.existsSync(entryPath)&&safety!=='interactive-safe'){
 let productVersion=null;
 if(config.productVersionFile){
   try{
-    const pv=JSON.parse(fs.readFileSync(path.join(root,config.productVersionFile),'utf8'));
+    const raw=sourceRef
+      ? execFileSync('git',['show',sha+':'+config.productVersionFile],{encoding:'utf8'})
+      : fs.readFileSync(path.join(root,config.productVersionFile),'utf8');
+    const pv=JSON.parse(raw);
     productVersion=String(pv.version||pv.build||'').trim()||null;
   }catch{}
 }
