@@ -3,8 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 
 const root=process.cwd();
+const sharedToolDir=path.dirname(fileURLToPath(import.meta.url));
+const sharedVersionLabRoot=path.resolve(sharedToolDir,'..');
 const configPath=path.join(root,'.version-lab.json');
 if(!fs.existsSync(configPath)) throw new Error('Missing .version-lab.json');
 const config=JSON.parse(fs.readFileSync(configPath,'utf8'));
@@ -51,11 +54,30 @@ const entry=config.snapshot?.entry||'index.html';
 const entryPath=path.join(snapDir,entry);
 if(fs.existsSync(entryPath)&&safety!=='interactive-safe'){
   let html=fs.readFileSync(entryPath,'utf8');
+  let adapterMarkup='';
+  let connectSrc="'none'";
+  if(safety==='read-only-adapter'){
+    const adapterDir=path.join(snapDir,'__version_lab__');
+    fs.mkdirSync(adapterDir,{recursive:true});
+    const runtimeSrc=path.join(sharedVersionLabRoot,'adapters','read-only-runtime.js');
+    const runtimeDst=path.join(adapterDir,'read-only-runtime.js');
+    fs.copyFileSync(runtimeSrc,runtimeDst);
+    const adapterConfig={
+      allowedOrigins:[...(config.readOnlyAdapter?.allowedOrigins||[])],
+      allowReadPostPatterns:[...(config.readOnlyAdapter?.allowReadPostPatterns||[])],
+      blockPatterns:[...(config.readOnlyAdapter?.blockPatterns||[])]
+    };
+    fs.writeFileSync(path.join(adapterDir,'read-only-config.json'),JSON.stringify(adapterConfig,null,2)+'\n');
+    const safeConfig=JSON.stringify(adapterConfig).replace(/<\/script/gi,'<\\/script');
+    adapterMarkup='<script>window.__VERSION_LAB_READONLY_CONFIG__='+safeConfig+';<\/script><script src="./__version_lab__/read-only-runtime.js"><\/script>';
+    connectSrc=["'self'",...adapterConfig.allowedOrigins].join(' ');
+  }
   const csp=safety==='source-only'
     ? "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:;"
-    : "default-src 'self' data: blob: https:; connect-src 'none'; form-action 'none'; frame-ancestors *; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; media-src 'self' data: blob: https:;";
+    : "default-src 'self' data: blob: https:; connect-src "+connectSrc+"; form-action 'none'; frame-ancestors *; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; media-src 'self' data: blob: https:;";
   const meta='<meta http-equiv="Content-Security-Policy" content="'+csp.replaceAll('"','&quot;')+'">';
-  html=/<head[^>]*>/i.test(html)?html.replace(/<head([^>]*)>/i,'<head$1>'+meta):meta+html;
+  const prefix=meta+adapterMarkup;
+  html=/<head[^>]*>/i.test(html)?html.replace(/<head([^>]*)>/i,'<head$1>'+prefix):prefix+html;
   fs.writeFileSync(entryPath,html);
 }
 
@@ -79,7 +101,7 @@ const compatibility={
   frontend:'archived',
   source:'git',
   snapshot:safety==='source-only'?'source-only':'generated',
-  backend:safety==='interactive-safe'?'declared safe by app config':safety==='read-only-adapter'?'requires read-only adapter':'live backend connections blocked',
+  backend:safety==='interactive-safe'?'declared safe by app config':safety==='read-only-adapter'?'shared read-only network adapter injected':'live backend connections blocked',
   data:data?'contract recorded':'not declared'
 };
 const release={
@@ -88,6 +110,7 @@ const release={
   sourceUrl:'https://github.com/'+config.repository+'/tree/'+sha,
   snapshotUrl:safety==='source-only'?null:'./snapshots/'+checkpointId+'/'+entry,
   snapshotSafety:safety,compatibility,data,
+  readOnlyAdapter:safety==='read-only-adapter'?{version:1,allowedOrigins:[...(config.readOnlyAdapter?.allowedOrigins||[])],allowReadPostPatterns:[...(config.readOnlyAdapter?.allowReadPostPatterns||[])]}:null,
   platform:config.platform||null,
   generator:{name:'Apps Version Lab',contractVersion:1}
 };
