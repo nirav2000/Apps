@@ -3,10 +3,19 @@
   "repository": "nirav2000/example",
   "liveUrl": "https://nirav2000.github.io/example/",
   "productVersionFile": "version.json",
-  "snapshotSafety": "visual-only",
+  "snapshotSafety": "read-only-adapter",
   "snapshot": {
     "entry": "index.html",
     "exclude": []
+  },
+  "readOnlyAdapter": {
+    "allowedOrigins": [],
+    "allowReadPostPatterns": [
+      ":runQuery",
+      ":batchGet",
+      "/Listen/channel"
+    ],
+    "blockPatterns": []
   },
   "platform": {
     "contract": "v1"
