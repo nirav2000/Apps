@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shared Libraries · App Monitor</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;color:#142033;background:#f4f7f9}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1500px;margin:auto;padding:22px}.top,.controls{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.controls{justify-content:flex-start}.card{background:#fff;border:1px solid #dce3e8;border-radius:18px;padding:18px;margin:14px 0}.muted{color:#66727d}.small{font-size:13px}.btn,button,input,select{border:1px solid #ccd5db;border-radius:11px;padding:9px 12px;background:#fff;color:#142033;font:inherit}.btn{text-decoration:none;font-weight:700}.primary{background:#102033;color:#fff;border-color:#102033}.pill{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:#eef3f7;border:1px solid #d7e0e6;font-size:12px}.pill.proposed{background:#fff8e6;border-color:#efd592}.table-wrap{overflow:auto;border:1px solid #edf1f4;border-radius:14px}.table{width:100%;border-collapse:collapse;font-size:13px;min-width:1350px}.table th,.table td{text-align:left;padding:10px 9px;border-top:1px solid #edf1f4;vertical-align:top}.table th{background:#fafcfd;color:#66727d;font-size:12px;position:sticky;top:0;z-index:2}.table th:first-child,.table td:first-child{position:sticky;left:0;background:#fff;z-index:1}.table th:first-child{background:#fafcfd;z-index:3}.tick{text-align:center;font-size:18px}.yes{color:#08783e}.local{color:#9a5b00}.unknown{color:#9aa5ae}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.metric{border:1px solid #e0e6eb;border-radius:14px;padding:14px}.metric strong{display:block;font-size:28px}.timeline{display:grid;gap:0}.event{display:grid;grid-template-columns:170px 140px 1fr;gap:14px;padding:13px 0;border-top:1px solid #edf1f4}.event:first-child{border-top:0}.event strong{display:block}.legend{display:flex;gap:14px;flex-wrap:wrap}.legend span{white-space:nowrap}@media(max-width:760px){.wrap{padding:14px}.event{grid-template-columns:1fr;gap:3px}}
+</style></head>
+<body><div class="wrap">
+<div class="top"><div><h1>Shared libraries</h1><p class="muted">Central register of reusable Apps modules, proposed libraries and verified app adoption.</p></div>
+<div class="controls"><a class="btn primary" href="./app-monitor.html">App Monitor</a><a class="btn" href="./firebase-usage.html">Firebase monitor</a><a class="btn" href="./">Apps</a></div></div>
+
+<section class="card"><div class="summary-grid">
+<div class="metric"><span class="muted small">Implemented</span><strong id="implementedCount">0</strong></div>
+<div class="metric"><span class="muted small">Proposed</span><strong id="proposedCount">0</strong></div>
+<div class="metric"><span class="muted small">Verified installs</span><strong id="installCount">0</strong></div>
+<div class="metric"><span class="muted small">Apps tracked</span><strong id="appCount">0</strong></div>
+</div></section>
+
+<section class="card"><div class="top"><div><h2>Library register</h2><p class="muted small">A tick means installation/use is verified. Amber “L” means the app has a local/legacy implementation of the feature but migration to the central shared module is not confirmed.</p></div>
+<div class="controls"><select id="statusFilter"><option value="*">All statuses</option><option value="implemented">Implemented</option><option value="proposed">Proposed</option></select><input id="search" type="search" placeholder="Search libraries, purpose, file…"></div></div>
+<div class="legend"><span><b class="yes">✓</b> verified shared install</span><span><b class="local">L</b> local/legacy feature</span><span><b class="unknown">—</b> not verified</span></div>
+<div class="table-wrap" style="margin-top:12px"><table class="table"><thead><tr id="headRow"></tr></thead><tbody id="libRows"></tbody></table></div>
+<p class="muted small">Dates are repository-history dates. Proposed libraries show “Not created” until a central module actually exists.</p>
+</section>
+
+<section class="card"><div class="top"><div><h2>Version Lab history</h2><p class="muted small">Separates the history of the Version Lab feature from creation of the shared library.</p></div><span class="pill">Shared library: 30 Sep 2026</span></div>
+<div id="versionTimeline" class="timeline"></div>
+</section>
+</div>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+let DATA=null;
+function mark(v){if(v==='installed')return '<span class="tick yes" title="Verified installed">✓</span>';if(v==='local')return '<span class="tick local" title="Local/legacy implementation">L</span>';return '<span class="tick unknown" title="Not verified">—</span>'}
+function render(){
+ const q=$('search').value.trim().toLowerCase(),sf=$('statusFilter').value;
+ $('headRow').innerHTML='<th>Library</th><th>Status</th><th>Created</th><th>What it does</th>'+DATA.apps.map(a=>'<th>'+esc(a)+'</th>').join('');
+ const libs=DATA.libraries.filter(x=>(sf==='*'||x.status===sf)&&(!q||[x.name,x.file,x.purpose,x.notes].join(' ').toLowerCase().includes(q)));
+ $('libRows').innerHTML=libs.map(x=>'<tr><td><strong>'+esc(x.name)+'</strong><div class="mono muted">'+esc(x.file)+'</div>'+(x.notes?'<div class="muted small" style="margin-top:5px">'+esc(x.notes)+'</div>':'')+'</td><td><span class="pill '+(x.status==='proposed'?'proposed':'')+'">'+esc(x.status)+'</span></td><td>'+(x.created?esc(new Date(x.created+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})):'<span class="muted">Not created</span>')+'</td><td>'+esc(x.purpose)+'</td>'+DATA.apps.map(a=>'<td class="tick">'+mark(x.installed?.[a])+'</td>').join('')+'</tr>').join('');
+}
+fetch('./shared-libraries.json',{cache:'no-store'}).then(r=>r.json()).then(d=>{
+ DATA=d;
+ $('implementedCount').textContent=d.libraries.filter(x=>x.status==='implemented').length;
+ $('proposedCount').textContent=d.libraries.filter(x=>x.status==='proposed').length;
+ $('installCount').textContent=d.libraries.reduce((n,x)=>n+Object.values(x.installed||{}).filter(v=>v==='installed').length,0);
+ $('appCount').textContent=d.apps.length;
+ $('versionTimeline').innerHTML=d.versionLabHistory.map(e=>'<div class="event"><div><strong>'+esc(e.date)+'</strong></div><div><span class="pill">'+esc(e.app)+'</span></div><div><strong>'+esc(e.event)+'</strong><div class="muted small">'+esc(e.detail)+'</div></div></div>').join('');
+ render();
+}).catch(e=>{$('libRows').innerHTML='<tr><td colspan="20">Could not load shared library register: '+esc(e.message)+'</td></tr>'});
+$('search').oninput=()=>DATA&&render();$('statusFilter').onchange=()=>DATA&&render();
+</script></body></html>
