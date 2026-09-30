@@ -1,0 +1,19 @@
+{
+  "appId": "example",
+  "repository": "nirav2000/example",
+  "liveUrl": "https://nirav2000.github.io/example/",
+  "productVersionFile": "version.json",
+  "snapshotSafety": "visual-only",
+  "snapshot": {
+    "entry": "index.html",
+    "exclude": []
+  },
+  "platform": {
+    "contract": "v1"
+  },
+  "data": {
+    "provider": "none",
+    "schemaVersion": "1",
+    "paths": []
+  }
+}
