@@ -18,7 +18,8 @@ const summary=(process.env.VERSION_LAB_SUMMARY||'').trim();
 const areasText=(process.env.VERSION_LAB_AREAS||'').trim();
 if(!title||!summary) throw new Error('VERSION_LAB_TITLE and VERSION_LAB_SUMMARY are required');
 
-const sha=(process.env.GITHUB_SHA||execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'})).trim();
+const sourceRef=(process.env.VERSION_LAB_SOURCE_REF||'').trim();
+const sha=execFileSync('git',['rev-parse',sourceRef||'HEAD'],{encoding:'utf8'}).trim();
 const short=sha.slice(0,8);
 const now=new Date();
 const stamp=now.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
@@ -35,7 +36,10 @@ const defaultExclude=[
 ];
 const excludes=[...defaultExclude,...(config.snapshot?.exclude||[])];
 const includes=config.snapshot?.include||null;
-const tracked=execFileSync('git',['ls-files','-z'],{encoding:'utf8'}).split('\0').filter(Boolean);
+const tracked=(sourceRef
+  ? execFileSync('git',['ls-tree','-r','--name-only','-z',sha],{encoding:'utf8'})
+  : execFileSync('git',['ls-files','-z'],{encoding:'utf8'})
+).split('\0').filter(Boolean);
 const norm=s=>s.replaceAll('\\','/');
 const blocked=f=>excludes.some(x=>{x=norm(x);return x.endsWith('/')?f.startsWith(x):f===x||f.startsWith(x+'/')});
 const allowed=f=>!includes||includes.some(x=>{x=norm(x);return x.endsWith('/')?f.startsWith(x):f===x||f.startsWith(x+'/')});
@@ -43,10 +47,18 @@ const allowed=f=>!includes||includes.some(x=>{x=norm(x);return x.endsWith('/')?f
 for(const rel0 of tracked){
   const rel=norm(rel0);
   if(blocked(rel)||!allowed(rel))continue;
-  const src=path.join(root,rel),dst=path.join(snapDir,rel);
-  if(!fs.existsSync(src)||!fs.statSync(src).isFile())continue;
+  const dst=path.join(snapDir,rel);
   fs.mkdirSync(path.dirname(dst),{recursive:true});
-  fs.copyFileSync(src,dst);
+  if(sourceRef){
+    try{
+      const bytes=execFileSync('git',['show',sha+':'+rel],{encoding:null,maxBuffer:64*1024*1024});
+      fs.writeFileSync(dst,bytes);
+    }catch{}
+  }else{
+    const src=path.join(root,rel);
+    if(!fs.existsSync(src)||!fs.statSync(src).isFile())continue;
+    fs.copyFileSync(src,dst);
+  }
 }
 
 const safety=config.snapshotSafety||'visual-only';
@@ -105,14 +117,14 @@ const compatibility={
   data:data?'contract recorded':'not declared'
 };
 const release={
-  checkpointId,appId:config.appId,productVersion,commit:sha,createdAt:now.toISOString(),
+  checkpointId,appId:config.appId,productVersion,commit:sha,sourceRef:sourceRef||null,createdAt:now.toISOString(),
   title,summary,areas,
   sourceUrl:'https://github.com/'+config.repository+'/tree/'+sha,
   snapshotUrl:safety==='source-only'?null:'./snapshots/'+checkpointId+'/'+entry,
   snapshotSafety:safety,compatibility,data,
   readOnlyAdapter:safety==='read-only-adapter'?{version:1,allowedOrigins:[...(config.readOnlyAdapter?.allowedOrigins||[])],allowReadPostPatterns:[...(config.readOnlyAdapter?.allowReadPostPatterns||[])]}:null,
   platform:config.platform||null,
-  generator:{name:'Apps Version Lab',contractVersion:1}
+  generator:{name:'Apps Version Lab',contractVersion:1,backfilled:!!sourceRef}
 };
 fs.writeFileSync(path.join(snapDir,'version-lab-release.json'),JSON.stringify(release,null,2)+'\n');
 
