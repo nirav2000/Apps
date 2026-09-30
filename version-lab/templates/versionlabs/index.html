@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Version Lab · Developer access</title>
+<style>:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;background:#f4f7f9;color:#142033}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px}.card{width:min(560px,100%);background:#fff;border:1px solid #dce3e8;border-radius:20px;padding:24px}.muted{color:#66727d}.btn{border:1px solid #102033;border-radius:12px;padding:11px 15px;background:#102033;color:#fff;font:inherit;font-weight:700;cursor:pointer}.small{font-size:13px}</style></head>
+<body><main class="card"><p class="small muted">DEVELOPER TOOL</p><h1>Version Lab</h1><p class="muted">This area is not part of the application. Access requires your shared App Monitor administrator passkey.</p><button id="unlock" class="btn">Unlock with passkey</button><p id="status" class="small muted"></p></main>
+<script>window.VERSION_LAB_APP_ID="__APP_ID__";</script>
+<script src="https://nirav2000.github.io/Apps/version-lab/access.js"></script>
+<script>
+const b=document.getElementById('unlock'),s=document.getElementById('status');
+(async()=>{const existing=await VersionLabAccess.validate().catch(()=>null);if(existing){b.textContent='Open Version Lab';s.textContent='Developer session already verified.'}})();
+b.onclick=async()=>{b.disabled=true;s.textContent='Verifying developer access…';try{await VersionLabAccess.unlockAndOpen(window.VERSION_LAB_APP_ID)}catch(e){s.textContent=e.message||String(e);b.disabled=false}};
+</script></body></html>
