@@ -1,0 +1,16 @@
+{
+  "appId": "example",
+  "platformVersion": "1",
+  "capabilities": {
+    "identity": true,
+    "monitor": true
+  },
+  "ui": {
+    "mode": "headless"
+  },
+  "versionLab": {
+    "enabled": false,
+    "managed": false,
+    "developerOnly": true
+  }
+}
