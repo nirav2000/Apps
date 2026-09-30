@@ -40,8 +40,15 @@ The Apps repository is the single-source library for cross-app capabilities:
 - `apps-privacy.js` — shared privacy preference storage/events for optional analytics and personalised monitoring.
 - `apps-billing.js` — provider-neutral billing client; each app supplies its authenticated billing endpoint and entitlement adapter.
 - `apps-pronunciation.js` — reusable microphone waveform, generated or teacher-recorded acoustic reference, speech comparison, rhythm/intonation analysis and pluggable pronunciation-scoring UI. `pronunciation-worker.js` securely generates default reference audio. Standalone test: `pronunciation-demo.html`.
-- `apps-version-lab.js` — shared Version Lab browser/compare behaviour. Apps provide their release registry/manifest and app URL; the shared module previews the live current release, uses frozen snapshots when available, and falls back cleanly to source when a snapshot is unavailable.
-- `apps-platform.js` — convenience loader for the shared platform modules.
+- `version-lab/` — developer-only full shared Version Lab subsystem: central UI, release capture, immutable snapshots, source/history metadata, compatibility contracts and reusable GitHub workflow. Beyond100 is the reference implementation for its target richness.
+- `apps-version-lab.js` — **legacy/thin v1 browser module** retained for existing Openday compatibility while the full shared Version Lab is validated. Do not use for new integrations.
+- `platform/v1/` — versioned Apps Platform integration contract and lazy capability loader for new integrations.
+- `apps-platform.js` — legacy convenience loader retained while apps migrate deliberately.
 - `app-monitor.js` and `firebase-usage-monitor.js` now support opt-in privacy gates, enabled per public-facing app.
 
 App repositories should keep authorization rules, domain data and provider-specific backend logic local, while importing these common modules instead of cloning account/privacy/billing/pronunciation code.
+
+
+## Developer-only Version Lab
+
+The full Version Lab is intentionally separate from product applications. Normal release builds must not expose a Version Lab button or route. Developer access is through `version-lab/`, protected by the App Monitor administrator session. See `version-lab/README.md`, `version-lab/INTEGRATION.md` and `version-lab/AI_AGENT_CONTRACT.md`.
