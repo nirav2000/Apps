@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nirav2000.github.io/Apps/version-lab/release.schema.json",
+  "title": "Apps Version Lab checkpoint",
+  "type": "object",
+  "required": ["checkpointId", "appId", "commit", "createdAt", "title", "summary", "areas", "sourceUrl", "snapshotSafety"],
+  "properties": {
+    "checkpointId": {"type": "string"},
+    "appId": {"type": "string"},
+    "productVersion": {"type": ["string", "null"]},
+    "commit": {"type": "string"},
+    "createdAt": {"type": "string"},
+    "title": {"type": "string"},
+    "summary": {"type": "string"},
+    "areas": {"type": "array"},
+    "sourceUrl": {"type": "string"},
+    "snapshotUrl": {"type": ["string", "null"]},
+    "snapshotSafety": {"enum": ["interactive-safe", "read-only-adapter", "visual-only", "source-only"]},
+    "compatibility": {"type": "object"},
+    "data": {"type": ["object", "null"]}
+  },
+  "additionalProperties": true
+}
