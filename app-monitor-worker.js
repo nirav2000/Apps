@@ -1,5 +1,5 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-const WORKER_BUILD='2026.09.27.focus-state-1';
+const WORKER_BUILD='2026.09.30.version-lab-reviews-1';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -82,6 +82,46 @@ async function appMonitorRoute(request,env,headers,url){
     const value={version:1,app,userTelemetryOptOutVisible:body.userTelemetryOptOutVisible===true,updatedAt:new Date().toISOString()};
     await putJSON(env,APP_MONITOR_SECURITY+'developer-config/'+app+'.json',value);
     return Response.json({ok:true,...value},{headers});
+  }
+
+  if(url.pathname==='/app-monitor/version-lab/review'&&request.method==='GET'){
+    const session=await appMonitorSession(request,env);if(!session.ok)return new Response('Unauthorized',{status:401,headers});
+    const app=cleanKey(url.searchParams.get('appId')||'');if(!app)return new Response('appId required',{status:400,headers});
+    const base=APP_MONITOR_SECURITY+'version-lab/reviews/'+app+'/';
+    const [notes,decisionRows]=await Promise.all([listJSON(env,base+'notes/'),listJSON(env,base+'decisions/')]);
+    const decisions={};
+    for(const row of decisionRows){if(row?.key)decisions[row.key]={choice:row.choice||'',note:row.note||'',updatedAt:row.updatedAt||''}}
+    return Response.json({ok:true,appId:app,comparisonNotes:notes.sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||''))),decisions},{headers});
+  }
+  if(url.pathname==='/app-monitor/version-lab/review'&&request.method==='POST'){
+    const session=await appMonitorSession(request,env);if(!session.ok)return new Response('Unauthorized',{status:401,headers});
+    const len=Number(request.headers.get('Content-Length')||0);if(len>32*1024)return new Response('Payload too large',{status:413,headers});
+    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
+    const app=cleanKey(body.appId||'');if(!app)return new Response('appId required',{status:400,headers});
+    const base=APP_MONITOR_SECURITY+'version-lab/reviews/'+app+'/';
+    const action=String(body.action||'').slice(0,40),now=new Date().toISOString();
+    if(action==='addNote'){
+      const note=body.note&&typeof body.note==='object'?body.note:{},id=cleanKey(note.id||'');
+      const versions=Array.isArray(note.versions)?note.versions.slice(0,2).map(v=>String(v||'').slice(0,180)):[];
+      const focus=String(note.focus||'general').slice(0,180),text=String(note.text||'').trim().slice(0,4000),createdAt=String(note.createdAt||now).slice(0,80);
+      if(!id||versions.length!==2||!text)return new Response('Invalid comparison note',{status:400,headers});
+      const value={version:1,id,appId:app,versions,focus,text,createdAt,updatedAt:now};
+      await putJSON(env,base+'notes/'+id+'.json',value);
+      return Response.json({ok:true,note:value},{headers});
+    }
+    if(action==='removeNote'){
+      const id=cleanKey(body.id||'');if(!id)return new Response('Invalid note id',{status:400,headers});
+      await env.APP_MONITOR_DATA.delete(base+'notes/'+id+'.json');
+      return Response.json({ok:true},{headers});
+    }
+    if(action==='upsertDecision'){
+      const versionId=String(body.versionId||'').trim().slice(0,180),areaId=String(body.areaId||'').trim().slice(0,180),choice=String(body.choice||'').trim().slice(0,20),note=String(body.note||'').trim().slice(0,4000);
+      if(!versionId||!areaId||!['','keep','revert','rework','unsure'].includes(choice))return new Response('Invalid decision',{status:400,headers});
+      const key=versionId+':'+areaId,id=(await sha256(key)).slice(0,40),value={version:1,id,key,appId:app,versionId,areaId,choice,note,updatedAt:now};
+      await putJSON(env,base+'decisions/'+id+'.json',value);
+      return Response.json({ok:true,decision:value},{headers});
+    }
+    return new Response('Unknown action',{status:400,headers});
   }
 
   if(url.pathname==='/app-monitor/session'&&request.method==='POST'){
