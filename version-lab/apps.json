@@ -27,6 +27,16 @@
       "status": "version-history-only",
       "managed": false,
       "notes": "Has version history/archive behaviour but is not yet on the full shared Version Lab."
+    },
+    {
+      "appId": "inclass",
+      "name": "InClass",
+      "repository": "nirav2000/InClass",
+      "liveUrl": "https://nirav2000.github.io/InClass/",
+      "managed": true,
+      "status": "managed",
+      "releaseManifest": "https://nirav2000.github.io/InClass/version-lab-data/releases.json",
+      "gatewayUrl": "https://nirav2000.github.io/InClass/versionlabs/"
     }
   ]
 }
