@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nirav2000.github.io/Apps/platform/v1/app-manifest.schema.json",
+  "title": "Apps Platform v1 app manifest",
+  "type": "object",
+  "required": ["appId"],
+  "properties": {
+    "appId": {"type": "string", "minLength": 1},
+    "platformVersion": {"const": "1"},
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {"type": "boolean"},
+          {"type": "object"}
+        ]
+      }
+    },
+    "ui": {
+      "type": "object",
+      "properties": {
+        "mode": {"enum": ["auto", "explicit", "headless"]},
+        "slots": {"type": "object", "additionalProperties": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "versionLab": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "managed": {"type": "boolean"},
+        "developerOnly": {"const": true}
+      },
+      "additionalProperties": true
+    },
+    "meta": {"type": "object"}
+  },
+  "additionalProperties": true
+}
