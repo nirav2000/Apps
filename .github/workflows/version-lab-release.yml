@@ -1,0 +1,80 @@
+name: Shared Version Lab release
+
+on:
+  workflow_call:
+    inputs:
+      title:
+        description: Human checkpoint title
+        required: true
+        type: string
+      summary:
+        description: Concise checkpoint summary
+        required: true
+        type: string
+      areas:
+        description: Change areas separated by |. Optional kind/summary use Title::kind::summary
+        required: false
+        type: string
+        default: ""
+      product_version:
+        description: Optional app/product version override
+        required: false
+        type: string
+        default: ""
+    outputs:
+      checkpoint_id:
+        description: Generated Version Lab checkpoint ID
+        value: ${{ jobs.capture.outputs.checkpoint_id }}
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    outputs:
+      checkpoint_id: ${{ steps.capture.outputs.checkpoint_id }}
+    steps:
+      - name: Check out consuming app
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check out shared Apps Version Lab
+        uses: actions/checkout@v4
+        with:
+          repository: nirav2000/Apps
+          ref: main
+          path: .shared-apps-platform
+
+      - name: Capture immutable checkpoint
+        id: capture
+        env:
+          VERSION_LAB_TITLE: ${{ inputs.title }}
+          VERSION_LAB_SUMMARY: ${{ inputs.summary }}
+          VERSION_LAB_AREAS: ${{ inputs.areas }}
+          VERSION_LAB_PRODUCT_VERSION: ${{ inputs.product_version }}
+        run: |
+          node .shared-apps-platform/version-lab/tooling/capture-release.mjs | tee /tmp/version-lab-result.json
+          CHECKPOINT_ID=$(node -e "let s=require('fs').readFileSync('/tmp/version-lab-result.json','utf8'); console.log(JSON.parse(s).checkpointId)")
+          echo "checkpoint_id=$CHECKPOINT_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Validate checkpoint
+        run: node .shared-apps-platform/version-lab/tooling/validate-release.mjs
+
+      - name: Remove shared tooling checkout
+        run: rm -rf .shared-apps-platform
+
+      - name: Commit generated Version Lab artifacts
+        env:
+          CHECKPOINT_ID: ${{ steps.capture.outputs.checkpoint_id }}
+        run: |
+          git config user.name "Apps Version Lab"
+          git config user.email "version-lab@users.noreply.github.com"
+          git add version-lab-data
+          if git diff --cached --quiet; then
+            echo "No Version Lab artifacts changed"
+            exit 0
+          fi
+          git commit -m "Version Lab checkpoint $CHECKPOINT_ID"
+          git push
