@@ -1,0 +1,57 @@
+name: Shared Version Lab install and backfill
+
+on:
+  workflow_call:
+    inputs:
+      backfill_max:
+        description: Maximum reconstructed historical checkpoints
+        required: false
+        type: number
+        default: 12
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out consuming app
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check out shared Apps Version Lab
+        uses: actions/checkout@v4
+        with:
+          repository: nirav2000/Apps
+          ref: main
+          path: .shared-apps-platform
+
+      - name: Plan historical checkpoints
+        env:
+          VERSION_LAB_BACKFILL_MAX: ${{ inputs.backfill_max }}
+        run: node .shared-apps-platform/version-lab/tooling/plan-backfill.mjs > version-lab-backfill-plan.json
+
+      - name: Reconstruct historical snapshots and adoption baseline
+        env:
+          VERSION_LAB_BACKFILL_PLAN: version-lab-backfill-plan.json
+        run: node .shared-apps-platform/version-lab/tooling/backfill-history.mjs
+
+      - name: Validate Version Lab history
+        run: node .shared-apps-platform/version-lab/tooling/validate-release.mjs
+
+      - name: Remove shared tooling checkout
+        run: rm -rf .shared-apps-platform
+
+      - name: Commit generated installation history
+        run: |
+          git config user.name "Apps Version Lab"
+          git config user.email "version-lab@users.noreply.github.com"
+          git add version-lab-data version-lab-backfill-plan.json
+          if git diff --cached --quiet; then
+            echo "No Version Lab installation artifacts changed"
+            exit 0
+          fi
+          git commit -m "Install shared Version Lab with historical backfill"
+          git push
