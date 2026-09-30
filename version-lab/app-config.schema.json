@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nirav2000.github.io/Apps/version-lab/app-config.schema.json",
+  "title": "Apps Version Lab app configuration",
+  "type": "object",
+  "required": ["appId", "repository", "liveUrl"],
+  "properties": {
+    "appId": {"type": "string", "minLength": 1},
+    "repository": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+    "liveUrl": {"type": "string", "format": "uri"},
+    "productVersionFile": {"type": ["string", "null"]},
+    "snapshotSafety": {"enum": ["interactive-safe", "read-only-adapter", "visual-only", "source-only"]},
+    "snapshot": {"type": "object"},
+    "data": {"type": "object"},
+    "platform": {"type": "object"}
+  },
+  "additionalProperties": true
+}
