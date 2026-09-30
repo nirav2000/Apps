@@ -11,6 +11,15 @@
     "productVersionFile": {"type": ["string", "null"]},
     "snapshotSafety": {"enum": ["interactive-safe", "read-only-adapter", "visual-only", "source-only"]},
     "snapshot": {"type": "object"},
+    "readOnlyAdapter": {
+      "type": "object",
+      "properties": {
+        "allowedOrigins": {"type": "array", "items": {"type": "string"}},
+        "allowReadPostPatterns": {"type": "array", "items": {"type": "string"}},
+        "blockPatterns": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
     "data": {"type": "object"},
     "platform": {"type": "object"}
   },
