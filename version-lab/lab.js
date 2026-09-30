@@ -2,6 +2,7 @@
 'use strict';
 const CLOUD='https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor';
 const SESSION_STORE='app-monitor.admin-session.v2';
+const REVIEW_API='https://europe-west2-kk-syllabus.cloudfunctions.net/versionLabReview';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 let registry=[],selected=null,releases=[],comparisonNotes=[],decisions={};
@@ -11,6 +12,30 @@ function storageKey(kind){return 'apps.version-lab.'+(selected?.appId||'unknown'
 function loadLocal(key,fallback){try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}}
 function saveNotes(){localStorage.setItem(storageKey('comparison-notes'),JSON.stringify(comparisonNotes));renderComparisonNotes()}
 function saveDecisions(){localStorage.setItem(storageKey('decisions'),JSON.stringify(decisions));renderDecisionSummary()}
+function reviewHeaders(){
+  const s=getSession();
+  return {'Content-Type':'application/json',...(s?.token?{'X-App-Monitor-Session':s.token}:{})};
+}
+async function reviewRequest(method='GET',body=null){
+  if(!selected?.appId)return null;
+  const url=method==='GET'?REVIEW_API+'?appId='+encodeURIComponent(selected.appId):REVIEW_API;
+  const r=await fetch(url,{method,headers:reviewHeaders(),cache:'no-store',body:body?JSON.stringify({appId:selected.appId,...body}):undefined});
+  if(!r.ok)throw new Error('Version Lab review sync '+r.status);
+  return r.json();
+}
+async function loadCloudReview(){
+  try{
+    const d=await reviewRequest('GET');
+    if(d){
+      comparisonNotes=Array.isArray(d.comparisonNotes)?d.comparisonNotes:comparisonNotes;
+      decisions=d.decisions&&typeof d.decisions==='object'?d.decisions:decisions;
+      localStorage.setItem(storageKey('comparison-notes'),JSON.stringify(comparisonNotes));
+      localStorage.setItem(storageKey('decisions'),JSON.stringify(decisions));
+    }
+  }catch(e){
+    console.warn('Version Lab cloud review unavailable; using local cache.',e);
+  }
+}
 function idOf(r){return r?.checkpointId||r?.version||''}
 function versionOf(r){return r?.productVersion||r?.version||r?.checkpointId||'Checkpoint'}
 function release(id){return releases.find(r=>idOf(r)===id)||releases[0]}
@@ -61,6 +86,7 @@ async function selectApp(id){
   selected=registry.find(a=>a.appId===id);if(!selected)return;
   comparisonNotes=loadLocal(storageKey('comparison-notes'),[]);
   decisions=loadLocal(storageKey('decisions'),{});
+  await loadCloudReview();
   document.querySelectorAll('.app-card').forEach(c=>c.classList.toggle('selected',c.dataset.app===id));
   $('appTitle').textContent=selected.name||selected.appId;
   $('appMeta').textContent=(selected.managed?'Managed shared Version Lab':'Not yet managed by full shared Version Lab')+' · '+selected.repository;
@@ -187,15 +213,20 @@ addEventListener('message',e=>{
 function addComparisonNote(){
   const box=$('comparisonNoteText'),text=box.value.trim();if(!text)return;
   const [l,r]=pairIds();
-  comparisonNotes.push({id:crypto.randomUUID(),versions:[l,r],focus:$('comparisonNoteFocus').value,text,createdAt:new Date().toISOString()});
-  box.value='';saveNotes();
+  const note={id:crypto.randomUUID(),versions:[l,r],focus:$('comparisonNoteFocus').value,text,createdAt:new Date().toISOString()};
+  comparisonNotes.push(note);box.value='';saveNotes();
+  reviewRequest('POST',{action:'addNote',note}).catch(e=>console.warn('Version Lab note cloud save failed; retained locally.',e));
 }
 function renderComparisonNotes(){
   const list=$('comparisonNoteList');if(!list)return;
   const [l,r]=pairIds();
   const rows=comparisonNotes.filter(n=>samePair(n,l,r)).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt));
   list.innerHTML=rows.length?rows.map(n=>'<article class="comparison-note"><div class="comparison-note-top"><span>'+esc(n.focus==='general'?'Both versions':versionOf(release(n.focus)))+' · '+esc(new Date(n.createdAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}))+'</span><button data-remove-note="'+esc(n.id)+'">Remove</button></div><p>'+esc(n.text)+'</p></article>').join(''):'<div class="comparison-note empty-note">No notes for this pair yet. Add anything you want changed while the two versions are in front of you.</div>';
-  list.querySelectorAll('[data-remove-note]').forEach(b=>b.onclick=()=>{comparisonNotes=comparisonNotes.filter(n=>n.id!==b.dataset.removeNote);saveNotes()});
+  list.querySelectorAll('[data-remove-note]').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.removeNote;
+    comparisonNotes=comparisonNotes.filter(n=>n.id!==id);saveNotes();
+    reviewRequest('POST',{action:'removeNote',id}).catch(e=>console.warn('Version Lab note cloud delete failed; local cache updated.',e));
+  });
 }
 function areasFor(r){
   if((r.areas||[]).length)return r.areas;
@@ -209,8 +240,12 @@ function renderDecisions(){
   }).join('');
   $('decisionList').querySelectorAll('.decision-card').forEach(card=>{
     const key=decisionKey(idOf(r),card.dataset.area);
-    card.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>{decisions[key]={...(decisions[key]||{}),choice:b.dataset.choice,updatedAt:new Date().toISOString()};saveDecisions();renderDecisions()});
-    let timer;card.querySelector('textarea').oninput=e=>{clearTimeout(timer);timer=setTimeout(()=>{decisions[key]={...(decisions[key]||{}),note:e.target.value.trim(),updatedAt:new Date().toISOString()};saveDecisions();card.querySelector('.saved-mark').textContent='saved'},300)};
+    card.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>{
+      decisions[key]={...(decisions[key]||{}),choice:b.dataset.choice,updatedAt:new Date().toISOString()};saveDecisions();renderDecisions();
+      reviewRequest('POST',{action:'upsertDecision',versionId:idOf(r),areaId:card.dataset.area,choice:b.dataset.choice,note:decisions[key]?.note||''}).catch(e=>console.warn('Version Lab decision cloud save failed; retained locally.',e));
+    });
+    let timer;card.querySelector('textarea').oninput=e=>{clearTimeout(timer);timer=setTimeout(()=>{decisions[key]={...(decisions[key]||{}),note:e.target.value.trim(),updatedAt:new Date().toISOString()};saveDecisions();card.querySelector('.saved-mark').textContent='saved';
+        reviewRequest('POST',{action:'upsertDecision',versionId:idOf(r),areaId:card.dataset.area,choice:decisions[key]?.choice||'',note:decisions[key]?.note||''}).catch(err=>console.warn('Version Lab decision note cloud save failed; retained locally.',err))},300)};
   });
   renderDecisionSummary();
 }
