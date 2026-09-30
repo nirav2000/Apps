@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Version Lab</title><link rel="stylesheet" href="./styles.css"></head>
+<body><div class="wrap">
+<div class="top"><div><h1>Version Lab</h1><p class="muted">Developer-only release history, snapshots, comparisons and selective rollback decisions.</p></div><div class="controls"><a class="btn" href="../app-monitor.html">App Monitor</a><a class="btn" href="../shared-libraries.html">Shared libraries</a><a class="btn" href="../">Apps</a></div></div>
+
+<section id="authCard" class="card auth-box">
+  <div id="locked"><h2>Developer access required</h2><p class="muted">Version Lab is intentionally not exposed inside release applications. Sign in through App Monitor, then return here.</p><a class="btn primary" href="../app-monitor.html">Open App Monitor sign-in</a></div>
+  <div id="unlocked" class="hidden"><div class="top"><div><strong>Developer session verified</strong><div class="muted small" id="sessionText"></div></div><span class="pill reference">Developer only</span></div></div>
+</section>
+
+<div id="lab" class="hidden">
+<section class="card"><div class="top"><div><h2>Registered apps</h2><p class="muted small">Reference and legacy apps appear here for comparison. Managed installation will be added deliberately after validation on a clean test app.</p></div></div><div id="appGrid" class="app-grid"></div></section>
+
+<section class="card" id="appPanel"><div class="top"><div><h2 id="appTitle">Select an app</h2><p id="appMeta" class="muted small"></p></div><div class="controls"><a id="openLive" class="btn hidden" target="_blank" rel="noopener">Open live app</a><a id="openRepo" class="btn hidden" target="_blank" rel="noopener">Repository</a></div></div><div id="appStatus" class="timeline"></div></section>
+
+<section class="card hidden" id="releasePanel"><div class="top"><div><h2>Checkpoints</h2><p class="muted small">Named checkpoints are distinct from ordinary Git commits.</p></div><div class="controls"><select id="leftVersion"></select><select id="rightVersion"></select><label class="small"><input id="syncScroll" type="checkbox" checked> Sync scrolling</label><button id="compare" class="primary">Compare</button></div></div><div id="releaseGrid" class="release-grid"></div></section>
+
+<section class="card hidden" id="comparePanel"><div class="top"><div><h2>Working comparison</h2><p class="muted small">Snapshots are isolated historical frontends. Compatibility metadata indicates whether backend/data interaction is safe.</p></div></div><div class="preview-grid"><article class="preview-panel"><header><div><strong id="leftTitle">Left</strong><div id="leftStatus" class="muted small"></div></div><a id="leftSource" target="_blank" rel="noopener">Source</a></header><iframe id="leftFrame" sandbox="allow-scripts allow-forms allow-modals"></iframe></article><article class="preview-panel"><header><div><strong id="rightTitle">Right</strong><div id="rightStatus" class="muted small"></div></div><a id="rightSource" target="_blank" rel="noopener">Source</a></header><iframe id="rightFrame" sandbox="allow-scripts allow-forms allow-modals"></iframe></article></div></section>
+</div>
+</div><script src="./lab.js"></script></body></html>
