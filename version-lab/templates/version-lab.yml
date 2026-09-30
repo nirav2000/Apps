@@ -1,0 +1,32 @@
+name: Version Lab checkpoint
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: Checkpoint title
+        required: true
+        type: string
+      summary:
+        description: Concise summary
+        required: true
+        type: string
+      areas:
+        description: "Change areas separated by |; optional Title::kind::summary"
+        required: false
+        type: string
+      product_version:
+        description: Optional product version override
+        required: false
+        type: string
+
+jobs:
+  version-lab:
+    uses: nirav2000/Apps/.github/workflows/version-lab-release.yml@main
+    with:
+      title: ${{ inputs.title }}
+      summary: ${{ inputs.summary }}
+      areas: ${{ inputs.areas }}
+      product_version: ${{ inputs.product_version }}
+    permissions:
+      contents: write
