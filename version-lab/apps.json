@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "apps": [
+    {
+      "appId": "beyond100",
+      "name": "Beyond100",
+      "repository": "nirav2000/beyond100",
+      "liveUrl": "https://nirav2000.github.io/beyond100/",
+      "status": "reference",
+      "managed": false,
+      "notes": "Reference implementation for the shared Version Lab. Not yet migrated."
+    },
+    {
+      "appId": "openday",
+      "name": "Openday",
+      "repository": "nirav2000/Openday",
+      "liveUrl": "https://nirav2000.github.io/Openday/",
+      "status": "legacy-shared-v1",
+      "managed": false,
+      "notes": "Uses the earlier thin shared Version Lab. Do not treat as the target implementation."
+    },
+    {
+      "appId": "snag",
+      "name": "Snag",
+      "repository": "nirav2000/snag",
+      "liveUrl": "https://nirav2000.github.io/snag/",
+      "status": "version-history-only",
+      "managed": false,
+      "notes": "Has version history/archive behaviour but is not yet on the full shared Version Lab."
+    }
+  ]
+}
