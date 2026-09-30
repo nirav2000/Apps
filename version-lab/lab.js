@@ -59,7 +59,10 @@ async function loadFrame(side,r){
   title.textContent=(r.productVersion||r.version||r.checkpointId)+' · '+(r.title||'Checkpoint');link.href=source(r);
   const snap=snapshot(r);
   if(!snap){frame.srcdoc='<div style="font-family:system-ui;padding:28px"><h2>Snapshot unavailable</h2><p>This checkpoint currently has source/history only.</p></div>';status.textContent='Source only · '+(r.snapshotSafety||'unknown');return}
-  frame.removeAttribute('srcdoc');frame.src=new URL(snap,selected.liveUrl).href;status.textContent=r.snapshotSafety||'snapshot';
+  frame.removeAttribute('srcdoc');
+  const manifestBase=selected.releaseManifest||selected.liveUrl;
+  frame.src=new URL(snap,manifestBase).href;
+  status.textContent=r.snapshotSafety||'snapshot';
 }
 async function compare(){const l=byId($('leftVersion').value),r=byId($('rightVersion').value);if(!l||!r)return;$('comparePanel').classList.remove('hidden');await Promise.all([loadFrame('left',l),loadFrame('right',r)])}
 function wire(a,b){a.addEventListener('load',()=>{try{a.contentWindow.addEventListener('scroll',()=>{if(!$('syncScroll').checked||syncing)return;const ad=a.contentDocument.documentElement,bd=b.contentDocument.documentElement,am=Math.max(0,ad.scrollHeight-a.contentWindow.innerHeight),bm=Math.max(0,bd.scrollHeight-b.contentWindow.innerHeight),ratio=am?a.contentWindow.scrollY/am:0;syncing=true;b.contentWindow.scrollTo(0,bm*ratio);setTimeout(()=>syncing=false,60)},{passive:true})}catch{}})}
