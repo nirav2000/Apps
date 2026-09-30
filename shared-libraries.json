@@ -1,0 +1,251 @@
+{
+  "generatedAt": "2026-09-30",
+  "legend": {
+    "installed": "Verified installed/used",
+    "local": "Feature exists locally/legacy, not confirmed on shared module",
+    "proposed": "Proposed shared library",
+    "unknown": "Not yet verified"
+  },
+  "apps": [
+    "Kk-syllabus",
+    "Openday",
+    "LearnLatin",
+    "Comprehension",
+    "beyond100",
+    "Snag",
+    "Next",
+    "InClass",
+    "App Monitor",
+    "Firebase Usage Monitor"
+  ],
+  "libraries": [
+    {
+      "id": "auth-v1",
+      "name": "Auth v1",
+      "file": "auth/v1/index.js",
+      "status": "implemented",
+      "created": "2026-09-29",
+      "purpose": "Versioned shared authentication SDK for identity, sessions, roles, credentials/passkeys, audit events and reusable auth UI.",
+      "installed": {
+        "App Monitor": "local"
+      },
+      "notes": "New architecture intended to replace/consolidate earlier identity and passkey modules as apps migrate."
+    },
+    {
+      "id": "apps-auth",
+      "name": "Apps Auth / canonical identity",
+      "file": "apps-auth.js",
+      "status": "implemented",
+      "created": "2026-09-24",
+      "purpose": "Stable cross-app device identity plus app-user identity bridging for monitoring and future central authentication.",
+      "installed": {
+        "Kk-syllabus": "installed",
+        "Openday": "installed",
+        "LearnLatin": "installed",
+        "Comprehension": "installed",
+        "beyond100": "installed",
+        "Snag": "installed"
+      }
+    },
+    {
+      "id": "passkey",
+      "name": "Passkey Auth",
+      "file": "apps-passkey-auth.js",
+      "status": "implemented",
+      "created": "2026-09-24",
+      "purpose": "Reusable WebAuthn/passkey client framework for private administrator surfaces.",
+      "installed": {
+        "App Monitor": "installed"
+      }
+    },
+    {
+      "id": "account",
+      "name": "Account UI",
+      "file": "apps-account.js",
+      "status": "implemented",
+      "created": "2026-09-27",
+      "purpose": "Reusable account/profile controls and account-facing UI plumbing.",
+      "installed": {},
+      "notes": "Central module exists; consumer coverage has not yet been fully audited."
+    },
+    {
+      "id": "app-monitor",
+      "name": "App Monitor tracker",
+      "file": "app-monitor.js",
+      "status": "implemented",
+      "created": "2026-09-23",
+      "purpose": "Cross-app session, device, activity, identity and traffic telemetry into the App Monitor backend.",
+      "installed": {
+        "Kk-syllabus": "installed",
+        "Openday": "installed",
+        "LearnLatin": "installed",
+        "Comprehension": "installed",
+        "beyond100": "installed",
+        "Snag": "installed",
+        "App Monitor": "installed"
+      }
+    },
+    {
+      "id": "firebase-usage",
+      "name": "Firebase Usage Monitor",
+      "file": "firebase-usage-monitor.js",
+      "status": "implemented",
+      "created": "2026-09-22",
+      "purpose": "Application-side ledger for attributed Firebase/Firestore reads, writes, deletes and listeners by app/project/device.",
+      "installed": {
+        "Kk-syllabus": "installed",
+        "Openday": "installed",
+        "LearnLatin": "installed",
+        "beyond100": "installed",
+        "Snag": "installed",
+        "Firebase Usage Monitor": "installed"
+      }
+    },
+    {
+      "id": "version-lab",
+      "name": "Version Lab",
+      "file": "apps-version-lab.js",
+      "status": "implemented",
+      "created": "2026-09-30",
+      "purpose": "Shared release browser and side-by-side version comparison behaviour using live releases, frozen snapshots and source fallbacks.",
+      "installed": {
+        "Openday": "installed",
+        "beyond100": "local",
+        "Snag": "local"
+      },
+      "notes": "Openday is confirmed migrated to the new shared module. Beyond100 and Snag have established app-local Version Lab implementations; migration to the shared module is not yet confirmed."
+    },
+    {
+      "id": "privacy",
+      "name": "Privacy",
+      "file": "apps-privacy.js",
+      "status": "implemented",
+      "created": "2026-09-27",
+      "purpose": "Shared privacy preference storage/events and opt-in gates for optional analytics or personalised monitoring.",
+      "installed": {},
+      "notes": "Library exists; app-by-app consumer audit still required."
+    },
+    {
+      "id": "billing",
+      "name": "Billing",
+      "file": "apps-billing.js",
+      "status": "implemented",
+      "created": "2026-09-27",
+      "purpose": "Provider-neutral browser billing client with app-supplied entitlement and authenticated billing adapters.",
+      "installed": {},
+      "notes": "Library exists; no verified production consumer recorded yet."
+    },
+    {
+      "id": "pronunciation",
+      "name": "Pronunciation coach",
+      "file": "apps-pronunciation.js",
+      "status": "implemented",
+      "created": "2026-09-29",
+      "purpose": "Reusable microphone waveform, reference audio, speech comparison, rhythm/intonation analysis and pronunciation-scoring UI.",
+      "installed": {
+        "InClass": "installed"
+      }
+    },
+    {
+      "id": "platform",
+      "name": "Apps Platform loader",
+      "file": "apps-platform.js",
+      "status": "implemented",
+      "created": "2026-09-27",
+      "purpose": "Convenience loader/bootstrap for shared Apps platform modules.",
+      "installed": {
+        "Openday": "installed"
+      },
+      "notes": "Version Lab is loaded through the shared platform in Openday; broader app migration remains to be audited."
+    },
+    {
+      "id": "devnotes",
+      "name": "DevNotes",
+      "file": "proposed",
+      "status": "proposed",
+      "created": null,
+      "purpose": "One shared developer-feedback/notes component and data contract instead of per-app implementations.",
+      "installed": {}
+    },
+    {
+      "id": "learning",
+      "name": "Learning SDK",
+      "file": "proposed",
+      "status": "proposed",
+      "created": null,
+      "purpose": "Shared learners, curriculum, learning events, mastery, assessments and spaced-repetition model for learning apps.",
+      "installed": {}
+    },
+    {
+      "id": "data",
+      "name": "Shared Data / Firebase adapter",
+      "file": "proposed",
+      "status": "proposed",
+      "created": null,
+      "purpose": "Common data access, sync, instrumentation, retries and project configuration layer so apps do not independently wire Firebase.",
+      "installed": {}
+    },
+    {
+      "id": "ui",
+      "name": "Shared UI / panel system",
+      "file": "proposed",
+      "status": "proposed",
+      "created": null,
+      "purpose": "Reusable cards, draggable/reorderable panels, dashboard layout and common interface controls.",
+      "installed": {}
+    },
+    {
+      "id": "diagnostics",
+      "name": "Diagnostics / error reporting",
+      "file": "proposed",
+      "status": "proposed",
+      "created": null,
+      "purpose": "Common client diagnostics, structured errors, health reporting and operational troubleshooting hooks.",
+      "installed": {}
+    }
+  ],
+  "versionLabHistory": [
+    {
+      "date": "2026-09-16 10:13 BST",
+      "app": "beyond100",
+      "event": "First Version Lab feature found in portfolio",
+      "detail": "Commit 03059f9 added the Version Lab comparison page."
+    },
+    {
+      "date": "2026-09-17 15:03 BST",
+      "app": "Openday",
+      "event": "Reusable app-local Version Lab plugin added",
+      "detail": "Commit fe70e4c added a reusable Version Lab plugin inside Openday."
+    },
+    {
+      "date": "2026-09-22 11:44 BST",
+      "app": "Snag",
+      "event": "Version Lab exposed and added",
+      "detail": "Commits ab68e83 / 8ca70cf exposed Version Lab from the build badge and added Version Lab support."
+    },
+    {
+      "date": "2026-09-30 08:39 BST",
+      "app": "Apps",
+      "event": "Shared Version Lab library created",
+      "detail": "Commit 7586e9f added apps-version-lab.js v1 to the central Apps repository."
+    },
+    {
+      "date": "2026-09-30 08:42 BST",
+      "app": "Openday",
+      "event": "First confirmed consumer of shared Version Lab",
+      "detail": "Commit 88ec627 switched Openday to the shared Apps Version Lab module; 7ff1057 configured it."
+    },
+    {
+      "date": "2026-09-30 08:42 BST",
+      "app": "Apps",
+      "event": "Shared platform loader updated",
+      "detail": "Commit a830297 added Version Lab to apps-platform.js."
+    },
+    {
+      "date": "2026-09-30 08:46 BST",
+      "app": "Apps",
+      "event": "Shared implementation recorded in architecture register",
+      "detail": "Commit 5d2ba7f recorded the shared Version Lab implementation and remaining migration work."
+    }
+  ]
+}
