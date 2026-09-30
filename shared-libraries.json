@@ -103,17 +103,17 @@
     },
     {
       "id": "version-lab",
-      "name": "Version Lab",
-      "file": "apps-version-lab.js",
+      "name": "Version Lab (full shared system)",
+      "file": "version-lab/",
       "status": "implemented",
       "created": "2026-09-30",
-      "purpose": "Shared release browser and side-by-side version comparison behaviour using live releases, frozen snapshots and source fallbacks.",
+      "purpose": "Developer-only managed release system derived from the Beyond100 reference: central comparison UI, immutable checkpoint capture, snapshots, Git source history, compatibility metadata and AI/reusable workflow contracts.",
       "installed": {
-        "Openday": "installed",
+        "Openday": "local",
         "beyond100": "local",
         "Snag": "local"
       },
-      "notes": "Openday is confirmed migrated to the new shared module. Beyond100 and Snag have established app-local Version Lab implementations; migration to the shared module is not yet confirmed."
+      "notes": "Full shared system is built but intentionally not installed in a consuming app yet. Beyond100 is the reference/full bespoke implementation; Openday uses the earlier thin shared v1; Snag has version history/archive. Next step is trial installation on an app with no prior Version Lab."
     },
     {
       "id": "privacy",
@@ -148,15 +148,13 @@
     },
     {
       "id": "platform",
-      "name": "Apps Platform loader",
-      "file": "apps-platform.js",
+      "name": "Apps Platform v1",
+      "file": "platform/v1/",
       "status": "implemented",
       "created": "2026-09-27",
-      "purpose": "Convenience loader/bootstrap for shared Apps platform modules.",
-      "installed": {
-        "Openday": "installed"
-      },
-      "notes": "Version Lab is loaded through the shared platform in Openday; broader app migration remains to be audited."
+      "purpose": "Versioned integration layer and lazy capability loader that keeps shared infrastructure separate from consuming app business logic.",
+      "installed": {},
+      "notes": "New versioned contract is available for future integrations; legacy apps-platform.js remains for compatibility."
     },
     {
       "id": "devnotes",
