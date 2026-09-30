@@ -36,7 +36,7 @@ function trafficInfo(){
  if(/HeadlessChrome|PhantomJS|SlimerJS/i.test(ua))signals.push('headless-user-agent');
  if(/bot|crawler|spider|slurp|bingpreview|facebookexternalhit|twitterbot|linkedinbot|lighthouse|pagespeed|prerender/i.test(ua))signals.push('automation-user-agent');
  let trafficClass='browser-session';
- if(explicit==='apps-preview')trafficClass='synthetic-preview';
+ if(explicit==='apps-preview'||explicit==='version-lab-preview')trafficClass='synthetic-preview';
  else if(signals.includes('automation-user-agent'))trafficClass='known-automation';
  else if(signals.includes('navigator.webdriver')||signals.includes('headless-user-agent'))trafficClass='likely-automation';
  return{class:trafficClass,source:explicit||'',signals:signals.slice(0,12)};
