@@ -67,16 +67,24 @@
     const B=D.buckets[b]??={targets:{}},BT=B.targets[target]??={project,database,apps:{}};
     inc(appCounter(BT.apps,app),field,count,label);
     const keys=Object.keys(d.days).sort();while(keys.length>LIMIT)delete d.days[keys.shift()];
-    save(d);checkLocalThreshold(d,k,target,app);
+    save(d);checkLocalThreshold(d,k,b,target,app);
   }
-  function checkLocalThreshold(d,k,target,app){
-    const a=d.days[k].targets?.[target]?.apps?.[app], thresholds=JSON.parse(localStorage.getItem(KEY+'.thresholds')||'{"reads":1000,"writes":1000}');
+  function checkLocalThreshold(d,k,b,target,app){
+    let configured={};try{configured=JSON.parse(localStorage.getItem(KEY+'.thresholds')||'{}')||{}}catch{}
+    const thresholds={reads:1000,writes:1000,reads5m:200,writes5m:50,...configured};
+    const a=d.days[k].targets?.[target]?.apps?.[app];
     for(const t of ['reads','writes']){
       const n=(a?.[t]||0)+(t==='writes'?(a?.deletes||0):0),mark=KEY+'.alert.'+k+'.'+target+'.'+app+'.'+t;
       if(n>=thresholds[t]&&!sessionStorage.getItem(mark)){
         sessionStorage.setItem(mark,'1');
-        window.dispatchEvent(new CustomEvent('firebase-usage-monitor:threshold',{detail:{target,app,type:t,count:n,threshold:thresholds[t]}}));
+        window.dispatchEvent(new CustomEvent('firebase-usage-monitor:threshold',{detail:{target,app,type:t,count:n,threshold:thresholds[t],window:'day'}}));
         if(Notification?.permission==='granted')new Notification('Firebase usage warning',{body:target+' · '+app+': '+n+' '+t+' recorded on this device today'});
+      }
+      const ba=d.days[k].buckets?.[b]?.targets?.[target]?.apps?.[app],bn=(ba?.[t]||0)+(t==='writes'?(ba?.deletes||0):0),burstKey=t+'5m',burstMark=KEY+'.burst.'+b+'.'+target+'.'+app+'.'+t;
+      if(Number.isFinite(Number(thresholds[burstKey]))&&bn>=Number(thresholds[burstKey])&&!sessionStorage.getItem(burstMark)){
+        sessionStorage.setItem(burstMark,'1');
+        window.dispatchEvent(new CustomEvent('firebase-usage-monitor:threshold',{detail:{target,app,type:t,count:bn,threshold:Number(thresholds[burstKey]),window:'5m'}}));
+        if(Notification?.permission==='granted')new Notification('Firebase usage burst',{body:target+' · '+app+': '+bn+' '+t+' in the current 5-minute window'});
       }
     }
   }
