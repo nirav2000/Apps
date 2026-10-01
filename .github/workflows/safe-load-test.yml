@@ -1,0 +1,56 @@
+name: Shared safe load test
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: HTTP(S) endpoint to test
+        required: true
+        type: string
+      requests:
+        description: Total request count
+        required: false
+        type: number
+        default: 100
+      concurrency:
+        description: Concurrent requests
+        required: false
+        type: number
+        default: 10
+      allow_production:
+        description: Explicitly allow a non-local/non-staging target
+        required: false
+        type: boolean
+        default: false
+      max_error_rate:
+        description: Maximum acceptable error rate
+        required: false
+        type: string
+        default: "0.01"
+      max_p95_ms:
+        description: Maximum acceptable p95 latency in ms
+        required: false
+        type: number
+        default: 3000
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout shared load tools
+        uses: actions/checkout@v4
+        with:
+          repository: nirav2000/Apps
+          ref: main
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run bounded load test
+        env:
+          LOAD_TEST_REQUESTS: ${{ inputs.requests }}
+          LOAD_TEST_CONCURRENCY: ${{ inputs.concurrency }}
+          LOAD_TEST_MAX_ERROR_RATE: ${{ inputs.max_error_rate }}
+          LOAD_TEST_MAX_P95_MS: ${{ inputs.max_p95_ms }}
+          ALLOW_PRODUCTION_LOAD_TEST: ${{ inputs.allow_production }}
+        run: node validation/load-test.mjs "${{ inputs.target }}"
