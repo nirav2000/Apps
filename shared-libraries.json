@@ -99,7 +99,8 @@
         "beyond100": "installed",
         "Snag": "installed",
         "Firebase Usage Monitor": "installed"
-      }
+      },
+      "notes": "Tracks attributed reads/writes/deletes/listeners with daily thresholds plus shared 5-minute burst warnings (defaults: 200 reads / 50 writes) to surface runaway loops quickly; thresholds remain app/device configurable."
     },
     {
       "id": "version-lab",
