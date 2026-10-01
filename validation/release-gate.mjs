@@ -19,8 +19,10 @@ const server=spawn('python3',['-m','http.server',String(port),'--bind',host,'--d
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function waitServer(){for(let i=0;i<50;i++){try{await new Promise((resolve,reject)=>{const req=http.get(baseURL+'/',r=>{r.resume();resolve()});req.on('error',reject)});return}catch{}await sleep(200)}throw Error('Release-gate local server did not start')}
 
-const failures=[],metrics={externalRequests:0,localRequests:0,pageErrors:[],consoleErrors:[]};
-const assert=(condition,message)=>{if(!condition)failures.push(String(message||'Assertion failed'))};
+const failures=[],metrics={externalRequests:0,localRequests:0,pageErrors:[],consoleErrors:[],checks:[],scenario:{}};
+const reportPath=path.join(root,'artifacts','release-gate-report.json');
+const writeReport=status=>{fs.mkdirSync(path.dirname(reportPath),{recursive:true});fs.writeFileSync(reportPath,JSON.stringify({status,generatedAt:new Date().toISOString(),scenarioModule:gate.scenarioModule,path:gate.path||'/',metrics,failures},null,2)+'\n')};
+const assert=(condition,message)=>{const label=String(message||'Assertion');metrics.checks.push({label,passed:!!condition});if(!condition)failures.push(label)};
 assert.equal=(a,b,message)=>assert(Object.is(a,b),message||`Expected ${JSON.stringify(a)} to equal ${JSON.stringify(b)}`);
 assert.deepEqual=(a,b,message)=>assert(JSON.stringify(a)===JSON.stringify(b),message||`Expected deep equality\nA=${JSON.stringify(a)}\nB=${JSON.stringify(b)}`);
 assert.includes=(container,value,message)=>assert(container?.includes?.(value),message||`Expected value to include ${JSON.stringify(value)}`);
@@ -66,6 +68,7 @@ try{
   await browser.close();
 }finally{server.kill('SIGTERM')}
 
-if(failures.length){console.error('\nRELEASE GATE FAILED\n'+failures.map(x=>' - '+x).join('\n'));console.error('Metrics:',JSON.stringify(metrics,null,2));process.exit(1)}
+if(failures.length){writeReport('failed');console.error('\nRELEASE GATE FAILED\n'+failures.map(x=>' - '+x).join('\n'));console.error('Metrics:',JSON.stringify(metrics,null,2));process.exit(1)}
+writeReport('passed');
 console.log('Release gate passed.');
 console.log('Metrics:',JSON.stringify(metrics,null,2));
