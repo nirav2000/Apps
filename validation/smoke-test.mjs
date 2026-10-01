@@ -9,6 +9,8 @@ const root=path.resolve(process.argv[2]||'.');
 const configPath=path.resolve(root,process.argv[3]||'validation.config.json');
 const config=fs.existsSync(configPath)?JSON.parse(fs.readFileSync(configPath,'utf8')):{};
 const pages=config.pages||[{path:'/',readySelector:'body',minCount:1}];
+const ignoredLocalFailures=(config.ignoreLocalRequestFailures||[]).map(String);
+const ignoreLocalFailure=pathname=>ignoredLocalFailures.some(x=>pathname===x||pathname.startsWith(x));
 const port=Number(process.env.VALIDATION_PORT||4173);
 const host='127.0.0.1';
 const server=spawn('python3',['-m','http.server',String(port),'--bind',host,'--directory',root],{stdio:'ignore'});
@@ -29,7 +31,7 @@ try{
     const page=await context.newPage();
     const pageErrors=[],failed=[];
     page.on('pageerror',e=>pageErrors.push(e.message));
-    page.on('response',r=>{const u=new URL(r.url());if(u.hostname===host&&r.status()>=400)failed.push(`${r.status()} ${u.pathname}`)});
+    page.on('response',r=>{const u=new URL(r.url());if(u.hostname===host&&r.status()>=400&&!ignoreLocalFailure(u.pathname))failed.push(`${r.status()} ${u.pathname}`)});
     const url=`http://${host}:${port}${spec.path||'/'}`;
     const response=await page.goto(url,{waitUntil:'networkidle',timeout:30000});
     if(!response||response.status()>=400) errors.push(`${spec.path}: navigation failed (${response?.status()||'no response'})`);
