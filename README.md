@@ -52,3 +52,22 @@ App repositories should keep authorization rules, domain data and provider-speci
 ## Developer-only Version Lab
 
 The full Version Lab is intentionally separate from product applications. Normal release builds must not expose a Version Lab button or route. Developer access is through `version-lab/`, protected by the App Monitor administrator session. See `version-lab/README.md`, `version-lab/INTEGRATION.md` and `version-lab/AI_AGENT_CONTRACT.md`.
+
+
+## Shared release validation
+
+Reusable release-safety tooling lives in `validation/` and the reusable workflows under `.github/workflows/`.
+
+It provides:
+
+- recursive syntax/data/asset validation;
+- Playwright smoke tests;
+- app-specific regression scenarios using a shared runner;
+- sync/state **quiescence** testing;
+- request/payload and Firebase-operation budgets;
+- machine-readable release-gate CI reports;
+- bounded local/staging load testing with production protection.
+
+Consuming apps should keep only their own `validation.config.json` and domain-specific scenario fixtures. OpenDay is the reference consumer.
+
+See `validation/README.md` and `shared-libraries.html`.
