@@ -19,7 +19,7 @@ const server=spawn('python3',['-m','http.server',String(port),'--bind',host,'--d
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function waitServer(){for(let i=0;i<50;i++){try{await new Promise((resolve,reject)=>{const req=http.get(baseURL+'/',r=>{r.resume();resolve()});req.on('error',reject)});return}catch{}await sleep(200)}throw Error('Release-gate local server did not start')}
 
-const failures=[],metrics={externalRequests:0,localRequests:0,pageErrors:[],consoleErrors:[],checks:[],scenario:{}};
+const failures=[],metrics={externalRequests:0,localRequests:0,localBytes:0,pageErrors:[],consoleErrors:[],checks:[],scenario:{},clientUsage:{}};
 const reportPath=path.join(root,'artifacts','release-gate-report.json');
 const writeReport=status=>{fs.mkdirSync(path.dirname(reportPath),{recursive:true});fs.writeFileSync(reportPath,JSON.stringify({status,generatedAt:new Date().toISOString(),scenarioModule:gate.scenarioModule,path:gate.path||'/',metrics,failures},null,2)+'\n')};
 const assert=(condition,message)=>{const label=String(message||'Assertion');metrics.checks.push({label,passed:!!condition});if(!condition)failures.push(label)};
@@ -50,6 +50,7 @@ try{
   const page=await context.newPage();
   page.on('pageerror',e=>metrics.pageErrors.push(e.message));
   page.on('console',m=>{if(m.type()==='error')metrics.consoleErrors.push(m.text())});
+  page.on('response',r=>{try{const u=new URL(r.url());if(u.hostname===host){const n=Number(r.headers()['content-length']||0);if(Number.isFinite(n)&&n>0)metrics.localBytes+=n}}catch{}});
   await page.route('**/*',route=>{
     const u=new URL(route.request().url());
     if(u.hostname===host){metrics.localRequests++;return route.continue()}
@@ -63,8 +64,13 @@ try{
   const mod=await import(pathToFileURL(scenarioPath).href+'?t='+Date.now());
   if(typeof mod.run!=='function')throw Error('Release gate scenario module must export async function run(ctx)');
   await mod.run({page,context,baseURL,root,config,gate,assert,sleep,waitForQuiescence,metrics});
+  metrics.clientUsage=await page.evaluate(()=>window.__RELEASE_GATE__?.metrics||{}).catch(()=>({}));
   if(gate.failOnPageErrors!==false)for(const e of metrics.pageErrors)failures.push('pageerror: '+e);
   if(gate.maxExternalRequests!==undefined&&metrics.externalRequests>Number(gate.maxExternalRequests))failures.push(`External request budget exceeded: ${metrics.externalRequests} > ${gate.maxExternalRequests}`);
+  if(gate.maxLocalRequests!==undefined&&metrics.localRequests>Number(gate.maxLocalRequests))failures.push(`Local request budget exceeded: ${metrics.localRequests} > ${gate.maxLocalRequests}`);
+  if(gate.maxLocalBytes!==undefined&&metrics.localBytes>Number(gate.maxLocalBytes))failures.push(`Local payload budget exceeded: ${metrics.localBytes} > ${gate.maxLocalBytes}`);
+  const usage=metrics.clientUsage||{};
+  for(const [field,key] of [['reads','maxFirebaseReads'],['writes','maxFirebaseWrites'],['deletes','maxFirebaseDeletes'],['listeners','maxFirebaseListeners']])if(gate[key]!==undefined&&Number(usage[field]||0)>Number(gate[key]))failures.push(`Firebase ${field} budget exceeded: ${usage[field]||0} > ${gate[key]}`);
   await browser.close();
 }finally{server.kill('SIGTERM')}
 
