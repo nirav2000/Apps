@@ -35,3 +35,12 @@ jobs:
         run: node shared-apps/validation/validate-static-app.mjs app "${{ inputs.config }}"
       - name: Browser smoke test
         run: node shared-apps/validation/smoke-test.mjs app "${{ inputs.config }}"
+      - name: Release gate / quiescence regression tests
+        run: node shared-apps/validation/release-gate.mjs app "${{ inputs.config }}"
+      - name: Upload release-gate report
+        if: always() && hashFiles('app/artifacts/release-gate-report.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-report
+          path: app/artifacts/release-gate-report.json
+          retention-days: 30
