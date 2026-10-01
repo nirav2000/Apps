@@ -8,7 +8,7 @@ const allowProduction=process.env.ALLOW_PRODUCTION_LOAD_TEST==='true';
 if(!target)throw Error('Usage: node load-test.mjs <url> (or LOAD_TEST_URL)');
 const url=new URL(target);
 const local=['localhost','127.0.0.1','::1'].includes(url.hostname);
-const staging=/staging|preview|test|dev/i.test(url.hostname+url.pathname);
+const staging=/(^|[.-])(staging|preview|test|dev)([.-]|$)/i.test(url.hostname);
 if(!local&&!staging&&!allowProduction)throw Error('Refusing load test against a non-local/non-staging target. Set ALLOW_PRODUCTION_LOAD_TEST=true only for an explicitly approved safe endpoint.');
 
 let next=0,ok=0,errors=0;const durations=[],statuses={};
