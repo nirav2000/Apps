@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-30",
+  "generatedAt": "2026-10-01",
   "legend": {
     "installed": "Verified installed/used",
     "local": "Feature exists locally/legacy, not confirmed on shared module",
@@ -191,6 +191,18 @@
       "created": null,
       "purpose": "Reusable cards, draggable/reorderable panels, dashboard layout and common interface controls.",
       "installed": {}
+    },
+    {
+      "id": "validation",
+      "name": "Static App Validator",
+      "file": "validation/",
+      "status": "implemented",
+      "created": "2026-10-01",
+      "purpose": "Shared recursive syntax/data/asset validation plus Playwright browser smoke testing before release. Designed to keep failing candidate commits off main and repeat the same checks in CI before deployment.",
+      "installed": {
+        "Openday": "installed"
+      },
+      "notes": "Reference integration: Openday. Recursive discovery removes manual JS/JSON file lists. Recommended flow: candidate/preflight -> validate -> smoke test -> promote exact passed SHA to main -> CI repeat -> deploy."
     },
     {
       "id": "diagnostics",
