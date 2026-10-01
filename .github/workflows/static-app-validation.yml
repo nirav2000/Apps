@@ -29,6 +29,11 @@ jobs:
           node-version: 22
       - name: Install browser validator
         run: npm install --prefix shared-apps --no-save playwright@1.55.0
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-1.55.0
       - name: Install Chromium
         run: npx --prefix shared-apps playwright install --with-deps chromium
       - name: Recursive syntax, data and structure validation
