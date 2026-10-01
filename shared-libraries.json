@@ -194,15 +194,15 @@
     },
     {
       "id": "validation",
-      "name": "Static App Validator",
+      "name": "Release Gate & App Validation",
       "file": "validation/",
       "status": "implemented",
       "created": "2026-10-01",
-      "purpose": "Shared recursive syntax/data/asset validation plus Playwright browser smoke testing before release. Designed to keep failing candidate commits off main and repeat the same checks in CI before deployment.",
+      "purpose": "Shared recursive syntax/data/asset validation, browser smoke tests, app-specific regression scenarios, sync quiescence checks, resource/Firebase budgets, CI reports and bounded load-testing tools.",
       "installed": {
         "Openday": "installed"
       },
-      "notes": "Reference integration: Openday. Recursive discovery removes manual JS/JSON file lists. Recommended flow: candidate/preflight -> validate -> smoke test -> promote exact passed SHA to main -> CI repeat -> deploy."
+      "notes": "Reference integration: Openday. Shared engine lives in Apps; consuming apps provide only config and app-specific fixtures/invariants. Recommended flow: validation/preflight -> shared gate -> promote exact passed SHA -> CI repeat -> deploy. Load testing blocks production unless explicitly opted in."
     },
     {
       "id": "diagnostics",
