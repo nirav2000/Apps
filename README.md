@@ -42,7 +42,7 @@ The Apps repository is the single-source library for cross-app capabilities:
 - `apps-pronunciation.js` — reusable microphone waveform, generated or teacher-recorded acoustic reference, speech comparison, rhythm/intonation analysis and pluggable pronunciation-scoring UI. `pronunciation-worker.js` securely generates default reference audio. Standalone test: `pronunciation-demo.html`.
 - `version-lab/` — developer-only full shared Version Lab subsystem: central UI, release capture, immutable snapshots, source/history metadata, compatibility contracts and reusable GitHub workflow. Beyond100 is the reference implementation for its target richness.
 - `apps-version-lab.js` — **legacy/thin v1 browser module** retained for existing Openday compatibility while the full shared Version Lab is validated. Do not use for new integrations.
-- `platform/v1/` — versioned Apps Platform integration contract and lazy capability loader for new integrations.
+- `platform/v1/` — versioned Apps Platform integration contract and lazy capability loader for new integrations.\n- `validation/` — recursive JS/JSON/Python and local-asset validation plus Playwright browser smoke tests, exposed through a reusable GitHub Actions workflow.
 - `apps-platform.js` — legacy convenience loader retained while apps migrate deliberately.
 - `app-monitor.js` and `firebase-usage-monitor.js` now support opt-in privacy gates, enabled per public-facing app.
 
