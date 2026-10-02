@@ -1,7 +1,7 @@
 # @our-apps/auth v1
 
 Current compatible line: **1.1.x**  
-Immutable release: `auth/releases/1.1.0/`
+Immutable release: `auth/releases/1.1.1/`
 
 ## Test first
 
