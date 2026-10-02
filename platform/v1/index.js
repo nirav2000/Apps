@@ -1,9 +1,10 @@
 (function(){
 'use strict';
 if(window.AppsPlatformV1)return;
-const PLATFORM_VERSION='1.0.0';
+const PLATFORM_VERSION='1.1.0';
 const ROOT=(document.currentScript?.src||'https://nirav2000.github.io/Apps/platform/v1/index.js').replace(/\/platform\/v1\/index\.js(?:\?.*)?$/,'/');
 const CAPABILITIES={
+  auth:{src:'auth/v1/index.js',module:true,exportName:'Auth'},
   identity:{src:'apps-auth.js?v=1',global:'AppsAuth'},
   account:{src:'apps-account.js?v=2',global:'AppsAccount'},
   privacy:{src:'apps-privacy.js?v=2',global:'AppsPrivacy'},
@@ -29,10 +30,17 @@ function normaliseManifest(config={}){
     meta:{...(manifest.meta||{}),...(config.meta||{})}
   };
 }
-async function loadCapability(name,options={}){
+async function loadCapability(name,options={},context={}){
   const def=CAPABILITIES[name];if(!def)throw new Error('Unknown Apps Platform capability: '+name);
-  const value=await script(ROOT+def.src,def.global);
-  if(options&&typeof value?.init==='function')await value.init(options);
+  let value;
+  if(def.module){
+    const mod=await import(ROOT+def.src);
+    value=mod[def.exportName]||mod.default||mod;
+  }else value=await script(ROOT+def.src,def.global);
+  if(options&&typeof value?.init==='function'){
+    const initOptions=name==='auth'?{appId:context.appId,...options}:options;
+    await value.init(initOptions);
+  }
   return value;
 }
 async function init(config={}){
@@ -41,7 +49,7 @@ async function init(config={}){
   if(manifest.versionLab?.developerOnly!==true)throw new Error('Version Lab must remain developerOnly in Apps Platform v1');
   const requested=Object.entries(manifest.capabilities).filter(([,v])=>v!==false&&v!=null);
   const services={};
-  for(const [name,options] of requested)services[name]=await loadCapability(name,options===true?{}:options);
+  for(const [name,options] of requested)services[name]=await loadCapability(name,options===true?{}:options,{appId:manifest.appId});
   const api={version:PLATFORM_VERSION,appId:manifest.appId,manifest,services,loadCapability};
   window.dispatchEvent(new CustomEvent('apps-platform:ready',{detail:{appId:manifest.appId,version:PLATFORM_VERSION,capabilities:Object.keys(services)}}));
   return api;
