@@ -250,6 +250,7 @@ async function disableCurrentAccount(){
 async function linkLegacyIdentity(){
   if(!state.centralUser)throw Object.assign(new Error('Sign in to the shared account first.'),{code:'AUTH_REQUIRED'});
   if(!state.appUser)throw Object.assign(new Error('No legacy app session is available to link.'),{code:'LEGACY_AUTH_REQUIRED'});
+  const before=snapshot().user;
   let result;
   if(state.serviceAdapter?.linkLegacyIdentity){
     result=await state.serviceAdapter.linkLegacyIdentity({appId:state.appId,centralUser:state.centralUser,appUser:state.appUser});
@@ -259,7 +260,7 @@ async function linkLegacyIdentity(){
     result=await api('/v1/apps/'+encodeURIComponent(state.appId)+'/link-legacy',{method:'POST',body:JSON.stringify({appIdToken})});
   }
   await refreshIdentity();
-  emit('userChanged');
+  emit('userChanged',before);
   return result;
 }
 
@@ -279,7 +280,8 @@ async function registerPasskey(label='Passkey'){
 async function signInWithPasskey(){
   if(state.serviceAdapter?.signInWithPasskey){
     const result=await state.serviceAdapter.signInWithPasskey({appId:state.appId,deviceId:getDeviceId()});
-    if(result?.user)await applyCentralIdentity(result.user);
+    const current=state.identityProvider?.currentUser?.();
+    if(result?.user&&clean(current?.uid||current?.authSubjectId)!==clean(result.user.uid||result.user.authSubjectId))await applyCentralIdentity(result.user);
     return result;
   }
   if(!window.PublicKeyCredential||!navigator.credentials?.get)throw new Error('Passkeys are not supported in this browser.');
