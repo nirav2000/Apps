@@ -24,10 +24,11 @@ function device(){
 }
 function norm(u){
  if(!u)return null;
- const uid=clean(u.uid||u.userId||u.id,180),username=clean(u.username||u.displayName||u.name,120),provider=clean(u.provider||u.providerId||(u.providerData&&u.providerData[0]?.providerId),80),isAnonymous=typeof u.isAnonymous==='boolean'?u.isAnonymous:undefined;
- const globalUid=clean(u.globalUid,180),appUid=clean(u.appUid,180),appProvider=clean(u.appProvider,80),source=clean(u.source,80);
- if(!uid&&!username&&!provider&&!globalUid&&!appUid&&isAnonymous===undefined)return null;
- return{uid,username,provider,isAnonymous,globalUid,appUid,appProvider,source};
+ const uid=clean(u.uid||u.userId||u.id||u.authSubjectId||u.globalUserId,180),username=clean(u.username||u.displayName||u.name||u.email,120),provider=clean(u.provider||u.providerId||(u.providerData&&u.providerData[0]?.providerId),80),isAnonymous=typeof u.isAnonymous==='boolean'?u.isAnonymous:undefined;
+ const globalUid=clean(u.globalUid||u.globalUserId,180),appUid=clean(u.appUid||u.appUserId,180),appProvider=clean(u.appProvider,80),source=clean(u.source,80);
+ const authSessionId=clean(u.authSessionId,180),authState=clean(u.authState,40),authConsistency=clean(u.authConsistency,40);
+ if(!uid&&!username&&!provider&&!globalUid&&!appUid&&!authSessionId&&!authState&&!authConsistency&&isAnonymous===undefined)return null;
+ return{uid,username,provider,isAnonymous,globalUid,appUid,appProvider,source,authSessionId,authState,authConsistency};
 }
 function trafficInfo(){
  const ua=navigator.userAgent||'',params=new URLSearchParams(location.search),explicit=clean(window.APP_MONITOR_SOURCE||params.get('app_monitor_source')||'',80),signals=[];
@@ -56,7 +57,21 @@ function schedule(ms=1500,reason='pageview'){clearTimeout(timer);timer=setTimeou
 function notePage(){const p=location.pathname+location.search;if(p!==lastPath){lastPath=p;lastTitle=document.title||lastTitle;pageViews++;schedule()}}
 for(const n of['pushState','replaceState']){const o=history[n];history[n]=function(){const v=o.apply(this,arguments);setTimeout(notePage,0);return v}}
 addEventListener('popstate',()=>setTimeout(notePage,0));
-addEventListener('apps-auth:change',e=>{const n=norm(e.detail?.effectiveUser);if(n)manual=n;schedule(100,'identity-link')});
+addEventListener('apps-auth:change',e=>{
+ const d=e.detail||{},raw=d.effectiveUser||d.user;
+ const n=raw?norm({
+   ...raw,
+   globalUid:d.globalUser?.globalUserId||raw.globalUid||raw.globalUserId,
+   appUid:d.appUser?.appUserId||d.appUser?.authSubjectId||raw.appUid||raw.appUserId,
+   appProvider:d.appUser?.provider||raw.appProvider,
+   authSessionId:d.session?.id||'',
+   authState:d.status||'',
+   authConsistency:d.migration?.consistency||'',
+   source:raw.source||'shared-auth'
+ }):null;
+ manual=n||null;
+ schedule(100,n?'identity-link':'identity-clear');
+});
 document.addEventListener('visibilitychange',()=>{tick();send(document.visibilityState==='hidden'?'hidden':'visible',true)});
 addEventListener('focus',()=>{tick();send('focus',true)});
 addEventListener('blur',()=>{tick();send('blur',true)});
