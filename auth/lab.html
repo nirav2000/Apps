@@ -9,7 +9,7 @@
   <div><div class="eyebrow">SHARED INFRASTRUCTURE · TEST HARNESS</div><h1>Authentication Lab</h1><p class="lede">Test the shared authentication SDK and migration behaviour before installing it in Comprehension or another app. This page contains no application business data.</p></div>
   <nav class="nav"><a class="btn" href="../shared-libraries.html">Shared libraries</a><a class="btn" href="../app-monitor.html">App Monitor</a><a class="btn" href="../">Apps</a></nav>
 </header>
-<div class="callout" style="margin-top:16px"><b>Safe by default:</b> the lab starts in frontend-only shadow mode. It does not create a central account or change any app's Firebase session unless you deliberately add a public Firebase web configuration below.</div>
+<div class="callout" style="margin-top:16px"><b>Safe by default:</b> the lab starts with an in-browser mock identity/service using the real Auth API and UI. Nothing is written to Firebase. Mode: <b id="labMode">loading…</b>.</div>
 
 <section class="grid">
   <article class="card span-4"><div class="eyebrow">LIVE SDK</div><h2>State</h2>
@@ -36,7 +36,7 @@
   </article>
   <article class="card span-7"><div class="eyebrow">LEGACY SESSION</div><h2>Shadow-auth tests</h2>
     <p class="small">These controls emulate the kinds of sessions our existing apps already have. They exercise the real SDK's app-identity and role path, not application data.</p>
-    <div class="actions"><button id="legacyAnon">Anonymous legacy user</button><button id="legacyParent">Protected parent</button><button id="legacyOther">Different/stale user</button><button id="legacyClear" class="danger">Clear legacy session</button></div>
+    <div class="actions"><button id="legacyAnon">Anonymous legacy user</button><button id="legacyParent">Protected parent</button><button id="legacyOther">Different/stale user</button><button id="legacyClear" class="danger">Clear legacy session</button><button id="linkLegacy" class="primary">Link current legacy UID to shared account</button></div>
     <pre id="snapshot" class="result mono" style="white-space:pre-wrap;margin-top:14px;max-height:340px;overflow:auto"></pre>
   </article>
 
@@ -45,13 +45,18 @@
     <div id="scenarioResult" class="result" style="margin-top:12px">Choose a scenario above.</div>
   </article>
 
+  <article class="card span-6"><div class="eyebrow">AUTH SERVICE</div><h2>Sessions & audit</h2>
+    <p class="small">In mock mode these are simulated through the same service-adapter methods the production Auth service will implement.</p>
+    <div class="actions"><button id="loadSessions">List sessions</button><button id="loadAudit">Audit history</button><button id="resetMock" class="danger">Reset mock lab</button></div>
+    <pre id="serviceOutput" class="result mono" style="white-space:pre-wrap;margin-top:14px;max-height:300px;overflow:auto">Choose an action.</pre>
+  </article>
   <article class="card span-6"><div class="eyebrow">OPTIONAL LIVE BACKEND</div><h2>Connect a test identity project</h2>
     <p class="small">Only paste the Firebase <b>web configuration</b> here. It is public project configuration. Never paste service-account JSON, private keys, recovery tokens or admin secrets.</p>
     <label class="field"><span>Firebase web config JSON</span><textarea id="firebaseConfig" rows="8" placeholder='{"apiKey":"…","authDomain":"…","projectId":"…","appId":"…"}'></textarea></label>
     <label class="field"><span>Auth service base URL (optional)</span><input id="serviceUrl" placeholder="https://…"></label>
     <div class="actions"><button id="applyConfig" class="primary">Apply for this tab</button><button id="clearConfig">Clear</button></div><p id="configMessage" class="small"></p>
   </article>
-  <article class="card span-6"><div class="eyebrow">EVENTS</div><h2>Auth event log</h2><div id="eventLog" class="log"></div></article>
+  <article class="card span-12"><div class="eyebrow">EVENTS</div><h2>Auth event log</h2><div id="eventLog" class="log"></div></article>
 
   <article class="card span-12"><div class="eyebrow">TEST CHECKLIST</div><h2>Before Comprehension</h2>
     <div class="row">
