@@ -1,6 +1,6 @@
 # Shared Authentication Architecture
 
-_Last updated: 29 September 2026_
+_Last updated: 2 October 2026_
 
 ## Decision
 
@@ -203,3 +203,50 @@ Apps may use an import map so the conceptual import becomes `@our-apps/auth` wit
 - Apps may pin an exact immutable release path when introduced, or pin major v1 for staged rollout.
 - Existing `apps-auth.js?v=1` remains a compatibility surface until every consumer has migrated.
 - Never silently replace a major API for all apps.
+
+
+## October 2026 consolidation
+
+The portfolio now has several overlapping historical modules:
+
+- `apps-auth.js` — canonical device identity and old app-user bridge;
+- `apps-account.js` — Firebase account operations bound to an app Firebase instance;
+- `apps-passkey-auth.js` — App Monitor's existing administrator WebAuthn client;
+- `auth/v1/index.js` — the canonical shared authentication API.
+
+The target is **not** to delete the first three immediately. They are compatibility/migration adapters until each consumer reaches Auth v1.
+
+New application business code should depend on Auth v1 (directly or through Apps Platform's `auth` capability), never on Firebase Auth or these legacy globals.
+
+## Provider and service adapters
+
+Auth v1.1 separates two replaceable pieces:
+
+**Identity provider**
+: proves/authenticates the central user. Firebase Authentication is the default production provider.
+
+**Auth service**
+: maps global identity to app membership, verifies legacy links, manages shared sessions/passkeys/audit and brokers app-project Firebase tokens.
+
+The standalone Auth Lab uses in-browser mock adapters through these same interfaces. That means its UI/API tests are representative without writing to a production backend.
+
+## Migration authority
+
+An app migration explicitly declares which identity is authoritative:
+
+- `shadow / legacy` — existing app auth controls data access while central identity is observed/linked;
+- `linked / central` — shared auth controls the login experience after the app UID mapping is verified.
+
+A central/legacy UID mismatch is a blocking condition for writes/privileged actions.
+
+See `AUTH_MIGRATION.md` and `AUTH_RULES_STRATEGY.md`.
+
+## Shared platform
+
+Apps Platform v1.1 exposes `auth` as the canonical capability. The older `identity` and `account` capabilities remain available only for compatibility during migration.
+
+## Proving ground
+
+`auth/lab.html` is the first proving ground.
+
+Comprehension is deliberately **not** an Auth v1 consumer at this point. It retains only the older canonical-device identity bridge until the Auth Lab is accepted and a dedicated central identity backend is provisioned/tested.
