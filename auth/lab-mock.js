@@ -10,11 +10,10 @@ const saveJSON=(k,v)=>sessionStorage.setItem(k,JSON.stringify(v));
 const now=()=>new Date().toISOString();
 
 export function createMockIdentityProvider(){
-  let user=loadJSON(USER_KEY,null),onUserChanged=null;
+  let user=loadJSON(USER_KEY,null);
   const listeners=new Set();
   const notify=()=>{
     saveJSON(USER_KEY,user);
-    onUserChanged?.(user);
     for(const fn of listeners){try{fn(user)}catch{}}
     return user;
   };
@@ -27,7 +26,7 @@ export function createMockIdentityProvider(){
   const setUser=u=>{user=u;return notify()};
   return {
     kind:'mock',
-    async init(ctx={}){onUserChanged=ctx.onUserChanged||null;return{user}},
+    async init(){return{user}},
     onChange(fn){listeners.add(fn);return()=>listeners.delete(fn)},
     currentUser:()=>user,
     async getIdToken(){if(!user)return'';return'mock-token:'+user.uid},
