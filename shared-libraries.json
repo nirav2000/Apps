@@ -29,7 +29,7 @@
       "installed": {
         "App Monitor": "local"
       },
-      "notes": "Auth Lab is now the first proving ground at auth/lab.html. Comprehension was returned to legacy apps-auth identity only until the lab is accepted. Apps Platform v1.1 exposes this as capability 'auth'; apps-auth.js and apps-account.js remain compatibility adapters during migration."
+      "notes": "Current immutable release: 1.1.1. Auth Lab is now the first proving ground at auth/lab.html. Comprehension was returned to legacy apps-auth identity only until the lab is accepted. Apps Platform v1.1 exposes this as capability 'auth'; apps-auth.js and apps-account.js remain compatibility adapters during migration."
     },
     {
       "id": "apps-auth",
