@@ -1,7 +1,7 @@
-const VERSION='1.0.0';
+const VERSION='1.1.0';
 const DEVICE_KEY='apps-platform.v1.device';
 const listeners={change:new Set(),signedIn:new Set(),signedOut:new Set(),userChanged:new Set(),permissionChanged:new Set()};
-const state={initialised:false,appId:'',mode:'shadow',status:'idle',deviceId:'',identityConfig:null,serviceBaseUrl:'',firebase:null,centralUser:null,globalUser:null,appUser:null,permissions:{globalRoles:[],appRoles:[]},session:null,appAdapter:null,error:null};
+const state={initialised:false,appId:'',mode:'shadow',status:'idle',deviceId:'',identityConfig:null,serviceBaseUrl:'',firebase:null,centralUser:null,globalUser:null,appUser:null,permissions:{globalRoles:[],appRoles:[]},session:null,appAdapter:null,migration:{phase:'shadow',authority:'legacy'},error:null};
 
 const clean=(v,n=180)=>String(v??'').trim().slice(0,n);
 const makeId=(prefix='id')=>prefix+'-'+(crypto.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9._-]/g,'');
@@ -17,9 +17,25 @@ function normaliseFirebaseUser(user,source='central'){
   if(!user)return null;
   return {authSubjectId:clean(user.uid),appUserId:source==='app'?clean(user.uid):'',email:clean(user.email),displayName:clean(user.displayName||user.email,120),provider:clean(user.providerData?.[0]?.providerId||(user.isAnonymous?'anonymous':'firebase'),80),isAnonymous:!!user.isAnonymous,source};
 }
+function migrationState(){
+  const central=state.globalUser||state.centralUser||null,legacy=state.appUser||null;
+  const mappedAppUserId=clean(central?.appUserId||central?.membership?.appUserId||central?.app?.appUserId);
+  const legacyId=clean(legacy?.appUserId||legacy?.authSubjectId);
+  let consistency='none';
+  if(central&&legacy){
+    if(mappedAppUserId&&legacyId)consistency=mappedAppUserId===legacyId?'linked':'mismatch';
+    else consistency='dual-unverified';
+  }else if(central)consistency='central-only';
+  else if(legacy)consistency='legacy-only';
+  const phase=state.migration?.phase||state.mode||'shadow';
+  const authority=state.migration?.authority||(phase==='shadow'?'legacy':'central');
+  const blocking=consistency==='mismatch'||(consistency==='dual-unverified'&&phase!=='shadow'&&authority!=='legacy');
+  return {phase,authority,consistency,blocking,mappedAppUserId:mappedAppUserId||'',legacyAppUserId:legacyId||''};
+}
 function snapshot(){
-  const user=state.globalUser||state.appUser||null;
-  return {version:VERSION,appId:state.appId,mode:state.mode,status:state.status,deviceId:getDeviceId(),user,globalUser:state.globalUser,appUser:state.appUser,permissions:{globalRoles:[...state.permissions.globalRoles],appRoles:[...state.permissions.appRoles]},session:state.session,error:state.error};
+  const migration=migrationState();
+  const user=migration.authority==='legacy'?(state.appUser||state.globalUser):(state.globalUser||state.appUser)||null;
+  return {version:VERSION,appId:state.appId,mode:state.mode,status:state.status,deviceId:getDeviceId(),user,globalUser:state.globalUser,appUser:state.appUser,permissions:{globalRoles:[...state.permissions.globalRoles],appRoles:[...state.permissions.appRoles]},session:state.session,migration,error:state.error};
 }
 function emit(type='change',previousUser=null){
   const snap=snapshot();
@@ -96,6 +112,7 @@ async function init(options={}){
   state.appId=clean(options.appId,80);
   if(!state.appId)throw new Error('Auth.init requires appId.');
   state.mode=options.mode||'shadow';
+  state.migration={phase:options.migration?.phase||state.mode,authority:options.migration?.authority||(state.mode==='shadow'?'legacy':'central')};
   state.identityConfig=options.identity||null;
   state.serviceBaseUrl=clean(options.serviceBaseUrl||options.identity?.serviceBaseUrl,300);
   state.appAdapter=options.appAdapter||null;
@@ -120,7 +137,9 @@ async function init(options={}){
 }
 function getCurrentUser(){return snapshot().user}
 function requireAuth(){
-  const user=getCurrentUser();
+  const snap=snapshot();
+  if(snap.migration.blocking)throw Object.assign(new Error('Authentication identity mismatch must be resolved before continuing.'),{code:'AUTH_IDENTITY_MISMATCH',migration:snap.migration});
+  const user=snap.user;
   if(!user)throw Object.assign(new Error('Authentication required.'),{code:'AUTH_REQUIRED'});
   return user;
 }
@@ -195,7 +214,7 @@ export const Auth={
   signInEmail,signInAnonymous,upgradeAnonymousWithEmailPassword,sendEmailLink,completeEmailLink,
   signInGoogle:()=>popupProvider('google'),signInApple:()=>popupProvider('apple'),
   logout,listSessions,revokeSession,disableCurrentAccount,registerPasskey,signInWithPasskey,getAuditHistory,
-  setAppIdentity,refreshIdentity,getDeviceId,
+  setAppIdentity,refreshIdentity,getDeviceId,getMigrationState:migrationState,
   onSignedIn:fn=>on('signedIn',fn),onSignedOut:fn=>on('signedOut',fn),onUserChanged:fn=>on('userChanged',fn),
   onPermissionChanged:fn=>on('permissionChanged',fn),onChange:fn=>on('change',fn)
 };
