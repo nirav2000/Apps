@@ -247,6 +247,22 @@ async function disableCurrentAccount(){
   if(state.serviceAdapter?.disableCurrentAccount)return state.serviceAdapter.disableCurrentAccount({appId:state.appId,user:state.centralUser});
   return api('/v1/account/disable',{method:'POST'});
 }
+async function linkLegacyIdentity(){
+  if(!state.centralUser)throw Object.assign(new Error('Sign in to the shared account first.'),{code:'AUTH_REQUIRED'});
+  if(!state.appUser)throw Object.assign(new Error('No legacy app session is available to link.'),{code:'LEGACY_AUTH_REQUIRED'});
+  let result;
+  if(state.serviceAdapter?.linkLegacyIdentity){
+    result=await state.serviceAdapter.linkLegacyIdentity({appId:state.appId,centralUser:state.centralUser,appUser:state.appUser});
+  }else{
+    const appIdToken=await state.appAdapter?.getIdToken?.();
+    if(!appIdToken)throw Object.assign(new Error('The legacy auth adapter cannot provide a fresh app ID token.'),{code:'LEGACY_TOKEN_REQUIRED'});
+    result=await api('/v1/apps/'+encodeURIComponent(state.appId)+'/link-legacy',{method:'POST',body:JSON.stringify({appIdToken})});
+  }
+  await refreshIdentity();
+  emit('userChanged');
+  return result;
+}
+
 const b64uToBuf=s=>{const p=String(s||'').replace(/-/g,'+').replace(/_/g,'/'),raw=atob(p+'='.repeat((4-p.length%4)%4)),u=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);return u.buffer};
 const bufToB64u=b=>{const u=new Uint8Array(b);let s='';for(const x of u)s+=String.fromCharCode(x);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 function publicKeyRequestOptions(o){return {...o,challenge:b64uToBuf(o.challenge),allowCredentials:(o.allowCredentials||[]).map(x=>({...x,id:b64uToBuf(x.id)}))}}
@@ -286,7 +302,7 @@ export const Auth={
   version:VERSION,init,snapshot,getCurrentUser,requireAuth,requireUser,hasRole,getRoles,
   signInEmail,createEmailAccount,resetPassword,signInAnonymous,upgradeAnonymousWithEmailPassword,sendEmailLink,completeEmailLink,
   signInGoogle:()=>popupProvider('google'),signInApple:()=>popupProvider('apple'),linkGoogle:()=>linkProvider('google'),linkApple:()=>linkProvider('apple'),
-  logout,listSessions,revokeSession,disableCurrentAccount,registerPasskey,signInWithPasskey,getAuditHistory,
+  logout,listSessions,revokeSession,disableCurrentAccount,linkLegacyIdentity,registerPasskey,signInWithPasskey,getAuditHistory,
   setAppIdentity,refreshIdentity,getDeviceId,getMigrationState:migrationState,assessMigration,
   onSignedIn:fn=>on('signedIn',fn),onSignedOut:fn=>on('signedOut',fn),onUserChanged:fn=>on('userChanged',fn),
   onPermissionChanged:fn=>on('permissionChanged',fn),onChange:fn=>on('change',fn)
