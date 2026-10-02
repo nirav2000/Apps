@@ -1,5 +1,12 @@
 # @our-apps/auth v1
 
+Current compatible line: **1.1.x**  
+Immutable release: `auth/releases/1.1.0/`
+
+## Test first
+
+Use `auth/lab.html` before installing Auth into a real app. The lab defaults to mock adapters using the real Auth API/UI and makes no Firebase writes.
+
 ## GitHub Pages integration
 
 No build step is required:
@@ -101,3 +108,28 @@ The SDK treats roles as opaque strings. App-specific meanings stay in the app. D
 ## Future npm package
 
 If package publishing becomes useful, publish this same API as `@our-apps/auth` and keep the GitHub-hosted module as the zero-build distribution. Consuming apps should not import Firebase directly for new auth code.
+
+
+## Migration state
+
+`Auth.snapshot().migration` reports:
+
+- `legacy-only`
+- `central-only`
+- `linked`
+- `dual-unverified`
+- `mismatch`
+
+`mismatch` blocks `requireAuth()` and should block app writes/privileged operations.
+
+Use `Auth.linkLegacyIdentity()` to verify and store the mapping from a central account to the app's existing Firebase UID. A production legacy adapter must provide `getIdToken()`; the browser never supplies an unverified UID as the mapping source.
+
+## Replaceable adapters
+
+`Auth.init()` may receive:
+
+- `identityProvider` — central sign-in provider; production defaults to Firebase Authentication.
+- `serviceAdapter` — shared identity/session/passkey/audit service; production defaults to HTTP `serviceBaseUrl`.
+- `appAdapter` — temporary existing-app authentication adapter during migration.
+
+These seams allow safe testing and future backend changes without changing application business code.
