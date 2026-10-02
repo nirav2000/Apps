@@ -228,4 +228,5 @@ export const Auth={
   onSignedIn:fn=>on('signedIn',fn),onSignedOut:fn=>on('signedOut',fn),onUserChanged:fn=>on('userChanged',fn),
   onPermissionChanged:fn=>on('permissionChanged',fn),onChange:fn=>on('change',fn)
 };
+if(typeof window!=='undefined')window.AppsAuthV1=Auth;
 export default Auth;
