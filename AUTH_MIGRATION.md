@@ -106,3 +106,88 @@ For each app:
 5. Openday account-link migration.
 6. Snag multi-user migration.
 7. App Monitor admin migration only after feature parity.
+
+
+# Migration refinement — 2 October 2026
+
+## Authentication coexistence states
+
+Shared Auth v1.1 explicitly reports a migration state:
+
+| State | Meaning | Behaviour |
+|---|---|---|
+| `none` | no central or legacy user | normal signed-out/local mode |
+| `legacy-only` | existing app auth only | keep legacy auth authoritative |
+| `central-only` | shared account only | valid for new/local-only apps; UID-coupled apps may still need broker token |
+| `linked` | central membership mapping matches restored app UID | safe to progress toward central authority |
+| `dual-unverified` | both sessions exist but no verified mapping | allowed only in explicit shadow mode with legacy authority |
+| `mismatch` | central account maps to one app UID while browser is signed into another | block cloud writes/privileged operations until resolved |
+
+A mismatch is not silently fixed by overwriting an identity. The user should switch/sign out the stale legacy account or perform an audited recovery/relink.
+
+## Migration modes
+
+### Phase A — observe
+
+- load Auth v1 in shadow mode;
+- retain the existing login and Firebase session;
+- publish identity/session/device state to App Monitor;
+- make no data/rules change.
+
+### Phase B — verified link
+
+- user signs into/creates central account;
+- existing app session remains signed in;
+- central auth service verifies a fresh app-project Firebase ID token;
+- store `globalUserId -> appUserId`;
+- reject UID conflicts.
+
+### Phase C — central UI, legacy data identity
+
+- shared Auth UI becomes the visible login/account UI;
+- central service brokers an app-project custom token using the mapped **existing UID**;
+- Firestore sees the same `request.auth.uid` as before;
+- old login UI is hidden but retained behind a compatibility flag for rollback.
+
+### Phase D — retire stale authentication
+
+- after an observation window, stop restoring independent legacy credentials;
+- keep mapping records permanently;
+- retain legacy adapter code for one major-version rollback window;
+- revoke or rotate obsolete tokens/capabilities deliberately, never merely because the new UI exists.
+
+### Phase E — authorization/data modernisation
+
+This is a separate project. Introduce shared learning relationships, new app roles, new Firestore layouts or rule changes only after authentication is stable.
+
+## Per-app coexistence plan
+
+| App | Existing auth/access | First shared-auth mode | Legacy retirement trigger |
+|---|---|---|---|
+| Comprehension | none; local storage | central-only after Auth Lab passes | N/A |
+| InClass | local session abstraction | shadow adapter | shared Auth reproduces current parent/learner/teacher session behaviour |
+| LearnLatin | kk-syllabus owner Firebase UID | shadow + verified UID link | broker reproduces same owner UID and sync tests pass |
+| Next | kk-syllabus owner Firebase UID | shadow + verified UID link | same as LearnLatin |
+| beyond100 | kk-syllabus owner Firebase UID + bearer capabilities | shadow + verified UID link; capabilities remain | broker works and capability recovery remains tested |
+| Openday | owner Firebase session + memorable token | central identity shadowed beside token | central recovery works; token remains valid until explicitly migrated/revoked |
+| Snag | anonymous/protected Firebase users, project memberships | shadow + verified per-user UID link | broker issues same Snag UID and project/member/R2 regression tests pass |
+| App Monitor | separate passkey/recovery sessions | keep independent initially | shared passkey/session/audit service reaches feature parity |
+| Firebase Usage Monitor | admin/monitor surface | central owner auth later | shared owner/global-admin path proven in Auth Lab/App Monitor |
+
+## First proving ground
+
+Before Comprehension, use the standalone `Apps/auth/lab.html` test harness.
+
+The lab tests:
+
+- SDK init and events;
+- shared account UI;
+- anonymous/guest state;
+- anonymous -> permanent account upgrade;
+- account creation/recovery UI;
+- role clearing/separation;
+- migration consistency matrix;
+- stale/wrong legacy session detection;
+- optional real central Firebase/Auth-service configuration.
+
+Comprehension has been returned to its pre-Auth-v1 state until this lab is accepted.
