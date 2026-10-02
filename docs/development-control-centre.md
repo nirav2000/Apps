@@ -89,3 +89,28 @@ Until authenticated write-through capture is implemented, Quick Capture may crea
 ## Source of truth
 
 GitHub Issues contain live work. Markdown contains architecture, conventions and durable decisions. Do not maintain a second independent to-do list in Markdown.
+
+
+## Working with older chat history
+
+The Control Centre, not ChatGPT memory, is the durable record of development work.
+
+Backfill is progressive:
+- When work resumes on an app, ChatGPT should first review the app's existing Control Centre items and relevant available prior conversation/project context.
+- Clearly unresolved, still-relevant work may then be added or merged into existing tracker items.
+- Do not bulk-create speculative or stale historical tasks merely because they were once discussed.
+- New `#dev` instructions should be captured immediately.
+- If prior-chat context is unavailable, do not pretend it was remembered; use the tracker/repository state and ask only when an essential decision cannot be recovered.
+
+This means the user does not need to perform a manual historical backfill. The tracker becomes progressively more complete as each app is revisited.
+
+## Low-friction card actions
+
+Cards provide:
+- **Done** — prepares a `#dev` command identifying the exact issue to close/complete.
+- **Verified** — prepares a command recording successful verification.
+- **Snooze** — asks for a natural-language date/time and prepares an update command.
+- **Continue in ChatGPT** — prepares a command containing the exact tracked item reference so ChatGPT can pick the work up with the tracker as context.
+- **Open source chat** — shown when a stable source conversation URL has been captured.
+
+These actions intentionally avoid requiring the user to navigate GitHub. Until secure authenticated write-through is added, actions copy an exact command for ChatGPT rather than exposing a GitHub credential in the browser.
