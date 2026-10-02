@@ -917,3 +917,22 @@ The target model separates `globalUserId`, central authentication subject, per-a
 Comprehension is the first proving-ground consumer. It is pinned to shared auth `v1.0.0` in shadow/device-only mode, so no login gate or data migration is introduced. Existing UID-coupled apps remain on their legacy authentication until adapters/mappings are tested.
 
 Permanent `pre-shared-auth` preservation branches were created for Apps, Comprehension, Snag, LearnLatin, beyond100, Next, InClass and Openday. Exact production SHAs are recorded in `AUTH_MIGRATION.md`. The current GitHub connector does not expose tag creation, so an immutable Git tag still needs to be created before any UID/data migration; this does not block the non-destructive shadow rollout.
+
+
+## Shared Auth review — 2 October 2026
+
+Auth v1.1 is now the canonical future authentication API.
+
+Current rollout status:
+
+- standalone `auth/lab.html` is the first proving ground;
+- Comprehension has been returned to legacy `apps-auth.js` identity-only integration and is **not yet** an Auth v1 consumer;
+- Apps Platform v1.1 exposes `auth`;
+- old `apps-auth.js`, `apps-account.js` and `apps-passkey-auth.js` remain compatibility adapters;
+- shared Auth now models central/legacy coexistence and detects stale/mismatched app sessions;
+- central identity/app membership/session/passkey/audit Firestore remains server-only/default-deny;
+- app Firestore rules continue using their existing app Firebase UID during initial migration;
+- a verified legacy-link handshake records `globalUserId -> appUserId`;
+- the future token broker must mint an app-project Firebase token with that same `appUserId`.
+
+See `AUTH_ARCHITECTURE.md`, `AUTH_MIGRATION.md`, `AUTH_RULES_STRATEGY.md` and `AUTH_SERVICE_CONTRACT.md`.
