@@ -15,7 +15,7 @@ function getDeviceId(){
 }
 function normaliseFirebaseUser(user,source='central'){
   if(!user)return null;
-  return {authSubjectId:clean(user.uid),appUserId:source==='app'?clean(user.uid):'',email:clean(user.email),displayName:clean(user.displayName||user.email,120),provider:clean(user.providerData?.[0]?.providerId||(user.isAnonymous?'anonymous':'firebase'),80),isAnonymous:!!user.isAnonymous,source};
+  return {authSubjectId:clean(user.uid||user.authSubjectId||user.id),globalUserId:clean(user.globalUserId),appUserId:source==='app'?clean(user.uid||user.appUserId||user.authSubjectId):clean(user.appUserId),email:clean(user.email),displayName:clean(user.displayName||user.email,120),provider:clean(user.provider||user.providerData?.[0]?.providerId||(user.isAnonymous?'anonymous':'firebase'),80),isAnonymous:!!user.isAnonymous,source};
 }
 function assessMigration({centralUser=null,appUser=null,phase='shadow',authority='legacy'}={}){
   const central=centralUser||null,legacy=appUser||null;
