@@ -78,8 +78,8 @@ function audit(action,meta={}){
 
 export function createMockServiceAdapter(identityProvider){
   let linkedAppUserId=sessionStorage.getItem(LINK_KEY)||'';
-  const sessionId='mock-auth-session-'+(sessionStorage.getItem('auth-lab.mock.session')||crypto.randomUUID().slice(0,8));
-  sessionStorage.setItem('auth-lab.mock.session',sessionId);
+  let sessionId=sessionStorage.getItem('auth-lab.mock.session')||'';
+  if(!sessionId){sessionId='mock-auth-session-'+crypto.randomUUID().slice(0,8);sessionStorage.setItem('auth-lab.mock.session',sessionId)}
   const sessions=()=>[
     {id:sessionId,current:true,label:'This Auth Lab tab',createdAt:now(),lastSeenAt:now(),expiresAt:new Date(Date.now()+7*86400000).toISOString()},
     {id:'mock-auth-session-old',current:false,label:'Example older device',createdAt:new Date(Date.now()-3*86400000).toISOString(),lastSeenAt:new Date(Date.now()-86400000).toISOString(),expiresAt:new Date(Date.now()+4*86400000).toISOString()}
