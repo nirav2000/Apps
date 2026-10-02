@@ -1,8 +1,38 @@
 # Shared Auth Integration Guide
 
+## Mandatory pre-app test
+
+Before installing Auth v1 into a real application, test the current v1 line in:
+
+`https://nirav2000.github.io/Apps/auth/lab.html`
+
+The Auth Lab defaults to disposable mock identity/service adapters and therefore writes no Firebase data. It exercises the same Auth API and shared account UI used by consumers.
+
+Acceptance checks before Comprehension:
+
+- guest/anonymous sign-in;
+- anonymous -> protected account without changing identity;
+- email/password create/sign-in/recovery;
+- email-link request;
+- Google/Apple provider UI;
+- passkey register, sign-out and passkey sign-in in mock mode;
+- session listing/revocation;
+- audit history;
+- legacy identity appearance/disappearance;
+- legacy role clearing;
+- linked UID state;
+- stale/wrong legacy UID -> mismatch/blocking state;
+- App Monitor identity transition.
+
+After a dedicated test identity Firebase project/service exists, repeat the same lab against that backend before a real app migration.
+
+# Shared Auth Integration Guide
+
 ## New app
 
 Use the stable API and keep Firebase Auth calls out of app business code.
+
+For new work, prefer Apps Platform `auth` or import Auth v1 directly. Do not use the older `apps-auth.js` / `apps-account.js` as the public application API.
 
 ```html
 <script type="importmap">
@@ -75,3 +105,26 @@ Consumers depend on Auth, not Firebase. To replace the backend:
 ## Rollback
 
 If a migration causes regression, restore the production commit recorded in `AUTH_MIGRATION.md`. Because early phases do not rename/delete legacy data or identities, rollback is code-only.
+
+
+## Existing authentication that becomes stale
+
+Do not simply leave two independent sessions running indefinitely.
+
+During shadow migration:
+
+1. keep the old app session as the data authority;
+2. sign into/create the central shared account;
+3. call `Auth.linkLegacyIdentity()` only after the legacy adapter can supply a fresh app-project ID token;
+4. confirm Auth reports `migration.consistency === "linked"`;
+5. only then change authority to central and introduce the app token broker;
+6. when a restored legacy UID differs from the mapped UID, treat it as `mismatch` and block writes/privileged actions;
+7. retire the old login UI only after regression tests and an observation window.
+
+The mapping is retained even after the old login UI is retired because it is the stable bridge to existing data/rules.
+
+## Rules
+
+See `AUTH_RULES_STRATEGY.md`.
+
+The first Auth migration should generally make **no Firestore rules change** in UID-coupled apps. The broker should reproduce the same app UID so existing `request.auth.uid` rules continue to work.
