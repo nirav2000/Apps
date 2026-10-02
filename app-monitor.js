@@ -43,7 +43,18 @@ function trafficInfo(){
  return{class:trafficClass,source:explicit||'',signals:signals.slice(0,12)};
 }
 function autoIdentity(){
- const a=[window.APP_MONITOR_IDENTITY,window.AppsAuth?.effectiveIdentity?.(),window.currentUser,window.auth?.currentUser,window.firebaseAuth?.currentUser];
+ const v1=window.AppsAuthV1?.snapshot?.();
+ const v1Identity=v1?.user?{
+   ...v1.user,
+   globalUid:v1.globalUser?.globalUserId||v1.user?.globalUserId||'',
+   appUid:v1.appUser?.appUserId||v1.appUser?.authSubjectId||v1.user?.appUserId||'',
+   appProvider:v1.appUser?.provider||'',
+   authSessionId:v1.session?.id||'',
+   authState:v1.status||'',
+   authConsistency:v1.migration?.consistency||'',
+   source:v1.user?.source||'shared-auth-v1'
+ }:null;
+ const a=[window.APP_MONITOR_IDENTITY,v1Identity,window.AppsAuth?.effectiveIdentity?.(),window.currentUser,window.auth?.currentUser,window.firebaseAuth?.currentUser];
  try{if(window.firebase?.auth)a.push(window.firebase.auth().currentUser)}catch{}
  for(const x of a){const n=norm(x);if(n)return n}return null
 }
