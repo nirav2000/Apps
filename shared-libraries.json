@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01",
+  "generatedAt": "2026-10-02",
   "legend": {
     "installed": "Verified installed/used",
     "local": "Feature exists locally/legacy, not confirmed on shared module",
@@ -21,15 +21,15 @@
   "libraries": [
     {
       "id": "auth-v1",
-      "name": "Auth v1",
+      "name": "Auth v1.1",
       "file": "auth/v1/index.js",
       "status": "implemented",
       "created": "2026-09-29",
-      "purpose": "Versioned shared authentication SDK for identity, sessions, roles, credentials/passkeys, audit events and reusable auth UI.",
+      "purpose": "Canonical shared authentication SDK for global identity, legacy UID mapping, migration safety, sessions, roles, credentials/passkeys, audit events and reusable auth UI.",
       "installed": {
         "App Monitor": "local"
       },
-      "notes": "New architecture intended to replace/consolidate earlier identity and passkey modules as apps migrate."
+      "notes": "Auth Lab is now the first proving ground at auth/lab.html. Comprehension was returned to legacy apps-auth identity only until the lab is accepted. Apps Platform v1.1 exposes this as capability 'auth'; apps-auth.js and apps-account.js remain compatibility adapters during migration."
     },
     {
       "id": "apps-auth",
@@ -155,7 +155,7 @@
       "created": "2026-09-27",
       "purpose": "Versioned integration layer and lazy capability loader that keeps shared infrastructure separate from consuming app business logic.",
       "installed": {},
-      "notes": "New versioned contract is available for future integrations; legacy apps-platform.js remains for compatibility."
+      "notes": "Apps Platform v1.1 exposes canonical 'auth' as an ES-module capability while keeping legacy identity/account modules available for deliberate migration."
     },
     {
       "id": "devnotes",
