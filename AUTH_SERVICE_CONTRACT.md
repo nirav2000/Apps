@@ -4,15 +4,27 @@ The browser SDK is intentionally usable before this service is provisioned. Meth
 
 ## Hosting
 
-Preferred first implementation: **Firebase/Google Cloud Functions in a dedicated `apps-identity` project** using Firebase Admin SDK.
+Preferred production implementation: **a Google-managed trusted service in the dedicated `apps-identity` project** using Firebase Admin SDK (for example Cloud Functions / Cloud Run functions).
 
 Reasons:
-- Firebase ID-token verification and custom-token minting stay next to Google IAM.
+- Firebase ID-token verification and custom-token minting stay next to Google IAM;
 - no Google service-account private key needs to be copied into GitHub Pages or a Cloudflare Worker;
 - Firestore identity metadata can be server-only;
 - Firebase Auth handles refresh tokens and normal browser persistence.
 
-Cloudflare may proxy/rate-limit later, but it should not become the holder of a long-lived Google service-account JSON key.
+### Billing-plan constraint
+
+As of the 2 October 2026 review, Firebase documents that deploying Cloud Functions requires the pay-as-you-go **Blaze** plan. Blaze includes no-cost usage allowances, but it still means deliberately enabling billing rather than assuming a Spark-only deployment.
+
+Therefore rollout is staged:
+
+1. **Auth Lab mock mode** — no Firebase/backend dependency.
+2. **Dedicated central Firebase Authentication project** — test Firebase-native anonymous/email/email-link/federated identity without changing app data.
+3. **Trusted auth service** — add passkey verification, global identity mapping, shared session administration, audit and per-app custom-token brokering only after the hosting/billing choice is explicit.
+
+Firebase's custom-auth model requires a trusted server to create custom tokens; those tokens can preserve an existing app UID when signing the browser into an app project.
+
+Cloudflare may proxy/rate-limit later, but it should not naively hold a long-lived Google service-account JSON private key. If a non-Google runtime is chosen, use a deliberately designed credential/federation mechanism rather than embedding a key in client or repository code.
 
 ## Browser authentication
 
