@@ -1,5 +1,11 @@
 # Shared Auth changelog
 
+## 1.1.1 - 2026-10-02
+
+- Corrected event semantics when linking a legacy identity so linking does not masquerade as a new sign-in.
+- Avoided duplicate central-user processing when a service-adapter passkey flow has already updated its identity provider.
+- Kept immutable 1.1.0 unchanged and published a separate 1.1.1 patch release.
+
 ## 1.1.0 - 2026-10-02
 
 - Added standalone `auth/lab.html` proving-ground UI before any real app migration.
