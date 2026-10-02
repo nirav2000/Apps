@@ -17,7 +17,10 @@ template.innerHTML=`
       <button data-email-password>Sign in</button>
       <button data-create-account class="secondary">Create account</button>
       <button data-email-link class="secondary">Email me a sign-in link</button>
+      <button data-forgot-password class="secondary">Forgot password</button>
       <button data-passkey class="secondary">Use passkey</button>
+      <button data-google class="secondary">Google</button>
+      <button data-apple class="secondary">Apple</button>
       <button data-anonymous class="secondary">Continue as guest</button>
     </div>
   </div>
@@ -57,7 +60,13 @@ class AppsAuthPanel extends HTMLElement{
       const email=this.$('[data-email]').value.trim();if(!email)throw new Error('Enter your email address.');
       await Auth.sendEmailLink(email);this.status('Sign-in link sent.');
     });
+    this.$('[data-forgot-password]').onclick=()=>this.run(async()=>{
+      const email=this.$('[data-email]').value.trim();if(!email)throw new Error('Enter your email address first.');
+      await Auth.resetPassword(email);this.status('Password reset email requested.');
+    });
     this.$('[data-passkey]').onclick=()=>this.run(()=>Auth.signInWithPasskey());
+    this.$('[data-google]').onclick=()=>this.run(()=>Auth.signInGoogle());
+    this.$('[data-apple]').onclick=()=>this.run(()=>Auth.signInApple());
     this.$('[data-anonymous]').onclick=()=>this.run(()=>Auth.signInAnonymous());
     this.$('[data-protect]').onclick=()=>this.run(async()=>{
       const email=this.$('[data-upgrade-email]').value.trim(),password=this.$('[data-upgrade-password]').value;
@@ -87,7 +96,10 @@ class AppsAuthPanel extends HTMLElement{
     this.$('[data-create-account]').hidden=!methods.has('emailPassword');
     this.$('[data-password]').hidden=!methods.has('emailPassword');
     this.$('[data-email-link]').hidden=!methods.has('emailLink');
+    this.$('[data-forgot-password]').hidden=!methods.has('emailPassword');
     this.$('[data-passkey]').hidden=!methods.has('passkey');
+    this.$('[data-google]').hidden=!methods.has('google');
+    this.$('[data-apple]').hidden=!methods.has('apple');
     this.$('[data-anonymous]').hidden=!methods.has('anonymous');
     this.$('[data-upgrade]').hidden=!(user?.isAnonymous&&methods.has('emailPassword'));
     this.$('[data-add-passkey]').hidden=!(user&&!user.isAnonymous&&methods.has('passkey'));
