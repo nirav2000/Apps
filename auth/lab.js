@@ -1,5 +1,6 @@
 import { Auth } from './v1/index.js';
 import './v1/ui.js';
+import { createMockIdentityProvider, createMockServiceAdapter, resetMockAuthLab } from './lab-mock.js';
 
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -10,7 +11,10 @@ const log=(type,detail)=>{
   $('eventLog').prepend(row);
 };
 
-let initOptions={appId:'auth-lab',mode:'shadow',migration:{phase:'shadow',authority:'legacy'}};
+const mockIdentity=createMockIdentityProvider();
+const mockService=createMockServiceAdapter(mockIdentity);
+let initOptions={appId:'auth-lab',mode:'shadow',migration:{phase:'shadow',authority:'legacy'},identityProvider:mockIdentity,serviceAdapter:mockService};
+let usingMock=true;
 
 function migrationClass(m){
   if(m.blocking)return'blocking';
@@ -52,6 +56,12 @@ $('legacyAnon').onclick=()=>Auth.setAppIdentity(legacyUsers.anonymous,{roles:['v
 $('legacyParent').onclick=()=>Auth.setAppIdentity(legacyUsers.parent,{roles:['parent']});
 $('legacyOther').onclick=()=>Auth.setAppIdentity(legacyUsers.other,{roles:['viewer']});
 $('legacyClear').onclick=()=>Auth.setAppIdentity(null,{roles:[]});
+$('linkLegacy').onclick=async()=>{
+  try{const out=await Auth.linkLegacyIdentity();log('legacy-linked',out);render()}catch(e){log('legacy-link-error',e.message||String(e));alert(e.message||String(e))}
+};
+$('loadSessions').onclick=async()=>{try{$('serviceOutput').textContent=fmt(await Auth.listSessions())}catch(e){$('serviceOutput').textContent=e.message||String(e)}};
+$('loadAudit').onclick=async()=>{try{$('serviceOutput').textContent=fmt(await Auth.getAuditHistory())}catch(e){$('serviceOutput').textContent=e.message||String(e)}};
+$('resetMock').onclick=()=>{resetMockAuthLab();location.reload()};
 $('authorityLegacy').onclick=()=>boot({...initOptions,mode:'shadow',migration:{phase:'shadow',authority:'legacy'}});
 $('authorityCentral').onclick=()=>boot({...initOptions,mode:'linked',migration:{phase:'linked',authority:'central'}});
 
@@ -74,32 +84,32 @@ document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{
 
 $('applyConfig').onclick=async()=>{
   try{
-    let config=null;
     const raw=$('firebaseConfig').value.trim();
-    if(raw)config=JSON.parse(raw);
+    if(!raw)throw new Error('Enter the public Firebase web configuration for a dedicated test identity project.');
+    JSON.parse(raw);
     const serviceBaseUrl=$('serviceUrl').value.trim();
-    const identity=config||serviceBaseUrl?{firebaseConfig:config||undefined,serviceBaseUrl:serviceBaseUrl||undefined}:null;
     sessionStorage.setItem('auth-lab.firebase-config',raw);
     sessionStorage.setItem('auth-lab.service-url',serviceBaseUrl);
-    await boot({appId:'auth-lab',mode:'shadow',migration:{phase:'shadow',authority:'legacy'},identity});
-    $('configMessage').textContent='Configuration applied for this tab.';
-    $('configMessage').className='small ok';
+    sessionStorage.setItem('auth-lab.use-live','1');
+    location.reload();
   }catch(e){
     $('configMessage').textContent=e.message||String(e);$('configMessage').className='small bad';log('config-error',String(e));
   }
 };
 $('clearConfig').onclick=()=>{
-  sessionStorage.removeItem('auth-lab.firebase-config');sessionStorage.removeItem('auth-lab.service-url');
-  $('firebaseConfig').value='';$('serviceUrl').value='';$('configMessage').textContent='Cleared. Reload to return to frontend-only mode.';
+  sessionStorage.removeItem('auth-lab.firebase-config');sessionStorage.removeItem('auth-lab.service-url');sessionStorage.removeItem('auth-lab.use-live');
+  $('firebaseConfig').value='';$('serviceUrl').value='';$('configMessage').textContent='Cleared. Reloading mock mode.';setTimeout(()=>location.reload(),150);
 };
 $('firebaseConfig').value=sessionStorage.getItem('auth-lab.firebase-config')||'';
 $('serviceUrl').value=sessionStorage.getItem('auth-lab.service-url')||'';
 
-const storedCfg=$('firebaseConfig').value.trim(),storedUrl=$('serviceUrl').value.trim();
-if(storedCfg||storedUrl){
+const storedCfg=$('firebaseConfig').value.trim(),storedUrl=$('serviceUrl').value.trim(),useLive=sessionStorage.getItem('auth-lab.use-live')==='1';
+if(useLive&&storedCfg){
   try{
-    const config=storedCfg?JSON.parse(storedCfg):null;
-    initOptions={appId:'auth-lab',mode:'shadow',migration:{phase:'shadow',authority:'legacy'},identity:{firebaseConfig:config||undefined,serviceBaseUrl:storedUrl||undefined}};
+    const config=JSON.parse(storedCfg);
+    initOptions={appId:'auth-lab',mode:'shadow',migration:{phase:'shadow',authority:'legacy'},identity:{firebaseConfig:config,serviceBaseUrl:storedUrl||undefined}};
+    usingMock=false;
   }catch(e){log('stored-config-error',String(e))}
 }
+$('labMode').textContent=usingMock?'mock / no cloud writes':'live test identity project';
 boot(initOptions).catch(e=>{log('boot-error',String(e));$('configMessage').textContent=e.message||String(e);$('configMessage').className='small bad'});
