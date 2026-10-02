@@ -111,7 +111,7 @@ async function refreshIdentity(){
     return snapshot();
   }
   const data=await api('/v1/me');
-  state.globalUser=data.user||null;
+  state.globalUser=data.user?{...data.user,membership:data.membership||null,appUserId:data.membership?.appUserId||data.user?.appUserId||''}:null;
   state.session=data.session||null;
   setPermissions(data.permissions?.globalRoles||[],data.permissions?.appRoles||[]);
   return snapshot();
@@ -155,6 +155,8 @@ const requireUser=requireAuth;
 function hasRole(role){const p=snapshot().permissions;return p.globalRoles.includes(role)||p.appRoles.includes(role)}
 function getRoles(){const p=snapshot().permissions;return{global:[...p.globalRoles],app:[...p.appRoles],centralApp:[...p.centralAppRoles],legacyApp:[...p.legacyAppRoles]}}
 async function signInEmail(email,password){const fb=await ensureFirebase();return fb.Auth.signInWithEmailAndPassword(fb.auth,email,password)}
+async function createEmailAccount(email,password){const fb=await ensureFirebase();return fb.Auth.createUserWithEmailAndPassword(fb.auth,email,password)}
+async function resetPassword(email){const fb=await ensureFirebase();return fb.Auth.sendPasswordResetEmail(fb.auth,email)}
 async function signInAnonymous(){const fb=await ensureFirebase();return fb.Auth.signInAnonymously(fb.auth)}
 async function upgradeAnonymousWithEmailPassword(email,password){
   const fb=await ensureFirebase(),user=fb.auth.currentUser;
@@ -175,13 +177,13 @@ async function completeEmailLink(url=location.href,email){
   if(!resolved)throw new Error('Email address is required to complete sign-in.');
   const result=await fb.Auth.signInWithEmailLink(fb.auth,resolved,url);try{localStorage.removeItem('apps-auth.v1.email-link')}catch{};return result;
 }
-async function popupProvider(name){
-  const fb=await ensureFirebase();let provider;
-  if(name==='google')provider=new fb.Auth.GoogleAuthProvider();
-  else if(name==='apple')provider=new fb.Auth.OAuthProvider('apple.com');
-  else throw new Error('Unsupported provider: '+name);
-  return fb.Auth.signInWithPopup(fb.auth,provider);
+function providerFor(fb,name){
+  if(name==='google')return new fb.Auth.GoogleAuthProvider();
+  if(name==='apple')return new fb.Auth.OAuthProvider('apple.com');
+  throw new Error('Unsupported provider: '+name);
 }
+async function popupProvider(name){const fb=await ensureFirebase();return fb.Auth.signInWithPopup(fb.auth,providerFor(fb,name))}
+async function linkProvider(name){const fb=await ensureFirebase();if(!fb.auth.currentUser)throw new Error('Sign in before linking another method.');return fb.Auth.linkWithPopup(fb.auth.currentUser,providerFor(fb,name))}
 async function logout(){
   try{if(state.serviceBaseUrl&&state.session?.id)await api('/v1/sessions/'+encodeURIComponent(state.session.id),{method:'DELETE'})}catch{}
   if(state.appAdapter?.logout)await state.appAdapter.logout();
@@ -219,8 +221,8 @@ async function getAuditHistory(){return (await api('/v1/audit')).events||[]}
 
 export const Auth={
   version:VERSION,init,snapshot,getCurrentUser,requireAuth,requireUser,hasRole,getRoles,
-  signInEmail,signInAnonymous,upgradeAnonymousWithEmailPassword,sendEmailLink,completeEmailLink,
-  signInGoogle:()=>popupProvider('google'),signInApple:()=>popupProvider('apple'),
+  signInEmail,createEmailAccount,resetPassword,signInAnonymous,upgradeAnonymousWithEmailPassword,sendEmailLink,completeEmailLink,
+  signInGoogle:()=>popupProvider('google'),signInApple:()=>popupProvider('apple'),linkGoogle:()=>linkProvider('google'),linkApple:()=>linkProvider('apple'),
   logout,listSessions,revokeSession,disableCurrentAccount,registerPasskey,signInWithPasskey,getAuditHistory,
   setAppIdentity,refreshIdentity,getDeviceId,getMigrationState:migrationState,assessMigration,
   onSignedIn:fn=>on('signedIn',fn),onSignedOut:fn=>on('signedOut',fn),onUserChanged:fn=>on('userChanged',fn),
