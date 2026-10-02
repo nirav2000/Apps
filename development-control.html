@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#07111f" />
+  <title>Development Control Centre</title>
+  <link rel="stylesheet" href="development-control.css" />
+</head>
+<body>
+  <div class="glow glow-a"></div><div class="glow glow-b"></div>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">APPS / CONTROL</p>
+      <h1>Development Control Centre</h1>
+      <p class="subtitle">One place for what matters next — without needing to navigate GitHub.</p>
+    </div>
+    <a class="ghost-btn" href="./">Apps dashboard</a>
+  </header>
+
+  <main>
+    <section class="capture panel">
+      <div>
+        <p class="eyebrow">QUICK CAPTURE</p>
+        <h2>What do you want to remember?</h2>
+      </div>
+      <textarea id="captureText" rows="2" placeholder="e.g. need to test the new Snag share link on iPad tomorrow"></textarea>
+      <div class="capture-actions">
+        <button id="copyDev" class="primary-btn">Copy as #dev</button>
+        <span id="copyStatus" class="muted"></span>
+      </div>
+    </section>
+
+    <section class="summary" aria-label="Development summary">
+      <button class="summary-card active" data-view="needs-me"><span>Needs me</span><strong id="needsMeCount">0</strong><small>Your next actions</small></button>
+      <button class="summary-card" data-view="today"><span>Today / overdue</span><strong id="todayCount">0</strong><small>Time-sensitive</small></button>
+      <button class="summary-card" data-view="all"><span>Open</span><strong id="openCount">0</strong><small>All active work</small></button>
+    </section>
+
+    <section class="toolbar panel">
+      <div class="view-tabs" id="viewTabs">
+        <button data-view="needs-me" class="active">Needs me</button>
+        <button data-view="today">Today</button>
+        <button data-view="next">Next</button>
+        <button data-view="in-progress">In progress</button>
+        <button data-view="verify">Verify</button>
+        <button data-view="waiting">Waiting</button>
+        <button data-view="explore">Explore</button>
+        <button data-view="all">All</button>
+      </div>
+      <input id="search" type="search" placeholder="Search work, app, URL or context…" />
+    </section>
+
+    <section>
+      <div class="section-head">
+        <div><p class="eyebrow" id="viewEyebrow">YOUR ACTIONS</p><h2 id="viewTitle">Needs me</h2></div>
+        <p id="loadStatus" class="muted">Loading GitHub Issues…</p>
+      </div>
+      <div id="cards" class="cards"></div>
+      <div id="empty" class="empty" hidden>No items in this view.</div>
+    </section>
+  </main>
+
+  <template id="cardTemplate">
+    <article class="work-card">
+      <div class="card-top">
+        <div class="pills"></div>
+        <a class="issue-number" target="_blank" rel="noopener"></a>
+      </div>
+      <h3 class="card-title"></h3>
+      <div class="card-grid">
+        <section><span class="field-label">What is this?</span><p class="what"></p></section>
+        <section><span class="field-label">Why do I care?</span><p class="why"></p></section>
+        <section class="next-box"><span class="field-label">What happens next?</span><p class="next"></p></section>
+        <section><span class="field-label">Who needs to act?</span><p class="who"></p></section>
+      </div>
+      <div class="source-row">
+        <div><span class="field-label">Source / context</span><p class="source"></p></div>
+        <a class="source-link primary-btn small" target="_blank" rel="noopener" hidden>Open source chat</a>
+      </div>
+      <div class="card-actions"></div>
+    </article>
+  </template>
+
+  <script src="development-control.js" type="module"></script>
+  <script>window.APP_MONITOR_APP="Apps-Control";</script>
+  <script src="./app-monitor.js?v=2"></script>
+</body>
+</html>
