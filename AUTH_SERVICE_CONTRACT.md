@@ -39,6 +39,12 @@ Returns the minimum identity projection:
     "email": "…",
     "isAnonymous": false
   },
+  "membership": {
+    "appId": "learnlatin",
+    "appUserId": "legacy-firebase-uid",
+    "roles": ["parent"],
+    "status": "active"
+  },
   "permissions": {
     "globalRoles": [],
     "appRoles": ["parent"]
@@ -55,6 +61,8 @@ Returns the minimum identity projection:
 
 On first valid central Firebase login, atomically resolve/create:
 `authSubject -> globalUserId`, then resolve app membership.
+
+The membership projection must carry the mapped legacy/per-app `appUserId` where one exists. The browser SDK uses that mapping only to detect whether a simultaneously restored legacy Firebase session is the expected one; the browser cannot choose or overwrite the mapping itself.
 
 ### GET /v1/sessions
 Lists sessions belonging to the current global user. Global admins may query another user only through an explicitly audited admin endpoint.
@@ -95,6 +103,47 @@ Challenges:
 - single use;
 - short expiry (around five minutes);
 - bound to purpose and, for registration, authenticated user/session.
+
+## Legacy identity linking
+
+For apps that already have Firebase users/data keyed by an existing UID, add:
+
+`POST /v1/apps/{appId}/link-legacy`
+
+The request is authenticated twice:
+
+1. the normal central Firebase bearer token identifies `globalUserId`;
+2. the body contains a **fresh app-project Firebase ID token** from the currently signed-in legacy app session.
+
+The server must verify the app token against the expected Firebase project for `appId`, then atomically create the mapping:
+
+```
+apps/{appId}/members/{globalUserId}
+  appUserId: <verified legacy uid>
+  linkedAt
+  linkMethod: "verified-app-token"
+```
+
+Rules:
+
+- never accept an `appUserId` string supplied by the browser without verifying the app-project ID token;
+- refuse linking if that app UID is already mapped to a different global user;
+- refuse replacing an existing mapping without an explicit audited recovery/admin process;
+- require recent central authentication for sensitive link/relink operations;
+- audit success and failure.
+
+This handshake is the key migration mechanism for UID-coupled apps such as Snag and the current learning apps. It lets the central account adopt the **existing** per-app UID without moving business documents.
+
+## Stale legacy session handling
+
+During shadow migration, an app may restore both a central account and an old app Firebase session.
+
+- mapped app UID == restored legacy UID: `linked`; normal operation can continue;
+- mapped app UID != restored legacy UID: `mismatch`; block cloud writes and privileged operations until resolved;
+- both identities exist but no mapping yet: `dual-unverified`; legacy may remain authoritative only during the explicit shadow phase;
+- central-only or legacy-only are valid transitional states.
+
+The client should not silently sign out or overwrite either account on a mismatch. Present the mismatch and let the user switch/sign out the stale app session or complete the verified legacy-link flow.
 
 ## App token broker
 
