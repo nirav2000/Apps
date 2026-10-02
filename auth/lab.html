@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shared Auth Lab</title><link rel="stylesheet" href="./lab.css">
+</head>
+<body><main class="wrap">
+<header class="top">
+  <div><div class="eyebrow">SHARED INFRASTRUCTURE · TEST HARNESS</div><h1>Authentication Lab</h1><p class="lede">Test the shared authentication SDK and migration behaviour before installing it in Comprehension or another app. This page contains no application business data.</p></div>
+  <nav class="nav"><a class="btn" href="../shared-libraries.html">Shared libraries</a><a class="btn" href="../app-monitor.html">App Monitor</a><a class="btn" href="../">Apps</a></nav>
+</header>
+<div class="callout" style="margin-top:16px"><b>Safe by default:</b> the lab starts in frontend-only shadow mode. It does not create a central account or change any app's Firebase session unless you deliberately add a public Firebase web configuration below.</div>
+
+<section class="grid">
+  <article class="card span-4"><div class="eyebrow">LIVE SDK</div><h2>State</h2>
+    <div class="metric"><span>SDK</span><b id="sdkVersion">—</b></div>
+    <div class="metric"><span>Status</span><b id="sdkStatus">—</b></div>
+    <div class="metric"><span>Device</span><b id="deviceId" class="mono">—</b></div>
+    <div class="metric"><span>Effective user</span><b id="effectiveUser">—</b></div>
+  </article>
+  <article class="card span-4"><div class="eyebrow">MIGRATION</div><h2>Authority</h2>
+    <div class="metric"><span>Phase</span><b id="migrationPhase">—</b></div>
+    <div class="metric"><span>Authority</span><b id="migrationAuthority">—</b></div>
+    <div class="metric"><span>Consistency</span><span id="migrationConsistency" class="pill">—</span></div>
+    <div class="actions"><button id="authorityLegacy">Shadow / legacy authority</button><button id="authorityCentral">Central authority</button></div>
+  </article>
+  <article class="card span-4"><div class="eyebrow">PERMISSIONS</div><h2>Role separation</h2>
+    <div class="metric"><span>Legacy roles</span><b id="legacyRoles">None</b></div>
+    <div class="metric"><span>Central roles</span><b id="centralRoles">None</b></div>
+    <p class="small">The lab verifies that signing out a legacy identity clears legacy roles and that central/app roles are not merged accidentally.</p>
+  </article>
+
+  <article class="card span-5"><div class="eyebrow">REAL COMPONENT</div><h2>Shared account UI</h2>
+    <apps-auth-panel methods="passkey,emailLink,emailPassword"></apps-auth-panel>
+    <p class="small">Without a configured central backend these actions should fail closed with a configuration message. Once the identity project exists, this same component becomes a genuine login test without changing Comprehension.</p>
+  </article>
+  <article class="card span-7"><div class="eyebrow">LEGACY SESSION</div><h2>Shadow-auth tests</h2>
+    <p class="small">These controls emulate the kinds of sessions our existing apps already have. They exercise the real SDK's app-identity and role path, not application data.</p>
+    <div class="actions"><button id="legacyAnon">Anonymous legacy user</button><button id="legacyParent">Protected parent</button><button id="legacyOther">Different/stale user</button><button id="legacyClear" class="danger">Clear legacy session</button></div>
+    <pre id="snapshot" class="result mono" style="white-space:pre-wrap;margin-top:14px;max-height:340px;overflow:auto"></pre>
+  </article>
+
+  <article class="card span-12"><div class="eyebrow">MIGRATION SAFETY MATRIX</div><h2>What happens when old and new authentication coexist?</h2>
+    <div id="scenarioGrid" class="scenario-grid"></div>
+    <div id="scenarioResult" class="result" style="margin-top:12px">Choose a scenario above.</div>
+  </article>
+
+  <article class="card span-6"><div class="eyebrow">OPTIONAL LIVE BACKEND</div><h2>Connect a test identity project</h2>
+    <p class="small">Only paste the Firebase <b>web configuration</b> here. It is public project configuration. Never paste service-account JSON, private keys, recovery tokens or admin secrets.</p>
+    <label class="field"><span>Firebase web config JSON</span><textarea id="firebaseConfig" rows="8" placeholder='{"apiKey":"…","authDomain":"…","projectId":"…","appId":"…"}'></textarea></label>
+    <label class="field"><span>Auth service base URL (optional)</span><input id="serviceUrl" placeholder="https://…"></label>
+    <div class="actions"><button id="applyConfig" class="primary">Apply for this tab</button><button id="clearConfig">Clear</button></div><p id="configMessage" class="small"></p>
+  </article>
+  <article class="card span-6"><div class="eyebrow">EVENTS</div><h2>Auth event log</h2><div id="eventLog" class="log"></div></article>
+
+  <article class="card span-12"><div class="eyebrow">TEST CHECKLIST</div><h2>Before Comprehension</h2>
+    <div class="row">
+      <div><b>Frontend</b><p class="small">Init, current user, anonymous/protected identity, events, role changes, logout, component states, device identity.</p></div>
+      <div><b>Migration</b><p class="small">Legacy-only, central-only, linked, stale/mismatched legacy session, dual-unverified shadow state, role clearing.</p></div>
+      <div><b>Backend when provisioned</b><p class="small">Email link, passkey register/sign-in, session list/revoke, audit history, account recovery and app-token broker.</p></div>
+      <div><b>Rules</b><p class="small">Identity Firestore remains server-only/default-deny; app rules continue using legacy app UID until that app reaches the broker/rules phase.</p></div>
+    </div>
+  </article>
+</section>
+</main><script type="module" src="./lab.js"></script></body></html>
