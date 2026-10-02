@@ -1,7 +1,7 @@
 const VERSION='1.1.0';
 const DEVICE_KEY='apps-platform.v1.device';
 const listeners={change:new Set(),signedIn:new Set(),signedOut:new Set(),userChanged:new Set(),permissionChanged:new Set()};
-const state={initialised:false,appId:'',mode:'shadow',status:'idle',deviceId:'',identityConfig:null,serviceBaseUrl:'',firebase:null,centralUser:null,globalUser:null,appUser:null,permissions:{globalRoles:[],appRoles:[],legacyRoles:[]},session:null,appAdapter:null,migration:{phase:'shadow',authority:'legacy'},error:null};
+const state={initialised:false,appId:'',mode:'shadow',status:'idle',deviceId:'',identityConfig:null,serviceBaseUrl:'',firebase:null,identityProvider:null,serviceAdapter:null,providerUnsubscribe:null,centralUser:null,globalUser:null,appUser:null,permissions:{globalRoles:[],appRoles:[],legacyRoles:[]},session:null,appAdapter:null,migration:{phase:'shadow',authority:'legacy'},error:null};
 
 const clean=(v,n=180)=>String(v??'').trim().slice(0,n);
 const makeId=(prefix='id')=>prefix+'-'+(crypto.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9._-]/g,'');
@@ -66,6 +66,20 @@ function setAppIdentity(user,{roles=[]}={}){
   emit('userChanged',before);
   return state.appUser;
 }
+async function applyCentralIdentity(user){
+  const before=snapshot().user;
+  state.centralUser=normaliseFirebaseUser(user,'central');
+  if(!user){
+    state.globalUser=null;state.session=null;setPermissions([],[]);state.status='ready';emit('userChanged',before);return snapshot();
+  }
+  state.status='authenticated';
+  try{await refreshIdentity()}catch{
+    state.globalUser={...state.centralUser,globalUserId:clean(user.globalUserId)||null,appUserId:clean(user.appUserId)||''};
+  }
+  emit('userChanged',before);
+  return snapshot();
+}
+
 async function ensureFirebase(){
   if(state.firebase)return state.firebase;
   const cfg=state.identityConfig?.firebaseConfig;
@@ -80,23 +94,21 @@ async function ensureFirebase(){
   await Auth.setPersistence(auth,Auth.browserLocalPersistence);
   await auth.authStateReady();
   state.firebase={A,Auth,app,auth};
-  Auth.onAuthStateChanged(auth,async user=>{
-    const before=snapshot().user;
-    state.centralUser=normaliseFirebaseUser(user,'central');
-    if(!user){state.globalUser=null;state.session=null;setPermissions([],[]);state.status='ready';emit('userChanged',before);return}
-    state.status='authenticated';
-    try{await refreshIdentity()}catch{state.globalUser={...state.centralUser,globalUserId:null}}
-    emit('userChanged',before);
-  });
+  Auth.onAuthStateChanged(auth,user=>{applyCentralIdentity(user).catch(error=>{state.error=String(error);emit();})});
   return state.firebase;
 }
 async function authHeaders(){
-  const fb=await ensureFirebase();
-  const token=await fb.auth.currentUser?.getIdToken();
+  let token='';
+  if(state.identityProvider?.getIdToken)token=await state.identityProvider.getIdToken();
+  else{
+    const fb=await ensureFirebase();
+    token=await fb.auth.currentUser?.getIdToken();
+  }
   if(!token)throw Object.assign(new Error('Sign in required.'),{code:'AUTH_REQUIRED'});
   return {'Authorization':'Bearer '+token,'Content-Type':'application/json','X-Apps-Device':getDeviceId(),'X-Apps-App':state.appId};
 }
 async function api(path,options={}){
+  if(state.serviceAdapter?.request)return state.serviceAdapter.request(path,{...options,appId:state.appId,deviceId:getDeviceId(),authHeaders:options.auth===false?{}:await authHeaders()});
   if(!state.serviceBaseUrl)throw Object.assign(new Error('Authentication service is not configured.'),{code:'AUTH_SERVICE_NOT_CONFIGURED'});
   const headers={...(options.auth===false?{}:await authHeaders()),...(options.headers||{})};
   const r=await fetch(state.serviceBaseUrl.replace(/\/$/,'')+path,{cache:'no-store',...options,headers});
@@ -105,12 +117,14 @@ async function api(path,options={}){
   return ct.includes('application/json')?r.json():r.text();
 }
 async function refreshIdentity(){
-  if(!state.serviceBaseUrl){
+  let data=null;
+  if(state.serviceAdapter?.getMe)data=await state.serviceAdapter.getMe({appId:state.appId,deviceId:getDeviceId(),user:state.centralUser});
+  else if(state.serviceBaseUrl)data=await api('/v1/me');
+  if(!data){
     const u=state.centralUser;
-    state.globalUser=u?{...u,globalUserId:null}:null;
+    state.globalUser=u?{...u,globalUserId:clean(u.globalUserId)||null,appUserId:clean(u.appUserId)||''}:null;
     return snapshot();
   }
-  const data=await api('/v1/me');
   state.globalUser=data.user?{...data.user,membership:data.membership||null,appUserId:data.membership?.appUserId||data.user?.appUserId||''}:null;
   state.session=data.session||null;
   setPermissions(data.permissions?.globalRoles||[],data.permissions?.appRoles||[]);
@@ -123,14 +137,23 @@ async function init(options={}){
   state.migration={phase:options.migration?.phase||state.mode,authority:options.migration?.authority||(state.mode==='shadow'?'legacy':'central')};
   state.identityConfig=options.identity||null;
   state.serviceBaseUrl=clean(options.serviceBaseUrl||options.identity?.serviceBaseUrl,300);
+  state.identityProvider=options.identityProvider||null;
+  state.serviceAdapter=options.serviceAdapter||null;
   state.appAdapter=options.appAdapter||null;
+  state.providerUnsubscribe?.();state.providerUnsubscribe=null;
   state.status='initialising';getDeviceId();
+  if(state.identityProvider){
+    const result=await state.identityProvider.init?.({appId:state.appId,deviceId:getDeviceId(),onUserChanged:user=>{applyCentralIdentity(user).catch(error=>{state.error=String(error);emit();})}});
+    if(typeof state.identityProvider.onChange==='function')state.providerUnsubscribe=state.identityProvider.onChange(user=>{applyCentralIdentity(user).catch(error=>{state.error=String(error);emit();})});
+    const providerUser=result?.user||state.identityProvider.currentUser?.()||null;
+    if(providerUser)await applyCentralIdentity(providerUser);
+  }
   if(state.appAdapter?.init){
     const result=await state.appAdapter.init({appId:state.appId,setAppIdentity});
     if(result?.user)setAppIdentity(result.user,{roles:result.roles||[]});
     state.appAdapter.onChange?.((u,r=[])=>setAppIdentity(u,{roles:r}));
   }
-  if(state.identityConfig?.firebaseConfig){
+  if(!state.identityProvider&&state.identityConfig?.firebaseConfig){
     await ensureFirebase();
     const fb=state.firebase;
     if(fb.auth.currentUser){
@@ -154,16 +177,30 @@ function requireAuth(){
 const requireUser=requireAuth;
 function hasRole(role){const p=snapshot().permissions;return p.globalRoles.includes(role)||p.appRoles.includes(role)}
 function getRoles(){const p=snapshot().permissions;return{global:[...p.globalRoles],app:[...p.appRoles],centralApp:[...p.centralAppRoles],legacyApp:[...p.legacyAppRoles]}}
-async function signInEmail(email,password){const fb=await ensureFirebase();return fb.Auth.signInWithEmailAndPassword(fb.auth,email,password)}
-async function createEmailAccount(email,password){const fb=await ensureFirebase();return fb.Auth.createUserWithEmailAndPassword(fb.auth,email,password)}
-async function resetPassword(email){const fb=await ensureFirebase();return fb.Auth.sendPasswordResetEmail(fb.auth,email)}
-async function signInAnonymous(){const fb=await ensureFirebase();return fb.Auth.signInAnonymously(fb.auth)}
+async function signInEmail(email,password){
+  if(state.identityProvider?.signInEmail)return state.identityProvider.signInEmail(email,password);
+  const fb=await ensureFirebase();return fb.Auth.signInWithEmailAndPassword(fb.auth,email,password);
+}
+async function createEmailAccount(email,password){
+  if(state.identityProvider?.createEmailAccount)return state.identityProvider.createEmailAccount(email,password);
+  const fb=await ensureFirebase();return fb.Auth.createUserWithEmailAndPassword(fb.auth,email,password);
+}
+async function resetPassword(email){
+  if(state.identityProvider?.resetPassword)return state.identityProvider.resetPassword(email);
+  const fb=await ensureFirebase();return fb.Auth.sendPasswordResetEmail(fb.auth,email);
+}
+async function signInAnonymous(){
+  if(state.identityProvider?.signInAnonymous)return state.identityProvider.signInAnonymous();
+  const fb=await ensureFirebase();return fb.Auth.signInAnonymously(fb.auth);
+}
 async function upgradeAnonymousWithEmailPassword(email,password){
+  if(state.identityProvider?.upgradeAnonymousWithEmailPassword)return state.identityProvider.upgradeAnonymousWithEmailPassword(email,password);
   const fb=await ensureFirebase(),user=fb.auth.currentUser;
   if(!user?.isAnonymous)throw new Error('Current user is not anonymous.');
   return fb.Auth.linkWithCredential(user,fb.Auth.EmailAuthProvider.credential(email,password));
 }
 async function sendEmailLink(email,settings){
+  if(state.identityProvider?.sendEmailLink)return state.identityProvider.sendEmailLink(email,settings);
   const fb=await ensureFirebase();
   const actionCodeSettings=settings||state.identityConfig?.emailLinkSettings;
   if(!actionCodeSettings)throw new Error('Email-link settings are not configured.');
@@ -171,6 +208,7 @@ async function sendEmailLink(email,settings){
   try{localStorage.setItem('apps-auth.v1.email-link',email)}catch{}
 }
 async function completeEmailLink(url=location.href,email){
+  if(state.identityProvider?.completeEmailLink)return state.identityProvider.completeEmailLink(url,email);
   const fb=await ensureFirebase();
   if(!fb.Auth.isSignInWithEmailLink(fb.auth,url))throw new Error('This is not a valid sign-in link.');
   let resolved=email;try{resolved=resolved||localStorage.getItem('apps-auth.v1.email-link')||''}catch{}
@@ -182,17 +220,33 @@ function providerFor(fb,name){
   if(name==='apple')return new fb.Auth.OAuthProvider('apple.com');
   throw new Error('Unsupported provider: '+name);
 }
-async function popupProvider(name){const fb=await ensureFirebase();return fb.Auth.signInWithPopup(fb.auth,providerFor(fb,name))}
-async function linkProvider(name){const fb=await ensureFirebase();if(!fb.auth.currentUser)throw new Error('Sign in before linking another method.');return fb.Auth.linkWithPopup(fb.auth.currentUser,providerFor(fb,name))}
+async function popupProvider(name){
+  if(state.identityProvider?.signInProvider)return state.identityProvider.signInProvider(name);
+  const fb=await ensureFirebase();return fb.Auth.signInWithPopup(fb.auth,providerFor(fb,name));
+}
+async function linkProvider(name){
+  if(state.identityProvider?.linkProvider)return state.identityProvider.linkProvider(name);
+  const fb=await ensureFirebase();if(!fb.auth.currentUser)throw new Error('Sign in before linking another method.');return fb.Auth.linkWithPopup(fb.auth.currentUser,providerFor(fb,name));
+}
 async function logout(){
-  try{if(state.serviceBaseUrl&&state.session?.id)await api('/v1/sessions/'+encodeURIComponent(state.session.id),{method:'DELETE'})}catch{}
+  try{if((state.serviceBaseUrl||state.serviceAdapter)&&state.session?.id)await revokeSession(state.session.id)}catch{}
   if(state.appAdapter?.logout)await state.appAdapter.logout();
-  if(state.firebase?.auth)await state.firebase.Auth.signOut(state.firebase.auth);
+  if(state.identityProvider?.logout)await state.identityProvider.logout();
+  else if(state.firebase?.auth)await state.firebase.Auth.signOut(state.firebase.auth);
   state.centralUser=null;state.globalUser=null;state.appUser=null;state.session=null;state.permissions.legacyRoles=[];setPermissions([],[]);emit('signedOut');
 }
-async function listSessions(){return state.serviceBaseUrl?(await api('/v1/sessions')).sessions||[]:[]}
-async function revokeSession(sessionId){return api('/v1/sessions/'+encodeURIComponent(sessionId),{method:'DELETE'})}
-async function disableCurrentAccount(){return api('/v1/account/disable',{method:'POST'})}
+async function listSessions(){
+  if(state.serviceAdapter?.listSessions)return state.serviceAdapter.listSessions({appId:state.appId,user:state.centralUser});
+  return (state.serviceBaseUrl?(await api('/v1/sessions')).sessions||[]:[]);
+}
+async function revokeSession(sessionId){
+  if(state.serviceAdapter?.revokeSession)return state.serviceAdapter.revokeSession(sessionId,{appId:state.appId,user:state.centralUser});
+  return api('/v1/sessions/'+encodeURIComponent(sessionId),{method:'DELETE'});
+}
+async function disableCurrentAccount(){
+  if(state.serviceAdapter?.disableCurrentAccount)return state.serviceAdapter.disableCurrentAccount({appId:state.appId,user:state.centralUser});
+  return api('/v1/account/disable',{method:'POST'});
+}
 const b64uToBuf=s=>{const p=String(s||'').replace(/-/g,'+').replace(/_/g,'/'),raw=atob(p+'='.repeat((4-p.length%4)%4)),u=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);return u.buffer};
 const bufToB64u=b=>{const u=new Uint8Array(b);let s='';for(const x of u)s+=String.fromCharCode(x);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 function publicKeyRequestOptions(o){return {...o,challenge:b64uToBuf(o.challenge),allowCredentials:(o.allowCredentials||[]).map(x=>({...x,id:b64uToBuf(x.id)}))}}
@@ -200,12 +254,18 @@ function publicKeyCreationOptions(o){return {...o,challenge:b64uToBuf(o.challeng
 function authCredentialJSON(c){return{id:c.id,rawId:bufToB64u(c.rawId),type:c.type,response:{authenticatorData:bufToB64u(c.response.authenticatorData),clientDataJSON:bufToB64u(c.response.clientDataJSON),signature:bufToB64u(c.response.signature),userHandle:c.response.userHandle?bufToB64u(c.response.userHandle):undefined},clientExtensionResults:c.getClientExtensionResults(),authenticatorAttachment:c.authenticatorAttachment||undefined}}
 function registrationCredentialJSON(c){const r=c.response;return{id:c.id,rawId:bufToB64u(c.rawId),type:c.type,response:{clientDataJSON:bufToB64u(r.clientDataJSON),attestationObject:bufToB64u(r.attestationObject),transports:r.getTransports?r.getTransports():[]},clientExtensionResults:c.getClientExtensionResults(),authenticatorAttachment:c.authenticatorAttachment||undefined}}
 async function registerPasskey(label='Passkey'){
+  if(state.serviceAdapter?.registerPasskey)return state.serviceAdapter.registerPasskey(label,{appId:state.appId,user:state.centralUser});
   if(!window.PublicKeyCredential||!navigator.credentials?.create)throw new Error('Passkeys are not supported in this browser.');
   const start=await api('/v1/passkeys/register/options',{method:'POST',body:JSON.stringify({label})});
   const credential=await navigator.credentials.create({publicKey:publicKeyCreationOptions(start.options)});
   return api('/v1/passkeys/register/verify',{method:'POST',body:JSON.stringify({challengeId:start.challengeId,label,response:registrationCredentialJSON(credential)})});
 }
 async function signInWithPasskey(){
+  if(state.serviceAdapter?.signInWithPasskey){
+    const result=await state.serviceAdapter.signInWithPasskey({appId:state.appId,deviceId:getDeviceId()});
+    if(result?.user)await applyCentralIdentity(result.user);
+    return result;
+  }
   if(!window.PublicKeyCredential||!navigator.credentials?.get)throw new Error('Passkeys are not supported in this browser.');
   const start=await api('/v1/passkeys/authenticate/options',{method:'POST',auth:false,headers:{'Content-Type':'application/json','X-Apps-Device':getDeviceId(),'X-Apps-App':state.appId},body:JSON.stringify({appId:state.appId})});
   const credential=await navigator.credentials.get({publicKey:publicKeyRequestOptions(start.options)});
@@ -217,7 +277,10 @@ async function signInWithPasskey(){
   }
   return verified;
 }
-async function getAuditHistory(){return (await api('/v1/audit')).events||[]}
+async function getAuditHistory(){
+  if(state.serviceAdapter?.getAuditHistory)return state.serviceAdapter.getAuditHistory({appId:state.appId,user:state.centralUser});
+  return (await api('/v1/audit')).events||[];
+}
 
 export const Auth={
   version:VERSION,init,snapshot,getCurrentUser,requireAuth,requireUser,hasRole,getRoles,
