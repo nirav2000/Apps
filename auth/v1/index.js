@@ -1,7 +1,7 @@
 const VERSION='1.1.0';
 const DEVICE_KEY='apps-platform.v1.device';
 const listeners={change:new Set(),signedIn:new Set(),signedOut:new Set(),userChanged:new Set(),permissionChanged:new Set()};
-const state={initialised:false,appId:'',mode:'shadow',status:'idle',deviceId:'',identityConfig:null,serviceBaseUrl:'',firebase:null,centralUser:null,globalUser:null,appUser:null,permissions:{globalRoles:[],appRoles:[]},session:null,appAdapter:null,migration:{phase:'shadow',authority:'legacy'},error:null};
+const state={initialised:false,appId:'',mode:'shadow',status:'idle',deviceId:'',identityConfig:null,serviceBaseUrl:'',firebase:null,centralUser:null,globalUser:null,appUser:null,permissions:{globalRoles:[],appRoles:[],legacyRoles:[]},session:null,appAdapter:null,migration:{phase:'shadow',authority:'legacy'},error:null};
 
 const clean=(v,n=180)=>String(v??'').trim().slice(0,n);
 const makeId=(prefix='id')=>prefix+'-'+(crypto.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9._-]/g,'');
@@ -17,8 +17,8 @@ function normaliseFirebaseUser(user,source='central'){
   if(!user)return null;
   return {authSubjectId:clean(user.uid),appUserId:source==='app'?clean(user.uid):'',email:clean(user.email),displayName:clean(user.displayName||user.email,120),provider:clean(user.providerData?.[0]?.providerId||(user.isAnonymous?'anonymous':'firebase'),80),isAnonymous:!!user.isAnonymous,source};
 }
-function migrationState(){
-  const central=state.globalUser||state.centralUser||null,legacy=state.appUser||null;
+function assessMigration({centralUser=null,appUser=null,phase='shadow',authority='legacy'}={}){
+  const central=centralUser||null,legacy=appUser||null;
   const mappedAppUserId=clean(central?.appUserId||central?.membership?.appUserId||central?.app?.appUserId);
   const legacyId=clean(legacy?.appUserId||legacy?.authSubjectId);
   let consistency='none';
@@ -27,15 +27,22 @@ function migrationState(){
     else consistency='dual-unverified';
   }else if(central)consistency='central-only';
   else if(legacy)consistency='legacy-only';
-  const phase=state.migration?.phase||state.mode||'shadow';
-  const authority=state.migration?.authority||(phase==='shadow'?'legacy':'central');
   const blocking=consistency==='mismatch'||(consistency==='dual-unverified'&&phase!=='shadow'&&authority!=='legacy');
   return {phase,authority,consistency,blocking,mappedAppUserId:mappedAppUserId||'',legacyAppUserId:legacyId||''};
+}
+function migrationState(){
+  return assessMigration({
+    centralUser:state.globalUser||state.centralUser||null,
+    appUser:state.appUser||null,
+    phase:state.migration?.phase||state.mode||'shadow',
+    authority:state.migration?.authority||((state.migration?.phase||state.mode)==='shadow'?'legacy':'central')
+  });
 }
 function snapshot(){
   const migration=migrationState();
   const user=migration.authority==='legacy'?(state.appUser||state.globalUser):(state.globalUser||state.appUser)||null;
-  return {version:VERSION,appId:state.appId,mode:state.mode,status:state.status,deviceId:getDeviceId(),user,globalUser:state.globalUser,appUser:state.appUser,permissions:{globalRoles:[...state.permissions.globalRoles],appRoles:[...state.permissions.appRoles]},session:state.session,migration,error:state.error};
+  const effectiveAppRoles=migration.authority==='legacy'?state.permissions.legacyRoles:state.permissions.appRoles;
+  return {version:VERSION,appId:state.appId,mode:state.mode,status:state.status,deviceId:getDeviceId(),user,globalUser:state.globalUser,appUser:state.appUser,permissions:{globalRoles:[...state.permissions.globalRoles],appRoles:[...effectiveAppRoles],centralAppRoles:[...state.permissions.appRoles],legacyAppRoles:[...state.permissions.legacyRoles]},session:state.session,migration,error:state.error};
 }
 function emit(type='change',previousUser=null){
   const snap=snapshot();
@@ -48,13 +55,14 @@ function emit(type='change',previousUser=null){
 function on(type,fn){listeners[type].add(fn);return()=>listeners[type].delete(fn)}
 function setPermissions(globalRoles=[],appRoles=[]){
   const before=JSON.stringify(state.permissions);
-  state.permissions={globalRoles:[...new Set(globalRoles.map(String))],appRoles:[...new Set(appRoles.map(String))]};
+  state.permissions={...state.permissions,globalRoles:[...new Set(globalRoles.map(String))],appRoles:[...new Set(appRoles.map(String))]};
   if(JSON.stringify(state.permissions)!==before)emit('permissionChanged');
 }
 function setAppIdentity(user,{roles=[]}={}){
-  const before=snapshot().user;
+  const before=snapshot().user,previous=JSON.stringify(state.permissions.legacyRoles);
   state.appUser=user?{...normaliseFirebaseUser(user,'app'),...(user.globalUserId?{globalUserId:clean(user.globalUserId)}:{})}:null;
-  if(roles.length)setPermissions(state.permissions.globalRoles,roles);
+  state.permissions.legacyRoles=user?[...new Set((roles||[]).map(String))]:[];
+  if(JSON.stringify(state.permissions.legacyRoles)!==previous)emit('permissionChanged');
   emit('userChanged',before);
   return state.appUser;
 }
@@ -144,8 +152,8 @@ function requireAuth(){
   return user;
 }
 const requireUser=requireAuth;
-function hasRole(role){return state.permissions.globalRoles.includes(role)||state.permissions.appRoles.includes(role)}
-function getRoles(){return{global:[...state.permissions.globalRoles],app:[...state.permissions.appRoles]}}
+function hasRole(role){const p=snapshot().permissions;return p.globalRoles.includes(role)||p.appRoles.includes(role)}
+function getRoles(){const p=snapshot().permissions;return{global:[...p.globalRoles],app:[...p.appRoles],centralApp:[...p.centralAppRoles],legacyApp:[...p.legacyAppRoles]}}
 async function signInEmail(email,password){const fb=await ensureFirebase();return fb.Auth.signInWithEmailAndPassword(fb.auth,email,password)}
 async function signInAnonymous(){const fb=await ensureFirebase();return fb.Auth.signInAnonymously(fb.auth)}
 async function upgradeAnonymousWithEmailPassword(email,password){
@@ -178,7 +186,7 @@ async function logout(){
   try{if(state.serviceBaseUrl&&state.session?.id)await api('/v1/sessions/'+encodeURIComponent(state.session.id),{method:'DELETE'})}catch{}
   if(state.appAdapter?.logout)await state.appAdapter.logout();
   if(state.firebase?.auth)await state.firebase.Auth.signOut(state.firebase.auth);
-  state.centralUser=null;state.globalUser=null;state.appUser=null;state.session=null;setPermissions([],[]);emit('signedOut');
+  state.centralUser=null;state.globalUser=null;state.appUser=null;state.session=null;state.permissions.legacyRoles=[];setPermissions([],[]);emit('signedOut');
 }
 async function listSessions(){return state.serviceBaseUrl?(await api('/v1/sessions')).sessions||[]:[]}
 async function revokeSession(sessionId){return api('/v1/sessions/'+encodeURIComponent(sessionId),{method:'DELETE'})}
@@ -214,7 +222,7 @@ export const Auth={
   signInEmail,signInAnonymous,upgradeAnonymousWithEmailPassword,sendEmailLink,completeEmailLink,
   signInGoogle:()=>popupProvider('google'),signInApple:()=>popupProvider('apple'),
   logout,listSessions,revokeSession,disableCurrentAccount,registerPasskey,signInWithPasskey,getAuditHistory,
-  setAppIdentity,refreshIdentity,getDeviceId,getMigrationState:migrationState,
+  setAppIdentity,refreshIdentity,getDeviceId,getMigrationState:migrationState,assessMigration,
   onSignedIn:fn=>on('signedIn',fn),onSignedOut:fn=>on('signedOut',fn),onUserChanged:fn=>on('userChanged',fn),
   onPermissionChanged:fn=>on('permissionChanged',fn),onChange:fn=>on('change',fn)
 };
