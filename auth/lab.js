@@ -113,3 +113,91 @@ if(useLive&&storedCfg){
 }
 $('labMode').textContent=usingMock?'mock / no cloud writes':'live test identity project';
 boot(initOptions).catch(e=>{log('boot-error',String(e));$('configMessage').textContent=e.message||String(e);$('configMessage').className='small bad'});
+
+
+// Shared account UI design comparison. Everything below is scoped to the existing
+// REAL COMPONENT card and its two preview dialogs; the rest of Auth Lab is unchanged.
+const AUTH_DESIGNS=[
+  {id:'balanced',name:'Balanced',summary:'Familiar and flexible.',hint:'All routes visible'},
+  {id:'passkey-first',name:'Passkey first',summary:'Fast modern sign-in.',hint:'Biometric first'},
+  {id:'magic-link',name:'Magic link',summary:'Calm and passwordless.',hint:'Email link first'},
+  {id:'guest-first',name:'Guest first',summary:'Start immediately.',hint:'Protect later'},
+  {id:'compact',name:'Compact',summary:'Small and efficient.',hint:'Minimal footprint'}
+];
+let authDesignIndex=0;
+
+function authDesignDelta(index,current,total){
+  let d=(index-current+total)%total;
+  if(d>total/2)d-=total;
+  return d;
+}
+function makeAuthPanel(design){
+  const panel=document.createElement('apps-auth-panel');
+  panel.setAttribute('variant',design.id);
+  panel.setAttribute('methods','anonymous,passkey,emailLink,emailPassword,google,apple');
+  return panel;
+}
+function renderAuthDesign(){
+  const d=AUTH_DESIGNS[authDesignIndex];
+  document.querySelectorAll('#authDesignCarousel .auth-design-choice').forEach((card,i)=>{
+    const pos=authDesignDelta(i,authDesignIndex,AUTH_DESIGNS.length);
+    card.dataset.pos=String(pos);
+    card.dataset.hidden=String(Math.abs(pos)>1);
+    card.setAttribute('aria-current',pos===0?'true':'false');
+  });
+  document.querySelectorAll('#authDesignDots button').forEach((dot,i)=>dot.classList.toggle('active',i===authDesignIndex));
+  $('authDesignName').textContent=d.name;
+  $('authDesignSummary').textContent=d.summary;
+  $('authDesignPanel').setAttribute('variant',d.id);
+}
+function selectAuthDesign(index){
+  authDesignIndex=(index+AUTH_DESIGNS.length)%AUTH_DESIGNS.length;
+  renderAuthDesign();
+}
+function buildAuthDesignPicker(){
+  const carousel=$('authDesignCarousel');
+  if(!carousel)return;
+  carousel.innerHTML=AUTH_DESIGNS.map((d,i)=>
+    '<button class="auth-design-choice" type="button" data-index="'+i+'" data-id="'+d.id+'" aria-label="'+esc(d.name)+'">'+
+      '<span class="auth-design-thumb"></span><strong>'+esc(d.name)+'</strong><small>'+esc(d.hint)+'</small></button>'
+  ).join('');
+  $('authDesignDots').innerHTML=AUTH_DESIGNS.map((d,i)=>'<button type="button" data-index="'+i+'" aria-label="Show '+esc(d.name)+'"></button>').join('');
+  carousel.querySelectorAll('.auth-design-choice').forEach(card=>card.onclick=()=>selectAuthDesign(Number(card.dataset.index)));
+  $('authDesignDots').querySelectorAll('button').forEach(dot=>dot.onclick=()=>selectAuthDesign(Number(dot.dataset.index)));
+  $('authDesignPrev').onclick=()=>selectAuthDesign(authDesignIndex-1);
+  $('authDesignNext').onclick=()=>selectAuthDesign(authDesignIndex+1);
+
+  let startX=null;
+  carousel.addEventListener('pointerdown',e=>{startX=e.clientX;carousel.setPointerCapture?.(e.pointerId)});
+  carousel.addEventListener('pointerup',e=>{
+    if(startX===null)return;
+    const dx=e.clientX-startX;startX=null;
+    if(Math.abs(dx)>35)selectAuthDesign(authDesignIndex+(dx<0?1:-1));
+  });
+
+  $('authDesignModal').onclick=()=>{
+    const d=AUTH_DESIGNS[authDesignIndex],dialog=$('authDesignModalDialog');
+    $('authDesignModalTitle').textContent=d.name;
+    $('authDesignModalHost').replaceChildren(makeAuthPanel(d));
+    dialog.showModal();
+    log('auth-design-preview',{design:d.id,mode:'modal'});
+  };
+  $('authDesignModalClose').onclick=()=>$('authDesignModalDialog').close();
+  $('authDesignModalDialog').addEventListener('click',e=>{if(e.target===$('authDesignModalDialog'))$('authDesignModalDialog').close()});
+
+  $('authDesignInApp').onclick=()=>{
+    const d=AUTH_DESIGNS[authDesignIndex],dialog=$('authDesignAppDialog');
+    $('authAppOverlay').replaceChildren(makeAuthPanel(d));
+    dialog.showModal();
+    log('auth-design-preview',{design:d.id,mode:'in-app'});
+  };
+  $('authAppSignInButton').onclick=()=>{
+    const d=AUTH_DESIGNS[authDesignIndex];
+    $('authAppOverlay').replaceChildren(makeAuthPanel(d));
+  };
+  $('authDesignAppClose').onclick=()=>$('authDesignAppDialog').close();
+  $('authDesignAppDialog').addEventListener('click',e=>{if(e.target===$('authDesignAppDialog'))$('authDesignAppDialog').close()});
+
+  renderAuthDesign();
+}
+buildAuthDesignPicker();
