@@ -1,5 +1,15 @@
 # Shared Auth changelog
 
+## 1.3.0 - 2026-10-03
+
+- Added reusable visual themes independent of authentication flow variants: Airy, Glass, Warm, Midnight and Playful.
+- Added a theme picker inside the existing Shared account UI card only; the rest of Authentication Lab remains unchanged.
+- Theme choice now carries into the live component, modal preview and realistic in-app preview.
+- Added themed miniature carousel cards so visual character is apparent before opening the full preview.
+- Replaced placeholder Google/Apple/passkey marks with inline polished provider icons, including the preserved Classic variant.
+- Hardened carousel controls and cache-busted Auth Lab CSS/JS so HTML, styles and interaction code update together.
+- Published immutable `auth/releases/1.3.0/` SDK/UI files.
+
 ## 1.2.1 - 2026-10-03
 
 - Restored the original Authentication Lab layout and all technical test sections after the experience-studio redesign changed too much of the page.
