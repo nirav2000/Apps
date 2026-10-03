@@ -29,7 +29,7 @@
       "installed": {
         "App Monitor": "local"
       },
-      "notes": "Current immutable release: 1.2.0. Auth Lab is the proving ground and now includes a swipeable experience carousel, modal preview and simulated in-app preview. Comprehension remains on legacy identity only until a preferred Auth UI and the backend path are accepted."
+      "notes": "Current immutable release: 1.2.1. Auth Lab retains the original full technical test page. Only the Shared account UI card contains the design carousel and modal/in-app previews. The original Classic UI remains the default; alternative variants are opt-in."
     },
     {
       "id": "apps-auth",
