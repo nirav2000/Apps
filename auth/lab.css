@@ -63,3 +63,45 @@
  .auth-app-placeholder{grid-template-columns:1fr}
  .auth-app-placeholder div:nth-child(n+2){display:none}
 }
+
+
+/* Theme selector for the Shared account UI only. */
+.auth-theme-section{margin:10px 0 12px;padding-top:10px;border-top:1px solid #edf1f4}
+.auth-theme-heading{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:8px}
+.auth-theme-heading b{font-size:12px}.auth-theme-heading span{font-size:10px;color:var(--muted)}
+.auth-theme-picker{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.auth-theme-option{padding:7px;border-radius:11px;border:1px solid #dce4ea;background:#fff;text-align:left;min-width:0;transition:.16s ease;position:relative}
+.auth-theme-option:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(35,55,75,.08)}
+.auth-theme-option.active{border-color:#476fd7;box-shadow:0 0 0 2px rgba(71,111,215,.12)}
+.auth-theme-option>span:last-child{display:grid;gap:1px;margin-top:5px}.auth-theme-option b{font-size:10px;white-space:nowrap}.auth-theme-option small{font-size:8px;line-height:1.2;color:#7a8792;display:none}
+.auth-theme-swatch{display:flex;height:18px;border-radius:7px;overflow:hidden;border:1px solid rgba(0,0,0,.07)}
+.auth-theme-swatch i{flex:1}
+
+/* Make carousel controls robust even if surrounding card layout changes. */
+.auth-design-picker{position:relative}
+.auth-design-arrow{position:relative;z-index:10;display:grid;place-items:center;touch-action:manipulation}
+.auth-design-carousel{z-index:1}
+.auth-design-choice{z-index:1}
+.auth-design-choice[data-pos="0"]{z-index:4}
+
+/* Theme the miniature carousel cards so theme comparison is visible before opening a preview. */
+.auth-design-choice[data-theme="airy"]{background:#fff;border-color:#dce4ea}
+.auth-design-choice[data-theme="airy"] .auth-design-thumb{background:linear-gradient(145deg,#f7fbff,#eef4ff)}
+.auth-design-choice[data-theme="glass"]{background:rgba(255,255,255,.72);border-color:rgba(194,211,233,.8);box-shadow:0 9px 24px rgba(52,78,111,.13)}
+.auth-design-choice[data-theme="glass"] .auth-design-thumb{background:linear-gradient(145deg,#eaf3ff,#ffffff)}
+.auth-design-choice[data-theme="warm"]{background:#fffaf2;border-color:#e9dccd}
+.auth-design-choice[data-theme="warm"] .auth-design-thumb{background:linear-gradient(145deg,#fff3e7,#fffaf2)}
+.auth-design-choice[data-theme="warm"] .auth-design-thumb:after{background:#b85d36}
+.auth-design-choice[data-theme="midnight"]{background:#151f30;border-color:#2e3d54;color:#f4f7fb;box-shadow:0 9px 24px rgba(6,12,22,.28)}
+.auth-design-choice[data-theme="midnight"] small{color:#a9b6c8}
+.auth-design-choice[data-theme="midnight"] .auth-design-thumb{background:linear-gradient(145deg,#1c293d,#26354c);border-color:#34445d}
+.auth-design-choice[data-theme="midnight"] .auth-design-thumb:before{background:#73829a}
+.auth-design-choice[data-theme="midnight"] .auth-design-thumb:after{background:#738dff}
+.auth-design-choice[data-theme="playful"]{background:#fff;border-color:#dddaf3;box-shadow:0 9px 24px rgba(91,75,176,.11)}
+.auth-design-choice[data-theme="playful"] .auth-design-thumb{background:linear-gradient(145deg,#f1edff,#e9fbf8)}
+.auth-design-choice[data-theme="playful"] .auth-design-thumb:after{background:linear-gradient(90deg,#6557d9,#2fb7a4)}
+
+@media(max-width:720px){
+ .auth-theme-picker{grid-template-columns:repeat(5,64px);overflow-x:auto;padding-bottom:3px}
+ .auth-theme-option{min-width:64px}
+}
