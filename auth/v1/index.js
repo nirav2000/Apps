@@ -1,4 +1,4 @@
-const VERSION='1.1.1';
+const VERSION='1.2.0';
 const DEVICE_KEY='apps-platform.v1.device';
 const listeners={change:new Set(),signedIn:new Set(),signedOut:new Set(),userChanged:new Set(),permissionChanged:new Set()};
 const state={initialised:false,appId:'',mode:'shadow',status:'idle',deviceId:'',identityConfig:null,serviceBaseUrl:'',firebase:null,identityProvider:null,serviceAdapter:null,providerUnsubscribe:null,centralUser:null,globalUser:null,appUser:null,permissions:{globalRoles:[],appRoles:[],legacyRoles:[]},session:null,appAdapter:null,migration:{phase:'shadow',authority:'legacy'},error:null};
