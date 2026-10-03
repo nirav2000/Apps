@@ -6,130 +6,65 @@
 </head>
 <body><main class="wrap">
 <header class="top">
-  <div>
-    <div class="eyebrow">SHARED INFRASTRUCTURE · EXPERIENCE + TECHNICAL LAB</div>
-    <h1>Authentication Lab</h1>
-    <p class="lede">Choose how authentication should feel before we put it into Comprehension. Every concept below can be tried with the real shared Auth API, while the lab remains safely isolated from application data.</p>
-  </div>
+  <div><div class="eyebrow">SHARED INFRASTRUCTURE · TEST HARNESS</div><h1>Authentication Lab</h1><p class="lede">Test the shared authentication SDK and migration behaviour before installing it in Comprehension or another app. This page contains no application business data.</p></div>
   <nav class="nav"><a class="btn" href="../shared-libraries.html">Shared libraries</a><a class="btn" href="../app-monitor.html">App Monitor</a><a class="btn" href="../">Apps</a></nav>
 </header>
+<div class="callout" style="margin-top:16px"><b>Safe by default:</b> the lab starts with an in-browser mock identity/service using the real Auth API and UI. Nothing is written to Firebase. Mode: <b id="labMode">loading…</b>.</div>
 
-<div class="mode-strip"><span class="mode-dot"></span><b id="labMode">loading…</b><span>·</span><span>Safe test environment</span><span class="mode-spacer"></span><span id="preferredLabel">No preferred design yet</span></div>
+<section class="grid">
+  <article class="card span-4"><div class="eyebrow">LIVE SDK</div><h2>State</h2>
+    <div class="metric"><span>SDK</span><b id="sdkVersion">—</b></div>
+    <div class="metric"><span>Status</span><b id="sdkStatus">—</b></div>
+    <div class="metric"><span>Device</span><b id="deviceId" class="mono">—</b></div>
+    <div class="metric"><span>Effective user</span><b id="effectiveUser">—</b></div>
+  </article>
+  <article class="card span-4"><div class="eyebrow">MIGRATION</div><h2>Authority</h2>
+    <div class="metric"><span>Phase</span><b id="migrationPhase">—</b></div>
+    <div class="metric"><span>Authority</span><b id="migrationAuthority">—</b></div>
+    <div class="metric"><span>Consistency</span><span id="migrationConsistency" class="pill">—</span></div>
+    <div class="actions"><button id="authorityLegacy">Shadow / legacy authority</button><button id="authorityCentral">Central authority</button></div>
+  </article>
+  <article class="card span-4"><div class="eyebrow">PERMISSIONS</div><h2>Role separation</h2>
+    <div class="metric"><span>Legacy roles</span><b id="legacyRoles">None</b></div>
+    <div class="metric"><span>Central roles</span><b id="centralRoles">None</b></div>
+    <p class="small">The lab verifies that signing out a legacy identity clears legacy roles and that central/app roles are not merged accidentally.</p>
+  </article>
 
-<section class="experience-studio">
-  <div class="studio-head">
-    <div>
-      <div class="eyebrow">AUTH EXPERIENCE STUDIO</div>
-      <h2>Choose how sign-in should feel</h2>
-      <p>Swipe the cards or use the arrows. These are deliberately different approaches, not small cosmetic variations.</p>
-    </div>
-    <div class="studio-nav">
-      <button id="prevDesign" class="round-btn" aria-label="Previous design">‹</button>
-      <button id="nextDesign" class="round-btn" aria-label="Next design">›</button>
-    </div>
-  </div>
+  <article class="card span-5"><div class="eyebrow">REAL COMPONENT</div><h2>Shared account UI</h2>
+    <apps-auth-panel methods="anonymous,passkey,emailLink,emailPassword,google,apple"></apps-auth-panel>
+    <p class="small">Without a configured central backend these actions should fail closed with a configuration message. Once the identity project exists, this same component becomes a genuine login test without changing Comprehension.</p>
+  </article>
+  <article class="card span-7"><div class="eyebrow">LEGACY SESSION</div><h2>Shadow-auth tests</h2>
+    <p class="small">These controls emulate the kinds of sessions our existing apps already have. They exercise the real SDK's app-identity and role path, not application data.</p>
+    <div class="actions"><button id="legacyAnon">Anonymous legacy user</button><button id="legacyParent">Protected parent</button><button id="legacyOther">Different/stale user</button><button id="legacyClear" class="danger">Clear legacy session</button><button id="linkLegacy" class="primary">Link current legacy UID to shared account</button></div>
+    <pre id="snapshot" class="result mono" style="white-space:pre-wrap;margin-top:14px;max-height:340px;overflow:auto"></pre>
+  </article>
 
-  <div class="carousel-shell" aria-label="Authentication design carousel">
-    <div id="designCarousel" class="design-carousel"></div>
-  </div>
-  <div id="carouselDots" class="carousel-dots" aria-label="Design position"></div>
+  <article class="card span-12"><div class="eyebrow">MIGRATION SAFETY MATRIX</div><h2>What happens when old and new authentication coexist?</h2>
+    <div id="scenarioGrid" class="scenario-grid"></div>
+    <div id="scenarioResult" class="result" style="margin-top:12px">Choose a scenario above.</div>
+  </article>
 
-  <div class="selection-panel">
-    <div>
-      <div class="selection-kicker">SELECTED CONCEPT</div>
-      <h3 id="selectedDesignName">—</h3>
-      <p id="selectedDesignSummary">—</p>
-      <div id="selectedDesignTags" class="tag-row"></div>
+  <article class="card span-6"><div class="eyebrow">AUTH SERVICE</div><h2>Sessions & audit</h2>
+    <p class="small">In mock mode these are simulated through the same service-adapter methods the production Auth service will implement.</p>
+    <div class="actions"><button id="loadSessions">List sessions</button><button id="loadAudit">Audit history</button><button id="resetMock" class="danger">Reset mock lab</button></div>
+    <pre id="serviceOutput" class="result mono" style="white-space:pre-wrap;margin-top:14px;max-height:300px;overflow:auto">Choose an action.</pre>
+  </article>
+  <article class="card span-6"><div class="eyebrow">OPTIONAL LIVE BACKEND</div><h2>Connect a test identity project</h2>
+    <p class="small">Only paste the Firebase <b>web configuration</b> here. It is public project configuration. Never paste service-account JSON, private keys, recovery tokens or admin secrets.</p>
+    <label class="field"><span>Firebase web config JSON</span><textarea id="firebaseConfig" rows="8" placeholder='{"apiKey":"…","authDomain":"…","projectId":"…","appId":"…"}'></textarea></label>
+    <label class="field"><span>Auth service base URL (optional)</span><input id="serviceUrl" placeholder="https://…"></label>
+    <div class="actions"><button id="applyConfig" class="primary">Apply for this tab</button><button id="clearConfig">Clear</button></div><p id="configMessage" class="small"></p>
+  </article>
+  <article class="card span-12"><div class="eyebrow">EVENTS</div><h2>Auth event log</h2><div id="eventLog" class="log"></div></article>
+
+  <article class="card span-12"><div class="eyebrow">TEST CHECKLIST</div><h2>Before Comprehension</h2>
+    <div class="row">
+      <div><b>Frontend</b><p class="small">Init, current user, anonymous/protected identity, events, role changes, logout, component states, device identity.</p></div>
+      <div><b>Migration</b><p class="small">Legacy-only, central-only, linked, stale/mismatched legacy session, dual-unverified shadow state, role clearing.</p></div>
+      <div><b>Backend when provisioned</b><p class="small">Email link, passkey register/sign-in, session list/revoke, audit history, account recovery and app-token broker.</p></div>
+      <div><b>Rules</b><p class="small">Identity Firestore remains server-only/default-deny; app rules continue using legacy app UID until that app reaches the broker/rules phase.</p></div>
     </div>
-    <div class="selection-actions">
-      <button id="tryModal" class="primary">Try as modal</button>
-      <button id="tryInApp">See it in an app</button>
-      <button id="preferDesign" class="quiet">♡ Mark as preferred</button>
-    </div>
-  </div>
-  <p class="swipe-hint">Tip: on iPhone/iPad, swipe across the carousel. Tap any visible card to bring it to the front.</p>
+  </article>
 </section>
-
-<details class="developer-tools">
-  <summary>
-    <span><b>Technical test controls</b><small>SDK state, migration safety, legacy sessions, backend tests and event log</small></span>
-    <span class="summary-arrow">⌄</span>
-  </summary>
-
-  <section class="grid">
-    <article class="card span-4"><div class="eyebrow">LIVE SDK</div><h2>State</h2>
-      <div class="metric"><span>SDK</span><b id="sdkVersion">—</b></div>
-      <div class="metric"><span>Status</span><b id="sdkStatus">—</b></div>
-      <div class="metric"><span>Device</span><b id="deviceId" class="mono">—</b></div>
-      <div class="metric"><span>Effective user</span><b id="effectiveUser">—</b></div>
-    </article>
-    <article class="card span-4"><div class="eyebrow">MIGRATION</div><h2>Authority</h2>
-      <div class="metric"><span>Phase</span><b id="migrationPhase">—</b></div>
-      <div class="metric"><span>Authority</span><b id="migrationAuthority">—</b></div>
-      <div class="metric"><span>Consistency</span><span id="migrationConsistency" class="pill">—</span></div>
-      <div class="actions"><button id="authorityLegacy">Shadow / legacy authority</button><button id="authorityCentral">Central authority</button></div>
-    </article>
-    <article class="card span-4"><div class="eyebrow">PERMISSIONS</div><h2>Role separation</h2>
-      <div class="metric"><span>Legacy roles</span><b id="legacyRoles">None</b></div>
-      <div class="metric"><span>Central roles</span><b id="centralRoles">None</b></div>
-      <p class="small">Signing out a legacy identity must clear its roles. Central and app roles are intentionally kept separate.</p>
-    </article>
-
-    <article class="card span-7"><div class="eyebrow">LEGACY SESSION</div><h2>Shadow-auth tests</h2>
-      <p class="small">Emulate existing app authentication, stale sessions and verified UID linking without touching application data.</p>
-      <div class="actions"><button id="legacyAnon">Anonymous legacy user</button><button id="legacyParent">Protected parent</button><button id="legacyOther">Different/stale user</button><button id="legacyClear" class="danger">Clear legacy session</button><button id="linkLegacy" class="primary">Link current legacy UID</button></div>
-      <pre id="snapshot" class="result mono snapshot"></pre>
-    </article>
-    <article class="card span-5"><div class="eyebrow">MIGRATION SAFETY MATRIX</div><h2>Old + new authentication</h2>
-      <div id="scenarioGrid" class="scenario-grid"></div>
-      <div id="scenarioResult" class="result compact-result">Choose a scenario above.</div>
-    </article>
-
-    <article class="card span-6"><div class="eyebrow">AUTH SERVICE</div><h2>Sessions & audit</h2>
-      <p class="small">Mock mode exercises the same service-adapter API the production backend will implement.</p>
-      <div class="actions"><button id="loadSessions">List sessions</button><button id="loadAudit">Audit history</button><button id="resetMock" class="danger">Reset mock lab</button></div>
-      <pre id="serviceOutput" class="result mono service-output">Choose an action.</pre>
-    </article>
-    <article class="card span-6"><div class="eyebrow">OPTIONAL LIVE BACKEND</div><h2>Connect a test identity project</h2>
-      <p class="small">Only paste public Firebase web configuration here. Never paste service-account JSON, private keys or recovery secrets.</p>
-      <label class="field"><span>Firebase web config JSON</span><textarea id="firebaseConfig" rows="6" placeholder='{"apiKey":"…","authDomain":"…","projectId":"…","appId":"…"}'></textarea></label>
-      <label class="field"><span>Auth service base URL (optional)</span><input id="serviceUrl" placeholder="https://…"></label>
-      <div class="actions"><button id="applyConfig" class="primary">Apply for this tab</button><button id="clearConfig">Clear</button></div><p id="configMessage" class="small"></p>
-    </article>
-
-    <article class="card span-12"><div class="eyebrow">EVENTS</div><h2>Auth event log</h2><div id="eventLog" class="log"></div></article>
-  </section>
-</details>
-
-<section class="acceptance-strip">
-  <div><b>Experience acceptance</b><span>Fast · calm · obvious · accessible · good on phone and desktop</span></div>
-  <div><b>Technical acceptance</b><span>Identity · migration · roles · sessions · recovery · audit</span></div>
-</section>
-</main>
-
-<dialog id="authPreviewDialog" class="preview-dialog">
-  <div class="dialog-toolbar">
-    <div><span class="dialog-context">REAL AUTH COMPONENT</span><b id="modalDesignTitle">Authentication</b></div>
-    <button class="icon-close" data-close-dialog aria-label="Close">×</button>
-  </div>
-  <div id="modalAuthHost" class="auth-preview-host"></div>
-</dialog>
-
-<dialog id="appPreviewDialog" class="app-preview-dialog">
-  <div class="device-frame">
-    <div class="demo-app">
-      <header class="demo-app-bar">
-        <div class="demo-brand"><span class="demo-logo">A</span><div><b>Demo App</b><small>Realistic auth placement</small></div></div>
-        <button class="demo-account" id="demoAccountButton">Sign in</button>
-      </header>
-      <main class="demo-content">
-        <section class="demo-hero"><span class="demo-chip">YOUR APP</span><h2>Welcome back</h2><p>This is a simulated application shell so you can judge scale, interruption and visual fit—not just the isolated component.</p></section>
-        <div class="demo-cards"><div></div><div></div><div></div></div>
-      </main>
-      <div id="inAppAuthLayer" class="in-app-auth-layer"></div>
-    </div>
-  </div>
-  <button class="floating-close" data-close-app aria-label="Close app preview">×</button>
-</dialog>
-
-<script type="module" src="./lab.js"></script></body></html>
+</main><script type="module" src="./lab.js"></script></body></html>
