@@ -1,7 +1,7 @@
 # @our-apps/auth v1
 
 Current compatible line: **1.2.x**  
-Immutable release: `auth/releases/1.2.1/`
+Immutable release: `auth/releases/1.3.0/`
 
 ## Test first
 
@@ -156,3 +156,26 @@ Example:
 ```
 
 Use the Auth Lab carousel to compare the variants in isolation, as a modal, and inside a simulated real app before selecting one for a consumer app.
+
+
+## Visual themes
+
+Authentication flow and visual theme are independent. The reusable component supports:
+
+- `airy` — clean, bright and restrained;
+- `glass` — translucent/frosted modal treatment;
+- `warm` — cream and terracotta;
+- `midnight` — high-contrast dark treatment;
+- `playful` — restrained violet/teal expression.
+
+Example:
+
+```html
+<apps-auth-panel
+  variant="passkey-first"
+  theme="glass"
+  methods="anonymous,passkey,emailLink,emailPassword,google,apple">
+</apps-auth-panel>
+```
+
+Use the Auth Lab to choose a flow and theme separately. Both selections carry into modal and in-app previews.
