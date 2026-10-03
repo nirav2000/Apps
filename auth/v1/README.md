@@ -1,7 +1,7 @@
 # @our-apps/auth v1
 
-Current compatible line: **1.1.x**  
-Immutable release: `auth/releases/1.1.1/`
+Current compatible line: **1.2.x**  
+Immutable release: `auth/releases/1.2.0/`
 
 ## Test first
 
@@ -133,3 +133,25 @@ Use `Auth.linkLegacyIdentity()` to verify and store the mapping from a central a
 - `appAdapter` — temporary existing-app authentication adapter during migration.
 
 These seams allow safe testing and future backend changes without changing application business code.
+
+
+## UI variants
+
+The reusable `<apps-auth-panel>` supports experience variants without changing authentication logic:
+
+- `balanced`
+- `passkey-first`
+- `magic-link`
+- `guest-first`
+- `compact`
+
+Example:
+
+```html
+<apps-auth-panel
+  variant="passkey-first"
+  methods="anonymous,passkey,emailLink,emailPassword,google,apple">
+</apps-auth-panel>
+```
+
+Use the Auth Lab carousel to compare the variants in isolation, as a modal, and inside a simulated real app before selecting one for a consumer app.
