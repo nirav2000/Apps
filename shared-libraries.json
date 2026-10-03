@@ -21,7 +21,7 @@
   "libraries": [
     {
       "id": "auth-v1",
-      "name": "Auth v1.2",
+      "name": "Auth v1.3",
       "file": "auth/v1/index.js",
       "status": "implemented",
       "created": "2026-09-29",
@@ -29,7 +29,7 @@
       "installed": {
         "App Monitor": "local"
       },
-      "notes": "Current immutable release: 1.2.1. Auth Lab retains the original full technical test page. Only the Shared account UI card contains the design carousel and modal/in-app previews. The original Classic UI remains the default; alternative variants are opt-in."
+      "notes": "Current immutable release: 1.3.0. Authentication Lab keeps the original full technical test page. The Shared account UI card now compares flow variants and independent Airy/Glass/Warm/Midnight/Playful themes, with modal and in-app previews. Classic remains the default flow."
     },
     {
       "id": "apps-auth",
