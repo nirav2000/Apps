@@ -1,7 +1,7 @@
 # @our-apps/auth v1
 
 Current compatible line: **1.2.x**  
-Immutable release: `auth/releases/1.2.0/`
+Immutable release: `auth/releases/1.2.1/`
 
 ## Test first
 
@@ -139,6 +139,7 @@ These seams allow safe testing and future backend changes without changing appli
 
 The reusable `<apps-auth-panel>` supports experience variants without changing authentication logic:
 
+- `classic` — preserved original/default UI
 - `balanced`
 - `passkey-first`
 - `magic-link`
