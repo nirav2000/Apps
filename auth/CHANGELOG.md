@@ -1,5 +1,14 @@
 # Shared Auth changelog
 
+## 1.2.1 - 2026-10-03
+
+- Restored the original Authentication Lab layout and all technical test sections after the experience-studio redesign changed too much of the page.
+- Scoped design experimentation to the existing Shared account UI card only.
+- Added a small swipeable design carousel inside that card, plus modal and realistic in-app previews.
+- Preserved the original Shared account UI as the `classic` variant and restored it as the default for backwards compatibility.
+- Retained Balanced, Passkey first, Magic link, Guest first and Compact as optional variants.
+- Published immutable `auth/releases/1.2.1/` SDK/UI files.
+
 ## 1.2.0 - 2026-10-03
 
 - Reworked Auth Lab into an experience-first design studio rather than a developer page with an embedded login form.
