@@ -125,16 +125,25 @@ const AUTH_DESIGNS=[
   {id:'guest-first',name:'Guest first',summary:'Start immediately.',hint:'Protect later'},
   {id:'compact',name:'Compact',summary:'Small and efficient.',hint:'Minimal footprint'}
 ];
+const AUTH_THEMES=[
+  {id:'airy',name:'Airy',summary:'Clean, bright and quietly premium.',swatch:['#ffffff','#eef4ff','#245edb']},
+  {id:'glass',name:'Glass',summary:'Soft translucency for modern modal overlays.',swatch:['#eef5ff','#ffffff','#5a86ef']},
+  {id:'warm',name:'Warm',summary:'Friendly cream and terracotta; less corporate.',swatch:['#fffaf2','#f7e6d5','#b85d36']},
+  {id:'midnight',name:'Midnight',summary:'High-contrast dark mode with calm blue-violet accents.',swatch:['#121a29','#24324a','#738dff']},
+  {id:'playful',name:'Playful',summary:'More expressive violet/teal while staying restrained.',swatch:['#ffffff','#efeaff','#2fb7a4']}
+];
 let authDesignIndex=0;
+let authThemeIndex=0;
 
 function authDesignDelta(index,current,total){
   let d=(index-current+total)%total;
   if(d>total/2)d-=total;
   return d;
 }
-function makeAuthPanel(design){
+function makeAuthPanel(design,theme=AUTH_THEMES[authThemeIndex]){
   const panel=document.createElement('apps-auth-panel');
   panel.setAttribute('variant',design.id);
+  panel.setAttribute('theme',theme.id);
   panel.setAttribute('methods','anonymous,passkey,emailLink,emailPassword,google,apple');
   return panel;
 }
@@ -150,10 +159,36 @@ function renderAuthDesign(){
   $('authDesignName').textContent=d.name;
   $('authDesignSummary').textContent=d.summary;
   $('authDesignPanel').setAttribute('variant',d.id);
+  $('authDesignPanel').setAttribute('theme',AUTH_THEMES[authThemeIndex].id);
+  document.querySelectorAll('#authDesignCarousel .auth-design-choice').forEach(card=>card.dataset.theme=AUTH_THEMES[authThemeIndex].id);
 }
 function selectAuthDesign(index){
   authDesignIndex=(index+AUTH_DESIGNS.length)%AUTH_DESIGNS.length;
   renderAuthDesign();
+}
+function renderAuthThemes(){
+  const picker=$('authThemePicker');
+  if(!picker)return;
+  picker.querySelectorAll('.auth-theme-option').forEach((button,i)=>button.classList.toggle('active',i===authThemeIndex));
+  const theme=AUTH_THEMES[authThemeIndex];
+  $('authDesignPanel').setAttribute('theme',theme.id);
+  document.querySelectorAll('#authDesignCarousel .auth-design-choice').forEach(card=>card.dataset.theme=theme.id);
+}
+function buildAuthThemePicker(){
+  const picker=$('authThemePicker');
+  if(!picker)return;
+  picker.innerHTML=AUTH_THEMES.map((t,i)=>
+    '<button type="button" class="auth-theme-option" data-index="'+i+'" data-theme="'+t.id+'" title="'+esc(t.summary)+'">'+
+      '<span class="auth-theme-swatch">'+t.swatch.map(col=>'<i style="background:'+col+'"></i>').join('')+'</span>'+
+      '<span><b>'+esc(t.name)+'</b><small>'+esc(t.summary)+'</small></span></button>'
+  ).join('');
+  picker.querySelectorAll('.auth-theme-option').forEach(button=>button.onclick=()=>{
+    authThemeIndex=Number(button.dataset.index);
+    renderAuthThemes();
+    renderAuthDesign();
+    log('auth-theme-change',{theme:AUTH_THEMES[authThemeIndex].id});
+  });
+  renderAuthThemes();
 }
 function buildAuthDesignPicker(){
   const carousel=$('authDesignCarousel');
@@ -201,4 +236,5 @@ function buildAuthDesignPicker(){
 
   renderAuthDesign();
 }
+buildAuthThemePicker();
 buildAuthDesignPicker();
