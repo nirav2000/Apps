@@ -42,11 +42,11 @@ class AppsAuthPanel extends HTMLElement{
     this.status('Working…');
     try{await fn();this.status(success||'')}catch(e){this.status(e?.message||String(e),true)}
   }
-  providers(){
+  providers(includePasskey=true){
     const b=[];
     if(this.has('google'))b.push('<button class="provider" data-google>G&nbsp; Google</button>');
     if(this.has('apple'))b.push('<button class="provider" data-apple>●&nbsp; Apple</button>');
-    if(this.has('passkey'))b.push('<button class="provider" data-passkey>⌘&nbsp; Passkey</button>');
+    if(includePasskey&&this.has('passkey'))b.push('<button class="provider" data-passkey>⌘&nbsp; Passkey</button>');
     return b.length?'<div class="providers">'+b.join('')+'</div>':'';
   }
   bind(){
@@ -89,7 +89,7 @@ class AppsAuthPanel extends HTMLElement{
     if(this.localMode==='email'){
       return '<section class="panel">'+head(title,sub,true)+fields(true)+'<button class="primary" style="margin-top:11px" data-email-password>Sign in →</button><div class="links"><button class="text-btn" data-back-mode>Back to passkey</button>'+(this.has('emailLink')?'<button class="text-btn" data-email-link>Email link</button>':'')+'</div><small class="status" data-status></small></section>';
     }
-    return '<section class="panel"><div class="feature">⌘</div>'+head(title,sub,true)+(this.has('passkey')?'<button class="primary" data-passkey>Use passkey →</button>':'')+'<div class="divider">or</div>'+this.providers()+'<div class="links"><button class="text-btn" data-email-mode>Use email instead</button></div>'+(this.has('anonymous')?'<button class="guest-card" data-anonymous><span class="guest-icon">◎</span><span><b>Continue as guest</b><small>No account needed yet.</small></span></button>':'')+'<small class="status" data-status></small></section>';
+    return '<section class="panel"><div class="feature">⌘</div>'+head(title,sub,true)+(this.has('passkey')?'<button class="primary" data-passkey>Use passkey →</button>':'')+'<div class="divider">or</div>'+this.providers(false)+'<div class="links"><button class="text-btn" data-email-mode>Use email instead</button></div>'+(this.has('anonymous')?'<button class="guest-card" data-anonymous><span class="guest-icon">◎</span><span><b>Continue as guest</b><small>No account needed yet.</small></span></button>':'')+'<small class="status" data-status></small></section>';
   }
   magicLink(title,sub){
     return '<section class="panel">'+head(title,sub,true)+'<div class="feature">✉</div>'+fields(false)+'<button class="primary" style="margin-top:11px" data-email-link>Send secure sign-in link →</button><p class="magic-note">No password to remember. Open the link on this device to continue.</p><details class="more"><summary>Other ways to sign in</summary><div class="alt-list">'+(this.has('passkey')?'<button class="secondary" data-passkey>Use passkey</button>':'')+(this.has('google')?'<button class="secondary" data-google>Continue with Google</button>':'')+(this.has('apple')?'<button class="secondary" data-apple>Continue with Apple</button>':'')+'</div></details>'+(this.has('anonymous')?'<div class="links"><button class="text-btn" data-anonymous>Continue as guest</button></div>':'')+'<small class="status" data-status></small></section>';
