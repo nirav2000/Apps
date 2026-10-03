@@ -13,6 +13,7 @@ const CSS = [
 '.status{display:block;min-height:18px;margin-top:10px;font-size:12px;color:var(--auth-muted)}.status.error{color:var(--auth-danger)}.mode-switch{display:flex;background:#f4f6f9;border-radius:12px;padding:3px;margin-bottom:16px}.mode-switch button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px;color:var(--auth-muted);font-weight:650}.mode-switch button.active{background:#fff;color:var(--auth-fg);box-shadow:0 1px 4px rgba(20,35,60,.09)}',
 '.alt-list{display:grid;gap:8px;margin-top:12px}.alt-list .secondary{width:100%}.magic-note{text-align:center;color:var(--auth-muted);font-size:11px;margin-top:10px}.benefits{display:grid;gap:8px;margin:18px 0 2px}.benefit{display:flex;gap:8px;color:var(--auth-muted);font-size:12px}.tick{color:#19a060;font-weight:900}.more{border-top:1px solid #edf0f4;margin-top:14px;padding-top:12px}.more summary{cursor:pointer;color:var(--auth-accent);font-size:12px;text-align:center;list-style:none}.more summary::-webkit-details-marker{display:none}',
 '.compact.panel{padding:18px;border-radius:18px;max-width:390px}.compact h2{font-size:22px}.compact .head{margin-bottom:14px}.compact .providers{grid-template-columns:repeat(3,1fr)}',
+'.classic-panel{max-width:420px;padding:18px;border-radius:16px;box-shadow:none}.classic-panel .classic-title{font-size:18px;margin:0 0 12px}.classic-panel .classic-row{display:grid;gap:10px}.classic-panel .classic-input{width:100%;border:1px solid var(--auth-border);border-radius:10px;padding:10px 12px}.classic-panel .classic-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.classic-panel .classic-primary{border:0;background:var(--auth-accent);color:#fff;border-radius:10px;padding:10px 12px}.classic-panel .classic-secondary{background:transparent;color:var(--auth-fg);border:1px solid var(--auth-border);border-radius:10px;padding:10px 12px}',
 '.identity{display:flex;gap:12px;align-items:center}.avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#dfe9ff,#f2f6ff);display:grid;place-items:center;color:var(--auth-accent);font-weight:800}.identity small{display:block;color:var(--auth-muted);margin-top:3px}.signed-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}',
 '[hidden]{display:none!important}@media(max-width:480px){.panel{padding:20px;border-radius:20px}h2{font-size:25px}.providers{grid-template-columns:1fr}.compact .providers{grid-template-columns:repeat(3,1fr)}}'
 ].join('');
@@ -32,7 +33,7 @@ class AppsAuthPanel extends HTMLElement{
   disconnectedCallback(){this.unsubscribe?.()}
   attributeChangedCallback(){if(this.shadowRoot)this.render()}
   get methods(){return new Set((this.getAttribute('methods')||'passkey,emailLink,emailPassword').split(',').map(x=>x.trim()).filter(Boolean))}
-  get variant(){return this.getAttribute('variant')||'balanced'}
+  get variant(){return this.getAttribute('variant')||'classic'}
   has(name){return this.methods.has(name)}
   status(text,error){
     const el=this.shadowRoot.querySelector('[data-status]');
@@ -78,6 +79,9 @@ class AppsAuthPanel extends HTMLElement{
       (user.isAnonymous&&this.has('emailPassword')?'<div class="stack" style="margin-top:14px"><label class="field"><span class="ico">✉</span><input data-upgrade-email type="email" placeholder="Email address"></label><label class="field"><span class="ico">⌑</span><input data-upgrade-password type="password" placeholder="Create password"></label><button class="primary" data-protect>Protect guest account</button></div>':'')+
       '<div class="signed-actions">'+(!user.isAnonymous&&this.has('passkey')?'<button class="secondary" data-add-passkey>Add passkey</button>':'')+(user.email&&this.has('emailPassword')?'<button class="secondary" data-reset-password>Reset password</button>':'')+'<button class="secondary" data-signout>Sign out</button></div><small class="status" data-status></small></section>';
   }
+  classic(){
+    return '<section class="panel classic-panel"><div class="classic-title"><strong>Sign in</strong></div><div class="classic-row"><input class="classic-input" data-email type="email" autocomplete="email" placeholder="Email"><input class="classic-input" data-password type="password" autocomplete="current-password" placeholder="Password"></div><div class="classic-actions"><button class="classic-primary" data-email-password>Sign in</button><button class="classic-secondary" data-create-account>Create account</button>'+(this.has('emailLink')?'<button class="classic-secondary" data-email-link>Email me a sign-in link</button>':'')+(this.has('emailPassword')?'<button class="classic-secondary" data-forgot-password>Forgot password</button>':'')+(this.has('passkey')?'<button class="classic-secondary" data-passkey>Use passkey</button>':'')+(this.has('google')?'<button class="classic-secondary" data-google>Google</button>':'')+(this.has('apple')?'<button class="classic-secondary" data-apple>Apple</button>':'')+(this.has('anonymous')?'<button class="classic-secondary" data-anonymous>Continue as guest</button>':'')+'</div><small class="status" data-status></small></section>';
+  }
   balanced(title,sub){
     const create=this.localMode==='create';
     return '<section class="panel">'+head(title,sub,false)+'<div class="mode-switch"><button class="'+(!create?'active':'')+'" data-signin-mode>Sign in</button><button class="'+(create?'active':'')+'" data-create-mode>Create account</button></div>'+fields(true)+'<button class="primary" style="margin-top:11px" '+(create?'data-create-account':'data-email-password')+'>'+(create?'Create account':'Continue')+' →</button>'+
@@ -104,7 +108,7 @@ class AppsAuthPanel extends HTMLElement{
     const snap=Auth.snapshot(),user=snap.user,v=this.variant;
     const title=this.getAttribute('heading')||(v==='guest-first'?'Start exploring':v==='magic-link'?'Sign in with a link':v==='passkey-first'?'Welcome back':v==='compact'?'Sign in':'Shared account');
     const sub=this.getAttribute('subheading')||(v==='guest-first'?'Try the app first. Create an account only when you need one.':v==='magic-link'?'We will email you a secure link. No password required.':v==='passkey-first'?'Use Face ID, Touch ID or your device passkey for the quickest route in.':v==='compact'?'Pick up where you left off.':'Save your progress and access it from any device.');
-    const body=user?this.signedIn(user):v==='passkey-first'?this.passkeyFirst(title,sub):v==='magic-link'?this.magicLink(title,sub):v==='guest-first'?this.guestFirst(title,sub):v==='compact'?this.compact(title,sub):this.balanced(title,sub);
+    const body=user?this.signedIn(user):v==='classic'?this.classic():v==='passkey-first'?this.passkeyFirst(title,sub):v==='magic-link'?this.magicLink(title,sub):v==='guest-first'?this.guestFirst(title,sub):v==='compact'?this.compact(title,sub):this.balanced(title,sub);
     this.shadowRoot.innerHTML='<style>'+CSS+'</style>'+body;
     this.bind();
   }
