@@ -31,8 +31,27 @@
   </article>
 
   <article class="card span-5"><div class="eyebrow">REAL COMPONENT</div><h2>Shared account UI</h2>
-    <apps-auth-panel methods="anonymous,passkey,emailLink,emailPassword,google,apple"></apps-auth-panel>
-    <p class="small">Without a configured central backend these actions should fail closed with a configuration message. Once the identity project exists, this same component becomes a genuine login test without changing Comprehension.</p>
+    <p class="small auth-design-intro">Compare different looks and sign-in flows without changing the authentication logic. Swipe or use the arrows, then try the selected design as a modal or in a realistic app view.</p>
+
+    <div class="auth-design-picker">
+      <button id="authDesignPrev" class="auth-design-arrow" aria-label="Previous auth design">‹</button>
+      <div id="authDesignCarousel" class="auth-design-carousel" aria-label="Authentication design choices"></div>
+      <button id="authDesignNext" class="auth-design-arrow" aria-label="Next auth design">›</button>
+    </div>
+    <div id="authDesignDots" class="auth-design-dots" aria-label="Authentication design position"></div>
+
+    <div class="auth-design-selected">
+      <div><b id="authDesignName">Balanced</b><span id="authDesignSummary">Familiar and flexible.</span></div>
+      <div class="auth-design-preview-actions">
+        <button id="authDesignModal">Open as modal</button>
+        <button id="authDesignInApp">Preview in app</button>
+      </div>
+    </div>
+
+    <div class="auth-design-live">
+      <apps-auth-panel id="authDesignPanel" variant="balanced" methods="anonymous,passkey,emailLink,emailPassword,google,apple"></apps-auth-panel>
+    </div>
+    <p class="small">This is still the real shared component using the same Auth API and mock/live backend. Only its presentation and flow changes between designs.</p>
   </article>
   <article class="card span-7"><div class="eyebrow">LEGACY SESSION</div><h2>Shadow-auth tests</h2>
     <p class="small">These controls emulate the kinds of sessions our existing apps already have. They exercise the real SDK's app-identity and role path, not application data.</p>
@@ -67,4 +86,28 @@
     </div>
   </article>
 </section>
+
+<dialog id="authDesignModalDialog" class="auth-design-dialog">
+  <div class="auth-design-dialog-head">
+    <div><span>SHARED ACCOUNT UI</span><b id="authDesignModalTitle">Authentication</b></div>
+    <button id="authDesignModalClose" class="auth-dialog-close" aria-label="Close">×</button>
+  </div>
+  <div id="authDesignModalHost" class="auth-design-dialog-body"></div>
+</dialog>
+
+<dialog id="authDesignAppDialog" class="auth-app-dialog">
+  <div class="auth-app-shell">
+    <header class="auth-app-topbar">
+      <div class="auth-app-brand"><span>A</span><b>Example App</b></div>
+      <button id="authAppSignInButton">Sign in</button>
+    </header>
+    <main class="auth-app-content">
+      <div class="auth-app-copy"><span>REAL APP PREVIEW</span><h2>Welcome back</h2><p>Judge the selected authentication design at the scale and interruption level it would have inside one of your real apps.</p></div>
+      <div class="auth-app-placeholder"><div></div><div></div><div></div></div>
+    </main>
+    <div id="authAppOverlay" class="auth-app-overlay"></div>
+  </div>
+  <button id="authDesignAppClose" class="auth-app-close" aria-label="Close">×</button>
+</dialog>
+
 </main><script type="module" src="./lab.js"></script></body></html>
