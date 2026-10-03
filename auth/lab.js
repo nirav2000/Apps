@@ -118,6 +118,7 @@ boot(initOptions).catch(e=>{log('boot-error',String(e));$('configMessage').textC
 // Shared account UI design comparison. Everything below is scoped to the existing
 // REAL COMPONENT card and its two preview dialogs; the rest of Auth Lab is unchanged.
 const AUTH_DESIGNS=[
+  {id:'classic',name:'Original',summary:'The original working Shared account UI.',hint:'Preserved baseline'},
   {id:'balanced',name:'Balanced',summary:'Familiar and flexible.',hint:'All routes visible'},
   {id:'passkey-first',name:'Passkey first',summary:'Fast modern sign-in.',hint:'Biometric first'},
   {id:'magic-link',name:'Magic link',summary:'Calm and passwordless.',hint:'Email link first'},
