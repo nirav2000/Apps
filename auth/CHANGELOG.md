@@ -1,5 +1,16 @@
 # Shared Auth changelog
 
+## 1.2.0 - 2026-10-03
+
+- Reworked Auth Lab into an experience-first design studio rather than a developer page with an embedded login form.
+- Added a swipeable / arrow-navigable authentication carousel with five genuinely different concepts: Balanced, Passkey first, Magic link, Guest first and Compact.
+- Added click-to-front concept selection, persistent preferred-design selection and responsive mobile/iPad carousel behaviour.
+- Added live functional modal previews and a simulated real-app shell so each design can be judged in context rather than only as a component on a page.
+- Extended the reusable `<apps-auth-panel>` itself with `variant` support so chosen designs can move into real apps without rebuilding authentication logic.
+- Kept all variants on the same Auth API and mock/real backend adapters; this is presentation/flow variation, not duplicated authentication implementations.
+- Moved SDK/migration/session/audit controls into a collapsible technical section so visual/product testing is the primary experience.
+- Published immutable `auth/releases/1.2.0/` SDK/UI files.
+
 ## 1.1.1 - 2026-10-02
 
 - Corrected event semantics when linking a legacy identity so linking does not masquerade as a new sign-in.
