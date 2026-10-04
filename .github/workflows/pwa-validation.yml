@@ -1,0 +1,97 @@
+name: Validate shared PWA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "pwa/**"
+      - "firebase-messaging-sw.js"
+      - "app-monitor.html"
+      - "app-monitor-notifications-client.js"
+      - "platform/v1/index.js"
+      - "shared-libraries.json"
+      - ".github/workflows/pwa-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: JavaScript syntax
+        run: |
+          node --check pwa/v1/index.js
+          node --check pwa/v1/ui.js
+          node --check pwa/v1/service-worker.js
+          node --check firebase-messaging-sw.js
+          node --check app-monitor-notifications-client.js
+          node --check platform/v1/index.js
+
+      - name: Validate manifests and assets
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          for(const file of ['pwa/v1/app-monitor.webmanifest','pwa/v1/lab.webmanifest']){
+            const m=JSON.parse(fs.readFileSync(file,'utf8'));
+            if(m.display!=='standalone')throw new Error(file+' must use display: standalone');
+            if(!m.start_url||!m.scope)throw new Error(file+' missing start_url/scope');
+            const sizes=new Set((m.icons||[]).map(x=>x.sizes));
+            if(!sizes.has('192x192')||!sizes.has('512x512'))throw new Error(file+' missing required icons');
+            for(const icon of m.icons||[]){
+              const local=icon.src.replace(/^\/Apps\//,'');
+              if(!fs.existsSync(local))throw new Error(file+' references missing icon '+local);
+            }
+          }
+          const registry=JSON.parse(fs.readFileSync('pwa/v1/registry.json','utf8'));
+          if(!registry.apps?.['app-monitor']||!registry.apps?.['pwa-lab'])throw new Error('PWA registry missing first consumers');
+          NODE
+
+      - name: Shared worker invariants
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const root=fs.readFileSync('firebase-messaging-sw.js','utf8');
+          if(!root.includes("importScripts('/Apps/pwa/v1/service-worker.js')"))throw new Error('Root worker does not compose shared PWA worker');
+          if(!root.includes('firebase-messaging-compat.js'))throw new Error('FCM support lost from combined worker');
+          const shared=fs.readFileSync('pwa/v1/service-worker.js','utf8');
+          for(const term of ["addEventListener('install'","addEventListener('activate'","addEventListener('fetch'"]){
+            if(!shared.includes(term))throw new Error('Shared PWA worker missing '+term);
+          }
+          NODE
+
+      - name: App Monitor adoption invariants
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('app-monitor.html','utf8');
+          for(const term of [
+            'rel="manifest" href="./pwa/v1/app-monitor.webmanifest"',
+            'apple-mobile-web-app-capable',
+            'appMonitorPwaRoot',
+            "import{initPWA,pwaStyles}from'./pwa/v1/index.js'"
+          ])if(!html.includes(term))throw new Error('App Monitor PWA integration missing '+term);
+          const client=fs.readFileSync('app-monitor-notifications-client.js','utf8');
+          if(!client.includes("import{pwaReadiness}from'./pwa/v1/index.js'"))throw new Error('Notifications do not consume PWA readiness');
+          if(!client.includes("pwa.ios&&!pwa.standalone"))throw new Error('iOS push is not gated by PWA installation');
+          if(!client.includes("visibleChannels:['in_app','web_push'"))throw new Error('App Monitor channel filtering missing');
+          if(client.includes("'ios_push'"))throw new Error('App Monitor should not expose native mobile push');
+          NODE
+
+      - name: Shared registration
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const platform=fs.readFileSync('platform/v1/index.js','utf8');
+          if(!platform.includes("pwa:{src:'pwa/v1/index.js',module:true}"))throw new Error('PWA missing from Apps Platform');
+          const libs=JSON.parse(fs.readFileSync('shared-libraries.json','utf8'));
+          const p=libs.libraries.find(x=>x.id==='pwa-v1');
+          if(!p||p.status!=='implemented')throw new Error('PWA missing from Shared Libraries');
+          if(p.installed?.['App Monitor']!=='installed'||p.installed?.['PWA Lab']!=='installed')throw new Error('PWA adoption registry incomplete');
+          NODE
