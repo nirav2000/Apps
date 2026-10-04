@@ -72,6 +72,27 @@ function showDeliverySetupPanel(root,channel,context={}){
   const location=document.createElement('div');location.innerHTML='<strong>Configure on</strong><span></span>';location.querySelector('span').textContent=worker+' via '+host;
   grid.append(provider,location);panel.appendChild(grid);
 
+  if(context.providerState?.approved===false){
+    const approval=document.createElement('div');
+    approval.className='apps-notification-setup-section';
+    const strong=document.createElement('strong');strong.textContent='Approval required';
+    const p=document.createElement('p');p.className='apps-notification-help';p.textContent='This is an external third-party service and is not approved for use yet. Review the provider, data flow, pricing/cost triggers and alternatives before adding credentials or enabling it.';
+    approval.append(strong,p);panel.appendChild(approval);
+  }
+  if((meta.publicSettings||[]).length){
+    const sec=document.createElement('div');sec.className='apps-notification-setup-section';
+    const h=document.createElement('strong');h.textContent='Public Firebase / browser settings';sec.appendChild(h);
+    const list=document.createElement('div');list.className='apps-notification-secret-list';
+    for(const name of meta.publicSettings){const code=document.createElement('code');code.textContent=name;list.appendChild(code)}
+    sec.appendChild(list);panel.appendChild(sec);
+  }
+  if((meta.optionalPublicSettings||[]).length){
+    const sec=document.createElement('div');sec.className='apps-notification-setup-section';
+    const h=document.createElement('strong');h.textContent='Optional public settings';sec.appendChild(h);
+    const list=document.createElement('div');list.className='apps-notification-secret-list';
+    for(const name of meta.optionalPublicSettings){const code=document.createElement('code');code.textContent=name;list.appendChild(code)}
+    sec.appendChild(list);panel.appendChild(sec);
+  }
   if((meta.secrets||[]).length){
     const sec=document.createElement('div');sec.className='apps-notification-setup-section';
     const h=document.createElement('strong');h.textContent='Required server-side settings';sec.appendChild(h);
@@ -146,8 +167,10 @@ export async function mountRecipientPreferences(root, {
   const channels = root.querySelector('[data-channels]');
   for (const [key, value] of Object.entries(state.channels)) {
     const providerState = key === 'in_app' ? readiness?.inApp?.status : readiness?.providers?.[key]?.status;
+    const providerInfo=readiness?.providers?.[key]||{};
     const setupRequired = respectReadiness && key !== 'in_app' && providerState !== 'ready';
-    const reason = value.lockedReason || (setupRequired ? 'Setup required before this delivery method can be used' : '');
+    const approvalRequired=providerState==='approval-required'||providerInfo.approved===false;
+    const reason = value.lockedReason || (approvalRequired ? 'Third-party provider approval required before this delivery method can be used' : (setupRequired ? 'Setup required before this delivery method can be used' : ''));
     channels.appendChild(row({
       label: LABELS[key] || key,
       checked: value.enabled && !setupRequired,
@@ -156,8 +179,8 @@ export async function mountRecipientPreferences(root, {
       extra: value.cost === 'metered' ? 'May incur usage charges' : '',
       key,
       kind: 'channel',
-      actionLabel: setupRequired ? 'Setup' : '',
-      onAction: setupRequired ? ()=>showDeliverySetupPanel(root,key,setupContext) : null
+      actionLabel: setupRequired ? (approvalRequired?'Review provider':'Setup') : '',
+      onAction: setupRequired ? ()=>showDeliverySetupPanel(root,key,{...setupContext,providerState:providerInfo}) : null
     }));
   }
 
