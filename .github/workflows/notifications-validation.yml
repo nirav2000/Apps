@@ -12,6 +12,8 @@ on:
       - "app-monitor-notifications.js"
       - "notifications/v1/INSTALLATION.md"
       - "NOTIFICATIONS_SETUP.md"
+      - "THIRD_PARTY_SERVICES.md"
+      - "firebase-messaging-sw.js"
       - "platform/v1/index.js"
       - "shared-libraries.json"
       - ".github/workflows/notifications-validation.yml"
