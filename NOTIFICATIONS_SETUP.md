@@ -70,3 +70,22 @@ After secrets are configured:
 5. verify the in-app record and external delivery result are both recorded.
 
 Do not treat a configured provider as proof that a recipient is reachable. Destination/subscription registration is a separate requirement.
+
+
+## Browser/PWA push registration
+
+Browser/PWA registration is implemented in `notifications/v1/push.js` using OneSignal Web SDK v16.
+
+Current consumers:
+- App Monitor uses external ID `apps-admin` and the scoped worker at `/Apps/onesignal/OneSignalSDKWorker.js`.
+- Snag uses external ID `snag:<firebase uid>` and the scoped worker at `/snag/onesignal/OneSignalSDKWorker.js`.
+
+Registration happens only after the user presses the enable-push control and grants permission. On iPhone/iPad, the UI explains that the web app must be added to the Home Screen before web push can be enabled.
+
+This means the remaining push setup is environmental/user consent, not missing application code:
+1. create/configure the OneSignal app;
+2. set `ONESIGNAL_APP_ID` and `ONESIGNAL_API_KEY` on the Apps Worker;
+3. deploy the Apps Worker;
+4. on each device, press the enable-push button once and grant permission.
+
+Native App Store iOS/iPadOS push is intentionally kept separate from browser/PWA push.
