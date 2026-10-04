@@ -192,8 +192,49 @@ async function appMonitorRoute(request,env,headers,url){
     const snapshot={version:1,date:body.date,app:String(body.app).slice(0,80),deviceId:body.deviceId,sessionId:body.sessionId,startedAt:String(body.startedAt||observedAt).slice(0,40),lastSeenAt:String(body.lastSeenAt||observedAt).slice(0,40),lastActiveAt:String(body.lastActiveAt||body.lastSeenAt||observedAt).slice(0,40),visibility:String(body.visibility||'unknown').slice(0,20),focused:body.focused===true,observedAt,activeMs:Math.max(0,Math.min(Number(body.activeMs)||0,24*60*60*1000)),pageViews:Math.max(1,Math.min(Number(body.pageViews)||1,10000)),path:String(body.path||'').slice(0,500),title:String(body.title||'').slice(0,200),referrer:String(body.referrer||'').slice(0,500),reason:String(body.reason||'').slice(0,40),identity,device,traffic,ip,ipHash:ip?await sha256(ip):'',geo:{country:String(cf.country||''),region:String(cf.region||''),city:String(cf.city||''),postalCode:String(cf.postalCode||''),timezone:String(cf.timezone||''),colo:String(cf.colo||''),asn:cf.asn||null}};
     const key='_app-monitor/v1/'+body.date+'/'+cleanKey(body.app)+'/'+body.sessionId+'.json';
     await env.APP_MONITOR_DATA.put(key,JSON.stringify(snapshot),{httpMetadata:{contentType:'application/json'}});
-    return Response.json({ok:true,observedAt},{headers});
+    const notification=await recordNewHumanIfNeeded(env,snapshot);
+    return Response.json({ok:true,observedAt,notification},{headers});
   }
+  if(url.pathname==='/app-monitor/notifications/settings'&&request.method==='GET'){
+    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
+    return Response.json({ok:true,settings:await appMonitorNotificationSettings(env)},{headers});
+  }
+  if(url.pathname==='/app-monitor/notifications/settings'&&request.method==='POST'){
+    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
+    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
+    const current=await appMonitorNotificationSettings(env),settings={
+      version:1,
+      enabled:body.enabled===true,
+      ownerDeviceIds:Array.isArray(body.ownerDeviceIds)?body.ownerDeviceIds.slice(0,50).map(x=>String(x).slice(0,120)):current.ownerDeviceIds||[],
+      ownerAuthIds:Array.isArray(body.ownerAuthIds)?body.ownerAuthIds.slice(0,50).map(x=>String(x).slice(0,220)):current.ownerAuthIds||[],
+      ownerPeople:Array.isArray(body.ownerPeople)?body.ownerPeople.slice(0,50).map(x=>String(x).slice(0,120)):current.ownerPeople||[],
+      events:{...current.events,...(body.events&&typeof body.events==='object'?body.events:{})},
+      channels:{...current.channels,...(body.channels&&typeof body.channels==='object'?body.channels:{})},
+      updatedAt:new Date().toISOString()
+    };
+    await putJSON(env,APP_MONITOR_NOTIFICATIONS+'settings.json',settings);
+    return Response.json({ok:true,settings},{headers});
+  }
+  if(url.pathname==='/app-monitor/notifications'&&request.method==='GET'){
+    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
+    const limit=Math.max(1,Math.min(200,Number(url.searchParams.get('limit'))||50));
+    const items=(await listJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/',limit)).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+    return Response.json({ok:true,items,unread:items.filter(x=>x.unread!==false).length},{headers});
+  }
+  if(url.pathname==='/app-monitor/notifications/read'&&request.method==='POST'){
+    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
+    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
+    if(body.all===true){
+      const items=await listJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/',200);
+      for(const item of items){if(!item.id)continue;item.unread=false;item.readAt=new Date().toISOString();await putJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/'+cleanKey(item.id)+'.json',item)}
+      return Response.json({ok:true,all:true},{headers});
+    }
+    const id=cleanKey(body.id||'');if(!id)return new Response('id required',{status:400,headers});
+    const key=APP_MONITOR_NOTIFICATIONS+'inbox/'+id+'.json',item=await getJSON(env,key);if(!item)return new Response('Not found',{status:404,headers});
+    item.unread=false;item.readAt=new Date().toISOString();await putJSON(env,key,item);
+    return Response.json({ok:true,item},{headers});
+  }
+
   if(url.pathname==='/app-monitor/security/status'&&request.method==='GET'){
     const passkeys=await appMonitorPasskeys(env),recovery=await getJSON(env,APP_MONITOR_SECURITY+'recovery.json');
     return Response.json({ok:true,passkeyCount:passkeys.length,bootstrapNeeded:passkeys.length===0,recoveryConfigured:!!recovery,recoveryNeedsRotation:!!recovery?.migratedFromLegacy,sessionHours:APP_MONITOR_SESSION_MS/3600000},{headers});
