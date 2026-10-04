@@ -42,30 +42,32 @@ function setting(map, key, fallback = true) {
   return Object.prototype.hasOwnProperty.call(map || {}, key) ? map[key] !== false : fallback;
 }
 
+function ownerPolicyValue(globalMap, roleMap, userMap, key, fallback) {
+  if (userMap && Object.prototype.hasOwnProperty.call(userMap,key)) return userMap[key] !== false;
+  if (roleMap && Object.prototype.hasOwnProperty.call(roleMap,key)) return roleMap[key] !== false;
+  return setting(globalMap,key,fallback);
+}
+
 export function channelAllowed(policy, { userId, role, channel }) {
   const p = normaliseOwnerPolicy(policy);
-  if (!setting(p.allowedChannels, channel, channel === 'in_app')) return false;
-
-  const roleMap = p.roleChannels?.[role];
-  if (roleMap && !setting(roleMap, channel, true)) return false;
-
-  const userMap = p.userChannels?.[userId];
-  if (userMap && !setting(userMap, channel, true)) return false;
-
-  return true;
+  return ownerPolicyValue(
+    p.allowedChannels,
+    p.roleChannels?.[role],
+    p.userChannels?.[userId],
+    channel,
+    channel === 'in_app'
+  );
 }
 
 export function eventAllowed(policy, { userId, role, eventType }) {
   const p = normaliseOwnerPolicy(policy);
-  if (!setting(p.allowedEvents, eventType, true)) return false;
-
-  const roleMap = p.roleEvents?.[role];
-  if (roleMap && !setting(roleMap, eventType, true)) return false;
-
-  const userMap = p.userEvents?.[userId];
-  if (userMap && !setting(userMap, eventType, true)) return false;
-
-  return true;
+  return ownerPolicyValue(
+    p.allowedEvents,
+    p.roleEvents?.[role],
+    p.userEvents?.[userId],
+    eventType,
+    true
+  );
 }
 
 export function effectivePreferences({ policy, preferences, userId, role, eventTypes = [] }) {
