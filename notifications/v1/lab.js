@@ -132,8 +132,7 @@ async function renderPersona(){
 
   const isController=policy.policyOwnerId===user.userId;
   $('controllerCard').classList.toggle('hidden',!isController);
-  $('roleAccessCard').classList.toggle('hidden',!isController);
-  $('memberAccessCard').classList.toggle('hidden',!isController);
+  $('advancedAccessCard').classList.toggle('hidden',!isController);
   if(isController){
     const policyRoot=fresh('policyDefaults');
     await mountPolicyDefaults(policyRoot,{client,scopeId,eventTypes:events});
