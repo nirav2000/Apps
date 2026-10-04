@@ -269,6 +269,12 @@ async function appMonitorRoute(request,env,headers,url){
     const items=(await listJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/',limit)).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
     return Response.json({ok:true,items,unread:items.filter(x=>x.unread!==false).length},{headers});
   }
+  if(url.pathname==='/app-monitor/notifications/deliveries'&&request.method==='GET'){
+    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
+    const limit=Math.max(1,Math.min(200,Number(url.searchParams.get('limit'))||50));
+    const items=(await listJSON(env,APP_MONITOR_NOTIFICATIONS+'deliveries/',limit)).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+    return Response.json({ok:true,items},{headers});
+  }
   if(url.pathname==='/app-monitor/notifications/read'&&request.method==='POST'){
     if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
     let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
