@@ -156,9 +156,10 @@
       "created": "2026-10-04",
       "purpose": "App-independent notification event, policy, recipient-preference, delivery-method and reusable UI capability with role/user overrides, cost governance, push registration and provider adapters.",
       "installed": {
-        "Notifications Lab": "installed"
+        "Notifications Lab": "installed",
+        "App Monitor": "installed"
       },
-      "notes": "First consumer is the standalone Notifications Lab. No production app is currently installed. Roles and event names are supplied by consuming apps; the shared module contains no production-app business logic. Adoption should require only a thin transport/event adapter after the Lab is accepted."
+      "notes": "Notifications v1.1 is installed in the standalone Lab and App Monitor. App Monitor uses the shared R2 production transport, shared preference/inbox/destination UI, provider readiness and a thin app-specific adapter for security.new_human detection. Snag is not installed."
     },
     {
       "id": "platform",
