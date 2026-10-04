@@ -43,11 +43,31 @@ Depending on the providers selected:
 ### Signal bridge
 - `SIGNAL_WEBHOOK_URL`
 
-### Browser / native push
-- `ONESIGNAL_APP_ID`
-- `ONESIGNAL_API_KEY`
+### Browser push — Firebase Cloud Messaging (FCM)
 
-The browser-push client lives in `notifications/v1/push.js` and the scoped worker lives in `notifications/v1/onesignal/`.
+Private/trusted backend credentials:
+- `FCM_CLIENT_EMAIL`
+- `FCM_PRIVATE_KEY`
+
+Public Firebase web configuration (stored in the credential host for deployment convenience, but safe to expose to the browser):
+- `FCM_PROJECT_ID`
+- `FCM_WEB_API_KEY`
+- `FCM_WEB_APP_ID`
+- `FCM_MESSAGING_SENDER_ID`
+- `FCM_VAPID_KEY`
+- optional `FCM_AUTH_DOMAIN`
+
+The browser-push client lives in `notifications/v1/push.js` and uses the shared `/Apps/firebase-messaging-sw.js` service worker.
+
+FCM is the approved/default push provider. OneSignal is not active and requires explicit approval before any future reintroduction.
+
+## Third-party approval
+
+External providers are not activated merely because adapter code exists. See `THIRD_PARTY_SERVICES.md`.
+
+- FCM: approved for browser push.
+- Resend, Twilio, Telegram, Slack, Discord and Signal: not approved/not active.
+- OneSignal: not approved/not active and removed from the default runtime.
 
 ## Security rules
 
@@ -86,7 +106,7 @@ Provider secret values are never committed to either repository.
 ### How to enable a delivery method
 
 1. Open the provider's account/setup page from the **Setup** button in App Monitor.
-2. Create/configure the provider resource (for example a Resend API key or OneSignal app).
+2. For an approved provider, create/configure the provider resource. If the UI says **Approval required**, do not create an account or credentials until the provider has been explicitly reviewed and approved.
 3. Open **Snag → Settings → Secrets and variables → Actions**.
 4. Add the exact secret names shown by the App Monitor setup panel.
 5. The delegated `deploy-shared-app-monitor.yml` workflow synchronises any configured provider secrets into the `apps-monitor-api` Cloudflare Worker.
@@ -97,11 +117,21 @@ Provider secret values are never committed to either repository.
 
 ### Provider secret names
 
-#### Browser/native push — OneSignal
-- `ONESIGNAL_APP_ID`
-- `ONESIGNAL_API_KEY`
+#### Browser push — Firebase Cloud Messaging (FCM)
 
-The recipient must also grant push permission on each browser/device.
+Trusted backend:
+- `FCM_CLIENT_EMAIL`
+- `FCM_PRIVATE_KEY`
+
+Public web configuration:
+- `FCM_PROJECT_ID`
+- `FCM_WEB_API_KEY`
+- `FCM_WEB_APP_ID`
+- `FCM_MESSAGING_SENDER_ID`
+- `FCM_VAPID_KEY`
+- optional `FCM_AUTH_DOMAIN`
+
+The recipient must grant push permission on each browser/device. The client registers a Firebase Installation ID (FID), which App Monitor stores as the push delivery target.
 
 #### Email — Resend
 - `RESEND_API_KEY`
