@@ -77,6 +77,26 @@ export function createMemoryTransport({
     async deliveryLog(scopeId='default',{limit=100}={}){
       return clone(state.deliveries.filter(x=>x.scopeId===String(scopeId||'default')).slice(0,limit));
     },
+    async readiness(scopeId='default'){
+      return {
+        version:1,
+        scopeId:String(scopeId||'default'),
+        core:{status:'ready',detail:'Shared Notifications client and policy engine loaded'},
+        inApp:{status:'ready',detail:'Lab in-app inbox uses browser-local test storage'},
+        production:{status:'not-installed',detail:'Memory transport is for the Notifications Lab only'},
+        providers:{
+          web_push:{status:'setup-required'},
+          email:{status:'setup-required'},
+          telegram:{status:'setup-required'},
+          whatsapp:{status:'setup-required'},
+          signal:{status:'setup-required'},
+          slack:{status:'setup-required'},
+          discord:{status:'setup-required'},
+          sms:{status:'setup-required'},
+          ios_push:{status:'setup-required'}
+        }
+      };
+    },
     async emit(event){
       const scopeId=String(event.scopeId||'default'),policy=scopePolicy(scopeId),results=[];
       for(const recipient of event.recipients||[]){
