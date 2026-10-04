@@ -4,48 +4,59 @@ import assert from 'node:assert/strict';
 const source=fs.readFileSync(new URL('./policy.js',import.meta.url),'utf8');
 const policy=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 
-const base=policy.normaliseOwnerPolicy({
-  ownerId:'homeowner',
+const base=policy.normalisePolicy({
+  policyOwnerId:'owner-1',
+  costBearerId:'owner-1',
   allowedChannels:{in_app:true,email:false,sms:false},
-  allowedEvents:{'snag.created':true,'snag.updated':true}
+  allowedEvents:{'record.created':true,'record.updated':true}
 });
 
-assert.equal(policy.channelAllowed(base,{userId:'homeowner',role:'owner',channel:'sms'}),true,'owner must be able to opt into a paid channel for themselves');
-assert.equal(policy.eventAllowed(base,{userId:'homeowner',role:'owner',eventType:'snag.created'}),true,'owner must not be constrained by the recipient ceiling');
+assert.equal(policy.channelAllowed(base,{userId:'owner-1',role:'owner',channel:'sms'}),true,'policy owner must be able to choose their own delivery method');
+assert.equal(policy.channelAllowed(base,{userId:'member-a',role:'member',channel:'sms'}),false,'scope default must block SMS for ordinary members');
 
-assert.equal(policy.channelAllowed(base,{userId:'builder-a',role:'contractor',channel:'sms'}),false,'project default must block SMS');
 assert.equal(
-  policy.effectivePreferences({policy:base,preferences:{channels:{sms:true}},userId:'builder-a',role:'contractor',eventTypes:[]}).channels.sms.enabled,
+  policy.effectivePreferences({
+    policy:base,
+    preferences:{channels:{sms:true}},
+    userId:'member-a',
+    role:'member',
+    eventTypes:[]
+  }).channels.sms.enabled,
   false,
-  'recipient preference must not bypass owner policy'
+  'recipient preference must not bypass notification policy'
 );
 
-const userOverride=policy.normaliseOwnerPolicy({
+const userOverride=policy.normalisePolicy({
   ...base,
-  userChannels:{'builder-a':{email:true,sms:true}}
+  userChannels:{'member-a':{email:true,sms:true}}
 });
-assert.equal(policy.channelAllowed(userOverride,{userId:'builder-a',role:'contractor',channel:'email'}),true,'owner must be able to grant email to one member');
-assert.equal(policy.channelAllowed(userOverride,{userId:'builder-b',role:'contractor',channel:'email'}),false,'grant must not leak to another member');
+assert.equal(policy.channelAllowed(userOverride,{userId:'member-a',role:'member',channel:'email'}),true,'individual grant must override scope default');
+assert.equal(policy.channelAllowed(userOverride,{userId:'member-b',role:'member',channel:'email'}),false,'individual grant must not leak to another user');
 
-const roleOverride=policy.normaliseOwnerPolicy({
+const roleOverride=policy.normalisePolicy({
   ...base,
-  roleChannels:{contractor:{email:true}},
-  userChannels:{'builder-a':{email:false}}
+  roleChannels:{admin:{email:true}},
+  userChannels:{'admin-a':{email:false}}
 });
-assert.equal(policy.channelAllowed(roleOverride,{userId:'builder-b',role:'contractor',channel:'email'}),true,'role grant should apply');
-assert.equal(policy.channelAllowed(roleOverride,{userId:'builder-a',role:'contractor',channel:'email'}),false,'specific user denial must beat role grant');
+assert.equal(policy.channelAllowed(roleOverride,{userId:'admin-b',role:'admin',channel:'email'}),true,'role grant should apply');
+assert.equal(policy.channelAllowed(roleOverride,{userId:'admin-a',role:'admin',channel:'email'}),false,'individual denial must beat role grant');
 
-const mandatory=policy.normaliseOwnerPolicy({
+const mandatory=policy.normalisePolicy({
   ...base,
-  mandatoryEvents:{'snag.updated':true}
+  mandatoryEvents:{'record.updated':true}
 });
 const effective=policy.effectivePreferences({
   policy:mandatory,
-  preferences:{events:{'snag.updated':false}},
-  userId:'builder-a',
-  role:'contractor',
-  eventTypes:['snag.updated']
+  preferences:{events:{'record.updated':false}},
+  userId:'member-a',
+  role:'member',
+  eventTypes:['record.updated']
 });
-assert.equal(effective.events['snag.updated'].enabled,true,'mandatory owner event must remain enabled');
+assert.equal(effective.events['record.updated'].enabled,true,'mandatory event must remain enabled');
 
-console.log('Notifications owner-policy tests passed');
+assert.equal(policy.channelAllowed(
+  policy.normalisePolicy({...base,roleChannels:{external:{web_push:true}}}),
+  {userId:'external-a',role:'external',channel:'web_push'}
+),true,'role names must be arbitrary and app-defined');
+
+console.log('Notifications generic policy tests passed');
