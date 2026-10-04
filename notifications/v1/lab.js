@@ -184,6 +184,24 @@ async function sendEvent(){
   await renderDeliveryLog();
 }
 
+async function renderReadinessOverview(){
+  const ready=await client.readiness(scopeId);
+  setReadinessResult('module',ready.core?.status==='ready'?'Loaded':'Problem',ready.core?.status==='ready'?'ok':'fail');
+  setReadinessResult('policy','Ready','ok');
+  const production=document.querySelector('.readiness-item strong[data-readiness="production"]');
+  if(production){
+    production.textContent=ready.production?.status==='ready'?'Installed':'Not installed yet';
+    production.dataset.state=ready.production?.status==='ready'?'ok':'warn';
+  }
+  const providers=document.querySelector('.readiness-item strong[data-readiness="providers"]');
+  if(providers){
+    const statuses=Object.values(ready.providers||{}).map(x=>x.status);
+    const allReady=statuses.length>0&&statuses.every(x=>x==='ready');
+    providers.textContent=allReady?'Ready':'Provider setup required';
+    providers.dataset.state=allReady?'ok':'warn';
+  }
+}
+
 async function runReadinessTest(){
   $('previewReadinessPill').textContent='Testing…';
   $('previewReadinessPill').className='service-state setup';
@@ -270,6 +288,7 @@ $('resetLab').addEventListener('click',()=>{
 async function init(){
   await seed();
   populateStaticControls();
+  await renderReadinessOverview();
   await rerender();
 }
 init().catch(error=>{
