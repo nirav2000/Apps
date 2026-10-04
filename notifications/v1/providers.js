@@ -64,21 +64,21 @@ export async function deliverNotification(env, channel, notification, destinatio
   }
 
   if (channel === 'slack') {
-    const url = destination.slackWebhookUrl || env.SLACK_WEBHOOK_URL;
+    const url = env.SLACK_WEBHOOK_URL;
     if (!url) return { ok:false, channel, error:'missing-webhook' };
     return { ...(await postJSON(url,{ text })), channel };
   }
 
   if (channel === 'discord') {
-    const url = destination.discordWebhookUrl || env.DISCORD_WEBHOOK_URL;
+    const url = env.DISCORD_WEBHOOK_URL;
     if (!url) return { ok:false, channel, error:'missing-webhook' };
     return { ...(await postJSON(url,{ content:text })), channel };
   }
 
   if (channel === 'signal') {
-    const url = destination.signalWebhookUrl || env.SIGNAL_WEBHOOK_URL;
+    const url = env.SIGNAL_WEBHOOK_URL;
     if (!url) return { ok:false, channel, error:'missing-webhook' };
-    return { ...(await postJSON(url,{ text, notification })), channel };
+    return { ...(await postJSON(url,{ text, notification, recipient:destination.signalRecipient||destination.phone||'' })), channel };
   }
 
   if (channel === 'sms') {
