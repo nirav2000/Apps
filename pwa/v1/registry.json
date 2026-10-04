@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "apps": {
+    "app-monitor": {
+      "name": "App Monitor",
+      "short_name": "App Monitor",
+      "start_url": "/Apps/app-monitor.html",
+      "scope": "/Apps/",
+      "display": "standalone",
+      "background_color": "#f4f7f9",
+      "theme_color": "#102033",
+      "description": "Private monitoring dashboard for the Apps portfolio.",
+      "icons": [
+        {
+          "src": "/Apps/pwa/icons/app-monitor-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "src": "/Apps/pwa/icons/app-monitor-512.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    },
+    "pwa-lab": {
+      "name": "Apps PWA Lab",
+      "short_name": "PWA Lab",
+      "start_url": "/Apps/pwa/v1/lab.html",
+      "scope": "/Apps/",
+      "display": "standalone",
+      "background_color": "#f4f7f9",
+      "theme_color": "#102033",
+      "description": "Shared PWA capability test environment.",
+      "icons": [
+        {
+          "src": "/Apps/pwa/icons/app-monitor-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "src": "/Apps/pwa/icons/app-monitor-512.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    }
+  }
+}
