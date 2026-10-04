@@ -1,10 +1,22 @@
-import { CHANNELS, effectivePreferences } from './policy.js';
+import { CHANNELS, effectivePreferences, normalisePolicy, normalisePreferences } from './policy.js';
 
 const LABELS = Object.fromEntries(Object.values(CHANNELS).map(x => [x.id, x.label]));
 
-function row(label, checked, disabled, reason, key, kind) {
+function row({label,checked=false,disabled=false,reason='',key,kind,extra=''}) {
   const wrapper = document.createElement('label');
   wrapper.className = 'apps-notification-row';
+
+  const text = document.createElement('span');
+  const strong = document.createElement('strong');
+  strong.textContent = label;
+  text.appendChild(strong);
+
+  if (reason || extra) {
+    const small = document.createElement('small');
+    small.textContent = [reason,extra].filter(Boolean).join(' · ');
+    text.appendChild(document.createElement('br'));
+    text.appendChild(small);
+  }
 
   const box = document.createElement('input');
   box.type = 'checkbox';
@@ -13,19 +25,7 @@ function row(label, checked, disabled, reason, key, kind) {
   box.dataset.kind = kind;
   box.dataset.key = key;
 
-  const text = document.createElement('span');
-  const strong = document.createElement('strong');
-  strong.textContent = label;
-  text.appendChild(strong);
-
-  if (reason) {
-    const small = document.createElement('small');
-    small.textContent = reason;
-    text.appendChild(document.createElement('br'));
-    text.appendChild(small);
-  }
-
-  wrapper.append(box, text);
+  wrapper.append(text, box);
   return wrapper;
 }
 
@@ -49,30 +49,30 @@ export function createNotificationBell({ count = 0, label = 'Notifications' } = 
 
 export async function mountRecipientPreferences(root, {
   client,
-  projectId,
+  scopeId = 'default',
   userId,
-  role,
+  role = 'member',
   eventTypes = []
 } = {}) {
   const [policy, preferences] = await Promise.all([
-    client.policy(projectId),
-    client.preferences(projectId, userId)
+    client.policy(scopeId),
+    client.preferences(scopeId, userId)
   ]);
+  const state = effectivePreferences({ policy, preferences, userId, role, eventTypes });
 
-  let state = effectivePreferences({ policy, preferences, userId, role, eventTypes });
-
-  root.innerHTML = '<section class="apps-notification-preferences"><h2>Notifications</h2><p>Choose how you want to hear about changes.</p><div data-channels></div><h3>What to notify me about</h3><div data-events></div><div data-status role="status"></div></section>';
+  root.innerHTML = '<section class="apps-notification-preferences"><h2>My notifications</h2><p class="apps-notification-help">Choose where notifications are delivered and which events you want to receive. Options disabled by policy cannot be changed here.</p><h3>Delivery methods</h3><p class="apps-notification-help">Where should notifications be sent?</p><div data-channels></div><h3>Notification events</h3><p class="apps-notification-help">Which changes should trigger a notification?</p><div data-events></div><div data-status role="status"></div></section>';
 
   const channels = root.querySelector('[data-channels]');
   for (const [key, value] of Object.entries(state.channels)) {
-    channels.appendChild(row(
-      LABELS[key] || key,
-      value.enabled,
-      !value.allowed,
-      value.lockedReason,
+    channels.appendChild(row({
+      label: LABELS[key] || key,
+      checked: value.enabled,
+      disabled: !value.allowed || key === 'in_app',
+      reason: value.lockedReason,
+      extra: value.cost === 'metered' ? 'May incur usage charges' : '',
       key,
-      'channel'
-    ));
+      kind: 'channel'
+    }));
   }
 
   const events = root.querySelector('[data-events]');
@@ -80,98 +80,184 @@ export async function mountRecipientPreferences(root, {
     const key = typeof item === 'string' ? item : item.id;
     const label = typeof item === 'string' ? item : (item.label || item.id);
     const value = state.events[key];
-    events.appendChild(row(
+    events.appendChild(row({
       label,
-      value?.enabled,
-      !value?.allowed || value?.mandatory,
-      value?.mandatory ? 'Required by the app owner' : value?.lockedReason,
+      checked: value?.enabled,
+      disabled: !value?.allowed || value?.mandatory,
+      reason: value?.mandatory ? 'Required by notification policy' : value?.lockedReason,
       key,
-      'event'
-    ));
+      kind: 'event'
+    }));
   }
 
   root.addEventListener('change', async event => {
     const target = event.target;
-    const preferences = await client.preferences(projectId, userId);
+    const next = normalisePreferences(await client.preferences(scopeId, userId));
 
     if (target.dataset.kind === 'channel') {
-      preferences.channels = preferences.channels || {};
-      preferences.channels[target.dataset.key] = target.checked;
+      next.channels[target.dataset.key] = target.checked;
     }
     if (target.dataset.kind === 'event') {
-      preferences.events = preferences.events || {};
-      preferences.events[target.dataset.key] = target.checked;
+      next.events[target.dataset.key] = target.checked;
     }
 
-    await client.savePreferences(projectId, userId, preferences);
-    root.querySelector('[data-status]').textContent = 'Saved';
+    await client.savePreferences(scopeId, userId, next);
+    root.querySelector('[data-status]').textContent = 'Preferences saved';
   });
 
   return { policy, preferences, effective: state };
 }
 
-export async function mountOwnerPolicy(root, {
+export async function mountPolicyDefaults(root, {
   client,
-  projectId,
-  members = [],
+  scopeId = 'default',
   eventTypes = []
 } = {}) {
-  const policy = await client.policy(projectId);
+  const policy = normalisePolicy(await client.policy(scopeId));
 
-  root.innerHTML = '<section class="apps-notification-owner"><h2>Notification access</h2><p>Choose which notifications and channels people on this app may use.</p><div data-owner-channels></div><div data-members></div><div data-status role="status"></div></section>';
+  root.innerHTML = '<section class="apps-notification-policy"><h2>Notification permissions</h2><p class="apps-notification-help">Set the default maximum permissions for people in this scope. Role and individual overrides can narrow or expand these defaults.</p><h3>Delivery methods available by default</h3><div data-policy-channels></div><h3>Notification events available by default</h3><div data-policy-events></div><div data-status role="status"></div></section>';
 
-  const channelRoot = root.querySelector('[data-owner-channels]');
+  const channelRoot = root.querySelector('[data-policy-channels]');
   for (const [key, meta] of Object.entries(CHANNELS)) {
-    const costText = meta.cost === 'metered' ? 'May incur usage charges' : '';
-    channelRoot.appendChild(row(
-      meta.label,
-      policy.allowedChannels?.[key] !== false,
-      key === 'in_app',
-      costText,
+    channelRoot.appendChild(row({
+      label: meta.label,
+      checked: policy.allowedChannels?.[key] !== false,
+      disabled: key === 'in_app',
+      extra: meta.cost === 'metered' ? 'May incur usage charges' : '',
       key,
-      'owner-channel'
-    ));
+      kind: 'policy-channel'
+    }));
   }
 
-  const membersRoot = root.querySelector('[data-members]');
-  for (const member of members) {
-    const section = document.createElement('section');
-    section.className = 'apps-notification-member';
-    const heading = document.createElement('h3');
-    heading.textContent = member.name || member.userId || 'User';
-    section.appendChild(heading);
-
-    for (const item of eventTypes) {
-      const key = typeof item === 'string' ? item : item.id;
-      const label = typeof item === 'string' ? item : (item.label || item.id);
-      const enabled = policy.userEvents?.[member.userId]?.[key] !== false;
-      const control = row(label, enabled, false, '', key, 'member-event');
-      control.querySelector('input').dataset.userId = member.userId;
-      section.appendChild(control);
-    }
-
-    membersRoot.appendChild(section);
+  const eventRoot = root.querySelector('[data-policy-events]');
+  for (const item of eventTypes) {
+    const key = typeof item === 'string' ? item : item.id;
+    const label = typeof item === 'string' ? item : (item.label || item.id);
+    eventRoot.appendChild(row({
+      label,
+      checked: policy.allowedEvents?.[key] !== false,
+      key,
+      kind: 'policy-event'
+    }));
   }
 
   root.addEventListener('change', async event => {
     const target = event.target;
-    if (target.dataset.kind === 'owner-channel') {
-      policy.allowedChannels = policy.allowedChannels || {};
-      policy.allowedChannels[target.dataset.key] = target.checked;
-    }
-    if (target.dataset.kind === 'member-event') {
-      policy.userEvents = policy.userEvents || {};
-      policy.userEvents[target.dataset.userId] = policy.userEvents[target.dataset.userId] || {};
-      policy.userEvents[target.dataset.userId][target.dataset.key] = target.checked;
-    }
-
-    await client.savePolicy(projectId, policy);
-    root.querySelector('[data-status]').textContent = 'Saved';
+    if (target.dataset.kind === 'policy-channel') policy.allowedChannels[target.dataset.key] = target.checked;
+    if (target.dataset.kind === 'policy-event') policy.allowedEvents[target.dataset.key] = target.checked;
+    await client.savePolicy(scopeId, policy);
+    root.querySelector('[data-status]').textContent = 'Notification policy saved';
   });
 
   return policy;
 }
 
+export async function mountMemberNotificationSettings(root, {
+  client,
+  scopeId = 'default',
+  member,
+  eventTypes = []
+} = {}) {
+  if (!member?.userId) throw new Error('member.userId is required');
+
+  const [rawPolicy, rawPreferences] = await Promise.all([
+    client.policy(scopeId),
+    client.preferences(scopeId, member.userId)
+  ]);
+  const policy = normalisePolicy(rawPolicy);
+  const preferences = normalisePreferences(rawPreferences);
+  const effective = effectivePreferences({
+    policy,
+    preferences,
+    userId: member.userId,
+    role: member.role || 'member',
+    eventTypes
+  });
+
+  root.innerHTML = '<section class="apps-notification-member-editor"><h2>Member notification access</h2><p class="apps-notification-help">For this member, “Allow” controls the maximum permission. “Receive” controls their current preference. A member may change Receive only while Allow remains enabled.</p><h3>Delivery methods</h3><div data-member-channels></div><h3>Notification events</h3><div data-member-events></div><div data-status role="status"></div></section>';
+
+  const channels = root.querySelector('[data-member-channels]');
+  for (const [key, meta] of Object.entries(CHANNELS)) {
+    const current = effective.channels[key];
+    const group = document.createElement('div');
+    group.className = 'apps-notification-dual-row';
+    group.innerHTML = '<div><strong></strong><small></small></div><label>Allow <input type="checkbox" data-allow-channel></label><label>Receive <input type="checkbox" data-receive-channel></label>';
+    group.querySelector('strong').textContent = meta.label;
+    group.querySelector('small').textContent = meta.cost === 'metered' ? 'May incur usage charges' : '';
+    const allow = group.querySelector('[data-allow-channel]');
+    const receive = group.querySelector('[data-receive-channel]');
+    allow.dataset.key = key;
+    receive.dataset.key = key;
+    allow.checked = current.allowed;
+    allow.disabled = key === 'in_app';
+    receive.checked = current.enabled;
+    receive.disabled = !current.allowed || key === 'in_app';
+    channels.appendChild(group);
+  }
+
+  const events = root.querySelector('[data-member-events]');
+  for (const item of eventTypes) {
+    const key = typeof item === 'string' ? item : item.id;
+    const label = typeof item === 'string' ? item : (item.label || item.id);
+    const current = effective.events[key];
+    const group = document.createElement('div');
+    group.className = 'apps-notification-dual-row';
+    group.innerHTML = '<div><strong></strong><small></small></div><label>Allow <input type="checkbox" data-allow-event></label><label>Receive <input type="checkbox" data-receive-event></label>';
+    group.querySelector('strong').textContent = label;
+    group.querySelector('small').textContent = current.mandatory ? 'Required by policy' : '';
+    const allow = group.querySelector('[data-allow-event]');
+    const receive = group.querySelector('[data-receive-event]');
+    allow.dataset.key = key;
+    receive.dataset.key = key;
+    allow.checked = current.allowed;
+    receive.checked = current.enabled;
+    receive.disabled = !current.allowed || current.mandatory;
+    events.appendChild(group);
+  }
+
+  root.addEventListener('change', async event => {
+    const target = event.target;
+    const key = target.dataset.key;
+    if (!key) return;
+
+    policy.userChannels[member.userId] = policy.userChannels[member.userId] || {};
+    policy.userEvents[member.userId] = policy.userEvents[member.userId] || {};
+
+    if (target.matches('[data-allow-channel]')) {
+      policy.userChannels[member.userId][key] = target.checked;
+      const receive = root.querySelector('[data-receive-channel][data-key="'+CSS.escape(key)+'"]');
+      if (receive) {
+        receive.disabled = !target.checked || key === 'in_app';
+        if (!target.checked) receive.checked = false;
+      }
+      await client.savePolicy(scopeId, policy);
+    }
+    if (target.matches('[data-allow-event]')) {
+      policy.userEvents[member.userId][key] = target.checked;
+      const receive = root.querySelector('[data-receive-event][data-key="'+CSS.escape(key)+'"]');
+      if (receive) {
+        receive.disabled = !target.checked;
+        if (!target.checked) receive.checked = false;
+      }
+      await client.savePolicy(scopeId, policy);
+    }
+    if (target.matches('[data-receive-channel]')) {
+      preferences.channels[key] = target.checked;
+      await client.savePreferences(scopeId, member.userId, preferences);
+    }
+    if (target.matches('[data-receive-event]')) {
+      preferences.events[key] = target.checked;
+      await client.savePreferences(scopeId, member.userId, preferences);
+    }
+
+    root.querySelector('[data-status]').textContent = 'Member notification settings saved';
+  });
+
+  return { policy, preferences, effective };
+}
+
+export const mountOwnerPolicy = mountPolicyDefaults;
+
 export function notificationStyles() {
-  return '.apps-notification-bell{position:relative;border:1px solid #d6dde5;background:#fff;border-radius:12px;padding:8px 10px;font:inherit}.apps-notification-count{position:absolute;right:-5px;top:-6px;min-width:18px;height:18px;border-radius:999px;background:#b42318;color:#fff;font-size:11px;line-height:18px}.apps-notification-row{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;margin:8px 0;border:1px solid #e1e7ec;border-radius:12px;background:#fff}.apps-notification-row small{color:#667085}.apps-notification-member{padding:12px;border:1px solid #e1e7ec;border-radius:14px;margin:10px 0}[data-status]{min-height:20px;color:#08783e}';
+  return '.apps-notification-bell{position:relative;border:1px solid #d6dde5;background:#fff;border-radius:12px;padding:8px 10px;font:inherit}.apps-notification-count{position:absolute;right:-5px;top:-6px;min-width:18px;height:18px;border-radius:999px;background:#b42318;color:#fff;font-size:11px;line-height:18px}.apps-notification-help{color:#667085}.apps-notification-row,.apps-notification-dual-row{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:11px 12px;margin:8px 0;border:1px solid #e1e7ec;border-radius:12px;background:#fff}.apps-notification-row small,.apps-notification-dual-row small{display:block;color:#667085;margin-top:3px}.apps-notification-dual-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto}.apps-notification-dual-row label{display:flex;gap:6px;align-items:center;font-size:13px}[data-status]{min-height:20px;color:#08783e}';
 }
