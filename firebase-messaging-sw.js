@@ -1,3 +1,14 @@
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  const url=event.notification?.data?.FCM_MSG?.data?.url||event.notification?.data?.url||'/Apps/app-monitor.html';
+  event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{
+    for(const client of list){
+      if('focus' in client&&client.url.includes('/Apps/')){client.navigate(url);return client.focus()}
+    }
+    if(clients.openWindow)return clients.openWindow(url);
+  }));
+});
+
 importScripts('https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging-compat.js');
 
@@ -14,14 +25,3 @@ if(config.apiKey&&config.projectId&&config.appId){
   firebase.initializeApp(config);
   firebase.messaging();
 }
-
-self.addEventListener('notificationclick',event=>{
-  event.notification.close();
-  const url=event.notification?.data?.FCM_MSG?.data?.url||event.notification?.data?.url||'/Apps/app-monitor.html';
-  event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{
-    for(const client of list){
-      if('focus' in client&&client.url.includes('/Apps/')){client.navigate(url);return client.focus()}
-    }
-    if(clients.openWindow)return clients.openWindow(url);
-  }));
-});
