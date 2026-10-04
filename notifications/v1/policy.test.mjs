@@ -10,6 +10,9 @@ const base=policy.normaliseOwnerPolicy({
   allowedEvents:{'snag.created':true,'snag.updated':true}
 });
 
+assert.equal(policy.channelAllowed(base,{userId:'homeowner',role:'owner',channel:'sms'}),true,'owner must be able to opt into a paid channel for themselves');
+assert.equal(policy.eventAllowed(base,{userId:'homeowner',role:'owner',eventType:'snag.created'}),true,'owner must not be constrained by the recipient ceiling');
+
 assert.equal(policy.channelAllowed(base,{userId:'builder-a',role:'contractor',channel:'sms'}),false,'project default must block SMS');
 assert.equal(
   policy.effectivePreferences({policy:base,preferences:{channels:{sms:true}},userId:'builder-a',role:'contractor',eventTypes:[]}).channels.sms.enabled,
