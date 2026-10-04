@@ -261,15 +261,55 @@ async function loadFirebaseUsage(){
  }catch(e){console.warn('Firebase usage summary unavailable',e)}
 }
 function firebaseUsageFor(app){return firebaseUsageByApp[String(app||'').toLowerCase()]||null}
+function currentMonitorDeviceId(){
+ try{return localStorage.getItem('apps-platform.v1.device')||localStorage.getItem('app-monitor.v1.device')||''}catch{return ''}
+}
+function renderNotifications(){
+ const settings=notificationSettings||{enabled:false,ownerDeviceIds:[],ownerPeople:[]},deviceId=currentMonitorDeviceId();
+ E.enableNewHumanAlerts.checked=settings.enabled===true;
+ E.notificationOwnerPeople.value=(settings.ownerPeople||[]).join(', ');
+ E.markThisDeviceOwner.disabled=!deviceId;
+ E.ownerDeviceStatus.textContent=!deviceId?'No shared device ID found in this browser yet.':(settings.ownerDeviceIds||[]).includes(deviceId)?'This browser/device is marked as yours.':'This browser/device is not yet marked as yours.';
+ const unread=notifications.filter(x=>x.unread!==false).length;
+ E.notificationBadge.textContent=unread+' unread';
+ E.markAllNotificationsRead.disabled=!unread;
+ E.notificationList.innerHTML=notifications.map(n=>'<article class="notification-item '+(n.unread!==false?'unread':'')+'"><div class="top"><div><strong>'+esc(n.title||n.type||'Notification')+'</strong><div class="muted small">'+esc(n.body||'')+'</div><div class="muted small">'+time(n.createdAt)+' · '+esc(n.context?.city||n.context?.region||n.context?.country||'')+'</div></div>'+(n.unread!==false?'<button type="button" data-notification-read="'+esc(n.id||'')+'">Mark read</button>':'')+'</div></article>').join('')||'<div class="empty">No notifications yet.</div>';
+ E.notificationList.querySelectorAll('[data-notification-read]').forEach(button=>button.onclick=()=>markNotificationRead(button.dataset.notificationRead));
+}
+async function loadNotifications(){
+ try{
+  const [settingsResponse,inboxResponse]=await Promise.all([
+   fetch(CLOUD+'/notifications/settings',{headers:authHeaders(),cache:'no-store'}),
+   fetch(CLOUD+'/notifications?limit=100',{headers:authHeaders(),cache:'no-store'})
+  ]);
+  if(settingsResponse.status===401||inboxResponse.status===401)return sessionExpired();
+  if(!settingsResponse.ok||!inboxResponse.ok)throw new Error('Notification service unavailable');
+  notificationSettings=(await settingsResponse.json()).settings||null;
+  notifications=(await inboxResponse.json()).items||[];
+  renderNotifications();E.notificationStatus.textContent='';
+ }catch(error){E.notificationStatus.textContent=String(error.message||error)}
+}
+async function saveNotificationSettings(next){
+ const response=await fetch(CLOUD+'/notifications/settings',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify(next),cache:'no-store'});
+ if(response.status===401)return sessionExpired();
+ if(!response.ok)throw new Error('Could not save notification settings ('+response.status+')');
+ notificationSettings=(await response.json()).settings;renderNotifications();return notificationSettings;
+}
+async function markNotificationRead(id,all=false){
+ const response=await fetch(CLOUD+'/notifications/read',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify(all?{all:true}:{id}),cache:'no-store'});
+ if(response.status===401)return sessionExpired();
+ if(!response.ok)throw new Error('Could not update notification ('+response.status+')');
+ await loadNotifications();
+}
 async function assignSession(sessionId){const s=raw.find(x=>x.sessionId===sessionId);if(!s)return;const current=personOf(s)||'',person=prompt('Person name (leave blank to remove this assignment):',current);if(person===null)return;const choices=['device','auth','session'],hasAuth=!!s.identity?.uid;let scope=prompt('Assign by scope: device'+(hasAuth?', auth':'')+', or session','device');if(scope===null)return;scope=scope.trim().toLowerCase();if(!choices.includes(scope)||(scope==='auth'&&!hasAuth)){alert('Choose '+(hasAuth?'device, auth, or session':'device or session')+'.');return}const id=scope==='device'?s.deviceId:scope==='auth'?s.identity.uid:s.sessionId;await saveAlias(scope,id,person.trim())}
 
-async function load(){if(!sessionToken)return false;E.status.textContent='Loading…';E.refresh.disabled=true;try{const r=await fetch(CLOUD+'/day?date='+encodeURIComponent(E.date.value),{headers:authHeaders(),cache:'no-store'});if(r.status===401){sessionExpired();return false}if(!r.ok)throw new Error('Monitor '+r.status);const d=await r.json();raw=d.sessions||[];await Promise.all([loadAliases(),loadFirebaseUsage()]);apps();render();E.status.textContent='Loaded '+raw.length+' sessions · '+new Date(d.generatedAt||Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});E.export.disabled=false;return true}catch(e){E.status.textContent=e.message;return false}finally{E.refresh.disabled=false}}
+async function load(){if(!sessionToken)return false;E.status.textContent='Loading…';E.refresh.disabled=true;try{const r=await fetch(CLOUD+'/day?date='+encodeURIComponent(E.date.value),{headers:authHeaders(),cache:'no-store'});if(r.status===401){sessionExpired();return false}if(!r.ok)throw new Error('Monitor '+r.status);const d=await r.json();raw=d.sessions||[];await Promise.all([loadAliases(),loadFirebaseUsage(),loadNotifications()]);apps();render();E.status.textContent='Loaded '+raw.length+' sessions · '+new Date(d.generatedAt||Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});E.export.disabled=false;return true}catch(e){E.status.textContent=e.message;return false}finally{E.refresh.disabled=false}}
 E.passkeyLogin.onclick=passkeyLogin;
 E.startBootstrap.onclick=startBootstrap;
 E.copyBootstrap.onclick=async()=>{if(!bootstrapRequest)return;try{await navigator.clipboard.writeText(bootstrapRequest);E.bootstrapStatus.textContent='Request ID copied.'}catch{E.bootstrapStatus.textContent='Select and copy the request ID above.'}};
 E.continueBootstrap.onclick=continueBootstrap;
 E.recoveryLoginForm.onsubmit=async e=>{e.preventDefault();const token=E.recoveryLoginToken.value.trim();if(!token)return;const ok=await recoveryLogin(token);if(ok)E.recoveryLoginToken.value=''};
-E.logout.onclick=async()=>{try{await jsonFetch('/auth/logout',{method:'POST',headers:authHeaders()})}catch{}cacheSession('','');raw=[];aliases=[];render();setLocked(true);E.authMessage.textContent='Signed out.';E.authMessage.className='small muted'};
+E.logout.onclick=async()=>{try{await jsonFetch('/auth/logout',{method:'POST',headers:authHeaders()})}catch{}cacheSession('','');raw=[];aliases=[];notifications=[];notificationSettings=null;render();renderNotifications();setLocked(true);E.authMessage.textContent='Signed out.';E.authMessage.className='small muted'};
 E.addPasskey.onclick=addPasskey;E.refreshSecurity.onclick=loadSecurity;
 E.revokeAllSessions.onclick=async()=>{if(!confirm('Revoke every App Monitor admin session, including this one?'))return;const r=await jsonFetch('/security/revoke-all-sessions',{method:'POST',headers:authHeaders()});if(r.ok){cacheSession('','');raw=[];aliases=[];render();setLocked(true);E.authMessage.textContent='All admin sessions revoked. Sign in again with a passkey.';E.authMessage.className='small muted'}};
 function recoverySetupChanged(){
@@ -281,6 +321,28 @@ E.copyRecovery.onclick=async()=>{const token=E.newRecoveryToken.value.trim();if(
 E.toggleRecovery.onclick=()=>{const show=E.newRecoveryToken.type==='password';E.newRecoveryToken.type=show?'text':'password';E.toggleRecovery.textContent=show?'Hide':'Show'};
 E.newRecoveryToken.oninput=recoverySetupChanged;E.recoverySavedConfirm.onchange=recoverySetupChanged;
 E.recoveryRotateForm.onsubmit=async e=>{e.preventDefault();const token=E.newRecoveryToken.value.trim();if(token.length<32||!E.recoverySavedConfirm.checked)return;const r=await jsonFetch('/security/recovery',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify({token})});if(r.status===401)return sessionExpired();if(!r.ok){E.recoveryStatus.textContent='Could not activate recovery token.';E.recoveryStatus.className='small auth-error';return}E.newRecoveryToken.value='';E.newRecoveryToken.type='password';E.toggleRecovery.textContent='Show';E.recoverySavedConfirm.checked=false;recoverySetupChanged();E.recoveryStatus.textContent='Recovery token configured. The plaintext has been cleared from App Monitor and cannot be revealed later; rotate it if you lose your saved copy.';E.recoveryStatus.className='small auth-success';await loadSecurity()};
+E.enableNewHumanAlerts.onchange=async()=>{
+ try{
+  const current=notificationSettings||{},ownerDeviceIds=[...(current.ownerDeviceIds||[])],deviceId=currentMonitorDeviceId();
+  if(E.enableNewHumanAlerts.checked&&deviceId&&!ownerDeviceIds.includes(deviceId))ownerDeviceIds.push(deviceId);
+  await saveNotificationSettings({...current,enabled:E.enableNewHumanAlerts.checked,ownerDeviceIds});
+  E.notificationStatus.textContent=E.enableNewHumanAlerts.checked?'New-user alerts enabled.':'New-user alerts disabled.';
+ }catch(error){E.notificationStatus.textContent=String(error.message||error)}
+};
+E.markThisDeviceOwner.onclick=async()=>{
+ try{
+  const current=notificationSettings||{},deviceId=currentMonitorDeviceId();if(!deviceId)return;
+  const ownerDeviceIds=[...(current.ownerDeviceIds||[])];if(!ownerDeviceIds.includes(deviceId))ownerDeviceIds.push(deviceId);
+  await saveNotificationSettings({...current,ownerDeviceIds});E.notificationStatus.textContent='This device is now excluded from new-user alerts.';
+ }catch(error){E.notificationStatus.textContent=String(error.message||error)}
+};
+E.saveNotificationOwners.onclick=async()=>{
+ try{
+  const current=notificationSettings||{},ownerPeople=E.notificationOwnerPeople.value.split(',').map(x=>x.trim()).filter(Boolean);
+  await saveNotificationSettings({...current,ownerPeople});E.notificationStatus.textContent='Owner labels saved.';
+ }catch(error){E.notificationStatus.textContent=String(error.message||error)}
+};
+E.markAllNotificationsRead.onclick=()=>markNotificationRead('',true).catch(error=>E.notificationStatus.textContent=String(error.message||error));
 E.refresh.onclick=load;E.date.onchange=load;E.personFilter.onchange=render;E.appFilter.onchange=render;E.statusFilter.onchange=render;E.deviceStatusFilter.onchange=renderDevices;E.search.oninput=render;E.groupButtons.querySelectorAll('[data-group]').forEach(b=>b.onclick=()=>{groupMode=b.dataset.group;expandedGroups.clear();E.groupButtons.querySelectorAll('[data-group]').forEach(x=>x.classList.toggle('active',x===b));render()});E.deviceGroupButtons.querySelectorAll('[data-device-group]').forEach(b=>b.onclick=()=>{deviceGroupMode=b.dataset.deviceGroup;expandedDeviceGroups.clear();E.deviceGroupButtons.querySelectorAll('[data-device-group]').forEach(x=>x.classList.toggle('active',x===b));renderDevices()});
 E.export.onclick=()=>{if(!filtered.length)return;const cols=['status','focused','visibility','trafficClass','trafficSource','person','app','uid','username','ip','country','region','city','device','browser','os','deviceId','sessionId','startedAt','lastSeenAt','activeMs','pageViews','path','referrer'],get=(s,k)=>({status:sessionStatus(s),focused:s.focused===true,visibility:s.visibility||'',trafficClass:s.traffic?.class||'unknown',trafficSource:s.traffic?.source||'',person:personOf(s),uid:s.identity?.uid||'',username:s.identity?.username||'',country:s.geo?.country||'',region:s.geo?.region||'',city:s.geo?.city||'',device:s.device?.kind||'',browser:s.device?.browser||'',os:s.device?.os||''}[k]??s[k]??''),csv=[cols.join(','),...filtered.map(s=>cols.map(k=>'"'+String(get(s,k)).replace(/"/g,'""')+'"').join(','))].join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='app-monitor-'+E.date.value+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 async function boot(){
