@@ -160,6 +160,7 @@ export function createR2NotificationService({
       core:{status:'ready',detail:'Shared Notifications service loaded'},
       inApp:{status:'ready',detail:'R2-backed inbox available'},
       production:{status:'ready',detail:'Authenticated production transport installed'},
+      publicConfig:{webPush:{configured:!!env.ONESIGNAL_APP_ID,appId:String(env.ONESIGNAL_APP_ID||'')}},
       providers:Object.fromEntries(Object.entries(providers).map(([key,value])=>[
         key,{status:value.configured?'ready':'setup-required',cost:value.cost}
       ]))
