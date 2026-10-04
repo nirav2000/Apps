@@ -69,6 +69,23 @@ function fresh(id){
 }
 function chip(label,on=true){return '<span class="chip '+(on?'on':'off')+'">'+escapeHtml(label)+'</span>'}
 function eventLabel(id){return events.find(x=>x.id===id)?.label||id}
+function showNotificationToast(title,body){
+  $('notificationToastTitle').textContent=title||'Notification';
+  $('notificationToastBody').textContent=body||'';
+  $('notificationToast').classList.remove('hidden');
+  clearTimeout(showNotificationToast.timer);
+  showNotificationToast.timer=setTimeout(()=>$('notificationToast').classList.add('hidden'),5000);
+}
+function updatePreviewBadge(count){
+  $('previewBadge').textContent=String(count||0);
+  $('previewBadge').classList.toggle('hidden',!count);
+}
+function setReadinessResult(name,value,state='ok'){
+  const el=document.querySelector('[data-readiness="'+name+'"]');
+  if(!el)return;
+  el.textContent=value;
+  el.dataset.state=state;
+}
 
 async function seed(){
   const marker=localStorage.getItem('apps.notifications.lab.seeded.v2');
@@ -97,6 +114,7 @@ async function renderPersona(){
   const preferences=await client.preferences(scopeId,currentUserId);
   const effective=client.effective({policy,preferences,userId:user.userId,role:user.role});
 
+  $('previewPersona').textContent=user.name;
   $('personaSummary').innerHTML='<strong>'+escapeHtml(user.name)+'</strong><span>Role supplied by the consuming app: <code>'+escapeHtml(user.role)+'</code></span><br><span>'+(policy.policyOwnerId===user.userId?'This user controls notification policy and is recorded as the cost bearer in this demo.':'This user is governed by the policy ceiling plus their own preferences.')+'</span>';
 
   const enabledChannels=Object.entries(effective.channels).filter(([,v])=>v.enabled);
@@ -135,6 +153,8 @@ async function renderInbox(){
   $('inboxList').innerHTML=items.map(item=>
     '<article class="inbox-item"><strong>'+escapeHtml(item.title||eventLabel(item.type))+'</strong><div>'+escapeHtml(item.body||'')+'</div><small>'+new Date(item.storedAt||item.createdAt).toLocaleString()+' · '+escapeHtml(eventLabel(item.type))+'</small></article>'
   ).join('')||'<p>No in-app notifications for this user yet.</p>';
+  updatePreviewBadge(items.length);
+  return items;
 }
 
 async function renderDeliveryLog(){
@@ -159,6 +179,64 @@ async function sendEvent(){
   const sent=result.results.filter(x=>x.status==='stored'||x.status==='simulated').length;
   const blocked=result.results.filter(x=>x.status.startsWith('blocked')).length;
   $('sendStatus').textContent='Event processed: '+sent+' delivery route'+(sent===1?'':'s')+', '+blocked+' blocked by policy/preferences.';
+  const currentReceived=result.results.some(x=>x.recipient===currentUserId&&x.channel==='in_app'&&x.status==='stored');
+  if(currentReceived)showNotificationToast($('eventTitle').value.trim()||eventLabel(type),$('eventBody').value.trim());
+  await renderInbox();
+  await renderDeliveryLog();
+}
+
+async function runReadinessTest(){
+  $('previewReadinessPill').textContent='Testing…';
+  $('previewReadinessPill').className='service-state setup';
+  setReadinessResult('module','Loaded','ok');
+  setReadinessResult('policy','Checking…','pending');
+  setReadinessResult('popup','Checking…','pending');
+
+  const policy=await client.policy(scopeId);
+  const user=member(currentUserId);
+  const prefs=await client.preferences(scopeId,currentUserId);
+  const effective=client.effective({policy,preferences:prefs,userId:user.userId,role:user.role});
+
+  if(!effective.events['record.updated']?.enabled){
+    setReadinessResult('policy','Blocked by current settings','fail');
+    setReadinessResult('popup','Not tested','fail');
+    $('previewReadinessPill').textContent='Blocked by settings';
+    $('previewReadinessPill').className='service-state setup';
+    return;
+  }
+  if(!effective.channels.in_app?.enabled){
+    setReadinessResult('policy','Event allowed','ok');
+    setReadinessResult('popup','In-app delivery is off','fail');
+    $('previewReadinessPill').textContent='In-app is off';
+    $('previewReadinessPill').className='service-state setup';
+    return;
+  }
+
+  setReadinessResult('policy','Passed','ok');
+  const before=(await client.inbox(scopeId,currentUserId,{limit:100})).length;
+  const title='Notifications are working';
+  const body='This test passed through the shared policy, preferences, inbox and app-style popup.';
+  const result=await client.emit('record.updated',{
+    scopeId,
+    actorId:currentUserId,
+    recipients:[currentUserId],
+    title,
+    body,
+    priority:'normal'
+  });
+  const afterItems=await client.inbox(scopeId,currentUserId,{limit:100});
+  const stored=result.results.some(x=>x.recipient===currentUserId&&x.channel==='in_app'&&x.status==='stored')&&afterItems.length>before;
+
+  if(stored){
+    showNotificationToast(title,body);
+    setReadinessResult('popup','Passed','ok');
+    $('previewReadinessPill').textContent='Shared module ready';
+    $('previewReadinessPill').className='service-state live';
+  }else{
+    setReadinessResult('popup','Failed','fail');
+    $('previewReadinessPill').textContent='Test failed';
+    $('previewReadinessPill').className='service-state setup';
+  }
   await renderInbox();
   await renderDeliveryLog();
 }
@@ -171,6 +249,14 @@ $('personaSelect').addEventListener('change',async e=>{currentUserId=e.target.va
 $('roleSelect').addEventListener('change',async e=>{selectedRole=e.target.value;await rerender()});
 $('memberSelect').addEventListener('change',async e=>{selectedMemberId=e.target.value;await rerender()});
 $('sendEvent').addEventListener('click',sendEvent);
+$('runReadinessTest').addEventListener('click',()=>runReadinessTest().catch(error=>{
+  console.error(error);
+  $('previewReadinessPill').textContent='Test error';
+  $('previewReadinessPill').className='service-state setup';
+  setReadinessResult('popup',String(error?.message||error),'fail');
+}));
+$('previewBell').addEventListener('click',()=>document.getElementById('inboxList')?.scrollIntoView({behavior:'smooth',block:'center'}));
+$('closeNotificationToast').addEventListener('click',()=>$('notificationToast').classList.add('hidden'));
 $('resetLab').addEventListener('click',()=>{
   transport.reset();
   localStorage.removeItem('apps.notifications.lab.seeded.v2');
