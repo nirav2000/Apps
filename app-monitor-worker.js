@@ -1,6 +1,5 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
-const WORKER_BUILD='2026.10.04.notifications-v1';
+const WORKER_BUILD='2026.09.30.version-lab-reviews-1';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -21,75 +20,6 @@ const randomSecret=(n=32)=>{const b=new Uint8Array(n);crypto.getRandomValues(b);
 async function getJSON(env,key){const o=await env.APP_MONITOR_DATA.get(key);if(!o)return null;try{return JSON.parse(await o.text())}catch{return null}}
 async function putJSON(env,key,value){await env.APP_MONITOR_DATA.put(key,JSON.stringify(value),{httpMetadata:{contentType:'application/json'}})}
 async function listJSON(env,prefix,limit=5000){let cursor,objects=[],truncated=true;while(truncated&&objects.length<limit){const page=await env.APP_MONITOR_DATA.list({prefix,cursor,limit:1000});objects.push(...page.objects);truncated=page.truncated;cursor=page.cursor}const out=[];for(const item of objects){const x=await getJSON(env,item.key);if(x)out.push(x)}return out}
-const APP_MONITOR_NOTIFICATIONS=APP_MONITOR_SECURITY+'notifications/';
-async function appMonitorNotificationSettings(env){
-  return await getJSON(env,APP_MONITOR_NOTIFICATIONS+'settings.json')||{
-    version:1,
-    enabled:false,
-    ownerDeviceIds:[],
-    ownerAuthIds:[],
-    ownerPeople:[],
-    events:{'security.new_human':true},
-    channels:{in_app:true},
-    destinations:{},
-    updatedAt:null
-  };
-}
-async function aliasPerson(env,type,id){
-  if(!id)return '';
-  const value=await getJSON(env,'_app-monitor/v1/_aliases/'+type+'/'+await sha256(id)+'.json');
-  return String(value?.person||'');
-}
-function snapshotAuthIds(snapshot){
-  const i=snapshot?.identity||{};
-  return [...new Set([i.globalUid,i.appUid,i.uid].filter(Boolean).map(String))];
-}
-async function snapshotPerson(env,snapshot){
-  for(const id of snapshotAuthIds(snapshot)){const person=await aliasPerson(env,'auth',id);if(person)return person}
-  return await aliasPerson(env,'device',snapshot?.deviceId);
-}
-function isHumanSnapshot(snapshot){return String(snapshot?.traffic?.class||'')==='browser-session'}
-async function isOwnerSnapshot(env,settings,snapshot){
-  if((settings.ownerDeviceIds||[]).includes(snapshot.deviceId))return true;
-  const ids=snapshotAuthIds(snapshot);
-  if(ids.some(id=>(settings.ownerAuthIds||[]).includes(id)))return true;
-  const person=await snapshotPerson(env,snapshot);
-  return !!person&&(settings.ownerPeople||[]).includes(person);
-}
-async function recordNewHumanIfNeeded(env,snapshot){
-  if(!isHumanSnapshot(snapshot))return {newIdentity:false,notified:false};
-  const authIds=snapshotAuthIds(snapshot),identityKey=authIds[0]||snapshot.deviceId;
-  if(!identityKey)return {newIdentity:false,notified:false};
-  const fingerprint=await sha256(snapshot.app+'|'+identityKey),seenKey=APP_MONITOR_NOTIFICATIONS+'seen/'+fingerprint+'.json';
-  if(await getJSON(env,seenKey))return {newIdentity:false,notified:false};
-  const person=await snapshotPerson(env,snapshot),now=new Date().toISOString();
-  await putJSON(env,seenKey,{version:1,fingerprint,app:snapshot.app,identityKey,deviceId:snapshot.deviceId,authIds,person,firstSeenAt:now});
-  const settings=await appMonitorNotificationSettings(env);
-  if(!settings.enabled||settings.events?.['security.new_human']===false)return {newIdentity:true,notified:false};
-  if(await isOwnerSnapshot(env,settings,snapshot))return {newIdentity:true,notified:false,owner:true};
-  const id=randomSecret(12),notification={
-    version:1,id,type:'security.new_human',audience:'admin',unread:true,
-    title:'New user on '+snapshot.app,
-    body:(person?person+' · ':'')+(snapshot.identity?.username||'New human visitor')+(snapshot.device?.kind?' · '+snapshot.device.kind:''),
-    app:snapshot.app,person,deviceId:snapshot.deviceId,authIds,
-    sessionId:snapshot.sessionId,createdAt:now,
-    context:{path:snapshot.path||'',country:snapshot.geo?.country||'',region:snapshot.geo?.region||'',city:snapshot.geo?.city||'',device:snapshot.device||null,identity:snapshot.identity||null}
-  };
-  await putJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/'+id+'.json',notification);
-  const providers=providerStatus(env),deliveries=[{channel:'in_app',ok:true,status:'stored'}];
-  for(const [channel,enabled] of Object.entries(settings.channels||{})){
-    if(channel==='in_app'||enabled!==true)continue;
-    if(!providers[channel]?.configured){deliveries.push({channel,ok:false,status:'unconfigured'});continue}
-    try{
-      deliveries.push(await deliverNotification(env,channel,notification,settings.destinations||{}));
-    }catch(error){
-      deliveries.push({channel,ok:false,status:'failed',error:String(error?.message||error).slice(0,200)});
-    }
-  }
-  notification.deliveries=deliveries;
-  await putJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/'+id+'.json',notification);
-  return {newIdentity:true,notified:true,notificationId:id,deliveries};
-}
 async function appMonitorCredential(request,env){
   const key=request.headers.get('X-App-Monitor-Key')||'';if(key.length<32)return {ok:false};
   const hash=await sha256(key),recovery=await getJSON(env,APP_MONITOR_SECURITY+'recovery.json');
@@ -135,33 +65,6 @@ async function appMonitorPasskeys(env){return listJSON(env,APP_MONITOR_SECURITY+
 async function bootstrapProof(request,record){const secret=request.headers.get('X-App-Monitor-Bootstrap')||'';if(!record?.proofHash||secret.length<32)return false;return (await sha256(secret))===record.proofHash}
 async function saveChallenge(env,kind,challenge,sessionHash=''){const id=randomSecret(18),record={version:2,id,kind,challenge,sessionHash,createdAt:new Date().toISOString()};await putJSON(env,APP_MONITOR_SECURITY+'challenges/'+id+'.json',record);return id}
 async function takeChallenge(env,id,kind){const key=APP_MONITOR_SECURITY+'challenges/'+String(id||'')+'.json',x=await getJSON(env,key);if(!x||x.kind!==kind||Date.now()-Date.parse(x.createdAt)>APP_MONITOR_CHALLENGE_MS)return null;await env.APP_MONITOR_DATA.delete(key);return x}
-
-function notificationIngestOK(request,env){
-  const given=String(request.headers.get('X-Apps-Notification-Key')||''),expected=String(env.NOTIFICATION_INGEST_KEY||'');
-  if(!given||!expected||given.length!==expected.length)return false;
-  let diff=0;for(let i=0;i<given.length;i++)diff|=given.charCodeAt(i)^expected.charCodeAt(i);return diff===0;
-}
-async function sharedNotificationRoute(request,env,headers,url){
-  headers={...headers,'Cache-Control':'no-store'};
-  if(url.pathname==='/notifications/public-config'&&request.method==='GET'){
-    return Response.json({ok:true,webPush:{configured:!!env.ONESIGNAL_APP_ID,appId:String(env.ONESIGNAL_APP_ID||'')}},{headers});
-  }
-  if(!notificationIngestOK(request,env))return new Response('Unauthorized',{status:401,headers});
-  if(url.pathname==='/notifications/providers'&&request.method==='GET')return Response.json({ok:true,providers:providerStatus(env)},{headers});
-  if(url.pathname==='/notifications/deliver'&&request.method==='POST'){
-    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
-    const channel=String(body.channel||''),notification=body.notification&&typeof body.notification==='object'?body.notification:null,destination=body.destination&&typeof body.destination==='object'?body.destination:{};
-    const providers=providerStatus(env);
-    if(!notification?.type||!notification?.app)return new Response('Invalid notification',{status:400,headers});
-    if(!providers[channel])return new Response('Unknown channel',{status:400,headers});
-    if(!providers[channel].configured)return Response.json({ok:false,channel,status:'unconfigured'},{status:409,headers});
-    let result;try{result=await deliverNotification(env,channel,notification,destination)}catch(error){result={ok:false,channel,status:'failed',error:String(error?.message||error).slice(0,200)}}
-    const id=randomSecret(12),record={version:1,id,channel,notification:{id:String(notification.id||''),type:String(notification.type),app:String(notification.app),projectId:String(notification.projectId||''),actorId:String(notification.actorId||notification.actorUid||''),policyOwnerId:String(notification.policyOwnerId||notification.policyOwnerUid||''),costBearerId:String(notification.costBearerId||notification.costBearerUid||'')},result,createdAt:new Date().toISOString()};
-    await putJSON(env,APP_MONITOR_NOTIFICATIONS+'deliveries/'+id+'.json',record);
-    return Response.json({ok:result.ok===true,delivery:record},{status:result.ok===true?200:502,headers});
-  }
-  return new Response('Not found',{status:404,headers});
-}
 
 async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
@@ -233,62 +136,8 @@ async function appMonitorRoute(request,env,headers,url){
     const snapshot={version:1,date:body.date,app:String(body.app).slice(0,80),deviceId:body.deviceId,sessionId:body.sessionId,startedAt:String(body.startedAt||observedAt).slice(0,40),lastSeenAt:String(body.lastSeenAt||observedAt).slice(0,40),lastActiveAt:String(body.lastActiveAt||body.lastSeenAt||observedAt).slice(0,40),visibility:String(body.visibility||'unknown').slice(0,20),focused:body.focused===true,observedAt,activeMs:Math.max(0,Math.min(Number(body.activeMs)||0,24*60*60*1000)),pageViews:Math.max(1,Math.min(Number(body.pageViews)||1,10000)),path:String(body.path||'').slice(0,500),title:String(body.title||'').slice(0,200),referrer:String(body.referrer||'').slice(0,500),reason:String(body.reason||'').slice(0,40),identity,device,traffic,ip,ipHash:ip?await sha256(ip):'',geo:{country:String(cf.country||''),region:String(cf.region||''),city:String(cf.city||''),postalCode:String(cf.postalCode||''),timezone:String(cf.timezone||''),colo:String(cf.colo||''),asn:cf.asn||null}};
     const key='_app-monitor/v1/'+body.date+'/'+cleanKey(body.app)+'/'+body.sessionId+'.json';
     await env.APP_MONITOR_DATA.put(key,JSON.stringify(snapshot),{httpMetadata:{contentType:'application/json'}});
-    const notification=await recordNewHumanIfNeeded(env,snapshot);
-    return Response.json({ok:true,observedAt,notification},{headers});
+    return Response.json({ok:true,observedAt},{headers});
   }
-  if(url.pathname==='/app-monitor/notifications/settings'&&request.method==='GET'){
-    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
-    return Response.json({ok:true,settings:await appMonitorNotificationSettings(env),providers:providerStatus(env)},{headers});
-  }
-  if(url.pathname==='/app-monitor/notifications/settings'&&request.method==='POST'){
-    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
-    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
-    const current=await appMonitorNotificationSettings(env),settings={
-      version:1,
-      enabled:body.enabled===true,
-      ownerDeviceIds:Array.isArray(body.ownerDeviceIds)?body.ownerDeviceIds.slice(0,50).map(x=>String(x).slice(0,120)):current.ownerDeviceIds||[],
-      ownerAuthIds:Array.isArray(body.ownerAuthIds)?body.ownerAuthIds.slice(0,50).map(x=>String(x).slice(0,220)):current.ownerAuthIds||[],
-      ownerPeople:Array.isArray(body.ownerPeople)?body.ownerPeople.slice(0,50).map(x=>String(x).slice(0,120)):current.ownerPeople||[],
-      events:{...current.events,...(body.events&&typeof body.events==='object'?body.events:{})},
-      channels:{...current.channels,...(body.channels&&typeof body.channels==='object'?body.channels:{})},
-      destinations:body.destinations&&typeof body.destinations==='object'?{
-        email:String(body.destinations.email||'').slice(0,240),
-        phone:String(body.destinations.phone||'').slice(0,80),
-        whatsapp:String(body.destinations.whatsapp||'').slice(0,80),
-        telegramChatId:String(body.destinations.telegramChatId||'').slice(0,120),
-        oneSignalExternalId:String(body.destinations.oneSignalExternalId||'').slice(0,180)
-      }:(current.destinations||{}),
-      updatedAt:new Date().toISOString()
-    };
-    await putJSON(env,APP_MONITOR_NOTIFICATIONS+'settings.json',settings);
-    return Response.json({ok:true,settings},{headers});
-  }
-  if(url.pathname==='/app-monitor/notifications'&&request.method==='GET'){
-    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
-    const limit=Math.max(1,Math.min(200,Number(url.searchParams.get('limit'))||50));
-    const items=(await listJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/',limit)).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
-    return Response.json({ok:true,items,unread:items.filter(x=>x.unread!==false).length},{headers});
-  }
-  if(url.pathname==='/app-monitor/notifications/deliveries'&&request.method==='GET'){
-    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
-    const limit=Math.max(1,Math.min(200,Number(url.searchParams.get('limit'))||50));
-    const items=(await listJSON(env,APP_MONITOR_NOTIFICATIONS+'deliveries/',limit)).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
-    return Response.json({ok:true,items},{headers});
-  }
-  if(url.pathname==='/app-monitor/notifications/read'&&request.method==='POST'){
-    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
-    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
-    if(body.all===true){
-      const items=await listJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/',200);
-      for(const item of items){if(!item.id)continue;item.unread=false;item.readAt=new Date().toISOString();await putJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/'+cleanKey(item.id)+'.json',item)}
-      return Response.json({ok:true,all:true},{headers});
-    }
-    const id=cleanKey(body.id||'');if(!id)return new Response('id required',{status:400,headers});
-    const key=APP_MONITOR_NOTIFICATIONS+'inbox/'+id+'.json',item=await getJSON(env,key);if(!item)return new Response('Not found',{status:404,headers});
-    item.unread=false;item.readAt=new Date().toISOString();await putJSON(env,key,item);
-    return Response.json({ok:true,item},{headers});
-  }
-
   if(url.pathname==='/app-monitor/security/status'&&request.method==='GET'){
     const passkeys=await appMonitorPasskeys(env),recovery=await getJSON(env,APP_MONITOR_SECURITY+'recovery.json');
     return Response.json({ok:true,passkeyCount:passkeys.length,bootstrapNeeded:passkeys.length===0,recoveryConfigured:!!recovery,recoveryNeedsRotation:!!recovery?.migratedFromLegacy,sessionHours:APP_MONITOR_SESSION_MS/3600000},{headers});
@@ -514,8 +363,7 @@ export default {
   const origin=request.headers.get('Origin')||'',headers=cors(origin,env.ALLOWED_ORIGIN||'https://nirav2000.github.io');
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
   const url=new URL(request.url);
-  if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,r2Bound:!!env.APP_MONITOR_DATA,notifications:true,notificationIngestConfigured:!!env.NOTIFICATION_INGEST_KEY,notificationProviders:providerStatus(env)},{headers});
-  if(url.pathname.startsWith('/notifications/'))return sharedNotificationRoute(request,env,headers,url);
+  if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,r2Bound:!!env.APP_MONITOR_DATA},{headers});
   if(url.pathname.startsWith('/app-monitor/'))return appMonitorRoute(request,env,headers,url);
   return new Response('Not found',{status:404,headers});
  }
