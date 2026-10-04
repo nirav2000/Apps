@@ -170,6 +170,13 @@ $('resetLab').addEventListener('click',()=>{
   location.reload();
 });
 
-await seed();
-populateStaticControls();
-await rerender();
+async function init(){
+  await seed();
+  populateStaticControls();
+  await rerender();
+}
+init().catch(error=>{
+  console.error(error);
+  const status=document.getElementById('sendStatus');
+  if(status) status.textContent='Notifications Lab failed to initialise: '+String(error?.message||error);
+});
