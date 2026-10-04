@@ -155,10 +155,10 @@
       "created": "2026-10-04",
       "purpose": "Shared event, owner-policy, recipient-preference and reusable UI model for admin/platform alerts and app-user notifications across in-app, push, email, messaging and paid channels.",
       "installed": {
-        "App Monitor": "in progress",
-        "Snag": "planned"
+        "App Monitor": "installed",
+        "Snag": "installed"
       },
-      "notes": "Owner controls the notification-policy ceiling and paid-channel access; recipients can change only settings allowed by the owner. First admin consumer is App Monitor new-human detection; first app-user consumer is Snag."
+      "notes": "Owner controls the notification-policy ceiling; recipient preferences operate only within it. Per-user override beats role default, which beats project default. App Monitor new-human inbox/admin controls and Snag owner/member settings + activity events are implemented. External delivery adapters are present but require provider credentials and the shared Worker bridge secret; push also requires device subscription registration."
     },
     {
       "id": "platform",
