@@ -64,6 +64,18 @@
 </div><script>
 const CLOUD='https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor',FIREBASE_USAGE_CLOUD='https://snag-media-api.nirav2000-github.workers.dev/usage',$=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0');
 const SESSION_STORE='app-monitor.admin-session.v2',LEGACY_TOKEN_STORE='app-monitor.access-token.v1',FAIL_STORE='app-monitor.auth-failures.v2';
+const NOTIFICATION_CHANNEL_META={
+ in_app:{label:'In app',cost:'free'},
+ web_push:{label:'Browser push',cost:'provider'},
+ email:{label:'Email',cost:'provider'},
+ telegram:{label:'Telegram',cost:'provider'},
+ whatsapp:{label:'WhatsApp',cost:'metered'},
+ signal:{label:'Signal',cost:'provider'},
+ slack:{label:'Slack',cost:'provider'},
+ discord:{label:'Discord',cost:'provider'},
+ sms:{label:'SMS',cost:'metered'},
+ ios_push:{label:'iPhone/iPad push',cost:'provider'}
+};
 const E={dot:$('lockDot'),lockText:$('lockText'),locked:$('lockedAuth'),unlocked:$('unlockedAuth'),passkeyLogin:$('passkeyLogin'),recoveryLoginForm:$('recoveryLoginForm'),recoveryLoginToken:$('recoveryLoginToken'),authMessage:$('authMessage'),sessionInfo:$('sessionInfo'),logout:$('logout'),protected:$('protectedApp'),date:$('datePick'),refresh:$('refresh'),export:$('exportCsv'),status:$('status'),sessions:$('sessions'),activeNow:$('activeNow'),backgroundNow:$('backgroundNow'),devices:$('devices'),users:$('users'),apps:$('apps'),activeTime:$('activeTime'),personFilter:$('personFilter'),peopleSummary:$('peopleSummary'),appFilter:$('appFilter'),search:$('search'),summary:$('appSummary'),deviceRows:$('deviceRows'),deviceStatusFilter:$('deviceStatusFilter'),deviceGroupButtons:$('deviceGroupButtons'),rows:$('rows'),shown:$('shown'),statusFilter:$('statusFilter'),groupButtons:$('groupButtons'),refreshSecurity:$('refreshSecurity'),addPasskey:$('addPasskey'),passkeyLabel:$('passkeyLabel'),passkeyList:$('passkeyList'),recoveryRotateForm:$('recoveryRotateForm'),newRecoveryToken:$('newRecoveryToken'),generateRecovery:$('generateRecovery'),copyRecovery:$('copyRecovery'),toggleRecovery:$('toggleRecovery'),recoverySavedConfirm:$('recoverySavedConfirm'),activateRecovery:$('activateRecovery'),recoveryStatus:$('recoveryStatus'),adminSessionList:$('adminSessionList'),revokeAllSessions:$('revokeAllSessions'),bootstrapSetup:$('bootstrapSetup'),bootstrapStart:$('bootstrapStart'),bootstrapSteps:$('bootstrapSteps'),startBootstrap:$('startBootstrap'),bootstrapRequestId:$('bootstrapRequestId'),copyBootstrap:$('copyBootstrap'),continueBootstrap:$('continueBootstrap'),bootstrapPasskeyLabel:$('bootstrapPasskeyLabel'),bootstrapStatus:$('bootstrapStatus'),recoveryDetails:$('recoveryDetails'),notificationBadge:$('notificationBadge'),markAllNotificationsRead:$('markAllNotificationsRead'),enableNewHumanAlerts:$('enableNewHumanAlerts'),markThisDeviceOwner:$('markThisDeviceOwner'),ownerDeviceStatus:$('ownerDeviceStatus'),notificationOwnerPeople:$('notificationOwnerPeople'),saveNotificationOwners:$('saveNotificationOwners'),notificationList:$('notificationList'),notificationStatus:$('notificationStatus'),notificationChannels:$('notificationChannels'),notificationEmail:$('notificationEmail'),notificationPhone:$('notificationPhone'),notificationWhatsapp:$('notificationWhatsapp'),notificationTelegram:$('notificationTelegram'),saveNotificationDestinations:$('saveNotificationDestinations')};
 let sessionToken='',sessionExpiresAt='',authStatus=null,bootstrapRequest='',bootstrapSecret='',raw=[],filtered=[],aliases=[],firebaseUsageByApp={},notificationSettings=null,notificationProviders={},notifications=[],groupMode='smart',expandedGroups=new Set(),deviceGroupMode='smart',expandedDeviceGroups=new Set();
 function authHeaders(){return sessionToken?{'X-App-Monitor-Session':sessionToken}:{}}
@@ -266,9 +278,23 @@ function currentMonitorDeviceId(){
  try{return localStorage.getItem('apps-platform.v1.device')||localStorage.getItem('app-monitor.v1.device')||''}catch{return ''}
 }
 function renderNotifications(){
- const settings=notificationSettings||{enabled:false,ownerDeviceIds:[],ownerPeople:[]},deviceId=currentMonitorDeviceId();
+ const settings=notificationSettings||{enabled:false,ownerDeviceIds:[],ownerPeople:[],channels:{in_app:true},destinations:{}},deviceId=currentMonitorDeviceId(),dest=settings.destinations||{};
  E.enableNewHumanAlerts.checked=settings.enabled===true;
  E.notificationOwnerPeople.value=(settings.ownerPeople||[]).join(', ');
+ E.notificationEmail.value=dest.email||'';
+ E.notificationPhone.value=dest.phone||'';
+ E.notificationWhatsapp.value=dest.whatsapp||'';
+ E.notificationTelegram.value=dest.telegramChatId||'';
+ E.notificationChannels.innerHTML=Object.entries(NOTIFICATION_CHANNEL_META).map(([key,meta])=>{
+   const provider=notificationProviders[key]||{configured:key==='in_app'},configured=provider.configured===true||key==='in_app',enabled=settings.channels?.[key]===true||key==='in_app';
+   const blockedPush=(key==='web_push'||key==='ios_push')&&!dest.oneSignalExternalId;
+   const disabled=key==='in_app'||!configured||blockedPush;
+   const reason=!configured?'Provider not configured':blockedPush?'Device push subscription not registered':meta.cost==='metered'?'Metered / may incur charges':meta.cost==='free'?'No delivery charge':'Provider account required';
+   return '<label class="notification-item"><div class="top"><div><strong>'+esc(meta.label)+'</strong><div class="muted small">'+esc(reason)+'</div></div><input type="checkbox" data-notification-channel="'+esc(key)+'" '+(enabled?'checked':'')+' '+(disabled?'disabled':'')+'></div></label>';
+ }).join('');
+ E.notificationChannels.querySelectorAll('[data-notification-channel]').forEach(box=>box.onchange=async()=>{
+   try{const current=notificationSettings||{},channels={...(current.channels||{}),[box.dataset.notificationChannel]:box.checked};await saveNotificationSettings({...current,channels});E.notificationStatus.textContent='Delivery channel settings saved.'}catch(error){E.notificationStatus.textContent=String(error.message||error)}
+ });
  E.markThisDeviceOwner.disabled=!deviceId;
  E.ownerDeviceStatus.textContent=!deviceId?'No shared device ID found in this browser yet.':(settings.ownerDeviceIds||[]).includes(deviceId)?'This browser/device is marked as yours.':'This browser/device is not yet marked as yours.';
  const unread=notifications.filter(x=>x.unread!==false).length;
@@ -285,7 +311,9 @@ async function loadNotifications(){
   ]);
   if(settingsResponse.status===401||inboxResponse.status===401)return sessionExpired();
   if(!settingsResponse.ok||!inboxResponse.ok)throw new Error('Notification service unavailable');
-  notificationSettings=(await settingsResponse.json()).settings||null;
+  const settingsData=await settingsResponse.json();
+  notificationSettings=settingsData.settings||null;
+  notificationProviders=settingsData.providers||{};
   notifications=(await inboxResponse.json()).items||[];
   renderNotifications();E.notificationStatus.textContent='';
  }catch(error){E.notificationStatus.textContent=String(error.message||error)}
@@ -310,7 +338,7 @@ E.startBootstrap.onclick=startBootstrap;
 E.copyBootstrap.onclick=async()=>{if(!bootstrapRequest)return;try{await navigator.clipboard.writeText(bootstrapRequest);E.bootstrapStatus.textContent='Request ID copied.'}catch{E.bootstrapStatus.textContent='Select and copy the request ID above.'}};
 E.continueBootstrap.onclick=continueBootstrap;
 E.recoveryLoginForm.onsubmit=async e=>{e.preventDefault();const token=E.recoveryLoginToken.value.trim();if(!token)return;const ok=await recoveryLogin(token);if(ok)E.recoveryLoginToken.value=''};
-E.logout.onclick=async()=>{try{await jsonFetch('/auth/logout',{method:'POST',headers:authHeaders()})}catch{}cacheSession('','');raw=[];aliases=[];notifications=[];notificationSettings=null;render();renderNotifications();setLocked(true);E.authMessage.textContent='Signed out.';E.authMessage.className='small muted'};
+E.logout.onclick=async()=>{try{await jsonFetch('/auth/logout',{method:'POST',headers:authHeaders()})}catch{}cacheSession('','');raw=[];aliases=[];notifications=[];notificationSettings=null;notificationProviders={};render();renderNotifications();setLocked(true);E.authMessage.textContent='Signed out.';E.authMessage.className='small muted'};
 E.addPasskey.onclick=addPasskey;E.refreshSecurity.onclick=loadSecurity;
 E.revokeAllSessions.onclick=async()=>{if(!confirm('Revoke every App Monitor admin session, including this one?'))return;const r=await jsonFetch('/security/revoke-all-sessions',{method:'POST',headers:authHeaders()});if(r.ok){cacheSession('','');raw=[];aliases=[];render();setLocked(true);E.authMessage.textContent='All admin sessions revoked. Sign in again with a passkey.';E.authMessage.className='small muted'}};
 function recoverySetupChanged(){
@@ -344,6 +372,12 @@ E.saveNotificationOwners.onclick=async()=>{
  }catch(error){E.notificationStatus.textContent=String(error.message||error)}
 };
 E.markAllNotificationsRead.onclick=()=>markNotificationRead('',true).catch(error=>E.notificationStatus.textContent=String(error.message||error));
+E.saveNotificationDestinations.onclick=async()=>{
+ try{
+  const current=notificationSettings||{},destinations={...(current.destinations||{}),email:E.notificationEmail.value.trim(),phone:E.notificationPhone.value.trim(),whatsapp:E.notificationWhatsapp.value.trim(),telegramChatId:E.notificationTelegram.value.trim()};
+  await saveNotificationSettings({...current,destinations});E.notificationStatus.textContent='Notification destinations saved.';
+ }catch(error){E.notificationStatus.textContent=String(error.message||error)}
+};
 E.refresh.onclick=load;E.date.onchange=load;E.personFilter.onchange=render;E.appFilter.onchange=render;E.statusFilter.onchange=render;E.deviceStatusFilter.onchange=renderDevices;E.search.oninput=render;E.groupButtons.querySelectorAll('[data-group]').forEach(b=>b.onclick=()=>{groupMode=b.dataset.group;expandedGroups.clear();E.groupButtons.querySelectorAll('[data-group]').forEach(x=>x.classList.toggle('active',x===b));render()});E.deviceGroupButtons.querySelectorAll('[data-device-group]').forEach(b=>b.onclick=()=>{deviceGroupMode=b.dataset.deviceGroup;expandedDeviceGroups.clear();E.deviceGroupButtons.querySelectorAll('[data-device-group]').forEach(x=>x.classList.toggle('active',x===b));renderDevices()});
 E.export.onclick=()=>{if(!filtered.length)return;const cols=['status','focused','visibility','trafficClass','trafficSource','person','app','uid','username','ip','country','region','city','device','browser','os','deviceId','sessionId','startedAt','lastSeenAt','activeMs','pageViews','path','referrer'],get=(s,k)=>({status:sessionStatus(s),focused:s.focused===true,visibility:s.visibility||'',trafficClass:s.traffic?.class||'unknown',trafficSource:s.traffic?.source||'',person:personOf(s),uid:s.identity?.uid||'',username:s.identity?.username||'',country:s.geo?.country||'',region:s.geo?.region||'',city:s.geo?.city||'',device:s.device?.kind||'',browser:s.device?.browser||'',os:s.device?.os||''}[k]??s[k]??''),csv=[cols.join(','),...filtered.map(s=>cols.map(k=>'"'+String(get(s,k)).replace(/"/g,'""')+'"').join(','))].join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='app-monitor-'+E.date.value+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 async function boot(){
