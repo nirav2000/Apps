@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Apps PWA Lab</title>
+<link rel="manifest" href="./lab.webmanifest">
+<meta name="theme-color" content="#102033">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;background:#f4f7f9;color:#142033;margin:0}.wrap{max-width:850px;margin:auto;padding:24px}.card{background:#fff;border:1px solid #dce3e8;border-radius:18px;padding:18px;margin:14px 0}button{border:1px solid #ccd5db;border-radius:11px;padding:9px 12px;background:#102033;color:#fff;font:inherit;font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.metric{padding:12px;border:1px solid #e1e7ec;border-radius:12px}.muted{color:#66727d}</style>
+</head><body><main class="wrap"><h1>PWA Lab</h1><p class="muted">Shared test environment for installability, standalone mode, service-worker coverage and notification prerequisites.</p>
+<section class="card"><div id="pwaStatus"></div></section>
+<section class="card"><h2>Diagnostics</h2><div id="diag" class="grid"></div><p><button id="refresh">Refresh diagnostics</button></p></section>
+<section class="card"><h2>iPhone/iPad test</h2><p>Open this page in Safari, use <strong>Share → Add to Home Screen</strong>, then launch the installed icon. The status should change to <strong>Installed</strong>.</p></section>
+</main><script type="module">
+import{initPWA,pwaReadiness,pwaStyles}from'./index.js';
+const style=document.createElement('style');style.textContent=pwaStyles();document.head.appendChild(style);
+const status=document.getElementById('pwaStatus'),diag=document.getElementById('diag');
+async function render(){const r=await pwaReadiness();diag.innerHTML=Object.entries(r).filter(([k])=>k!=='status').map(([k,v])=>'<div class="metric"><strong>'+k+'</strong><div>'+String(v)+'</div></div>').join('');return r}
+await initPWA({root:status});await render();document.getElementById('refresh').onclick=render;
+</script></body></html>
