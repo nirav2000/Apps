@@ -34,6 +34,9 @@ jobs:
           node --check app-monitor-notifications-client.js
           node --check platform/v1/index.js
 
+      - name: Manifest generation consistency
+        run: node pwa/v1/generate-manifests.mjs --check
+
       - name: Validate manifests and assets
         run: |
           node <<'NODE'
