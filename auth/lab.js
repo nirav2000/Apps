@@ -130,7 +130,11 @@ const AUTH_THEMES=[
   {id:'glass',name:'Glass',summary:'Soft translucency for modern modal overlays.',swatch:['#eef5ff','#ffffff','#5a86ef']},
   {id:'warm',name:'Warm',summary:'Friendly cream and terracotta; less corporate.',swatch:['#fffaf2','#f7e6d5','#b85d36']},
   {id:'midnight',name:'Midnight',summary:'High-contrast dark mode with calm blue-violet accents.',swatch:['#121a29','#24324a','#738dff']},
-  {id:'playful',name:'Playful',summary:'More expressive violet/teal while staying restrained.',swatch:['#ffffff','#efeaff','#2fb7a4']}
+  {id:'playful',name:'Playful',summary:'More expressive violet/teal while staying restrained.',swatch:['#ffffff','#efeaff','#2fb7a4']},
+  {id:'aurora-glass',name:'Aurora',summary:'Luminous frosted glass with layered twilight colour and a luxury modal feel.',swatch:['#475a92','#d49bad','#8f7cff']},
+  {id:'editorial',name:'Editorial',summary:'Warm cream, serif typography and a crafted lifestyle-art header.',swatch:['#fffaf2','#d7aa79','#9f682e']},
+  {id:'nocturne',name:'Nocturne',summary:'Deep navy, luminous accents and a cinematic premium dark treatment.',swatch:['#111a2a','#33425c','#7e96ff']},
+  {id:'prism',name:'Prism',summary:'Polished pastel gradients with a dimensional graphic header.',swatch:['#fbfaff','#d1b8ff','#de6cb1']}
 ];
 let authDesignIndex=0;
 let authThemeIndex=0;
