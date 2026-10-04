@@ -172,9 +172,17 @@
       "purpose": "Shared installability, service-worker, standalone-mode, update/offline and iOS Home Screen readiness capability for the Apps portfolio.",
       "installed": {
         "PWA Lab": "installed",
-        "App Monitor": "installed"
+        "App Monitor": "installed",
+        "Snag": "installed",
+        "Next": "installed",
+        "Openday": "installed",
+        "InClass": "installed",
+        "Kk-syllabus": "installed",
+        "LearnLatin": "installed",
+        "beyond100": "installed",
+        "Comprehension": "installed"
       },
-      "notes": "App Monitor is the first production consumer. The shared root service worker composes PWA caching/update behavior with FCM browser-push handling so overlapping workers do not compete."
+      "notes": "Shared PWA v1 is installed in the Lab, App Monitor and the main app portfolio. Existing local service workers were converted to thin configuration wrappers that import the central shared worker; apps without prior PWA plumbing received a minimal manifest/local wrapper/bootstrap. App Monitor also uses PWA readiness as an iOS browser-push prerequisite."
     },
     {
       "id": "platform",

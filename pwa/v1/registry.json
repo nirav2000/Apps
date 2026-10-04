@@ -50,6 +50,126 @@
         }
       ],
       "id": "/Apps/pwa/v1/lab.html"
+    },
+    "snag": {
+      "name": "Snag Recorder",
+      "short_name": "Snag",
+      "id": "/snag/",
+      "start_url": "/snag/",
+      "scope": "/snag/",
+      "display": "standalone",
+      "externalManaged": true,
+      "icons": [
+        {
+          "src": "/snag/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml",
+          "purpose": "any maskable"
+        }
+      ]
+    },
+    "next": {
+      "name": "Next Learning",
+      "short_name": "Next",
+      "id": "/Next/",
+      "start_url": "/Next/",
+      "scope": "/Next/",
+      "display": "standalone",
+      "externalManaged": true,
+      "icons": [
+        {
+          "src": "/Next/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml",
+          "purpose": "any maskable"
+        }
+      ]
+    },
+    "openday": {
+      "name": "School Open Days",
+      "short_name": "Open Days",
+      "id": "/Openday/",
+      "start_url": "/Openday/",
+      "scope": "/Openday/",
+      "display": "standalone",
+      "externalManaged": true,
+      "icons": [
+        {
+          "src": "/Openday/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml",
+          "purpose": "any maskable"
+        }
+      ]
+    },
+    "inclass": {
+      "name": "InClass · Homework with understanding",
+      "short_name": "InClass",
+      "id": "/InClass/",
+      "start_url": "/InClass/",
+      "scope": "/InClass/",
+      "display": "standalone",
+      "externalManaged": true
+    },
+    "kk-syllabus": {
+      "name": "Curious Path",
+      "short_name": "Curious Path",
+      "id": "/Kk-syllabus/",
+      "start_url": "/Kk-syllabus/",
+      "scope": "/Kk-syllabus/",
+      "display": "standalone",
+      "externalManaged": true
+    },
+    "learnlatin": {
+      "name": "Learn Latin - Dad + Sai",
+      "short_name": "Learn Latin",
+      "id": "/LearnLatin/",
+      "start_url": "/LearnLatin/",
+      "scope": "/LearnLatin/",
+      "display": "standalone",
+      "externalManaged": true,
+      "icons": [
+        {
+          "src": "/LearnLatin/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml",
+          "purpose": "any maskable"
+        }
+      ]
+    },
+    "beyond100": {
+      "name": "Beyond 100",
+      "short_name": "Beyond 100",
+      "id": "/Beyond100/",
+      "start_url": "/Beyond100/",
+      "scope": "/Beyond100/",
+      "display": "standalone",
+      "externalManaged": true,
+      "icons": [
+        {
+          "src": "/Beyond100/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml",
+          "purpose": "any maskable"
+        }
+      ]
+    },
+    "comprehension": {
+      "name": "Comprehension Coach",
+      "short_name": "Comprehension",
+      "id": "/Comprehension/",
+      "start_url": "/Comprehension/",
+      "scope": "/Comprehension/",
+      "display": "standalone",
+      "externalManaged": true,
+      "icons": [
+        {
+          "src": "/Comprehension/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml",
+          "purpose": "any maskable"
+        }
+      ]
     }
   }
 }
