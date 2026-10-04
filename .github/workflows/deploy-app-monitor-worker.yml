@@ -1,4 +1,4 @@
-name: Deploy App Monitor worker
+name: Validate App Monitor worker source (deployment delegated)
 
 on:
   workflow_dispatch:
