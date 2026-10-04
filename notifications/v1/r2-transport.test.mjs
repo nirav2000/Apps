@@ -18,7 +18,7 @@ class FakeR2 {
 const bucket=new FakeR2();
 const service=createR2NotificationService({
   bucket,
-  app:'app-monitor-test',
+  app:'consumer-test',
   eventTypes:['security.new_human'],
   defaultPolicy:{
     policyOwnerId:'admin',
@@ -35,7 +35,7 @@ await service.savePreferences('admin','admin',{
 });
 
 const event={
-  version:1,id:'evt-1',type:'security.new_human',app:'app-monitor-test',scopeId:'admin',
+  version:1,id:'evt-1',type:'security.new_human',app:'consumer-test',scopeId:'admin',
   recipients:['admin'],title:'New human visitor',body:'Test visitor',createdAt:new Date().toISOString()
 };
 
