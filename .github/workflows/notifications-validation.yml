@@ -6,12 +6,9 @@ on:
     branches: ["main"]
     paths:
       - "notifications/**"
-      - "onesignal/**"
-      - "app-monitor-worker.js"
-      - "app-monitor.html"
+      - "NOTIFICATIONS_SETUP.md"
       - "platform/v1/index.js"
       - "shared-libraries.json"
-      - "wrangler-app-monitor.jsonc"
       - ".github/workflows/notifications-validation.yml"
 
 permissions:
@@ -25,33 +22,73 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install --no-audit --no-fund
-      - name: Owner policy tests
+
+      - name: Generic policy tests
         run: node notifications/v1/policy.test.mjs
-      - name: Worker dry run
-        run: npx wrangler deploy --dry-run -c wrangler-app-monitor.jsonc
-      - name: App Monitor inline JavaScript syntax
+
+      - name: JavaScript syntax
+        run: |
+          node --check notifications/v1/index.js
+          node --check notifications/v1/policy.js
+          node --check notifications/v1/ui.js
+          node --check notifications/v1/providers.js
+          node --check notifications/v1/push.js
+          node --check notifications/v1/memory-transport.js
+          node --check notifications/v1/lab.js
+
+      - name: Lab wiring
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const html=fs.readFileSync('app-monitor.html','utf8');
-          const start=html.lastIndexOf('<script>');
-          const end=html.lastIndexOf('</script>');
-          if(start<0||end<=start) throw new Error('App Monitor inline script missing');
-          fs.writeFileSync('/tmp/app-monitor-inline.js',html.slice(start+8,end));
+          const html=fs.readFileSync('notifications/v1/lab.html','utf8');
+          if(!html.includes('./lab.js?v=1')) throw new Error('Notifications Lab script missing');
+          if(!html.includes('Delivery log')||!html.includes('Event simulator')) throw new Error('Notifications Lab core surfaces missing');
+          const lab=fs.readFileSync('notifications/v1/lab.js','utf8');
+          if(!lab.includes('createNotifications')||!lab.includes('createMemoryTransport')) throw new Error('Lab is not consuming the shared notification module');
+          if(!lab.includes('mountRecipientPreferences')||!lab.includes('mountMemberNotificationSettings')) throw new Error('Lab is not exercising reusable shared UI');
+          const worker=fs.readFileSync('notifications/v1/onesignal/OneSignalSDKWorker.js','utf8');
+          if(!worker.includes('OneSignalSDK.sw.js')) throw new Error('Shared OneSignal worker missing');
           NODE
-          node --check /tmp/app-monitor-inline.js
-      - name: Shared registration invariants
+
+      - name: Independence invariants
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const files=[];
+          function walk(dir){
+            for(const name of fs.readdirSync(dir)){
+              const p=path.join(dir,name),s=fs.statSync(p);
+              if(s.isDirectory())walk(p);
+              else if(/\.(js|html|css|md|mjs)$/.test(name))files.push(p);
+            }
+          }
+          walk('notifications/v1');
+          const forbidden=[
+            ['Snag',/\bsnag\b/i],
+            ['homeowner',/\bhomeowner\b/i],
+            ['builder',/\bbuilder\b/i],
+            ['contractor',/\bcontractor\b/i],
+            ['App Monitor',/app[ -]?monitor/i]
+          ];
+          for(const file of files){
+            const text=fs.readFileSync(file,'utf8');
+            for(const [label,re] of forbidden){
+              if(re.test(text)) throw new Error(file+' contains app-specific shared-module term: '+label);
+            }
+          }
+          const providers=fs.readFileSync('notifications/v1/providers.js','utf8');
+          if(providers.includes('destination.slackWebhookUrl')||providers.includes('destination.discordWebhookUrl')||providers.includes('destination.signalWebhookUrl')) throw new Error('User-controlled provider webhook detected');
+          NODE
+
+      - name: Shared registration
         run: |
           node <<'NODE'
           const fs=require('fs');
           const platform=fs.readFileSync('platform/v1/index.js','utf8');
           if(!platform.includes("notifications:{src:'notifications/v1/index.js'")) throw new Error('Notifications missing from Apps Platform');
           const libs=JSON.parse(fs.readFileSync('shared-libraries.json','utf8'));
-          if(!libs.libraries.some(x=>x.id==='notifications-v1'&&x.status==='implemented')) throw new Error('Notifications missing from shared library registry');
-          const providers=fs.readFileSync('notifications/v1/providers.js','utf8');
-          if(providers.includes('destination.slackWebhookUrl')||providers.includes('destination.discordWebhookUrl')||providers.includes('destination.signalWebhookUrl')) throw new Error('User-controlled provider webhook detected');
-          const pushWorker=fs.readFileSync('onesignal/OneSignalSDKWorker.js','utf8');
-          if(!pushWorker.includes('OneSignalSDK.sw.js')) throw new Error('OneSignal worker missing');
-          console.log('Shared notification registration OK; webhook destinations remain server-configured.');
+          const n=libs.libraries.find(x=>x.id==='notifications-v1');
+          if(!n||n.status!=='implemented') throw new Error('Notifications missing from shared library registry');
+          if(n.installed?.Snag==='installed'||n.installed?.['App Monitor']==='installed') throw new Error('Registry incorrectly claims production app adoption');
+          console.log('Notifications v1 is registered as a shared module with Lab-only adoption.');
           NODE
