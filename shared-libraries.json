@@ -158,17 +158,17 @@
       "installed": {
         "Notifications Lab": "installed"
       },
-      "notes": "First consumer is the standalone Notifications Lab. No production app is currently installed. Roles and event names are supplied by consuming apps; the shared module contains no Snag/homeowner/builder/contractor or App Monitor business logic. Adoption should require only a thin transport/event adapter after the Lab is accepted."
+      "notes": "First consumer is the standalone Notifications Lab. No production app is currently installed. Roles and event names are supplied by consuming apps; the shared module contains no production-app business logic. Adoption should require only a thin transport/event adapter after the Lab is accepted."
     },
     {
       "id": "platform",
-      "name": "Apps Platform v1",
+      "name": "Apps Platform v1.3",
       "file": "platform/v1/",
       "status": "implemented",
       "created": "2026-09-27",
       "purpose": "Versioned integration layer and lazy capability loader that keeps shared infrastructure separate from consuming app business logic.",
       "installed": {},
-      "notes": "Apps Platform exposes canonical shared capabilities, including Notifications v1.1, while keeping consuming-app business logic outside the shared modules."
+      "notes": "Apps Platform v1.3 exposes the full Notifications v1.1 module namespace alongside the other canonical shared capabilities, while keeping consuming-app business logic outside shared modules."
     },
     {
       "id": "devnotes",
