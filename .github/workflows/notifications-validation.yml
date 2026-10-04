@@ -6,6 +6,7 @@ on:
     branches: ["main"]
     paths:
       - "notifications/**"
+      - "notifications/v1/INSTALLATION.md"
       - "NOTIFICATIONS_SETUP.md"
       - "platform/v1/index.js"
       - "shared-libraries.json"
@@ -76,6 +77,10 @@ jobs:
             for(const [label,re] of forbidden){
               if(re.test(text)) throw new Error(file+' contains app-specific shared-module term: '+label);
             }
+          }
+          const install=fs.readFileSync('notifications/v1/INSTALLATION.md','utf8');
+          for(const phrase of ['Minimal-diff rule','Instructions specifically for ChatGPT / AI','Definition of done','rollback the consuming app']){
+            if(!install.includes(phrase)) throw new Error('Installation guide missing required contract: '+phrase);
           }
           const providers=fs.readFileSync('notifications/v1/providers.js','utf8');
           if(providers.includes('destination.slackWebhookUrl')||providers.includes('destination.discordWebhookUrl')||providers.includes('destination.signalWebhookUrl')) throw new Error('User-controlled provider webhook detected');
