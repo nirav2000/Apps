@@ -173,7 +173,12 @@ export function createR2NotificationService({
         vapidKey:String(env.FCM_VAPID_KEY||'')
       }},
       providers:Object.fromEntries(Object.entries(providers).map(([key,value])=>[
-        key,{status:value.configured?'ready':'setup-required',cost:value.cost}
+        key,{
+          status:value.approved===false?'approval-required':(value.configured?'ready':'setup-required'),
+          cost:value.cost,
+          approved:value.approved!==false,
+          approvalBasis:value.approvalBasis||''
+        }
       ]))
     };
   }
