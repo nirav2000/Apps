@@ -1,0 +1,53 @@
+name: Validate shared notifications
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "notifications/**"
+      - "app-monitor-worker.js"
+      - "app-monitor.html"
+      - "platform/v1/index.js"
+      - "shared-libraries.json"
+      - "wrangler-app-monitor.jsonc"
+      - ".github/workflows/notifications-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Owner policy tests
+        run: node notifications/v1/policy.test.mjs
+      - name: Worker dry run
+        run: npx wrangler deploy --dry-run -c wrangler-app-monitor.jsonc
+      - name: App Monitor inline JavaScript syntax
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('app-monitor.html','utf8');
+          const start=html.lastIndexOf('<script>');
+          const end=html.lastIndexOf('</script>');
+          if(start<0||end<=start) throw new Error('App Monitor inline script missing');
+          fs.writeFileSync('/tmp/app-monitor-inline.js',html.slice(start+8,end));
+          NODE
+          node --check /tmp/app-monitor-inline.js
+      - name: Shared registration invariants
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const platform=fs.readFileSync('platform/v1/index.js','utf8');
+          if(!platform.includes("notifications:{src:'notifications/v1/index.js'")) throw new Error('Notifications missing from Apps Platform');
+          const libs=JSON.parse(fs.readFileSync('shared-libraries.json','utf8'));
+          if(!libs.libraries.some(x=>x.id==='notifications-v1'&&x.status==='implemented')) throw new Error('Notifications missing from shared library registry');
+          console.log('Shared notification registration OK');
+          NODE
