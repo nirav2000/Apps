@@ -49,6 +49,42 @@
     <p class="lab-reset-note"><strong>Restore demo defaults</strong> clears only the Notifications Lab settings saved in this browser and reloads the original demo. It does not alter any production app or shared-library code.</p>
   </section>
 
+  <section class="card test-app-card">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">TEST APP PREVIEW</span>
+        <h2>What a notification looks like inside an app</h2>
+        <p>This preview uses the shared notification module. It does not modify or install Notifications into any production app.</p>
+      </div>
+      <div class="test-app-actions">
+        <button id="runReadinessTest" type="button">Run readiness test</button>
+        <button id="previewBell" type="button" class="notification-preview-bell" aria-label="Open test notification inbox">🔔 <span id="previewBadge" class="preview-badge hidden">0</span></button>
+      </div>
+    </div>
+    <div class="test-app-shell">
+      <div class="test-app-topbar">
+        <div><strong>Example app</strong><small id="previewPersona">Alex · Policy controller</small></div>
+        <span id="previewReadinessPill" class="service-state setup">Not tested yet</span>
+      </div>
+      <div id="readinessResults" class="readiness-grid">
+        <div class="readiness-item"><span>Shared module</span><strong>Loaded</strong></div>
+        <div class="readiness-item"><span>Policy engine</span><strong>Ready</strong></div>
+        <div class="readiness-item"><span>In-app popup</span><strong>Run test</strong></div>
+        <div class="readiness-item"><span>Production app installation</span><strong>Not installed</strong></div>
+        <div class="readiness-item"><span>External services</span><strong>Setup required</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="notificationToast" class="notification-toast hidden" role="status" aria-live="polite">
+    <div class="notification-toast-icon">🔔</div>
+    <div>
+      <strong id="notificationToastTitle">Notification</strong>
+      <p id="notificationToastBody"></p>
+    </div>
+    <button id="closeNotificationToast" type="button" class="toast-close" aria-label="Dismiss notification">×</button>
+  </div>
+
   <section class="grid two">
     <article class="card">
       <span class="eyebrow">PERSONA</span>
