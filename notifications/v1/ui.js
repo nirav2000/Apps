@@ -58,7 +58,8 @@ export async function mountRecipientPreferences(root, {
     client.policy(scopeId),
     client.preferences(scopeId, userId)
   ]);
-  const state = effectivePreferences({ policy, preferences, userId, role, eventTypes });
+  const eventIds = eventTypes.map(item => typeof item === 'string' ? item : item.id);
+  const state = effectivePreferences({ policy, preferences, userId, role, eventTypes:eventIds });
 
   root.innerHTML = '<section class="apps-notification-preferences"><h2>My notifications</h2><p class="apps-notification-help">Choose where notifications are delivered and which events you want to receive. Options disabled by policy cannot be changed here.</p><h3>Delivery methods</h3><p class="apps-notification-help">Where should notifications be sent?</p><div data-channels></div><h3>Notification events</h3><p class="apps-notification-help">Which changes should trigger a notification?</p><div data-events></div><div data-status role="status"></div></section>';
 
@@ -115,7 +116,7 @@ export async function mountPolicyDefaults(root, {
 } = {}) {
   const policy = normalisePolicy(await client.policy(scopeId));
 
-  root.innerHTML = '<section class="apps-notification-policy"><h2>Notification permissions</h2><p class="apps-notification-help">Set the default maximum permissions for people in this scope. Role and individual overrides can narrow or expand these defaults.</p><h3>Delivery methods available by default</h3><div data-policy-channels></div><h3>Notification events available by default</h3><div data-policy-events></div><div data-status role="status"></div></section>';
+  root.innerHTML = '<section class="apps-notification-policy"><h2>Notification permissions</h2><p class="apps-notification-help">Set the default notification permissions for everyone. You can then change them for a role or for an individual person.</p><h3>Delivery methods available by default</h3><div data-policy-channels></div><h3>Notification events available by default</h3><div data-policy-events></div><div data-status role="status"></div></section>';
 
   const channelRoot = root.querySelector('[data-policy-channels]');
   for (const [key, meta] of Object.entries(CHANNELS)) {
@@ -135,7 +136,7 @@ export async function mountPolicyDefaults(root, {
     const label = typeof item === 'string' ? item : (item.label || item.id);
     const group = document.createElement('div');
     group.className = 'apps-notification-dual-row';
-    group.innerHTML = '<div><strong></strong><small>Scope default</small></div><label>Available <input type="checkbox" data-policy-event></label><label>Required <input type="checkbox" data-policy-required></label>';
+    group.innerHTML = '<div><strong></strong><small>Default for everyone</small></div><label>Available <input type="checkbox" data-policy-event></label><label>Required <input type="checkbox" data-policy-required></label>';
     group.querySelector('strong').textContent = label;
     const available = group.querySelector('[data-policy-event]');
     const required = group.querySelector('[data-policy-required]');
@@ -181,7 +182,7 @@ export async function mountRoleNotificationPolicy(root, {
   policy.roleChannels[role] = policy.roleChannels[role] || {};
   policy.roleEvents[role] = policy.roleEvents[role] || {};
 
-  root.innerHTML = '<section class="apps-notification-role-editor"><h2>Role notification permissions</h2><p class="apps-notification-help">Override the scope defaults for one app-defined role. Leave an item matching the scope default when no special role rule is needed.</p><h3>Delivery methods</h3><div data-role-channels></div><h3>Notification events</h3><div data-role-events></div><div data-status role="status"></div></section>';
+  root.innerHTML = '<section class="apps-notification-role-editor"><h2>Role notification permissions</h2><p class="apps-notification-help">Set different notification permissions for one role. If you do not set a special rule, this role follows the default for everyone.</p><h3>Delivery methods</h3><div data-role-channels></div><h3>Notification events</h3><div data-role-events></div><div data-status role="status"></div></section>';
 
   const channels = root.querySelector('[data-role-channels]');
   for (const [key, meta] of Object.entries(CHANNELS)) {
@@ -191,7 +192,7 @@ export async function mountRoleNotificationPolicy(root, {
       label: meta.label,
       checked: explicit ? policy.roleChannels[role][key] !== false : scopeDefault,
       disabled: key === 'in_app',
-      reason: explicit ? 'Role override' : 'Using scope default',
+      reason: explicit ? 'Role override' : 'Using the default for everyone',
       extra: meta.cost === 'metered' ? 'May incur usage charges' : '',
       key,
       kind: 'role-channel'
@@ -207,7 +208,7 @@ export async function mountRoleNotificationPolicy(root, {
     events.appendChild(row({
       label,
       checked: explicit ? policy.roleEvents[role][key] !== false : scopeDefault,
-      reason: explicit ? 'Role override' : 'Using scope default',
+      reason: explicit ? 'Role override' : 'Using the default for everyone',
       key,
       kind: 'role-event'
     }));
@@ -244,17 +245,17 @@ export async function mountMemberNotificationSettings(root, {
     preferences,
     userId: member.userId,
     role: member.role || 'member',
-    eventTypes
+    eventTypes:eventTypes.map(item => typeof item === 'string' ? item : item.id)
   });
 
-  root.innerHTML = '<section class="apps-notification-member-editor"><h2>Member notification access</h2><p class="apps-notification-help">For this member, “Allow” controls the maximum permission. “Receive” controls their current preference. A member may change Receive only while Allow remains enabled.</p><h3>Delivery methods</h3><div data-member-channels></div><h3>Notification events</h3><div data-member-events></div><div data-status role="status"></div></section>';
+  root.innerHTML = '<section class="apps-notification-member-editor"><h2>Member notification access</h2><p class="apps-notification-help">For this person, “Allowed” means the notification option is available to them. “Currently on” means they are set to receive it now. They can change “Currently on” only when the option is allowed.</p><h3>Delivery methods</h3><div data-member-channels></div><h3>Notification events</h3><div data-member-events></div><div data-status role="status"></div></section>';
 
   const channels = root.querySelector('[data-member-channels]');
   for (const [key, meta] of Object.entries(CHANNELS)) {
     const current = effective.channels[key];
     const group = document.createElement('div');
     group.className = 'apps-notification-dual-row';
-    group.innerHTML = '<div><strong></strong><small></small></div><label>Allow <input type="checkbox" data-allow-channel></label><label>Receive <input type="checkbox" data-receive-channel></label>';
+    group.innerHTML = '<div><strong></strong><small></small></div><label>Allowed <input type="checkbox" data-allow-channel></label><label>Currently on <input type="checkbox" data-receive-channel></label>';
     group.querySelector('strong').textContent = meta.label;
     group.querySelector('small').textContent = meta.cost === 'metered' ? 'May incur usage charges' : '';
     const allow = group.querySelector('[data-allow-channel]');
@@ -275,7 +276,7 @@ export async function mountMemberNotificationSettings(root, {
     const current = effective.events[key];
     const group = document.createElement('div');
     group.className = 'apps-notification-dual-row';
-    group.innerHTML = '<div><strong></strong><small></small></div><label>Allow <input type="checkbox" data-allow-event></label><label>Receive <input type="checkbox" data-receive-event></label>';
+    group.innerHTML = '<div><strong></strong><small></small></div><label>Allowed <input type="checkbox" data-allow-event></label><label>Currently on <input type="checkbox" data-receive-event></label>';
     group.querySelector('strong').textContent = label;
     group.querySelector('small').textContent = current.mandatory ? 'Required by policy' : '';
     const allow = group.querySelector('[data-allow-event]');
