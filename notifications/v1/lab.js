@@ -1,6 +1,6 @@
 import { createNotifications, CHANNELS } from './index.js';
 import { createMemoryTransport } from './memory-transport.js';
-import { mountRecipientPreferences, mountPolicyDefaults, mountMemberNotificationSettings } from './ui.js';
+import { mountRecipientPreferences, mountPolicyDefaults, mountRoleNotificationPolicy, mountMemberNotificationSettings } from './ui.js';
 
 const scopeId='lab-workspace';
 const members=[
@@ -58,6 +58,7 @@ const client=createNotifications({app:'notifications-lab',transport,eventTypes:e
 const $=id=>document.getElementById(id);
 let currentUserId='owner-1';
 let selectedMemberId='member-1';
+let selectedRole='member';
 
 function member(id){return members.find(x=>x.userId===id)}
 function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -82,6 +83,8 @@ async function seed(){
 function populateStaticControls(){
   $('personaSelect').innerHTML=members.map(x=>'<option value="'+x.userId+'">'+escapeHtml(x.name)+'</option>').join('');
   $('personaSelect').value=currentUserId;
+  $('roleSelect').innerHTML=[...new Set(members.filter(x=>x.role!=='owner').map(x=>x.role))].map(role=>'<option value="'+escapeHtml(role)+'">'+escapeHtml(role)+'</option>').join('');
+  $('roleSelect').value=selectedRole;
   $('memberSelect').innerHTML=members.filter(x=>x.userId!=='owner-1').map(x=>'<option value="'+x.userId+'">'+escapeHtml(x.name)+'</option>').join('');
   $('memberSelect').value=selectedMemberId;
   $('eventSelect').innerHTML=events.map(x=>'<option value="'+x.id+'">'+escapeHtml(x.label)+'</option>').join('');
@@ -111,10 +114,13 @@ async function renderPersona(){
 
   const isController=policy.policyOwnerId===user.userId;
   $('controllerCard').classList.toggle('hidden',!isController);
+  $('roleAccessCard').classList.toggle('hidden',!isController);
   $('memberAccessCard').classList.toggle('hidden',!isController);
   if(isController){
     const policyRoot=fresh('policyDefaults');
     await mountPolicyDefaults(policyRoot,{client,scopeId,eventTypes:events});
+    const roleRoot=fresh('roleEditor');
+    await mountRoleNotificationPolicy(roleRoot,{client,scopeId,role:selectedRole,eventTypes:events});
     const memberRoot=fresh('memberEditor');
     await mountMemberNotificationSettings(memberRoot,{client,scopeId,member:member(selectedMemberId),eventTypes:events});
   }
@@ -162,6 +168,7 @@ async function rerender(){
 }
 
 $('personaSelect').addEventListener('change',async e=>{currentUserId=e.target.value;await rerender()});
+$('roleSelect').addEventListener('change',async e=>{selectedRole=e.target.value;await rerender()});
 $('memberSelect').addEventListener('change',async e=>{selectedMemberId=e.target.value;await rerender()});
 $('sendEvent').addEventListener('click',sendEvent);
 $('resetLab').addEventListener('click',()=>{
