@@ -156,7 +156,7 @@ async function sharedNotificationRoute(request,env,headers,url){
     if(!providers[channel])return new Response('Unknown channel',{status:400,headers});
     if(!providers[channel].configured)return Response.json({ok:false,channel,status:'unconfigured'},{status:409,headers});
     let result;try{result=await deliverNotification(env,channel,notification,destination)}catch(error){result={ok:false,channel,status:'failed',error:String(error?.message||error).slice(0,200)}}
-    const id=randomSecret(12),record={version:1,id,channel,notification:{id:String(notification.id||''),type:String(notification.type),app:String(notification.app),projectId:String(notification.projectId||'')},result,createdAt:new Date().toISOString()};
+    const id=randomSecret(12),record={version:1,id,channel,notification:{id:String(notification.id||''),type:String(notification.type),app:String(notification.app),projectId:String(notification.projectId||''),actorId:String(notification.actorId||notification.actorUid||''),policyOwnerId:String(notification.policyOwnerId||notification.policyOwnerUid||''),costBearerId:String(notification.costBearerId||notification.costBearerUid||'')},result,createdAt:new Date().toISOString()};
     await putJSON(env,APP_MONITOR_NOTIFICATIONS+'deliveries/'+id+'.json',record);
     return Response.json({ok:result.ok===true,delivery:record},{status:result.ok===true?200:502,headers});
   }
