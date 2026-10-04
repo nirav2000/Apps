@@ -31,6 +31,9 @@ jobs:
       - name: Generic policy tests
         run: node notifications/v1/policy.test.mjs
 
+      - name: R2 production transport test
+        run: node notifications/v1/r2-transport.test.mjs
+
       - name: JavaScript syntax
         run: |
           node --check notifications/v1/index.js
