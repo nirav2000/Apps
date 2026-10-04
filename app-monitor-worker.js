@@ -1,5 +1,5 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-const WORKER_BUILD='2026.09.30.version-lab-reviews-1';
+const WORKER_BUILD='2026.10.04.notifications-v1';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -20,6 +20,62 @@ const randomSecret=(n=32)=>{const b=new Uint8Array(n);crypto.getRandomValues(b);
 async function getJSON(env,key){const o=await env.APP_MONITOR_DATA.get(key);if(!o)return null;try{return JSON.parse(await o.text())}catch{return null}}
 async function putJSON(env,key,value){await env.APP_MONITOR_DATA.put(key,JSON.stringify(value),{httpMetadata:{contentType:'application/json'}})}
 async function listJSON(env,prefix,limit=5000){let cursor,objects=[],truncated=true;while(truncated&&objects.length<limit){const page=await env.APP_MONITOR_DATA.list({prefix,cursor,limit:1000});objects.push(...page.objects);truncated=page.truncated;cursor=page.cursor}const out=[];for(const item of objects){const x=await getJSON(env,item.key);if(x)out.push(x)}return out}
+const APP_MONITOR_NOTIFICATIONS=APP_MONITOR_SECURITY+'notifications/';
+async function appMonitorNotificationSettings(env){
+  return await getJSON(env,APP_MONITOR_NOTIFICATIONS+'settings.json')||{
+    version:1,
+    enabled:false,
+    ownerDeviceIds:[],
+    ownerAuthIds:[],
+    ownerPeople:[],
+    events:{'security.new_human':true},
+    channels:{in_app:true},
+    updatedAt:null
+  };
+}
+async function aliasPerson(env,type,id){
+  if(!id)return '';
+  const value=await getJSON(env,'_app-monitor/v1/_aliases/'+type+'/'+await sha256(id)+'.json');
+  return String(value?.person||'');
+}
+function snapshotAuthIds(snapshot){
+  const i=snapshot?.identity||{};
+  return [...new Set([i.globalUid,i.appUid,i.uid].filter(Boolean).map(String))];
+}
+async function snapshotPerson(env,snapshot){
+  for(const id of snapshotAuthIds(snapshot)){const person=await aliasPerson(env,'auth',id);if(person)return person}
+  return await aliasPerson(env,'device',snapshot?.deviceId);
+}
+function isHumanSnapshot(snapshot){return String(snapshot?.traffic?.class||'')==='browser-session'}
+async function isOwnerSnapshot(env,settings,snapshot){
+  if((settings.ownerDeviceIds||[]).includes(snapshot.deviceId))return true;
+  const ids=snapshotAuthIds(snapshot);
+  if(ids.some(id=>(settings.ownerAuthIds||[]).includes(id)))return true;
+  const person=await snapshotPerson(env,snapshot);
+  return !!person&&(settings.ownerPeople||[]).includes(person);
+}
+async function recordNewHumanIfNeeded(env,snapshot){
+  if(!isHumanSnapshot(snapshot))return {newIdentity:false,notified:false};
+  const authIds=snapshotAuthIds(snapshot),identityKey=authIds[0]||snapshot.deviceId;
+  if(!identityKey)return {newIdentity:false,notified:false};
+  const fingerprint=await sha256(snapshot.app+'|'+identityKey),seenKey=APP_MONITOR_NOTIFICATIONS+'seen/'+fingerprint+'.json';
+  if(await getJSON(env,seenKey))return {newIdentity:false,notified:false};
+  const person=await snapshotPerson(env,snapshot),now=new Date().toISOString();
+  await putJSON(env,seenKey,{version:1,fingerprint,app:snapshot.app,identityKey,deviceId:snapshot.deviceId,authIds,person,firstSeenAt:now});
+  const settings=await appMonitorNotificationSettings(env);
+  if(!settings.enabled||settings.events?.['security.new_human']===false)return {newIdentity:true,notified:false};
+  if(await isOwnerSnapshot(env,settings,snapshot))return {newIdentity:true,notified:false,owner:true};
+  const id=randomSecret(12),notification={
+    version:1,id,type:'security.new_human',audience:'admin',unread:true,
+    title:'New user on '+snapshot.app,
+    body:(person?person+' · ':'')+(snapshot.identity?.username||'New human visitor')+(snapshot.device?.kind?' · '+snapshot.device.kind:''),
+    app:snapshot.app,person,deviceId:snapshot.deviceId,authIds,
+    sessionId:snapshot.sessionId,createdAt:now,
+    context:{path:snapshot.path||'',country:snapshot.geo?.country||'',region:snapshot.geo?.region||'',city:snapshot.geo?.city||'',device:snapshot.device||null,identity:snapshot.identity||null}
+  };
+  await putJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/'+id+'.json',notification);
+  return {newIdentity:true,notified:true,notificationId:id};
+}
 async function appMonitorCredential(request,env){
   const key=request.headers.get('X-App-Monitor-Key')||'';if(key.length<32)return {ok:false};
   const hash=await sha256(key),recovery=await getJSON(env,APP_MONITOR_SECURITY+'recovery.json');
