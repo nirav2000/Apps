@@ -10,6 +10,7 @@ export const PROVIDER_SETUP = Object.freeze({
   web_push:{
     title:'Browser push',
     provider:'OneSignal',
+    providerUrl:'https://onesignal.com/',
     summary:'Create/configure a OneSignal app, then add its App ID and REST API key to the shared Worker credential host.',
     secrets:['ONESIGNAL_APP_ID','ONESIGNAL_API_KEY'],
     destination:['Enable push on each recipient device'],
@@ -26,6 +27,7 @@ export const PROVIDER_SETUP = Object.freeze({
   email:{
     title:'Email',
     provider:'Resend',
+    providerUrl:'https://resend.com/',
     summary:'Create/configure a Resend account and verified sender, then add the API key and sender address.',
     secrets:['RESEND_API_KEY','NOTIFICATION_FROM_EMAIL'],
     destination:['Recipient email address'],
@@ -34,6 +36,7 @@ export const PROVIDER_SETUP = Object.freeze({
   telegram:{
     title:'Telegram',
     provider:'Telegram Bot API',
+    providerUrl:'https://t.me/BotFather',
     summary:'Create a Telegram bot and add its bot token. Each recipient also needs a Telegram chat ID.',
     secrets:['TELEGRAM_BOT_TOKEN'],
     optionalSecrets:['TELEGRAM_CHAT_ID'],
@@ -43,6 +46,7 @@ export const PROVIDER_SETUP = Object.freeze({
   whatsapp:{
     title:'WhatsApp',
     provider:'Twilio',
+    providerUrl:'https://www.twilio.com/console',
     summary:'Configure Twilio WhatsApp and add the account credentials and WhatsApp sender.',
     secrets:['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_WHATSAPP_FROM'],
     destination:['Recipient WhatsApp number'],
@@ -51,6 +55,7 @@ export const PROVIDER_SETUP = Object.freeze({
   sms:{
     title:'SMS',
     provider:'Twilio',
+    providerUrl:'https://www.twilio.com/console',
     summary:'Configure Twilio SMS and add the account credentials and SMS sender.',
     secrets:['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_SMS_FROM'],
     destination:['Recipient mobile number'],
@@ -59,6 +64,7 @@ export const PROVIDER_SETUP = Object.freeze({
   slack:{
     title:'Slack',
     provider:'Slack incoming webhook',
+    providerUrl:'https://api.slack.com/messaging/webhooks',
     summary:'Create a trusted Slack incoming webhook for the shared notification service.',
     secrets:['SLACK_WEBHOOK_URL'],
     destination:[],
@@ -67,6 +73,7 @@ export const PROVIDER_SETUP = Object.freeze({
   discord:{
     title:'Discord',
     provider:'Discord webhook',
+    providerUrl:'https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks',
     summary:'Create a trusted Discord webhook for the shared notification service.',
     secrets:['DISCORD_WEBHOOK_URL'],
     destination:[],
