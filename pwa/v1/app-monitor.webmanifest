@@ -1,0 +1,25 @@
+{
+  "name": "App Monitor",
+  "short_name": "App Monitor",
+  "id": "/Apps/app-monitor.html",
+  "start_url": "/Apps/app-monitor.html",
+  "scope": "/Apps/",
+  "display": "standalone",
+  "background_color": "#f4f7f9",
+  "theme_color": "#102033",
+  "description": "Private monitoring dashboard for the Apps portfolio.",
+  "icons": [
+    {
+      "src": "/Apps/pwa/icons/app-monitor-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Apps/pwa/icons/app-monitor-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
