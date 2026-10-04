@@ -1,3 +1,87 @@
+export const PROVIDER_SETUP = Object.freeze({
+  in_app:{
+    title:'In-app',
+    provider:'Built in',
+    summary:'No external provider is required.',
+    secrets:[],
+    destination:[],
+    cost:'free'
+  },
+  web_push:{
+    title:'Browser push',
+    provider:'OneSignal',
+    summary:'Create/configure a OneSignal app, then add its App ID and REST API key to the shared Worker credential host.',
+    secrets:['ONESIGNAL_APP_ID','ONESIGNAL_API_KEY'],
+    destination:['Enable push on each recipient device'],
+    cost:'provider'
+  },
+  ios_push:{
+    title:'Native mobile push',
+    provider:'OneSignal',
+    summary:'Uses the same OneSignal provider credentials, plus a native app/device registration.',
+    secrets:['ONESIGNAL_APP_ID','ONESIGNAL_API_KEY'],
+    destination:['Native device registration'],
+    cost:'provider'
+  },
+  email:{
+    title:'Email',
+    provider:'Resend',
+    summary:'Create/configure a Resend account and verified sender, then add the API key and sender address.',
+    secrets:['RESEND_API_KEY','NOTIFICATION_FROM_EMAIL'],
+    destination:['Recipient email address'],
+    cost:'provider'
+  },
+  telegram:{
+    title:'Telegram',
+    provider:'Telegram Bot API',
+    summary:'Create a Telegram bot and add its bot token. Each recipient also needs a Telegram chat ID.',
+    secrets:['TELEGRAM_BOT_TOKEN'],
+    optionalSecrets:['TELEGRAM_CHAT_ID'],
+    destination:['Telegram chat ID'],
+    cost:'provider'
+  },
+  whatsapp:{
+    title:'WhatsApp',
+    provider:'Twilio',
+    summary:'Configure Twilio WhatsApp and add the account credentials and WhatsApp sender.',
+    secrets:['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_WHATSAPP_FROM'],
+    destination:['Recipient WhatsApp number'],
+    cost:'metered'
+  },
+  sms:{
+    title:'SMS',
+    provider:'Twilio',
+    summary:'Configure Twilio SMS and add the account credentials and SMS sender.',
+    secrets:['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_SMS_FROM'],
+    destination:['Recipient mobile number'],
+    cost:'metered'
+  },
+  slack:{
+    title:'Slack',
+    provider:'Slack incoming webhook',
+    summary:'Create a trusted Slack incoming webhook for the shared notification service.',
+    secrets:['SLACK_WEBHOOK_URL'],
+    destination:[],
+    cost:'provider'
+  },
+  discord:{
+    title:'Discord',
+    provider:'Discord webhook',
+    summary:'Create a trusted Discord webhook for the shared notification service.',
+    secrets:['DISCORD_WEBHOOK_URL'],
+    destination:[],
+    cost:'provider'
+  },
+  signal:{
+    title:'Signal',
+    provider:'Signal bridge',
+    summary:'Provide a trusted server-side Signal bridge/webhook.',
+    secrets:['SIGNAL_WEBHOOK_URL'],
+    destination:['Signal recipient / phone where required by the bridge'],
+    cost:'provider'
+  }
+});
+
 export function providerStatus(env = {}) {
   return {
     in_app: { configured:true, cost:'free' },
