@@ -9,20 +9,22 @@ export const PROVIDER_SETUP = Object.freeze({
   },
   web_push:{
     title:'Browser push',
-    provider:'OneSignal',
-    providerUrl:'https://onesignal.com/',
-    summary:'Create/configure a OneSignal app, then add its App ID and REST API key to the shared Worker credential host.',
-    secrets:['ONESIGNAL_APP_ID','ONESIGNAL_API_KEY'],
-    destination:['Enable push on each recipient device'],
-    cost:'provider'
+    provider:'Firebase Cloud Messaging (FCM)',
+    providerUrl:'https://console.firebase.google.com/',
+    summary:'Configure Firebase Cloud Messaging for a web app. FCM itself is a no-cost Firebase product; the browser needs the public Firebase web config and VAPID key, while the trusted Worker needs Firebase service-account credentials.',
+    secrets:['FCM_PROJECT_ID','FCM_CLIENT_EMAIL','FCM_PRIVATE_KEY','FCM_WEB_API_KEY','FCM_WEB_APP_ID','FCM_MESSAGING_SENDER_ID','FCM_VAPID_KEY'],
+    optionalSecrets:['FCM_AUTH_DOMAIN'],
+    destination:['Grant browser notification permission on each device','Register the device Firebase Installation ID (FID)'],
+    cost:'free'
   },
   ios_push:{
     title:'Native mobile push',
-    provider:'OneSignal',
-    summary:'Uses the same OneSignal provider credentials, plus a native app/device registration.',
-    secrets:['ONESIGNAL_APP_ID','ONESIGNAL_API_KEY'],
-    destination:['Native device registration'],
-    cost:'provider'
+    provider:'Firebase Cloud Messaging (FCM)',
+    providerUrl:'https://console.firebase.google.com/',
+    summary:'Optional future native-app push through FCM. Native Apple push also requires the native app/APNs configuration and is not enabled by the current web setup.',
+    secrets:['FCM_PROJECT_ID','FCM_CLIENT_EMAIL','FCM_PRIVATE_KEY'],
+    destination:['Native app/device registration'],
+    cost:'free'
   },
   email:{
     title:'Email',
@@ -92,7 +94,7 @@ export const PROVIDER_SETUP = Object.freeze({
 export function providerStatus(env = {}) {
   return {
     in_app: { configured:true, cost:'free' },
-    web_push: { configured:!!(env.ONESIGNAL_APP_ID && env.ONESIGNAL_API_KEY), cost:'provider' },
+    web_push: { configured:!!(env.FCM_PROJECT_ID && env.FCM_CLIENT_EMAIL && env.FCM_PRIVATE_KEY && env.FCM_WEB_API_KEY && env.FCM_WEB_APP_ID && env.FCM_MESSAGING_SENDER_ID && env.FCM_VAPID_KEY), cost:'free' },
     email: { configured:!!(env.RESEND_API_KEY && env.NOTIFICATION_FROM_EMAIL), cost:'provider' },
     telegram: { configured:!!env.TELEGRAM_BOT_TOKEN, cost:'provider' },
     whatsapp: { configured:!!(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_WHATSAPP_FROM), cost:'metered' },
@@ -100,8 +102,66 @@ export function providerStatus(env = {}) {
     slack: { configured:!!env.SLACK_WEBHOOK_URL, cost:'provider' },
     discord: { configured:!!env.DISCORD_WEBHOOK_URL, cost:'provider' },
     sms: { configured:!!(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_SMS_FROM), cost:'metered' },
-    ios_push: { configured:!!(env.ONESIGNAL_APP_ID && env.ONESIGNAL_API_KEY), cost:'provider' }
+    ios_push: { configured:false, cost:'free' }
   };
+}
+
+let fcmTokenCache={token:'',expiresAt:0};
+
+function base64url(input){
+  const bytes=input instanceof Uint8Array?input:new TextEncoder().encode(String(input));
+  let binary='';for(const b of bytes)binary+=String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function pemBytes(pem){
+  const clean=String(pem||'').replace(/\\n/g,'\n').replace(/-----BEGIN PRIVATE KEY-----/g,'').replace(/-----END PRIVATE KEY-----/g,'').replace(/\s+/g,'');
+  const raw=atob(clean),out=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out;
+}
+async function fcmAccessToken(env){
+  const now=Math.floor(Date.now()/1000);
+  if(fcmTokenCache.token&&fcmTokenCache.expiresAt>now+90)return fcmTokenCache.token;
+  const header=base64url(JSON.stringify({alg:'RS256',typ:'JWT'}));
+  const payload=base64url(JSON.stringify({
+    iss:env.FCM_CLIENT_EMAIL,
+    scope:'https://www.googleapis.com/auth/firebase.messaging',
+    aud:'https://oauth2.googleapis.com/token',
+    iat:now,exp:now+3600
+  }));
+  const unsigned=header+'.'+payload;
+  const key=await crypto.subtle.importKey('pkcs8',pemBytes(env.FCM_PRIVATE_KEY),{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign']);
+  const signature=new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key,new TextEncoder().encode(unsigned)));
+  const assertion=unsigned+'.'+base64url(signature);
+  const form=new URLSearchParams({
+    grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',
+    assertion
+  });
+  const response=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:form});
+  if(!response.ok)throw new Error('fcm-oauth-'+response.status);
+  const data=await response.json();
+  fcmTokenCache={token:String(data.access_token||''),expiresAt:now+Number(data.expires_in||3600)};
+  if(!fcmTokenCache.token)throw new Error('fcm-oauth-empty-token');
+  return fcmTokenCache.token;
+}
+async function sendFcm(env,notification,destination){
+  const fid=String(destination.fcmInstallationId||'');
+  if(!fid)return{ok:false,error:'missing-recipient'};
+  const token=await fcmAccessToken(env);
+  const message={
+    fid,
+    notification:{title:notification.title||'Notification',body:notification.body||'Update'},
+    data:{
+      eventType:String(notification.type||''),
+      app:String(notification.app||''),
+      url:String(notification.url||'')
+    }
+  };
+  if(notification.url)message.webpush={fcm_options:{link:String(notification.url)}};
+  const response=await fetch('https://fcm.googleapis.com/v1/projects/'+encodeURIComponent(env.FCM_PROJECT_ID)+'/messages:send',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body:JSON.stringify({message})
+  });
+  return{ok:response.ok,status:response.status};
 }
 
 function textFor(notification) {
@@ -191,19 +251,12 @@ export async function deliverNotification(env, channel, notification, destinatio
     return { ...result, channel };
   }
 
-  if (channel === 'web_push' || channel === 'ios_push') {
-    if (!destination.oneSignalExternalId) return { ok:false, channel, error:'missing-recipient' };
-    const result = await postJSON('https://api.onesignal.com/notifications', {
-      app_id:env.ONESIGNAL_APP_ID,
-      include_aliases:{ external_id:[destination.oneSignalExternalId] },
-      target_channel:'push',
-      headings:{ en:notification.title || 'Notification' },
-      contents:{ en:notification.body || 'Update' },
-      url:notification.url || undefined,
-      data:{ eventType:notification.type, app:notification.app }
-    }, { Authorization:'Key ' + env.ONESIGNAL_API_KEY });
-    return { ...result, channel };
+  if (channel === 'web_push') {
+    try{return { ...(await sendFcm(env,notification,destination)), channel }}
+    catch(error){return {ok:false,channel,error:String(error?.message||error).slice(0,160)}}
   }
+
+  if (channel === 'ios_push') return {ok:false,channel,error:'native-push-not-configured'};
 
   return { ok:false, channel, error:'unsupported-channel' };
 }
