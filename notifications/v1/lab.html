@@ -112,33 +112,42 @@
     </article>
   </section>
 
-  <section class="card" id="roleAccessCard">
-    <div class="section-head">
+  <details class="card advanced-access-card">
+    <summary>
       <div>
-        <span class="eyebrow">POLICY CONTROLLER</span>
-        <h2>Settings by role</h2>
-        <p>Roles are arbitrary strings supplied by a consuming app. This lets one type of user have different settings from the default for everyone.</p>
+        <span class="eyebrow">ADVANCED ACCESS CONTROLS</span>
+        <h2>Different settings by role or person</h2>
+        <p>Use this only when some roles or individual people need different permissions from the normal settings for everyone.</p>
       </div>
-      <label class="compact-field">Role
-        <select id="roleSelect"></select>
-      </label>
-    </div>
-    <div id="roleEditor"></div>
-  </section>
+      <span class="advanced-chevron" aria-hidden="true">⌄</span>
+    </summary>
 
-  <section class="card" id="memberAccessCard">
-    <div class="section-head">
-      <div>
-        <span class="eyebrow">POLICY CONTROLLER</span>
-        <h2>Settings for one person</h2>
-        <p>Choose a person, then decide which notification options they are allowed to use and which are currently switched on.</p>
+    <section id="roleAccessCard" class="advanced-panel">
+      <div class="section-head">
+        <div>
+          <h3>Settings by role</h3>
+          <p>Give one type of user different notification permissions from the default for everyone.</p>
+        </div>
+        <label class="compact-field">Role
+          <select id="roleSelect"></select>
+        </label>
       </div>
-      <label class="compact-field">Member
-        <select id="memberSelect"></select>
-      </label>
-    </div>
-    <div id="memberEditor"></div>
-  </section>
+      <div id="roleEditor"></div>
+    </section>
+
+    <section id="memberAccessCard" class="advanced-panel">
+      <div class="section-head">
+        <div>
+          <h3>Settings for one person</h3>
+          <p>Choose a person, then decide which notification options they are allowed to use and which are currently switched on.</p>
+        </div>
+        <label class="compact-field">Person
+          <select id="memberSelect"></select>
+        </label>
+      </div>
+      <div id="memberEditor"></div>
+    </section>
+  </details>
 
   <section class="grid two">
     <article class="card">
