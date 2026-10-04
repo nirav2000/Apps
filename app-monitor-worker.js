@@ -1,5 +1,6 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-const WORKER_BUILD='2026.09.30.version-lab-reviews-1';
+import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
+const WORKER_BUILD='2026.10.04.notifications-v1-install';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -70,6 +71,10 @@ async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
   if(url.pathname==='/app-monitor/health')return Response.json({ok:true,service:'app-monitor',build:WORKER_BUILD,storage:'r2-session-snapshots',adminProtected:true},{headers});
+  if(url.pathname.startsWith('/app-monitor/notifications/')){
+    if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
+    return handleAppMonitorNotificationRoute(request,env,headers,url);
+  }
   if(url.pathname==='/app-monitor/developer-config'&&request.method==='GET'){
     const app=cleanKey(url.searchParams.get('app')||'');if(!app)return new Response('app required',{status:400,headers});
     const saved=await getJSON(env,APP_MONITOR_SECURITY+'developer-config/'+app+'.json');
@@ -136,7 +141,9 @@ async function appMonitorRoute(request,env,headers,url){
     const snapshot={version:1,date:body.date,app:String(body.app).slice(0,80),deviceId:body.deviceId,sessionId:body.sessionId,startedAt:String(body.startedAt||observedAt).slice(0,40),lastSeenAt:String(body.lastSeenAt||observedAt).slice(0,40),lastActiveAt:String(body.lastActiveAt||body.lastSeenAt||observedAt).slice(0,40),visibility:String(body.visibility||'unknown').slice(0,20),focused:body.focused===true,observedAt,activeMs:Math.max(0,Math.min(Number(body.activeMs)||0,24*60*60*1000)),pageViews:Math.max(1,Math.min(Number(body.pageViews)||1,10000)),path:String(body.path||'').slice(0,500),title:String(body.title||'').slice(0,200),referrer:String(body.referrer||'').slice(0,500),reason:String(body.reason||'').slice(0,40),identity,device,traffic,ip,ipHash:ip?await sha256(ip):'',geo:{country:String(cf.country||''),region:String(cf.region||''),city:String(cf.city||''),postalCode:String(cf.postalCode||''),timezone:String(cf.timezone||''),colo:String(cf.colo||''),asn:cf.asn||null}};
     const key='_app-monitor/v1/'+body.date+'/'+cleanKey(body.app)+'/'+body.sessionId+'.json';
     await env.APP_MONITOR_DATA.put(key,JSON.stringify(snapshot),{httpMetadata:{contentType:'application/json'}});
-    return Response.json({ok:true,observedAt},{headers});
+    let notification=null;
+    try{notification=await observeAppMonitorSession(env,snapshot)}catch(error){console.error('App Monitor notification observation failed',error)}
+    return Response.json({ok:true,observedAt,notification},{headers});
   }
   if(url.pathname==='/app-monitor/security/status'&&request.method==='GET'){
     const passkeys=await appMonitorPasskeys(env),recovery=await getJSON(env,APP_MONITOR_SECURITY+'recovery.json');
@@ -363,7 +370,7 @@ export default {
   const origin=request.headers.get('Origin')||'',headers=cors(origin,env.ALLOWED_ORIGIN||'https://nirav2000.github.io');
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
   const url=new URL(request.url);
-  if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,r2Bound:!!env.APP_MONITOR_DATA},{headers});
+  if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,r2Bound:!!env.APP_MONITOR_DATA,notifications:true},{headers});
   if(url.pathname.startsWith('/app-monitor/'))return appMonitorRoute(request,env,headers,url);
   return new Response('Not found',{status:404,headers});
  }
