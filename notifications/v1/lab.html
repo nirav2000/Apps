@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notifications Lab</title>
+<link rel="stylesheet" href="./lab.css?v=1">
+</head>
+<body>
+<header class="hero">
+  <div>
+    <span class="eyebrow">APPS PLATFORM · SHARED CAPABILITY</span>
+    <h1>Notifications Lab</h1>
+    <p>Test notification policy, recipient preferences, delivery methods, cost controls and event routing without modifying a consuming app.</p>
+  </div>
+  <div class="hero-actions">
+    <span class="status-pill">Shared module only</span>
+    <button id="resetLab" type="button" class="secondary">Reset lab</button>
+  </div>
+</header>
+
+<main>
+  <section class="architecture card">
+    <div>
+      <span class="eyebrow">MODEL</span>
+      <h2>Apps map their own roles into generic notification roles</h2>
+      <p>The module does not know what a homeowner, teacher, contractor, pupil, administrator or customer is. A consuming app supplies users, arbitrary role strings, event names and a policy controller.</p>
+    </div>
+    <div class="flow">
+      <span>App event</span><b>→</b><span>Policy</span><b>→</b><span>Recipient preference</span><b>→</b><span>Delivery method</span><b>→</b><span>Audit</span>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <article class="card">
+      <span class="eyebrow">PERSONA</span>
+      <h2>Act as a user</h2>
+      <label class="field">Current user
+        <select id="personaSelect"></select>
+      </label>
+      <div id="personaSummary" class="summary-box"></div>
+    </article>
+
+    <article class="card">
+      <span class="eyebrow">EFFECTIVE RESULT</span>
+      <h2>What this user can actually receive</h2>
+      <div id="effectiveSummary" class="effective-grid"></div>
+    </article>
+  </section>
+
+  <section class="grid two">
+    <article class="card">
+      <div id="recipientPreferences"></div>
+    </article>
+
+    <article class="card" id="controllerCard">
+      <div id="policyDefaults"></div>
+    </article>
+  </section>
+
+  <section class="card" id="memberAccessCard">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">POLICY CONTROLLER</span>
+        <h2>Individual member access</h2>
+        <p>Choose a member, then set their maximum permissions and current receive preferences independently.</p>
+      </div>
+      <label class="compact-field">Member
+        <select id="memberSelect"></select>
+      </label>
+    </div>
+    <div id="memberEditor"></div>
+  </section>
+
+  <section class="grid two">
+    <article class="card">
+      <span class="eyebrow">EVENT SIMULATOR</span>
+      <h2>Send a test notification event</h2>
+      <label class="field">Notification event
+        <select id="eventSelect"></select>
+      </label>
+      <label class="field">Title
+        <input id="eventTitle" value="A record has changed">
+      </label>
+      <label class="field">Message
+        <textarea id="eventBody" rows="3">This is a simulated notification from the shared Notifications Lab.</textarea>
+      </label>
+      <fieldset>
+        <legend>Recipients</legend>
+        <div id="recipientChecks" class="checks"></div>
+      </fieldset>
+      <button id="sendEvent" type="button">Send simulated event</button>
+      <p id="sendStatus" class="status-text"></p>
+    </article>
+
+    <article class="card">
+      <span class="eyebrow">INBOX</span>
+      <div class="section-head">
+        <div><h2 id="inboxTitle">In-app notifications</h2><p>Only events that survive both policy and recipient preferences appear here.</p></div>
+      </div>
+      <div id="inboxList" class="stack"></div>
+    </article>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">AUDIT</span>
+        <h2>Delivery log</h2>
+        <p>External channels are simulated in the Lab. The log still shows whether routing was stored, simulated or blocked, and identifies the cost bearer.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Time</th><th>Event</th><th>Recipient</th><th>Delivery method</th><th>Result</th><th>Cost</th><th>Cost bearer</th></tr></thead>
+        <tbody id="deliveryRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="./lab.js?v=1"></script>
+</body>
+</html>
