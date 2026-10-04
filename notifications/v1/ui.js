@@ -338,5 +338,93 @@ export async function mountMemberNotificationSettings(root, {
 export const mountOwnerPolicy = mountPolicyDefaults;
 
 export function notificationStyles() {
-  return '.apps-notification-bell{position:relative;border:1px solid #d6dde5;background:#fff;border-radius:12px;padding:8px 10px;font:inherit}.apps-notification-count{position:absolute;right:-5px;top:-6px;min-width:18px;height:18px;border-radius:999px;background:#b42318;color:#fff;font-size:11px;line-height:18px}.apps-notification-help{color:#667085}.apps-notification-row,.apps-notification-dual-row{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:11px 12px;margin:8px 0;border:1px solid #e1e7ec;border-radius:12px;background:#fff}.apps-notification-row small,.apps-notification-dual-row small{display:block;color:#667085;margin-top:3px}.apps-notification-dual-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto}.apps-notification-dual-row label{display:flex;gap:6px;align-items:center;font-size:13px}[data-status]{min-height:20px;color:#08783e}';
+  return '.apps-notification-bell{position:relative;border:1px solid #d6dde5;background:#fff;border-radius:12px;padding:8px 10px;font:inherit}.apps-notification-count{position:absolute;right:-5px;top:-6px;min-width:18px;height:18px;border-radius:999px;background:#b42318;color:#fff;font-size:11px;line-height:18px}.apps-notification-help{color:#667085}.apps-notification-row,.apps-notification-dual-row{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:11px 12px;margin:8px 0;border:1px solid #e1e7ec;border-radius:12px;background:#fff}.apps-notification-row small,.apps-notification-dual-row small{display:block;color:#667085;margin-top:3px}.apps-notification-dual-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto}.apps-notification-dual-row label{display:flex;gap:6px;align-items:center;font-size:13px}.apps-notification-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0}.apps-notification-field{display:grid;gap:5px;font-size:13px}.apps-notification-field input{padding:9px 10px;border:1px solid #d6dde5;border-radius:10px}.apps-notification-inbox-item{display:flex;justify-content:space-between;gap:12px;padding:11px 12px;margin:8px 0;border:1px solid #e1e7ec;border-radius:12px;background:#fff}.apps-notification-inbox-item.unread{background:#f6fbff;border-color:#98bdd6}.apps-notification-inbox-item p{margin:4px 0;color:#667085}.apps-notification-inbox-item small{color:#667085}.apps-notification-toast{position:fixed;right:20px;top:20px;z-index:99999;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;width:min(390px,calc(100vw - 32px));padding:14px;border:1px solid #cfdde7;border-radius:15px;background:#fff;box-shadow:0 18px 55px rgba(20,45,65,.2)}.apps-notification-toast-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:#eef6fb}.apps-notification-toast p{margin:4px 0 0;color:#667085}.apps-notification-toast-close{border:0;background:transparent;color:#667085;font-size:20px;padding:0 4px}[data-status]{min-height:20px;color:#08783e}@media(max-width:640px){.apps-notification-fields{grid-template-columns:1fr}}';
+}
+
+
+export async function mountDeliveryDestinations(root,{
+  client,
+  scopeId='default',
+  userId
+}={}){
+  const prefs=normalisePreferences(await client.preferences(scopeId,userId));
+  const d=prefs.destinations||{};
+  root.innerHTML='<section class="apps-notification-destinations"><h3>Delivery details</h3><p class="apps-notification-help">These details are used only for delivery methods that are enabled and configured.</p><div class="apps-notification-fields"></div><button type="button" data-save-destinations>Save delivery details</button><div data-status role="status"></div></section>';
+  const fields=root.querySelector('.apps-notification-fields');
+  const defs=[
+    ['email','Email address','email'],
+    ['phone','Mobile number for SMS','tel'],
+    ['whatsapp','WhatsApp number','tel'],
+    ['telegramChatId','Telegram chat ID','text']
+  ];
+  for(const [key,label,type] of defs){
+    const row=document.createElement('label');
+    row.className='apps-notification-field';
+    const span=document.createElement('span');span.textContent=label;
+    const input=document.createElement('input');input.type=type;input.value=String(d[key]||'');input.dataset.destination=key;
+    row.append(span,input);fields.appendChild(row);
+  }
+  root.querySelector('[data-save-destinations]').onclick=async()=>{
+    const next=normalisePreferences(await client.preferences(scopeId,userId));
+    next.destinations=next.destinations||{};
+    fields.querySelectorAll('[data-destination]').forEach(input=>next.destinations[input.dataset.destination]=input.value.trim());
+    await client.savePreferences(scopeId,userId,next);
+    root.querySelector('[data-status]').textContent='Delivery details saved';
+  };
+  return prefs;
+}
+
+export async function mountNotificationInbox(root,{
+  client,
+  scopeId='default',
+  userId,
+  limit=50,
+  onUnreadChange
+}={}){
+  async function render(){
+    const items=await client.inbox(scopeId,userId,{limit});
+    const unread=items.filter(x=>x.read!==true).length;
+    root.innerHTML='<section class="apps-notification-inbox"><div class="apps-notification-inbox-head"><div><h3>Notification inbox</h3><p class="apps-notification-help"></p></div></div><div data-items></div></section>';
+    root.querySelector('.apps-notification-help').textContent=unread?unread+' unread':'No unread notifications';
+    const host=root.querySelector('[data-items]');
+    if(!items.length){
+      host.innerHTML='<p class="apps-notification-help">No notifications yet.</p>';
+    }else{
+      for(const item of items){
+        const card=document.createElement('article');
+        card.className='apps-notification-inbox-item'+(item.read!==true?' unread':'');
+        const content=document.createElement('div');
+        const title=document.createElement('strong');title.textContent=item.title||item.type||'Notification';
+        const body=document.createElement('p');body.textContent=item.body||'';
+        const meta=document.createElement('small');meta.textContent=new Date(item.storedAt||item.createdAt||Date.now()).toLocaleString();
+        content.append(title,body,meta);
+        card.appendChild(content);
+        if(item.read!==true&&client.markRead){
+          const button=document.createElement('button');button.type='button';button.textContent='Mark read';
+          button.onclick=async()=>{await client.markRead(scopeId,userId,item.id);await render()};
+          card.appendChild(button);
+        }
+        host.appendChild(card);
+      }
+    }
+    onUnreadChange?.(unread,items);
+    return {items,unread};
+  }
+  return render();
+}
+
+export function showNotificationToast({title='Notification',body='',duration=5000}={}){
+  let toast=document.getElementById('appsNotificationToast');
+  if(!toast){
+    toast=document.createElement('div');toast.id='appsNotificationToast';toast.className='apps-notification-toast';
+    const icon=document.createElement('div');icon.className='apps-notification-toast-icon';icon.textContent='🔔';
+    const text=document.createElement('div');text.innerHTML='<strong></strong><p></p>';
+    const close=document.createElement('button');close.type='button';close.className='apps-notification-toast-close';close.textContent='×';close.onclick=()=>toast.remove();
+    toast.append(icon,text,close);document.body.appendChild(toast);
+  }
+  toast.querySelector('strong').textContent=title;
+  toast.querySelector('p').textContent=body;
+  clearTimeout(showNotificationToast.timer);
+  showNotificationToast.timer=setTimeout(()=>toast.remove(),duration);
+  return toast;
 }
