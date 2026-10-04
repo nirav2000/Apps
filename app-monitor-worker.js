@@ -70,7 +70,7 @@ async function takeChallenge(env,id,kind){const key=APP_MONITOR_SECURITY+'challe
 async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
-  if(url.pathname==='/app-monitor/health')return Response.json({ok:true,service:'app-monitor',build:WORKER_BUILD,storage:'r2-session-snapshots',adminProtected:true},{headers});
+  if(url.pathname==='/app-monitor/health')return Response.json({ok:true,service:'app-monitor',build:WORKER_BUILD,sourceSha:String(env.APP_MONITOR_SOURCE_SHA||''),storage:'r2-session-snapshots',adminProtected:true},{headers});
   if(url.pathname.startsWith('/app-monitor/notifications/')){
     if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
     return handleAppMonitorNotificationRoute(request,env,headers,url);
@@ -370,7 +370,7 @@ export default {
   const origin=request.headers.get('Origin')||'',headers=cors(origin,env.ALLOWED_ORIGIN||'https://nirav2000.github.io');
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
   const url=new URL(request.url);
-  if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,r2Bound:!!env.APP_MONITOR_DATA,notifications:true},{headers});
+  if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,sourceSha:String(env.APP_MONITOR_SOURCE_SHA||''),r2Bound:!!env.APP_MONITOR_DATA,notifications:true},{headers});
   if(url.pathname.startsWith('/app-monitor/'))return appMonitorRoute(request,env,headers,url);
   return new Response('Not found',{status:404,headers});
  }
