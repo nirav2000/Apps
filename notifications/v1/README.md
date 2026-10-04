@@ -1,41 +1,106 @@
 # Apps Notifications v1
 
-Shared notification platform for the Apps portfolio.
+A shared, app-independent notification capability for the Apps portfolio.
 
-## Audiences
+## What belongs in the shared module
 
-### Platform / admin
-Examples: a new human user, unknown device, admin login, new automation source, or operational/security change.
+The module owns:
+- notification event schema;
+- delivery-method catalogue;
+- policy evaluation;
+- role and user overrides;
+- recipient preferences;
+- mandatory events;
+- cost-bearer metadata;
+- reusable notification settings UI;
+- reusable policy/member controls;
+- browser-push registration;
+- provider adapters;
+- transport contracts;
+- audit/delivery concepts.
 
-### App users
-Examples: a snag is created, updated, commented on or resolved; a task is due; an assignment changes.
+A consuming app supplies:
+- its own event names;
+- its own users and arbitrary role strings;
+- the policy controller / cost bearer;
+- authentication;
+- persistence or a transport adapter;
+- small event-emission hooks.
 
-## Permission model
+The shared module does **not** know app-specific concepts such as homeowner, builder, teacher, pupil, customer, contractor or snag.
 
-Each app or project has a primary owner/controller. In Snag this is normally the homeowner.
+## Clear UI terminology
 
-The owner defines the **policy ceiling**:
-- which event types are available;
-- which delivery channels are available;
-- which roles or specific users may use those channels;
-- whether a notification is optional or mandatory;
-- whether a metered/paid channel may be used.
+Use:
+- **Delivery methods** — where a notification is sent, e.g. in-app, email, push, SMS.
+- **Notification events** — which changes trigger a notification.
+- **Notification permissions** — the maximum delivery methods/events allowed by policy.
+- **Receive** — the recipient's current preference inside that permission ceiling.
 
-Each recipient then defines their own preferences inside that ceiling.
+Avoid ambiguous labels such as "How to tell me" or "What to tell me about".
 
-Effective notification settings are therefore:
+## Generic policy model
 
-`effective preference = owner policy AND recipient preference`
+The policy controller defines defaults and may override them by role or individual user.
 
-A builder or contractor cannot self-enable a channel or event the homeowner has not allowed. This is especially important for metered channels such as SMS or other paid providers.
+Precedence:
+1. individual user override;
+2. role override;
+3. scope default.
 
-The owner may also configure notification settings on behalf of a recipient, for example enabling email for a contractor.
+The policy controller is not constrained by the recipient ceiling for their own preferences.
 
-## Channels
+A recipient can save preferences only for delivery methods/events that policy permits. Metered channels can therefore be blocked unless explicitly authorised.
 
-The shared channel catalogue includes:
-- in-app notification centre
-- browser/web push
+## Scope
+
+A `scopeId` is an app-defined notification boundary. It can represent an account, workspace, project, household, class, team or simply `default`.
+
+The module does not prescribe what a scope means.
+
+## Lab
+
+Open:
+
+`/Apps/notifications/v1/lab.html`
+
+The Notifications Lab is the first consumer of this module. It uses:
+- generic roles: owner, admin, member, external;
+- generic events: record created/updated, comment, deadline and sign-in;
+- a local memory transport;
+- simulated external delivery;
+- the real shared policy and UI modules.
+
+No production app should be modified merely to test Notifications v1.
+
+## Installation shape
+
+A consuming app should need only a thin adapter:
+
+```js
+import { createNotifications } from 'https://nirav2000.github.io/Apps/notifications/v1/index.js';
+
+const notifications=createNotifications({
+  app:'example-app',
+  transport:myAuthenticatedTransport,
+  eventTypes:['record.created','record.updated']
+});
+
+await notifications.emit('record.created',{
+  scopeId:'workspace-123',
+  recipients:['user-2'],
+  title:'New record',
+  body:'A record was created.'
+});
+```
+
+The app should not copy provider, policy or preference logic into its own codebase.
+
+## Delivery methods
+
+The shared catalogue currently includes:
+- in-app
+- browser push
 - email
 - Telegram
 - WhatsApp
@@ -43,59 +108,17 @@ The shared channel catalogue includes:
 - Slack
 - Discord
 - SMS
-- native iOS/iPadOS push
+- native mobile push
 
-ChatGPT monitoring is intentionally excluded.
+ChatGPT polling/checking is intentionally excluded.
 
-## Architecture
+## Production transports
 
-Apps emit semantic events. They do not contain provider credentials and they do not implement vendor-specific delivery logic.
+The client is transport-agnostic. A consuming app may use:
+- its own authenticated backend adapter;
+- a future shared Notifications service;
+- another approved transport implementation.
 
-```
-App event
-  -> shared notification service
-  -> owner policy
-  -> recipient preferences
-  -> delivery routing
-  -> in-app ledger + external channels
-```
+The included `memory-transport.js` exists for the Lab/testing only.
 
-Example event names:
-- `security.new_human`
-- `security.new_device`
-- `snag.created`
-- `snag.updated`
-- `snag.comment_added`
-- `snag.status_changed`
-
-## Interfaces
-
-App Monitor provides the administrator view:
-- notification history
-- unread alerts
-- routing rules
-- channel health
-- delivery results
-- investigation links
-
-Applications provide reusable user-facing UI:
-- notification bell and unread badge
-- notification centre
-- personal preferences
-- owner policy controls where the signed-in user is the app/project owner
-
-Unavailable settings should remain visible but disabled with a clear explanation such as “Not enabled by the homeowner”.
-
-## Cost governance
-
-Channel definitions can declare whether they are free, externally billed, or metered. The owner policy controls paid-channel use globally, by role, or by individual. The delivery ledger records the policy used and the recipient/channel selected so costs can later be attributed and audited.
-
-## Rollout order
-
-1. Shared event, policy and preference model.
-2. App Monitor in-app notification centre.
-3. App Monitor `security.new_human` detection.
-4. Browser/web push.
-5. External delivery adapters.
-6. Snag as the first app-user consumer.
-7. Shared validation/release-gate coverage.
+Provider credentials must remain server-side.
