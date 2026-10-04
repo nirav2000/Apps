@@ -1,4 +1,5 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
+import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
 const WORKER_BUILD='2026.10.04.notifications-v1';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
@@ -30,6 +31,7 @@ async function appMonitorNotificationSettings(env){
     ownerPeople:[],
     events:{'security.new_human':true},
     channels:{in_app:true},
+    destinations:{},
     updatedAt:null
   };
 }
@@ -74,7 +76,19 @@ async function recordNewHumanIfNeeded(env,snapshot){
     context:{path:snapshot.path||'',country:snapshot.geo?.country||'',region:snapshot.geo?.region||'',city:snapshot.geo?.city||'',device:snapshot.device||null,identity:snapshot.identity||null}
   };
   await putJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/'+id+'.json',notification);
-  return {newIdentity:true,notified:true,notificationId:id};
+  const providers=providerStatus(env),deliveries=[{channel:'in_app',ok:true,status:'stored'}];
+  for(const [channel,enabled] of Object.entries(settings.channels||{})){
+    if(channel==='in_app'||enabled!==true)continue;
+    if(!providers[channel]?.configured){deliveries.push({channel,ok:false,status:'unconfigured'});continue}
+    try{
+      deliveries.push(await deliverNotification(env,channel,notification,settings.destinations||{}));
+    }catch(error){
+      deliveries.push({channel,ok:false,status:'failed',error:String(error?.message||error).slice(0,200)});
+    }
+  }
+  notification.deliveries=deliveries;
+  await putJSON(env,APP_MONITOR_NOTIFICATIONS+'inbox/'+id+'.json',notification);
+  return {newIdentity:true,notified:true,notificationId:id,deliveries};
 }
 async function appMonitorCredential(request,env){
   const key=request.headers.get('X-App-Monitor-Key')||'';if(key.length<32)return {ok:false};
@@ -197,7 +211,7 @@ async function appMonitorRoute(request,env,headers,url){
   }
   if(url.pathname==='/app-monitor/notifications/settings'&&request.method==='GET'){
     if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
-    return Response.json({ok:true,settings:await appMonitorNotificationSettings(env)},{headers});
+    return Response.json({ok:true,settings:await appMonitorNotificationSettings(env),providers:providerStatus(env)},{headers});
   }
   if(url.pathname==='/app-monitor/notifications/settings'&&request.method==='POST'){
     if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
@@ -210,6 +224,13 @@ async function appMonitorRoute(request,env,headers,url){
       ownerPeople:Array.isArray(body.ownerPeople)?body.ownerPeople.slice(0,50).map(x=>String(x).slice(0,120)):current.ownerPeople||[],
       events:{...current.events,...(body.events&&typeof body.events==='object'?body.events:{})},
       channels:{...current.channels,...(body.channels&&typeof body.channels==='object'?body.channels:{})},
+      destinations:body.destinations&&typeof body.destinations==='object'?{
+        email:String(body.destinations.email||'').slice(0,240),
+        phone:String(body.destinations.phone||'').slice(0,80),
+        whatsapp:String(body.destinations.whatsapp||'').slice(0,80),
+        telegramChatId:String(body.destinations.telegramChatId||'').slice(0,120),
+        oneSignalExternalId:String(body.destinations.oneSignalExternalId||'').slice(0,180)
+      }:(current.destinations||{}),
       updatedAt:new Date().toISOString()
     };
     await putJSON(env,APP_MONITOR_NOTIFICATIONS+'settings.json',settings);
