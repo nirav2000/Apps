@@ -42,10 +42,11 @@ jobs:
           const fs=require('fs');
           const html=fs.readFileSync('notifications/v1/lab.html','utf8');
           if(!html.includes('./lab.js?v=1')) throw new Error('Notifications Lab script missing');
-          if(!html.includes('Delivery log')||!html.includes('Event simulator')) throw new Error('Notifications Lab core surfaces missing');
+          const lower=html.toLowerCase();
+          if(!lower.includes('delivery log')||!lower.includes('event simulator')) throw new Error('Notifications Lab core surfaces missing');
           const lab=fs.readFileSync('notifications/v1/lab.js','utf8');
           if(!lab.includes('createNotifications')||!lab.includes('createMemoryTransport')) throw new Error('Lab is not consuming the shared notification module');
-          if(!lab.includes('mountRecipientPreferences')||!lab.includes('mountMemberNotificationSettings')) throw new Error('Lab is not exercising reusable shared UI');
+          if(!lab.includes('mountRecipientPreferences')||!lab.includes('mountRoleNotificationPolicy')||!lab.includes('mountMemberNotificationSettings')) throw new Error('Lab is not exercising reusable shared UI');
           const worker=fs.readFileSync('notifications/v1/onesignal/OneSignalSDKWorker.js','utf8');
           if(!worker.includes('OneSignalSDK.sw.js')) throw new Error('Shared OneSignal worker missing');
           NODE
