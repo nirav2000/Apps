@@ -158,7 +158,7 @@
         "App Monitor": "installed",
         "Snag": "installed"
       },
-      "notes": "Owner controls the notification-policy ceiling; recipient preferences operate only within it. Per-user override beats role default, which beats project default. App Monitor new-human inbox/admin controls and Snag owner/member settings + activity events are implemented. External delivery adapters are present but require provider credentials and the shared Worker bridge secret; push also requires device subscription registration."
+      "notes": "Shared event/policy/preferences/inbox, App Monitor new-human alerts and audit, Snag owner/member controls, external provider adapters, and OneSignal browser/PWA push registration are implemented. Owner policy precedence is individual > role > project default; metered channels remain owner-gated and record a cost bearer. External delivery still requires environment secrets/provider accounts; each browser/PWA device must grant push permission once."
     },
     {
       "id": "platform",
