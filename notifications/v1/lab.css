@@ -69,3 +69,30 @@
 .toast-close{background:transparent;color:#667085;padding:2px 6px;font-size:20px}
 @media(max-width:900px){.readiness-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.readiness-grid{grid-template-columns:1fr}.notification-toast{right:16px;top:16px}}
+
+/* Collapsed advanced permission controls */
+.advanced-access-card>summary{
+  list-style:none;
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  align-items:flex-start;
+  cursor:pointer;
+}
+.advanced-access-card>summary::-webkit-details-marker{display:none}
+.advanced-access-card>summary h2{margin:5px 0 6px}
+.advanced-access-card>summary p{margin:0}
+.advanced-chevron{
+  font-size:24px;
+  line-height:1;
+  transition:transform .18s ease;
+  color:#667085;
+}
+.advanced-access-card[open] .advanced-chevron{transform:rotate(180deg)}
+.advanced-panel{
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid var(--border);
+}
+.advanced-panel+.advanced-panel{margin-top:24px}
+.advanced-panel h3{margin:0 0 6px}
