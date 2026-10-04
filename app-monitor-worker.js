@@ -143,6 +143,9 @@ function notificationIngestOK(request,env){
 }
 async function sharedNotificationRoute(request,env,headers,url){
   headers={...headers,'Cache-Control':'no-store'};
+  if(url.pathname==='/notifications/public-config'&&request.method==='GET'){
+    return Response.json({ok:true,webPush:{configured:!!env.ONESIGNAL_APP_ID,appId:String(env.ONESIGNAL_APP_ID||'')}},{headers});
+  }
   if(!notificationIngestOK(request,env))return new Response('Unauthorized',{status:401,headers});
   if(url.pathname==='/notifications/providers'&&request.method==='GET')return Response.json({ok:true,providers:providerStatus(env)},{headers});
   if(url.pathname==='/notifications/deliver'&&request.method==='POST'){
