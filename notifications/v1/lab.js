@@ -105,7 +105,7 @@ function populateStaticControls(){
   $('memberSelect').innerHTML=members.filter(x=>x.userId!=='owner-1').map(x=>'<option value="'+x.userId+'">'+escapeHtml(x.name)+'</option>').join('');
   $('memberSelect').value=selectedMemberId;
   $('eventSelect').innerHTML=events.map(x=>'<option value="'+x.id+'">'+escapeHtml(x.label)+'</option>').join('');
-  $('recipientChecks').innerHTML=members.map(x=>'<label><input type="checkbox" value="'+x.userId+'" '+(x.userId!=='owner-1'?'checked':'')+'> '+escapeHtml(x.name)+'</label>').join('');
+  $('recipientChecks').innerHTML=members.map(x=>'<label><input type="checkbox" value="'+x.userId+'" checked> '+escapeHtml(x.name)+'</label>').join('');
 }
 
 async function renderPersona(){
@@ -245,7 +245,12 @@ async function rerender(){
   await renderPersona();
 }
 
-$('personaSelect').addEventListener('change',async e=>{currentUserId=e.target.value;await rerender()});
+$('personaSelect').addEventListener('change',async e=>{
+  currentUserId=e.target.value;
+  const box=[...$('recipientChecks').querySelectorAll('input')].find(x=>x.value===currentUserId);
+  if(box)box.checked=true;
+  await rerender();
+});
 $('roleSelect').addEventListener('change',async e=>{selectedRole=e.target.value;await rerender()});
 $('memberSelect').addEventListener('change',async e=>{selectedMemberId=e.target.value;await rerender()});
 $('sendEvent').addEventListener('click',sendEvent);
