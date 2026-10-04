@@ -16,7 +16,8 @@
     "Next",
     "InClass",
     "App Monitor",
-    "Firebase Usage Monitor"
+    "Firebase Usage Monitor",
+    "Notifications Lab"
   ],
   "libraries": [
     {
@@ -149,16 +150,15 @@
     },
     {
       "id": "notifications-v1",
-      "name": "Notifications v1",
+      "name": "Notifications v1.1",
       "file": "notifications/v1/",
       "status": "implemented",
       "created": "2026-10-04",
-      "purpose": "Shared event, owner-policy, recipient-preference and reusable UI model for admin/platform alerts and app-user notifications across in-app, push, email, messaging and paid channels.",
+      "purpose": "App-independent notification event, policy, recipient-preference, delivery-method and reusable UI capability with role/user overrides, cost governance, push registration and provider adapters.",
       "installed": {
-        "App Monitor": "installed",
-        "Snag": "installed"
+        "Notifications Lab": "installed"
       },
-      "notes": "Owner controls the notification-policy ceiling for other users; recipients can save preferences only inside it. Individual override > role override > project default. The owner remains free to opt themselves into channels they authorise/pay for. App Monitor new-human alerts and Snag owner/member notifications are installed, including browser-push registration. External channels require provider credentials and the shared Worker bridge secret."
+      "notes": "First consumer is the standalone Notifications Lab. No production app is currently installed. Roles and event names are supplied by consuming apps; the shared module contains no Snag/homeowner/builder/contractor or App Monitor business logic. Adoption should require only a thin transport/event adapter after the Lab is accepted."
     },
     {
       "id": "platform",
@@ -168,7 +168,7 @@
       "created": "2026-09-27",
       "purpose": "Versioned integration layer and lazy capability loader that keeps shared infrastructure separate from consuming app business logic.",
       "installed": {},
-      "notes": "Apps Platform v1.1 exposes canonical 'auth' as an ES-module capability while keeping legacy identity/account modules available for deliberate migration."
+      "notes": "Apps Platform exposes canonical shared capabilities, including Notifications v1.1, while keeping consuming-app business logic outside the shared modules."
     },
     {
       "id": "devnotes",
