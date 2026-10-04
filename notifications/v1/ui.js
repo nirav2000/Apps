@@ -136,7 +136,7 @@ export async function mountPolicyDefaults(root, {
     const label = typeof item === 'string' ? item : (item.label || item.id);
     const group = document.createElement('div');
     group.className = 'apps-notification-dual-row';
-    group.innerHTML = '<div><strong></strong><small>Default for everyone</small></div><label>Available <input type="checkbox" data-policy-event></label><label>Required <input type="checkbox" data-policy-required></label>';
+    group.innerHTML = '<div><strong></strong><small>Default for everyone</small></div><label><span>Allowed for everyone</span><input type="checkbox" data-policy-event></label><label><span>Always on</span><input type="checkbox" data-policy-required></label>';
     group.querySelector('strong').textContent = label;
     const available = group.querySelector('[data-policy-event]');
     const required = group.querySelector('[data-policy-required]');
