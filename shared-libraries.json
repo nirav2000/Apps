@@ -7,6 +7,7 @@
     "unknown": "Not yet verified"
   },
   "apps": [
+    "Apps",
     "Kk-syllabus",
     "Openday",
     "LearnLatin",
@@ -271,6 +272,250 @@
       "app": "Apps",
       "event": "Shared implementation recorded in architecture register",
       "detail": "Commit 5d2ba7f recorded the shared Version Lab implementation and remaining migration work."
+    }
+  ],
+  "infrastructureLegend": {
+    "source_owner": "Source owner",
+    "credential_host": "Credential host",
+    "uses": "Uses",
+    "configured": "Configured",
+    "local": "Local/app-specific",
+    "unknown": "Audit pending",
+    "not_used": "Not used"
+  },
+  "infrastructure": [
+    {
+      "id": "cloudflare-deploy-credentials",
+      "name": "Cloudflare deployment credentials",
+      "category": "Credentials / deployment",
+      "purpose": "GitHub Actions credentials used to deploy shared Cloudflare Workers. Secret values are never stored in this register.",
+      "apps": {
+        "Apps": [
+          "source_owner"
+        ],
+        "Snag": [
+          "credential_host"
+        ],
+        "App Monitor": [
+          "uses"
+        ]
+      },
+      "notes": "Verified: Snag's GitHub Actions secrets provide CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID for the delegated shared App Monitor Worker deployment. Apps owns the Worker source; Snag is the credential host."
+    },
+    {
+      "id": "cloudflare-workers",
+      "name": "Cloudflare Workers",
+      "category": "Runtime",
+      "purpose": "Server-side runtime for shared/app APIs and notification delivery.",
+      "apps": {
+        "Apps": [
+          "source_owner"
+        ],
+        "Snag": [
+          "uses"
+        ],
+        "App Monitor": [
+          "configured"
+        ]
+      },
+      "notes": "App Monitor Worker source lives in Apps and is deployed by the delegated workflow in Snag."
+    },
+    {
+      "id": "cloudflare-r2",
+      "name": "Cloudflare R2",
+      "category": "Storage",
+      "purpose": "Object storage used by Workers for app data, telemetry and notification inbox/audit records.",
+      "apps": {
+        "Snag": [
+          "uses",
+          "configured"
+        ],
+        "App Monitor": [
+          "uses",
+          "configured"
+        ]
+      },
+      "notes": "Verified App Monitor binding: APP_MONITOR_DATA -> apps-monitor-data. Snag also uses R2 for app/media storage."
+    },
+    {
+      "id": "firebase-firestore",
+      "name": "Firebase / Firestore backend",
+      "category": "Data platform",
+      "purpose": "Firebase projects and Firestore databases used by apps for application data and shared monitoring.",
+      "apps": {
+        "Kk-syllabus": [
+          "uses",
+          "configured"
+        ],
+        "Openday": [
+          "uses"
+        ],
+        "LearnLatin": [
+          "uses"
+        ],
+        "beyond100": [
+          "uses"
+        ],
+        "Snag": [
+          "uses",
+          "configured"
+        ],
+        "Firebase Usage Monitor": [
+          "uses"
+        ],
+        "Comprehension": [
+          "unknown"
+        ],
+        "Next": [
+          "unknown"
+        ],
+        "InClass": [
+          "unknown"
+        ],
+        "App Monitor": [
+          "not_used"
+        ]
+      },
+      "notes": "Snag uses its own Firebase project; older apps may still use kk-syllabus. This row tracks platform use, not secret values. Remaining app/project mappings should be audited progressively."
+    },
+    {
+      "id": "firebase-auth",
+      "name": "Firebase Authentication",
+      "category": "Identity",
+      "purpose": "Firebase user authentication where a consuming app uses Firebase Auth.",
+      "apps": {
+        "Snag": [
+          "uses",
+          "configured"
+        ],
+        "LearnLatin": [
+          "unknown"
+        ],
+        "beyond100": [
+          "unknown"
+        ],
+        "Comprehension": [
+          "unknown"
+        ],
+        "Next": [
+          "unknown"
+        ],
+        "InClass": [
+          "unknown"
+        ],
+        "App Monitor": [
+          "not_used"
+        ]
+      },
+      "notes": "App Monitor deliberately uses its existing passkey/session system instead of Firebase Auth. Other app coverage is recorded only when verified."
+    },
+    {
+      "id": "firebase-cloud-messaging",
+      "name": "Firebase Cloud Messaging (FCM)",
+      "category": "Notifications",
+      "purpose": "Potential shared browser/mobile push provider for Firebase-backed apps.",
+      "apps": {
+        "Apps": [
+          "source_owner"
+        ],
+        "App Monitor": [
+          "not_used"
+        ],
+        "Snag": [
+          "unknown"
+        ],
+        "LearnLatin": [
+          "unknown"
+        ],
+        "beyond100": [
+          "unknown"
+        ]
+      },
+      "notes": "Not yet adopted as the shared default push provider. Notifications currently contains a OneSignal push adapter; FCM remains a candidate transport."
+    },
+    {
+      "id": "github-actions",
+      "name": "GitHub Actions",
+      "category": "CI / deployment",
+      "purpose": "Release gates, validation and deployment workflows.",
+      "apps": {
+        "Apps": [
+          "uses"
+        ],
+        "Kk-syllabus": [
+          "uses"
+        ],
+        "Openday": [
+          "uses"
+        ],
+        "LearnLatin": [
+          "uses"
+        ],
+        "Comprehension": [
+          "uses"
+        ],
+        "beyond100": [
+          "uses"
+        ],
+        "Snag": [
+          "uses"
+        ],
+        "Next": [
+          "uses"
+        ],
+        "InClass": [
+          "uses"
+        ],
+        "App Monitor": [
+          "uses"
+        ],
+        "Firebase Usage Monitor": [
+          "uses"
+        ],
+        "Notifications Lab": [
+          "uses"
+        ]
+      },
+      "notes": "Usage varies by repository. Shared Worker deployment may be delegated to a credential-host repository."
+    },
+    {
+      "id": "github-pages",
+      "name": "GitHub Pages",
+      "category": "Hosting",
+      "purpose": "Static hosting for Apps and consuming web apps.",
+      "apps": {
+        "Apps": [
+          "configured"
+        ],
+        "Openday": [
+          "uses"
+        ],
+        "LearnLatin": [
+          "uses"
+        ],
+        "Comprehension": [
+          "uses"
+        ],
+        "beyond100": [
+          "uses"
+        ],
+        "Snag": [
+          "uses"
+        ],
+        "Next": [
+          "uses"
+        ],
+        "InClass": [
+          "uses"
+        ],
+        "App Monitor": [
+          "uses"
+        ],
+        "Notifications Lab": [
+          "uses"
+        ]
+      },
+      "notes": "Static front ends are deployed separately from Cloudflare Worker backends; release checks must verify both where an app uses both."
     }
   ]
 }
