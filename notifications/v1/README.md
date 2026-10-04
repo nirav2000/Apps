@@ -73,6 +73,14 @@ The Notifications Lab is the first consumer of this module. It uses:
 
 No production app should be modified merely to test Notifications v1.
 
+## Installation guide
+
+Before installing Notifications into a production app, read:
+
+`notifications/v1/INSTALLATION.md`
+
+This is the canonical adoption guide for both human developers and ChatGPT/AI-assisted integrations. It defines the required app mapping, transport contract, security rules, minimal-diff rule, validation steps, rollback procedure and definition of done.
+
 ## Installation shape
 
 A consuming app should need only a thin adapter:
