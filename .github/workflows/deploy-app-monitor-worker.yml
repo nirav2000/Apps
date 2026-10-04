@@ -6,6 +6,9 @@ on:
     branches: ["main"]
     paths:
       - "app-monitor-worker.js"
+      - "notifications/v1/providers.js"
+      - "notifications/v1/r2-transport.js"
+      - "app-monitor-notifications.js"
       - "wrangler-app-monitor.jsonc"
       - "package.json"
       - ".github/workflows/deploy-app-monitor-worker.yml"
