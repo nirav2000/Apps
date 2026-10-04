@@ -52,11 +52,13 @@ export async function mountRecipientPreferences(root, {
   scopeId = 'default',
   userId,
   role = 'member',
-  eventTypes = []
+  eventTypes = [],
+  respectReadiness = false
 } = {}) {
-  const [policy, preferences] = await Promise.all([
+  const [policy, preferences, readiness] = await Promise.all([
     client.policy(scopeId),
-    client.preferences(scopeId, userId)
+    client.preferences(scopeId, userId),
+    respectReadiness ? client.readiness(scopeId) : Promise.resolve(null)
   ]);
   const eventIds = eventTypes.map(item => typeof item === 'string' ? item : item.id);
   const state = effectivePreferences({ policy, preferences, userId, role, eventTypes:eventIds });
@@ -65,11 +67,14 @@ export async function mountRecipientPreferences(root, {
 
   const channels = root.querySelector('[data-channels]');
   for (const [key, value] of Object.entries(state.channels)) {
+    const providerState = key === 'in_app' ? readiness?.inApp?.status : readiness?.providers?.[key]?.status;
+    const setupRequired = respectReadiness && key !== 'in_app' && providerState !== 'ready';
+    const reason = value.lockedReason || (setupRequired ? 'Setup required before this delivery method can be used' : '');
     channels.appendChild(row({
       label: LABELS[key] || key,
-      checked: value.enabled,
-      disabled: !value.allowed || key === 'in_app',
-      reason: value.lockedReason,
+      checked: value.enabled && !setupRequired,
+      disabled: !value.allowed || key === 'in_app' || setupRequired,
+      reason,
       extra: value.cost === 'metered' ? 'May incur usage charges' : '',
       key,
       kind: 'channel'
