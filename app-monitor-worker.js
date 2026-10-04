@@ -136,6 +136,30 @@ async function bootstrapProof(request,record){const secret=request.headers.get('
 async function saveChallenge(env,kind,challenge,sessionHash=''){const id=randomSecret(18),record={version:2,id,kind,challenge,sessionHash,createdAt:new Date().toISOString()};await putJSON(env,APP_MONITOR_SECURITY+'challenges/'+id+'.json',record);return id}
 async function takeChallenge(env,id,kind){const key=APP_MONITOR_SECURITY+'challenges/'+String(id||'')+'.json',x=await getJSON(env,key);if(!x||x.kind!==kind||Date.now()-Date.parse(x.createdAt)>APP_MONITOR_CHALLENGE_MS)return null;await env.APP_MONITOR_DATA.delete(key);return x}
 
+function notificationIngestOK(request,env){
+  const given=String(request.headers.get('X-Apps-Notification-Key')||''),expected=String(env.NOTIFICATION_INGEST_KEY||'');
+  if(!given||!expected||given.length!==expected.length)return false;
+  let diff=0;for(let i=0;i<given.length;i++)diff|=given.charCodeAt(i)^expected.charCodeAt(i);return diff===0;
+}
+async function sharedNotificationRoute(request,env,headers,url){
+  headers={...headers,'Cache-Control':'no-store'};
+  if(!notificationIngestOK(request,env))return new Response('Unauthorized',{status:401,headers});
+  if(url.pathname==='/notifications/providers'&&request.method==='GET')return Response.json({ok:true,providers:providerStatus(env)},{headers});
+  if(url.pathname==='/notifications/deliver'&&request.method==='POST'){
+    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
+    const channel=String(body.channel||''),notification=body.notification&&typeof body.notification==='object'?body.notification:null,destination=body.destination&&typeof body.destination==='object'?body.destination:{};
+    const providers=providerStatus(env);
+    if(!notification?.type||!notification?.app)return new Response('Invalid notification',{status:400,headers});
+    if(!providers[channel])return new Response('Unknown channel',{status:400,headers});
+    if(!providers[channel].configured)return Response.json({ok:false,channel,status:'unconfigured'},{status:409,headers});
+    let result;try{result=await deliverNotification(env,channel,notification,destination)}catch(error){result={ok:false,channel,status:'failed',error:String(error?.message||error).slice(0,200)}}
+    const id=randomSecret(12),record={version:1,id,channel,notification:{id:String(notification.id||''),type:String(notification.type),app:String(notification.app),projectId:String(notification.projectId||'')},result,createdAt:new Date().toISOString()};
+    await putJSON(env,APP_MONITOR_NOTIFICATIONS+'deliveries/'+id+'.json',record);
+    return Response.json({ok:result.ok===true,delivery:record},{status:result.ok===true?200:502,headers});
+  }
+  return new Response('Not found',{status:404,headers});
+}
+
 async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
@@ -481,7 +505,8 @@ export default {
   const origin=request.headers.get('Origin')||'',headers=cors(origin,env.ALLOWED_ORIGIN||'https://nirav2000.github.io');
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
   const url=new URL(request.url);
-  if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,r2Bound:!!env.APP_MONITOR_DATA},{headers});
+  if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,r2Bound:!!env.APP_MONITOR_DATA,notifications:true},{headers});
+  if(url.pathname.startsWith('/notifications/'))return sharedNotificationRoute(request,env,headers,url);
   if(url.pathname.startsWith('/app-monitor/'))return appMonitorRoute(request,env,headers,url);
   return new Response('Not found',{status:404,headers});
  }
