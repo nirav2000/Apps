@@ -58,8 +58,10 @@ jobs:
           const lab=fs.readFileSync('notifications/v1/lab.js','utf8');
           if(!lab.includes('createNotifications')||!lab.includes('createMemoryTransport')) throw new Error('Lab is not consuming the shared notification module');
           if(!lab.includes('mountRecipientPreferences')||!lab.includes('mountRoleNotificationPolicy')||!lab.includes('mountMemberNotificationSettings')) throw new Error('Lab is not exercising reusable shared UI');
-          const worker=fs.readFileSync('notifications/v1/onesignal/OneSignalSDKWorker.js','utf8');
-          if(!worker.includes('OneSignalSDK.sw.js')) throw new Error('Shared OneSignal worker missing');
+          const worker=fs.readFileSync('firebase-messaging-sw.js','utf8');
+          if(!worker.includes('firebase-messaging-compat.js')) throw new Error('Shared Firebase messaging worker missing');
+          const push=fs.readFileSync('notifications/v1/push.js','utf8');
+          if(!push.includes('firebase-messaging.js')||!push.includes('onRegistered')) throw new Error('Shared push client is not using FCM FID registration');
           NODE
 
       - name: Independence invariants
@@ -89,10 +91,12 @@ jobs:
             }
           }
           const install=fs.readFileSync('notifications/v1/INSTALLATION.md','utf8');
-          for(const phrase of ['Minimal-diff rule','Instructions specifically for ChatGPT / AI','Definition of done','rollback the consuming app']){
+          for(const phrase of ['Minimal-diff rule','Instructions specifically for ChatGPT / AI','Definition of done','rollback the consuming app','Third-party service approval']){
             if(!install.includes(phrase)) throw new Error('Installation guide missing required contract: '+phrase);
           }
           const providers=fs.readFileSync('notifications/v1/providers.js','utf8');
+          if(providers.includes('ONESIGNAL_APP_ID')||providers.includes('api.onesignal.com')) throw new Error('OneSignal must not be active in the default Notifications stack');
+          if(!providers.includes('Firebase Cloud Messaging (FCM)')||!providers.includes('FCM_PROJECT_ID')) throw new Error('FCM is not the default push provider');
           if(providers.includes('destination.slackWebhookUrl')||providers.includes('destination.discordWebhookUrl')||providers.includes('destination.signalWebhookUrl')) throw new Error('User-controlled provider webhook detected');
           NODE
 
