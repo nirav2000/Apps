@@ -169,3 +169,58 @@ Individual recipients can instead store their own Telegram chat ID.
 If App Monitor says **Setup required**, the Worker is deliberately reporting that the provider credentials are absent or incomplete. A selectable preference must never be interpreted as proof that a provider is operational.
 
 The App Monitor R2/in-app notification path does not require any external provider and should report **Ready** once the production Worker is deployed.
+
+
+### Recommended FCM project setup
+
+For shared cross-app push, prefer a dedicated Firebase project such as **Apps Notifications** rather than coupling push delivery to an app-specific Firebase project. Reusing an existing verified central Firebase project is also possible, but should be an explicit decision.
+
+1. In Firebase Console, create/select the Firebase project.
+2. Go to **Project settings → General → Your apps** and register a **Web app** for the shared Notifications client. Firebase Hosting is not required.
+3. Copy the web config values:
+   - `projectId` → `FCM_PROJECT_ID`
+   - `apiKey` → `FCM_WEB_API_KEY`
+   - `appId` → `FCM_WEB_APP_ID`
+   - `messagingSenderId` → `FCM_MESSAGING_SENDER_ID`
+   - `authDomain` → `FCM_AUTH_DOMAIN` (optional)
+4. Go to **Project settings → Cloud Messaging → Web configuration → Web Push certificates** and generate a key pair if one does not exist.
+5. Copy the public Web Push key → `FCM_VAPID_KEY`.
+6. Verify the Firebase Cloud Messaging API / FCM Registration API is enabled for the project. New Firebase projects normally enable the registration API automatically when adding FCM.
+7. In Google Cloud IAM, create a dedicated service account for the shared notification sender where practical. Grant only the Firebase Cloud Messaging permissions needed to send messages (recommended role: **Firebase Cloud Messaging API Admin**, `roles/firebasecloudmessaging.admin`), rather than using a broadly privileged general-purpose service account.
+8. Create a JSON key for that dedicated service account.
+9. From the JSON:
+   - `client_email` → `FCM_CLIENT_EMAIL`
+   - `private_key` → `FCM_PRIVATE_KEY`
+
+Do not upload or paste the service-account JSON/private key into chat.
+
+### Snag credential-host configuration
+
+Open **nirav2000/snag → Settings → Secrets and variables → Actions**.
+
+Preferred **Repository variables** for public Firebase web configuration:
+- `FCM_PROJECT_ID`
+- `FCM_WEB_API_KEY`
+- `FCM_WEB_APP_ID`
+- `FCM_MESSAGING_SENDER_ID`
+- `FCM_VAPID_KEY`
+- optional `FCM_AUTH_DOMAIN`
+
+Required **Repository secrets** for the trusted FCM sender:
+- `FCM_CLIENT_EMAIL`
+- `FCM_PRIVATE_KEY`
+
+For backward compatibility the delegated workflow also accepts the public values as Actions secrets, but Variables are preferred because those values are not credentials.
+
+After adding them:
+1. Open **Actions → Deploy shared App Monitor worker** in the Snag repository.
+2. Run the workflow manually, or wait for its hourly scheduled run.
+3. The workflow checks out the current `Apps/main`, deploys the Worker if its exact source SHA differs, synchronises configured provider values, verifies the protected notification route, and verifies the live Worker source SHA.
+4. Refresh App Monitor.
+5. **Browser push** should change from **Setup required** to **Ready**.
+6. Press **Enable browser push** on each device/browser you want to receive notifications.
+7. Accept the browser notification permission prompt.
+8. On iPhone/iPad, if the browser reports that Home Screen installation is required, add the Apps/App Monitor web app to the Home Screen and enable push from that installed web app.
+9. Run a real notification test.
+
+The shared client stores multiple Firebase Installation IDs for the administrator, so enabling push on several devices does not replace the previously registered device.
