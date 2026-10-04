@@ -50,6 +50,7 @@ function ownerPolicyValue(globalMap, roleMap, userMap, key, fallback) {
 
 export function channelAllowed(policy, { userId, role, channel }) {
   const p = normaliseOwnerPolicy(policy);
+  if (p.ownerId && String(userId) === String(p.ownerId)) return true;
   return ownerPolicyValue(
     p.allowedChannels,
     p.roleChannels?.[role],
@@ -61,6 +62,7 @@ export function channelAllowed(policy, { userId, role, channel }) {
 
 export function eventAllowed(policy, { userId, role, eventType }) {
   const p = normaliseOwnerPolicy(policy);
+  if (p.ownerId && String(userId) === String(p.ownerId)) return true;
   return ownerPolicyValue(
     p.allowedEvents,
     p.roleEvents?.[role],
