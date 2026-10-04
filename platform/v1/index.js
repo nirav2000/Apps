@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 if(window.AppsPlatformV1)return;
-const PLATFORM_VERSION='1.1.0';
+const PLATFORM_VERSION='1.2.0';
 const ROOT=(document.currentScript?.src||'https://nirav2000.github.io/Apps/platform/v1/index.js').replace(/\/platform\/v1\/index\.js(?:\?.*)?$/,'/');
 const CAPABILITIES={
   auth:{src:'auth/v1/index.js',module:true,exportName:'Auth'},
@@ -11,7 +11,8 @@ const CAPABILITIES={
   billing:{src:'apps-billing.js?v=1',global:'AppsBilling'},
   pronunciation:{src:'apps-pronunciation.js?v=3',global:'AppsPronunciation'},
   monitor:{src:'app-monitor.js?v=5',global:'AppMonitor'},
-  firebaseUsage:{src:'firebase-usage-monitor.js',global:'FirebaseUsageMonitor'}
+  firebaseUsage:{src:'firebase-usage-monitor.js',global:'FirebaseUsageMonitor'},
+  notifications:{src:'notifications/v1/index.js',module:true,exportName:'createNotifications'}
 };
 const loaded=new Map();
 function script(url,global){
