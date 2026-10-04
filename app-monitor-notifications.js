@@ -150,7 +150,7 @@ export async function handleAppMonitorNotificationRoute(request,env,headers,url)
       policy,preferences,inbox,deliveryLog,readiness,
       unread:inbox.filter(x=>x.read!==true).length,
       settings:config,availablePeople:people,
-      publicConfig:{webPush:{configured:!!env.ONESIGNAL_APP_ID,appId:String(env.ONESIGNAL_APP_ID||'')}}
+      publicConfig:readiness.publicConfig||{}
     },{headers});
   }
 
