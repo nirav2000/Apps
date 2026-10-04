@@ -318,7 +318,7 @@
           "uses"
         ]
       },
-      "notes": "Provider secret values are not stored here. For App Monitor, provider secrets are added to Snag GitHub Actions secrets and synchronised automatically into the shared apps-monitor-api Cloudflare Worker."
+      "notes": "Notification-provider credential ownership is split by provider. For FCM, Firebase authority is held in Kk-syllabus via FIREBASE_SERVICE_ACCOUNT_KK_SYLLABUS; App Monitor's Cloudflare Worker deployment is delegated through Snag. Other third-party providers remain approval-gated and inactive."
     },
     {
       "id": "cloudflare-workers",
@@ -436,20 +436,18 @@
         "Apps": [
           "source_owner"
         ],
+        "Kk-syllabus": [
+          "credential_host",
+          "configured"
+        ],
         "App Monitor": [
           "uses"
         ],
         "Snag": [
-          "credential_host"
-        ],
-        "LearnLatin": [
-          "unknown"
-        ],
-        "beyond100": [
-          "unknown"
+          "uses"
         ]
       },
-      "notes": "Approved/default browser-push provider for shared Notifications as of 4 Oct 2026. FCM itself is no-cost. App Monitor uses Snag as the credential host for delegated configuration. Other app adoption remains audit pending."
+      "notes": "Approved/default browser-push provider for shared Notifications. Firebase project: kk-syllabus. Existing Firebase service-account authority lives in nirav2000/Kk-syllabus as FIREBASE_SERVICE_ACCOUNT_KK_SYLLABUS. Snag is not the Firebase owner; it is the delegated Cloudflare deployment/secret host for apps-monitor-api. App Monitor uses FCM only for push while its own data remains in Cloudflare/R2."
     },
     {
       "id": "github-actions",
