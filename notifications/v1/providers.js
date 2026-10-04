@@ -1,3 +1,16 @@
+export const PROVIDER_APPROVAL = Object.freeze({
+  in_app:{approved:true,basis:'Built-in; no external service'},
+  web_push:{approved:true,basis:'Firebase Cloud Messaging explicitly approved 2026-10-04'},
+  ios_push:{approved:false,basis:'Future native push requires separate approval and native app setup'},
+  email:{approved:false,basis:'Third-party email provider not yet approved'},
+  telegram:{approved:false,basis:'Telegram Bot API not yet approved'},
+  whatsapp:{approved:false,basis:'Twilio WhatsApp not yet approved'},
+  signal:{approved:false,basis:'Signal bridge not yet approved'},
+  slack:{approved:false,basis:'Slack webhook not yet approved'},
+  discord:{approved:false,basis:'Discord webhook not yet approved'},
+  sms:{approved:false,basis:'Twilio SMS not yet approved'}
+});
+
 export const PROVIDER_SETUP = Object.freeze({
   in_app:{
     title:'In-app',
@@ -12,8 +25,9 @@ export const PROVIDER_SETUP = Object.freeze({
     provider:'Firebase Cloud Messaging (FCM)',
     providerUrl:'https://console.firebase.google.com/',
     summary:'Configure Firebase Cloud Messaging for a web app. FCM itself is a no-cost Firebase product; the browser needs the public Firebase web config and VAPID key, while the trusted Worker needs Firebase service-account credentials.',
-    secrets:['FCM_PROJECT_ID','FCM_CLIENT_EMAIL','FCM_PRIVATE_KEY','FCM_WEB_API_KEY','FCM_WEB_APP_ID','FCM_MESSAGING_SENDER_ID','FCM_VAPID_KEY'],
-    optionalSecrets:['FCM_AUTH_DOMAIN'],
+    secrets:['FCM_CLIENT_EMAIL','FCM_PRIVATE_KEY'],
+    publicSettings:['FCM_PROJECT_ID','FCM_WEB_API_KEY','FCM_WEB_APP_ID','FCM_MESSAGING_SENDER_ID','FCM_VAPID_KEY'],
+    optionalPublicSettings:['FCM_AUTH_DOMAIN'],
     destination:['Grant browser notification permission on each device','Register the device Firebase Installation ID (FID)'],
     cost:'free'
   },
@@ -92,18 +106,21 @@ export const PROVIDER_SETUP = Object.freeze({
 });
 
 export function providerStatus(env = {}) {
-  return {
-    in_app: { configured:true, cost:'free' },
-    web_push: { configured:!!(env.FCM_PROJECT_ID && env.FCM_CLIENT_EMAIL && env.FCM_PRIVATE_KEY && env.FCM_WEB_API_KEY && env.FCM_WEB_APP_ID && env.FCM_MESSAGING_SENDER_ID && env.FCM_VAPID_KEY), cost:'free' },
-    email: { configured:!!(env.RESEND_API_KEY && env.NOTIFICATION_FROM_EMAIL), cost:'provider' },
-    telegram: { configured:!!env.TELEGRAM_BOT_TOKEN, cost:'provider' },
-    whatsapp: { configured:!!(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_WHATSAPP_FROM), cost:'metered' },
-    signal: { configured:!!env.SIGNAL_WEBHOOK_URL, cost:'provider' },
-    slack: { configured:!!env.SLACK_WEBHOOK_URL, cost:'provider' },
-    discord: { configured:!!env.DISCORD_WEBHOOK_URL, cost:'provider' },
-    sms: { configured:!!(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_SMS_FROM), cost:'metered' },
-    ios_push: { configured:false, cost:'free' }
+  const raw={
+    in_app:{configured:true,cost:'free'},
+    web_push:{configured:!!(env.FCM_PROJECT_ID&&env.FCM_CLIENT_EMAIL&&env.FCM_PRIVATE_KEY&&env.FCM_WEB_API_KEY&&env.FCM_WEB_APP_ID&&env.FCM_MESSAGING_SENDER_ID&&env.FCM_VAPID_KEY),cost:'free'},
+    email:{configured:!!(env.RESEND_API_KEY&&env.NOTIFICATION_FROM_EMAIL),cost:'provider'},
+    telegram:{configured:!!env.TELEGRAM_BOT_TOKEN,cost:'provider'},
+    whatsapp:{configured:!!(env.TWILIO_ACCOUNT_SID&&env.TWILIO_AUTH_TOKEN&&env.TWILIO_WHATSAPP_FROM),cost:'metered'},
+    signal:{configured:!!env.SIGNAL_WEBHOOK_URL,cost:'provider'},
+    slack:{configured:!!env.SLACK_WEBHOOK_URL,cost:'provider'},
+    discord:{configured:!!env.DISCORD_WEBHOOK_URL,cost:'provider'},
+    sms:{configured:!!(env.TWILIO_ACCOUNT_SID&&env.TWILIO_AUTH_TOKEN&&env.TWILIO_SMS_FROM),cost:'metered'},
+    ios_push:{configured:false,cost:'free'}
   };
+  return Object.fromEntries(Object.entries(raw).map(([key,value])=>[
+    key,{...value,approved:PROVIDER_APPROVAL[key]?.approved===true,configured:value.configured&&PROVIDER_APPROVAL[key]?.approved===true,approvalBasis:PROVIDER_APPROVAL[key]?.basis||''}
+  ]));
 }
 
 let fcmTokenCache={token:'',expiresAt:0};
