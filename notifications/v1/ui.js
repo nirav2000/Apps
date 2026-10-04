@@ -91,8 +91,14 @@ function showDeliverySetupPanel(root,channel,context={}){
     const h=document.createElement('strong');h.textContent='Recipient/device setup';sec.appendChild(h);
     const ul=document.createElement('ul');for(const item of meta.destination){const li=document.createElement('li');li.textContent=item;ul.appendChild(li)}sec.appendChild(ul);panel.appendChild(sec);
   }
+  if(meta.providerUrl){
+    const a=document.createElement('a');a.href=meta.providerUrl;a.target='_blank';a.rel='noopener';a.className='apps-notification-setup-link';a.textContent='Open provider setup';panel.appendChild(a);
+  }
   if(context.secretsUrl){
     const a=document.createElement('a');a.href=context.secretsUrl;a.target='_blank';a.rel='noopener';a.className='apps-notification-setup-link';a.textContent='Open credential-host Actions secrets';panel.appendChild(a);
+  }
+  if(context.afterSetup){
+    const note=document.createElement('p');note.className='apps-notification-help';note.textContent=context.afterSetup;panel.appendChild(note);
   }
   if(context.guideUrl){
     const a=document.createElement('a');a.href=context.guideUrl;a.target='_blank';a.rel='noopener';a.className='apps-notification-setup-link secondary';a.textContent='Open full setup guide';panel.appendChild(a);
