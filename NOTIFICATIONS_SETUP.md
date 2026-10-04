@@ -1,24 +1,24 @@
-# Notification provider setup
+# Notifications provider setup
 
-Shared Notifications v1 works in two layers:
+Notifications v1 is app-independent. Provider configuration belongs behind a trusted server-side transport, never in a browser bundle.
 
-1. **In-app notifications** use the existing app/Worker storage and need no external notification provider.
-2. **External delivery** uses the provider adapters in `notifications/v1/providers.js`.
+## Shared provider adapters
 
-No provider secret belongs in browser JavaScript, a GitHub Pages file, or a committed Wrangler config.
+`notifications/v1/providers.js` contains adapters for:
+- email;
+- Telegram;
+- WhatsApp;
+- Signal bridge;
+- Slack;
+- Discord;
+- SMS;
+- browser/native push.
 
-## Shared Worker-to-Worker key
+Provider credentials are optional. A delivery method should be reported as unavailable until its provider is configured.
 
-Set the same random secret in:
+## Expected server-side secrets
 
-- Apps Worker: `NOTIFICATION_INGEST_KEY`
-- Snag Worker: `APPS_NOTIFICATION_INGEST_KEY`
-
-This authorises trusted application Workers to call the shared delivery endpoint. A missing key leaves external delivery unavailable while in-app notifications continue to work.
-
-## Provider secrets
-
-The Apps Worker recognises these optional secrets/settings:
+Depending on the providers selected:
 
 ### Email
 - `RESEND_API_KEY`
@@ -26,7 +26,7 @@ The Apps Worker recognises these optional secrets/settings:
 
 ### Telegram
 - `TELEGRAM_BOT_TOKEN`
-- optional default `TELEGRAM_CHAT_ID`
+- optional `TELEGRAM_CHAT_ID`
 
 ### SMS / WhatsApp
 - `TWILIO_ACCOUNT_SID`
@@ -43,49 +43,28 @@ The Apps Worker recognises these optional secrets/settings:
 ### Signal bridge
 - `SIGNAL_WEBHOOK_URL`
 
-### Browser / iOS push
+### Browser / native push
 - `ONESIGNAL_APP_ID`
 - `ONESIGNAL_API_KEY`
 
-The push provider is only the delivery side. Each user/device must also register a push subscription/external ID before a push channel can actually be used.
+The browser-push client lives in `notifications/v1/push.js` and the scoped worker lives in `notifications/v1/onesignal/`.
 
-## Cost rule
+## Security rules
 
-Provider configuration does not grant users permission to use a channel. The application owner policy still controls whether that channel is available globally, by role, or for an individual. Metered channels remain off unless the owner enables them.
+- Never place provider secrets in GitHub Pages JavaScript.
+- Never accept arbitrary user-supplied Slack/Discord/Signal webhook URLs for shared provider credentials.
+- A consuming app must authenticate its own users.
+- A server-side transport must enforce policy before sending a paid or restricted delivery method.
+- User/device permission is still required for browser push even when policy permits push.
 
-## Snag
+## Cost governance
 
-Snag's non-secret shared delivery endpoint is configured in `wrangler.jsonc` as `APPS_NOTIFICATION_ENDPOINT`.
+The generic policy contains:
+- `policyOwnerId` — who controls notification permissions;
+- `costBearerId` — who should be attributed as bearing delivery cost.
 
-The homeowner/project owner controls the policy ceiling. Builders and contractors can change only their own preferences within that ceiling. The homeowner can also configure a recipient's preferences and destination on their behalf.
+These identities may be the same or different depending on the consuming app.
 
-## Deployment check
+## Test before adoption
 
-After secrets are configured:
-
-1. deploy the Apps Worker;
-2. confirm App Monitor reports the provider as configured;
-3. deploy the Snag Worker with the matching bridge secret;
-4. send a test event to an owner-approved recipient;
-5. verify the in-app record and external delivery result are both recorded.
-
-Do not treat a configured provider as proof that a recipient is reachable. Destination/subscription registration is a separate requirement.
-
-
-## Browser/PWA push registration
-
-Browser/PWA registration is implemented in `notifications/v1/push.js` using OneSignal Web SDK v16.
-
-Current consumers:
-- App Monitor uses external ID `apps-admin` and the scoped worker at `/Apps/onesignal/OneSignalSDKWorker.js`.
-- Snag uses external ID `snag:<firebase uid>` and the scoped worker at `/snag/onesignal/OneSignalSDKWorker.js`.
-
-Registration happens only after the user presses the enable-push control and grants permission. On iPhone/iPad, the UI explains that the web app must be added to the Home Screen before web push can be enabled.
-
-This means the remaining push setup is environmental/user consent, not missing application code:
-1. create/configure the OneSignal app;
-2. set `ONESIGNAL_APP_ID` and `ONESIGNAL_API_KEY` on the Apps Worker;
-3. deploy the Apps Worker;
-4. on each device, press the enable-push button once and grant permission.
-
-Native App Store iOS/iPadOS push is intentionally kept separate from browser/PWA push.
+Use the Notifications Lab before integrating a production app. External sends in the Lab are simulated so policy and routing can be tested without incurring provider charges.
