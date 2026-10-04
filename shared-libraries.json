@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-03",
+  "generatedAt": "2026-10-04",
   "legend": {
     "installed": "Verified installed/used",
     "local": "Feature exists locally/legacy, not confirmed on shared module",
@@ -146,6 +146,19 @@
       "installed": {
         "InClass": "installed"
       }
+    },
+    {
+      "id": "notifications-v1",
+      "name": "Notifications v1",
+      "file": "notifications/v1/",
+      "status": "implemented",
+      "created": "2026-10-04",
+      "purpose": "Shared event, owner-policy, recipient-preference and reusable UI model for admin/platform alerts and app-user notifications across in-app, push, email, messaging and paid channels.",
+      "installed": {
+        "App Monitor": "in progress",
+        "Snag": "planned"
+      },
+      "notes": "Owner controls the notification-policy ceiling and paid-channel access; recipients can change only settings allowed by the owner. First admin consumer is App Monitor new-human detection; first app-user consumer is Snag."
     },
     {
       "id": "platform",
