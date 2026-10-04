@@ -160,7 +160,18 @@ export function createR2NotificationService({
       core:{status:'ready',detail:'Shared Notifications service loaded'},
       inApp:{status:'ready',detail:'R2-backed inbox available'},
       production:{status:'ready',detail:'Authenticated production transport installed'},
-      publicConfig:{webPush:{configured:!!env.ONESIGNAL_APP_ID,appId:String(env.ONESIGNAL_APP_ID||'')}},
+      publicConfig:{webPush:{
+        provider:'fcm',
+        configured:!!(env.FCM_PROJECT_ID&&env.FCM_WEB_API_KEY&&env.FCM_WEB_APP_ID&&env.FCM_MESSAGING_SENDER_ID&&env.FCM_VAPID_KEY),
+        firebaseConfig:{
+          apiKey:String(env.FCM_WEB_API_KEY||''),
+          authDomain:String(env.FCM_AUTH_DOMAIN||''),
+          projectId:String(env.FCM_PROJECT_ID||''),
+          messagingSenderId:String(env.FCM_MESSAGING_SENDER_ID||''),
+          appId:String(env.FCM_WEB_APP_ID||'')
+        },
+        vapidKey:String(env.FCM_VAPID_KEY||'')
+      }},
       providers:Object.fromEntries(Object.entries(providers).map(([key,value])=>[
         key,{status:value.configured?'ready':'setup-required',cost:value.cost}
       ]))
