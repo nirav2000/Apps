@@ -160,25 +160,31 @@ async function fcmAccessToken(env){
   return fcmTokenCache.token;
 }
 async function sendFcm(env,notification,destination){
-  const fid=String(destination.fcmInstallationId||'');
-  if(!fid)return{ok:false,error:'missing-recipient'};
+  const fids=[...(Array.isArray(destination.fcmInstallationIds)?destination.fcmInstallationIds:[]),destination.fcmInstallationId]
+    .map(x=>String(x||'').trim()).filter(Boolean);
+  const unique=[...new Set(fids)];
+  if(!unique.length)return{ok:false,error:'missing-recipient'};
   const token=await fcmAccessToken(env);
-  const message={
-    fid,
-    notification:{title:notification.title||'Notification',body:notification.body||'Update'},
-    data:{
-      eventType:String(notification.type||''),
-      app:String(notification.app||''),
-      url:String(notification.url||'')
-    }
-  };
-  if(notification.url)message.webpush={fcm_options:{link:String(notification.url)}};
-  const response=await fetch('https://fcm.googleapis.com/v1/projects/'+encodeURIComponent(env.FCM_PROJECT_ID)+'/messages:send',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-    body:JSON.stringify({message})
-  });
-  return{ok:response.ok,status:response.status};
+  const results=[];
+  for(const fid of unique){
+    const message={
+      fid,
+      notification:{title:notification.title||'Notification',body:notification.body||'Update'},
+      data:{
+        eventType:String(notification.type||''),
+        app:String(notification.app||''),
+        url:String(notification.url||'')
+      }
+    };
+    if(notification.url)message.webpush={fcm_options:{link:String(notification.url)}};
+    const response=await fetch('https://fcm.googleapis.com/v1/projects/'+encodeURIComponent(env.FCM_PROJECT_ID)+'/messages:send',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({message})
+    });
+    results.push({fid,ok:response.ok,status:response.status});
+  }
+  return{ok:results.some(x=>x.ok),status:results.every(x=>x.ok)?200:207,results};
 }
 
 function textFor(notification) {
