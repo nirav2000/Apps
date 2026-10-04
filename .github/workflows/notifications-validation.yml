@@ -6,6 +6,7 @@ on:
     branches: ["main"]
     paths:
       - "notifications/**"
+      - "onesignal/**"
       - "app-monitor-worker.js"
       - "app-monitor.html"
       - "platform/v1/index.js"
@@ -48,5 +49,9 @@ jobs:
           if(!platform.includes("notifications:{src:'notifications/v1/index.js'")) throw new Error('Notifications missing from Apps Platform');
           const libs=JSON.parse(fs.readFileSync('shared-libraries.json','utf8'));
           if(!libs.libraries.some(x=>x.id==='notifications-v1'&&x.status==='implemented')) throw new Error('Notifications missing from shared library registry');
-          console.log('Shared notification registration OK');
+          const providers=fs.readFileSync('notifications/v1/providers.js','utf8');
+          if(providers.includes('destination.slackWebhookUrl')||providers.includes('destination.discordWebhookUrl')||providers.includes('destination.signalWebhookUrl')) throw new Error('User-controlled provider webhook detected');
+          const pushWorker=fs.readFileSync('onesignal/OneSignalSDKWorker.js','utf8');
+          if(!pushWorker.includes('OneSignalSDK.sw.js')) throw new Error('OneSignal worker missing');
+          console.log('Shared notification registration OK; webhook destinations remain server-configured.');
           NODE
