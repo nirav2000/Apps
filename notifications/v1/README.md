@@ -104,6 +104,14 @@ await notifications.emit('record.created',{
 
 The app should not copy provider, policy or preference logic into its own codebase.
 
+## Third-party providers
+
+Firebase Cloud Messaging (FCM) is the approved/default browser-push provider.
+
+External providers require explicit user approval before activation. OneSignal is not active and has been removed from the default runtime. Email/SMS/messaging adapters may exist in shared code but remain approval-gated until the user explicitly approves the provider.
+
+See `THIRD_PARTY_SERVICES.md` and `notifications/v1/INSTALLATION.md`.
+
 ## Delivery methods
 
 The shared catalogue currently includes:
