@@ -38,7 +38,7 @@ const initialPolicy={
     external:{email:false,web_push:true}
   },
   roleEvents:{
-    external:{security.new_login:false}
+    external:{'security.new_login':false}
   },
   userChannels:{
     'member-1':{sms:false}
@@ -60,7 +60,7 @@ let currentUserId='owner-1';
 let selectedMemberId='member-1';
 
 function member(id){return members.find(x=>x.userId===id)}
-function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}
+function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fresh(id){
   const old=$(id),next=old.cloneNode(false);
   old.replaceWith(next);
