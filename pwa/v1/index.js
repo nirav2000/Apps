@@ -9,14 +9,14 @@ export function isStandalone(){
   if(typeof window==='undefined')return false;
   return window.matchMedia?.('(display-mode: standalone)')?.matches===true||window.navigator.standalone===true;
 }
-export async function pwaReadiness(){
+export async function pwaReadiness({scope='/Apps/'}={}){
   if(typeof window==='undefined')return{supported:false,standalone:false,ios:false,serviceWorker:false,manifest:false,status:'unavailable'};
   const ios=isIOS(),standalone=isStandalone();
   const manifest=!!document.querySelector('link[rel="manifest"]');
   const serviceWorker='serviceWorker'in navigator;
   let registration=null;
   if(serviceWorker){
-    try{registration=await navigator.serviceWorker.getRegistration('/Apps/')}catch{}
+    try{registration=await navigator.serviceWorker.getRegistration(scope)}catch{}
   }
   return{
     supported:serviceWorker&&manifest,
@@ -36,7 +36,7 @@ export async function registerPWA({serviceWorkerUrl='/Apps/firebase-messaging-sw
 export async function initPWA({root=null,serviceWorkerUrl='/Apps/firebase-messaging-sw.js',scope='/Apps/',register=true}={}){
   let registration=null;
   if(register)registration=await registerPWA({serviceWorkerUrl,scope});
-  const readiness=await pwaReadiness();
+  const readiness=await pwaReadiness({scope});
   if(root)await mountPWAStatus(root,{readiness});
   window.dispatchEvent(new CustomEvent('apps-pwa:ready',{detail:{version:VERSION,readiness}}));
   return{version:VERSION,readiness,registration};
