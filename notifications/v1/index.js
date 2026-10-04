@@ -58,6 +58,17 @@ export function createNotifications({ app, transport, eventTypes = [] } = {}) {
     deliveryLog(scopeId = 'default', options = {}) {
       return transport.deliveryLog?.(scopeId, options) || [];
     },
+    async readiness(scopeId = 'default') {
+      if (typeof transport.readiness === 'function') return transport.readiness(scopeId);
+      return {
+        version:1,
+        scopeId:String(scopeId || 'default'),
+        core:{status:'ready',detail:'Shared Notifications client loaded'},
+        inApp:{status:'unknown',detail:'Transport did not report in-app readiness'},
+        production:{status:'unknown',detail:'Transport did not report production integration state'},
+        providers:{}
+      };
+    },
     effective({ policy, preferences, userId, role }) {
       return effectivePreferences({ policy, preferences, userId, role, eventTypes });
     }
