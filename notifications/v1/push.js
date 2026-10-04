@@ -3,9 +3,8 @@ let sdkPromise=null;
 let initPromise=null;
 
 function loadSdk(){
-  if(window.OneSignalDeferred&&document.querySelector('script[data-apps-onesignal]')){
-    return sdkPromise||Promise.resolve();
-  }
+  if(typeof window==='undefined')throw new Error('Web push registration requires a browser');
+  if(window.OneSignalDeferred&&document.querySelector('script[data-apps-onesignal]'))return sdkPromise||Promise.resolve();
   window.OneSignalDeferred=window.OneSignalDeferred||[];
   if(!document.querySelector('script[data-apps-onesignal]')){
     const script=document.createElement('script');
@@ -31,8 +30,8 @@ function iosWebPushNeedsHomeScreen(){
 export async function registerWebPush({
   appId,
   externalId,
-  serviceWorkerPath,
-  serviceWorkerScope,
+  serviceWorkerPath='/Apps/notifications/v1/onesignal/OneSignalSDKWorker.js',
+  serviceWorkerScope='/Apps/notifications/v1/onesignal/',
   requestPermission=true
 }={}){
   if(!appId)return{ok:false,configured:false,reason:'provider-unconfigured'};
@@ -45,11 +44,7 @@ export async function registerWebPush({
     window.OneSignalDeferred.push(async OneSignal=>{
       try{
         if(!initPromise){
-          initPromise=OneSignal.init({
-            appId,
-            serviceWorkerPath,
-            serviceWorkerParam:{scope:serviceWorkerScope}
-          });
+          initPromise=OneSignal.init({appId,serviceWorkerPath,serviceWorkerParam:{scope:serviceWorkerScope}});
         }
         await initPromise;
         await OneSignal.login(externalId);
@@ -63,7 +58,8 @@ export async function registerWebPush({
   });
 }
 
-export async function webPushPublicConfig(endpoint='https://apps-monitor-api.nirav2000-github.workers.dev/notifications/public-config'){
+export async function webPushPublicConfig(endpoint){
+  if(!endpoint)return{ok:true,webPush:{configured:false,appId:''}};
   const response=await fetch(endpoint,{cache:'no-store'});
   if(!response.ok)throw new Error('Could not load web-push configuration');
   return response.json();
