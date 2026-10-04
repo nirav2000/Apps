@@ -14,8 +14,8 @@
     <p>Test notification policy, recipient preferences, delivery methods, cost controls and event routing without modifying a consuming app.</p>
   </div>
   <div class="hero-actions">
-    <span class="status-pill">Shared module only</span>
-    <button id="resetLab" type="button" class="secondary">Reset lab</button>
+    <span class="status-pill">Simulation mode · no external messages are sent</span>
+    <button id="resetLab" type="button" class="secondary">Restore demo defaults</button>
   </div>
 </header>
 
@@ -29,6 +29,24 @@
     <div class="flow">
       <span>App event</span><b>→</b><span>Policy</span><b>→</b><span>Recipient preference</span><b>→</b><span>Delivery method</span><b>→</b><span>Audit</span>
     </div>
+  </section>
+
+  <section class="card service-status-card">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">DELIVERY STATUS</span>
+        <h2>What is live in this Lab?</h2>
+        <p>In-app notifications and policy routing are working locally in this browser. External delivery methods are simulated until a trusted backend and provider credentials are configured.</p>
+      </div>
+    </div>
+    <div class="service-grid">
+      <div class="service-item"><strong>In-app</strong><span class="service-state live">Working in Lab</span><small>Stored in this browser for testing.</small></div>
+      <div class="service-item"><strong>Browser push</strong><span class="service-state setup">Setup required</span><small>Shared push code exists; provider configuration and device permission are still needed.</small></div>
+      <div class="service-item"><strong>Email</strong><span class="service-state setup">Setup required</span><small>Provider adapter exists; no live mail provider is connected to the Lab.</small></div>
+      <div class="service-item"><strong>SMS / WhatsApp</strong><span class="service-state setup">Setup required</span><small>Provider adapter exists; credentials and a trusted backend are still needed.</small></div>
+      <div class="service-item"><strong>Telegram / Slack / Discord / Signal</strong><span class="service-state setup">Setup required</span><small>Adapters exist, but the Lab does not send to external services.</small></div>
+    </div>
+    <p class="lab-reset-note"><strong>Restore demo defaults</strong> clears only the Notifications Lab settings saved in this browser and reloads the original demo. It does not alter any production app or shared-library code.</p>
   </section>
 
   <section class="grid two">
