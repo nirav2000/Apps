@@ -55,6 +55,12 @@ export function createNotifications({ app, transport, eventTypes = [] } = {}) {
     inbox(scopeId = 'default', userId, options = {}) {
       return transport.inbox(scopeId, userId, options);
     },
+    markRead(scopeId = 'default', userId, id) {
+      return transport.markRead?.(scopeId, userId, id);
+    },
+    unreadCount(scopeId = 'default', userId) {
+      return transport.unreadCount?.(scopeId, userId);
+    },
     deliveryLog(scopeId = 'default', options = {}) {
       return transport.deliveryLog?.(scopeId, options) || [];
     },
