@@ -437,10 +437,10 @@
           "source_owner"
         ],
         "App Monitor": [
-          "not_used"
+          "uses"
         ],
         "Snag": [
-          "unknown"
+          "credential_host"
         ],
         "LearnLatin": [
           "unknown"
@@ -449,7 +449,7 @@
           "unknown"
         ]
       },
-      "notes": "Not yet adopted as the shared default push provider. Notifications currently contains a OneSignal push adapter; FCM remains a candidate transport."
+      "notes": "Approved/default browser-push provider for shared Notifications as of 4 Oct 2026. FCM itself is no-cost. App Monitor uses Snag as the credential host for delegated configuration. Other app adoption remains audit pending."
     },
     {
       "id": "github-actions",
@@ -534,6 +534,24 @@
         ]
       },
       "notes": "Static front ends are deployed separately from Cloudflare Worker backends; release checks must verify both where an app uses both."
+    },
+    {
+      "id": "onesignal",
+      "name": "OneSignal",
+      "category": "Third-party notifications",
+      "purpose": "Previously considered optional push provider.",
+      "apps": {
+        "Apps": [
+          "not_used"
+        ],
+        "App Monitor": [
+          "not_used"
+        ],
+        "Snag": [
+          "not_used"
+        ]
+      },
+      "notes": "Not approved and not active. Removed from the default Notifications runtime. Reintroduction requires explicit third-party review and approval."
     }
   ]
 }
