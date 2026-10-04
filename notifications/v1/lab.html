@@ -67,11 +67,11 @@
         <span id="previewReadinessPill" class="service-state setup">Not tested yet</span>
       </div>
       <div id="readinessResults" class="readiness-grid">
-        <div class="readiness-item"><span>Shared module</span><strong>Loaded</strong></div>
-        <div class="readiness-item"><span>Policy engine</span><strong>Ready</strong></div>
-        <div class="readiness-item"><span>In-app popup</span><strong>Run test</strong></div>
-        <div class="readiness-item"><span>Production app installation</span><strong>Not installed</strong></div>
-        <div class="readiness-item"><span>External services</span><strong>Setup required</strong></div>
+        <div class="readiness-item"><span>Shared module</span><strong data-readiness="module" data-state="ok">Loaded</strong></div>
+        <div class="readiness-item"><span>Rules & permissions</span><strong data-readiness="policy" data-state="ok">Ready</strong></div>
+        <div class="readiness-item"><span>In-app popup + inbox</span><strong data-readiness="popup">Run test</strong></div>
+        <div class="readiness-item"><span>Installed in a production app</span><strong data-state="warn">Not installed yet</strong></div>
+        <div class="readiness-item"><span>Email / push / messaging</span><strong data-state="warn">Provider setup required</strong></div>
       </div>
     </div>
   </section>
@@ -116,8 +116,8 @@
     <div class="section-head">
       <div>
         <span class="eyebrow">POLICY CONTROLLER</span>
-        <h2>Role-level notification permissions</h2>
-        <p>Roles are arbitrary strings supplied by a consuming app. This layer sits between the scope default and an individual user override.</p>
+        <h2>Settings by role</h2>
+        <p>Roles are arbitrary strings supplied by a consuming app. This lets one type of user have different settings from the default for everyone.</p>
       </div>
       <label class="compact-field">Role
         <select id="roleSelect"></select>
@@ -130,8 +130,8 @@
     <div class="section-head">
       <div>
         <span class="eyebrow">POLICY CONTROLLER</span>
-        <h2>Individual member access</h2>
-        <p>Choose a member, then set their maximum permissions and current receive preferences independently.</p>
+        <h2>Settings for one person</h2>
+        <p>Choose a person, then decide which notification options they are allowed to use and which are currently switched on.</p>
       </div>
       <label class="compact-field">Member
         <select id="memberSelect"></select>
