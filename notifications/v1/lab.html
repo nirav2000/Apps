@@ -24,7 +24,7 @@
     <div>
       <span class="eyebrow">MODEL</span>
       <h2>Apps map their own roles into generic notification roles</h2>
-      <p>The module does not know what a homeowner, teacher, contractor, pupil, administrator or customer is. A consuming app supplies users, arbitrary role strings, event names and a policy controller.</p>
+      <p>The module treats role names as opaque app-supplied values. A consuming app supplies users, arbitrary role strings, event names and a policy controller.</p>
     </div>
     <div class="flow">
       <span>App event</span><b>→</b><span>Policy</span><b>→</b><span>Recipient preference</span><b>→</b><span>Delivery method</span><b>→</b><span>Audit</span>
@@ -56,6 +56,20 @@
     <article class="card" id="controllerCard">
       <div id="policyDefaults"></div>
     </article>
+  </section>
+
+  <section class="card" id="roleAccessCard">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">POLICY CONTROLLER</span>
+        <h2>Role-level notification permissions</h2>
+        <p>Roles are arbitrary strings supplied by a consuming app. This layer sits between the scope default and an individual user override.</p>
+      </div>
+      <label class="compact-field">Role
+        <select id="roleSelect"></select>
+      </label>
+    </div>
+    <div id="roleEditor"></div>
   </section>
 
   <section class="card" id="memberAccessCard">
