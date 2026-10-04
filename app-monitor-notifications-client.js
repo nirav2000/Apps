@@ -1,4 +1,5 @@
 import{createNotifications,mountRecipientPreferences,mountDeliveryDestinations,mountNotificationInbox,showNotificationToast,notificationStyles,registerWebPush}from'./notifications/v1/index.js';
+import{pwaReadiness}from'./pwa/v1/index.js';
 
 const USER='app-monitor-admin',SCOPE='admin',EVENTS=[{id:'security.new_human',label:'New human visitor'}];
 
@@ -42,10 +43,25 @@ export async function mountAppMonitorNotifications({root,apiBase,getHeaders,onUn
   const people=root.querySelector('#amnPeople');people.innerHTML='';
   for(const p of s.availablePeople||[]){const l=document.createElement('label'),b=document.createElement('input'),t=document.createElement('span');b.type='checkbox';b.value=p;b.checked=(s.settings?.ownerPeople||[]).includes(p);t.textContent=p;l.append(b,t);people.appendChild(l)}
   root.querySelector('#amnPeopleHelp').textContent=(s.availablePeople||[]).length?'Select every Person label that is you.':'No Person labels exist yet. Assign your own sessions to a Person before enabling visitor alerts.';
-  await mountRecipientPreferences(root.querySelector('#amnPrefs'),{client,scopeId:SCOPE,userId:USER,role:'owner',eventTypes:EVENTS,respectReadiness:true,setupContext:{credentialHost:'Snag repository Actions secrets',workerName:'Cloudflare Worker apps-monitor-api',secretsUrl:'https://github.com/nirav2000/snag/settings/secrets/actions',guideUrl:'https://github.com/nirav2000/Apps/blob/main/NOTIFICATIONS_SETUP.md',afterSetup:'After you add the required secret(s), Snag\'s delegated App Monitor workflow synchronises them into the Cloudflare Worker automatically on its next run (scheduled hourly, or whenever that workflow is run). Refresh App Monitor afterwards; the delivery method will change to Ready when the Worker reports the provider configured.'}});
+  await mountRecipientPreferences(root.querySelector('#amnPrefs'),{
+    client,scopeId:SCOPE,userId:USER,role:'owner',eventTypes:EVENTS,respectReadiness:true,
+    visibleChannels:['in_app','web_push','email','telegram','whatsapp','signal','slack','discord','sms'],
+    setupContext:{
+      credentialHost:'the approved provider configuration',
+      workerName:'Cloudflare Worker apps-monitor-api',
+      guideUrl:'https://github.com/nirav2000/Apps/blob/main/NOTIFICATIONS_SETUP.md',
+      afterSetup:'Refresh App Monitor after provider configuration. The delivery method changes to Ready only when the Worker reports it operational.'
+    }
+  });
   await mountDeliveryDestinations(root.querySelector('#amnDest'),{client,scopeId:SCOPE,userId:USER});
   await mountNotificationInbox(root.querySelector('#amnInbox'),{client,scopeId:SCOPE,userId:USER,limit:80,onUnreadChange:n=>{const x=root.querySelector('#amnUnread');x.textContent=String(n);x.classList.toggle('hidden',!n)}});
-  const pc=s.publicConfig?.webPush?.configured===true&&ready.providers?.web_push?.status==='ready';root.querySelector('#amnPush').disabled=!pc;root.querySelector('#amnPushStatus').textContent=pc?'FCM is configured; this device still needs your permission.':'Firebase Cloud Messaging is not fully configured yet.';
+  const pwa=await pwaReadiness();
+  const iosNeedsInstall=pwa.ios&&!pwa.standalone;
+  const pc=s.publicConfig?.webPush?.configured===true&&ready.providers?.web_push?.status==='ready'&&!iosNeedsInstall;
+  root.querySelector('#amnPush').disabled=!pc;
+  root.querySelector('#amnPushStatus').textContent=iosNeedsInstall
+    ?'On iPhone/iPad, install App Monitor with Safari Share → Add to Home Screen, open it from the Home Screen icon, then enable browser push.'
+    :(pc?'FCM is configured; this device still needs notification permission.':'Firebase Cloud Messaging is not fully configured yet.');
  }
  root.querySelector('#amnSave').onclick=async()=>{const ownerPeople=[...root.querySelectorAll('#amnPeople input:checked')].map(x=>x.value),enabled=root.querySelector('#amnEnabled').checked;try{await req('/settings',{method:'POST',body:JSON.stringify({enabled,ownerPeople})});cache=null;root.querySelector('#amnStatus').textContent=enabled?'New human visitor alerts enabled.':'New human visitor alerts disabled.';await render()}catch(e){root.querySelector('#amnStatus').textContent=e.message==='owner-identity-required'?'Choose at least one of your Person labels before enabling alerts.':e.message}};
  root.querySelector('#amnTest').onclick=async()=>{const b=root.querySelector('#amnTest');b.disabled=true;try{await req('/test',{method:'POST'});cache=null;showNotificationToast({title:'App Monitor notifications are working',body:'The test reached the production R2 notification inbox.'});await render()}finally{b.disabled=false}};

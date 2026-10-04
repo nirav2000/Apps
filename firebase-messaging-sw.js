@@ -1,3 +1,5 @@
+importScripts('/Apps/pwa/v1/service-worker.js');
+
 self.addEventListener('notificationclick',event=>{
   event.notification.close();
   const url=event.notification?.data?.FCM_MSG?.data?.url||event.notification?.data?.url||'/Apps/app-monitor.html';

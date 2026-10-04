@@ -152,7 +152,8 @@ export async function mountRecipientPreferences(root, {
   role = 'member',
   eventTypes = [],
   respectReadiness = false,
-  setupContext = {}
+  setupContext = {},
+  visibleChannels = null
 } = {}) {
   const [policy, preferences, readiness] = await Promise.all([
     client.policy(scopeId),
@@ -166,6 +167,7 @@ export async function mountRecipientPreferences(root, {
 
   const channels = root.querySelector('[data-channels]');
   for (const [key, value] of Object.entries(state.channels)) {
+    if(Array.isArray(visibleChannels)&&!visibleChannels.includes(key))continue;
     const providerState = key === 'in_app' ? readiness?.inApp?.status : readiness?.providers?.[key]?.status;
     const providerInfo=readiness?.providers?.[key]||{};
     const setupRequired = respectReadiness && key !== 'in_app' && providerState !== 'ready';

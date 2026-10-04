@@ -18,7 +18,8 @@
     "InClass",
     "App Monitor",
     "Firebase Usage Monitor",
-    "Notifications Lab"
+    "Notifications Lab",
+    "PWA Lab"
   ],
   "libraries": [
     {
@@ -163,14 +164,27 @@
       "notes": "Notifications v1.1 is installed in the standalone Lab and App Monitor. App Monitor uses the shared R2 production transport, shared preference/inbox/destination UI, provider readiness and a thin app-specific adapter for security.new_human detection. Snag is not installed."
     },
     {
+      "id": "pwa-v1",
+      "name": "PWA v1.0",
+      "file": "pwa/v1/",
+      "status": "implemented",
+      "created": "2026-10-04",
+      "purpose": "Shared installability, service-worker, standalone-mode, update/offline and iOS Home Screen readiness capability for the Apps portfolio.",
+      "installed": {
+        "PWA Lab": "installed",
+        "App Monitor": "installed"
+      },
+      "notes": "App Monitor is the first production consumer. The shared root service worker composes PWA caching/update behavior with FCM browser-push handling so overlapping workers do not compete."
+    },
+    {
       "id": "platform",
-      "name": "Apps Platform v1.3",
+      "name": "Apps Platform v1.4",
       "file": "platform/v1/",
       "status": "implemented",
       "created": "2026-09-27",
       "purpose": "Versioned integration layer and lazy capability loader that keeps shared infrastructure separate from consuming app business logic.",
       "installed": {},
-      "notes": "Apps Platform v1.3 exposes the full Notifications v1.1 module namespace alongside the other canonical shared capabilities, while keeping consuming-app business logic outside shared modules."
+      "notes": "Apps Platform v1.4 exposes Notifications v1.1 and PWA v1.0 as canonical shared capabilities while keeping consuming-app business logic outside shared modules."
     },
     {
       "id": "devnotes",
