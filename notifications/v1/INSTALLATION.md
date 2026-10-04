@@ -321,16 +321,23 @@ Do not put app membership/business rules into the shared Notifications module.
 
 ## 11. Browser push
 
-Browser push requires:
-1. OneSignal configured server-side;
-2. the shared push worker;
-3. recipient opt-in on their own browser/device.
+The default browser-push provider is **Firebase Cloud Messaging (FCM)**.
 
-Use `registerWebPush()` from the shared SDK.
+Browser push requires:
+1. an explicitly approved Firebase project with Cloud Messaging enabled;
+2. a registered Firebase web app and its public web configuration;
+3. a Web Push VAPID public key;
+4. the shared `/Apps/firebase-messaging-sw.js` service worker;
+5. trusted backend credentials capable of sending through the FCM HTTP v1 API;
+6. recipient opt-in on each browser/device.
+
+Use `registerWebPush()` from the shared SDK. The shared client uses Firebase's current FID-based registration flow and stores the Firebase Installation ID as the delivery target.
 
 A policy controller may permit push for another user, but cannot silently grant browser notification permission on that user's device.
 
-Never commit OneSignal server API keys into browser code.
+Only public Firebase web configuration and the public VAPID key may reach browser code. Service-account private keys must remain server-side.
+
+OneSignal is **not** part of the default runtime stack. It may only be reconsidered as an optional provider after explicit third-party approval.
 
 ---
 
@@ -356,6 +363,31 @@ Supported adapters currently include:
 A provider being configured does **not** mean every app/user is allowed to use it. Policy still controls access.
 
 ---
+
+## 12A. Third-party service approval
+
+Before adding, enabling, configuring or recommending any new external/third-party provider, ChatGPT / the developer must explicitly tell the user:
+
+- provider name;
+- why it is needed;
+- what data leaves the user's own infrastructure;
+- whether a free tier exists;
+- what can cause charges;
+- credentials/accounts required;
+- whether an existing first-party/current-infrastructure alternative exists;
+- material vendor-lock-in or migration implications.
+
+**Explicit user approval is required before the provider becomes active.**
+
+Code may contain a dormant optional adapter, but:
+- it must be clearly marked optional/unapproved;
+- it must not load third-party runtime code by default;
+- provider status must remain `approval-required`;
+- adding credentials alone must not activate it.
+
+Approved providers and the approval basis should be recorded in the shared provider registry/documentation.
+
+See the project-wide `THIRD_PARTY_SERVICES.md`.
 
 ## 13. Cost governance
 
@@ -503,9 +535,10 @@ When asked to "install Notifications", "add notifications", or similar in one of
 7. Do not modify the shared module merely to make one app easier unless the behaviour is genuinely generic and is first demonstrated in the Lab.
 8. Do not add app-specific roles/events into the shared package.
 9. Do not expose provider credentials.
-10. Add or extend release-gate checks for the adapter and event hooks, but do not duplicate shared-module tests in every app.
-11. Verify existing app behaviour has not regressed.
-12. Report exactly:
+10. Apply the **Third-party service approval** rule before introducing any external provider. Do not create accounts, add SDKs, add credentials, or activate a provider until the user has been explicitly informed and has approved it.
+11. Add or extend release-gate checks for the adapter and event hooks, but do not duplicate shared-module tests in every app.
+12. Verify existing app behaviour has not regressed.
+13. Report exactly:
     - files changed in the consuming app;
     - approximate integration size;
     - event hooks added;
@@ -513,7 +546,7 @@ When asked to "install Notifications", "add notifications", or similar in one of
     - backend/transport changes;
     - provider configuration still required;
     - validation results.
-13. If integration becomes large or invasive, stop and move the missing capability back into the shared module/Lab rather than continuing.
+14. If integration becomes large or invasive, stop and move the missing capability back into the shared module/Lab rather than continuing.
 
 ---
 
