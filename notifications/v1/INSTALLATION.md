@@ -404,6 +404,40 @@ Fix missing shared behaviour in the Notifications package and Lab instead.
 
 ---
 
+## 15A. Readiness must be observable
+
+A consuming app must not present notification settings as working merely because a checkbox can be selected.
+
+The production transport should implement:
+
+```js
+readiness(scopeId)
+```
+
+and report separate states for:
+- shared/core notification engine;
+- in-app delivery;
+- production integration;
+- each external provider.
+
+The shared client exposes:
+
+```js
+await notifications.readiness(scopeId)
+```
+
+At minimum, the UI or diagnostics must be able to distinguish:
+- `ready`;
+- `not-installed`;
+- `setup-required`;
+- `unavailable`;
+- `error`.
+
+Before declaring an integration complete, run an end-to-end in-app test:
+event -> policy -> recipient preference -> inbox -> visible notification UI.
+
+External methods must remain labelled **Setup required** until the backend and provider credentials are genuinely configured and a test delivery succeeds.
+
 ## 16. Validation before merge/deploy
 
 Before declaring an app integrated:
