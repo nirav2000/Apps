@@ -6,6 +6,10 @@ on:
     branches: ["main"]
     paths:
       - "notifications/**"
+      - "app-monitor.html"
+      - "app-monitor-worker.js"
+      - "app-monitor-notifications-client.js"
+      - "app-monitor-notifications.js"
       - "notifications/v1/INSTALLATION.md"
       - "NOTIFICATIONS_SETUP.md"
       - "platform/v1/index.js"
@@ -35,7 +39,10 @@ jobs:
           node --check notifications/v1/providers.js
           node --check notifications/v1/push.js
           node --check notifications/v1/memory-transport.js
+          node --check notifications/v1/r2-transport.js
           node --check notifications/v1/lab.js
+          node --check app-monitor-notifications.js
+          node --check app-monitor-notifications-client.js
 
       - name: Lab wiring
         run: |
@@ -86,6 +93,28 @@ jobs:
           if(providers.includes('destination.slackWebhookUrl')||providers.includes('destination.discordWebhookUrl')||providers.includes('destination.signalWebhookUrl')) throw new Error('User-controlled provider webhook detected');
           NODE
 
+      - name: App Monitor integration invariants
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const server=fs.readFileSync('app-monitor-notifications.js','utf8');
+          const client=fs.readFileSync('app-monitor-notifications-client.js','utf8');
+          const worker=fs.readFileSync('app-monitor-worker.js','utf8');
+          const html=fs.readFileSync('app-monitor.html','utf8');
+          if(!server.includes("from './notifications/v1/r2-transport.js'")) throw new Error('App Monitor server adapter is not using shared R2 transport');
+          if(!server.includes("'security.new_human'")||!server.includes('observeAppMonitorSession')) throw new Error('App Monitor new-human event adapter missing');
+          if(!client.includes("from'./notifications/v1/index.js'")&&!client.includes("from './notifications/v1/index.js'")) throw new Error('App Monitor browser adapter is not using shared Notifications SDK');
+          for(const helper of ['mountRecipientPreferences','mountDeliveryDestinations','mountNotificationInbox','showNotificationToast']){
+            if(!client.includes(helper)) throw new Error('App Monitor browser adapter missing shared helper '+helper);
+          }
+          if(!worker.includes("from './app-monitor-notifications.js'")||!worker.includes('observeAppMonitorSession(env,snapshot)')) throw new Error('App Monitor Worker notification hooks missing');
+          if(!worker.includes('App Monitor notification observation failed')) throw new Error('Notification observation must remain best-effort');
+          if(!html.includes('appMonitorNotificationsRoot')||!html.includes("import('./app-monitor-notifications-client.js?v=1')")) throw new Error('App Monitor notification mount missing');
+          for(const forbidden of ['TWILIO_ACCOUNT_SID','RESEND_API_KEY','SLACK_WEBHOOK_URL']){
+            if(server.includes(forbidden)||client.includes(forbidden)) throw new Error('Provider-specific secret logic leaked into App Monitor adapter: '+forbidden);
+          }
+          NODE
+
       - name: Shared registration
         run: |
           node <<'NODE'
@@ -95,6 +124,8 @@ jobs:
           const libs=JSON.parse(fs.readFileSync('shared-libraries.json','utf8'));
           const n=libs.libraries.find(x=>x.id==='notifications-v1');
           if(!n||n.status!=='implemented') throw new Error('Notifications missing from shared library registry');
-          if(n.installed?.Snag==='installed'||n.installed?.['App Monitor']==='installed') throw new Error('Registry incorrectly claims production app adoption');
-          console.log('Notifications v1 is registered as a shared module with Lab-only adoption.');
+          if(n.installed?.Snag==='installed') throw new Error('Registry incorrectly claims Snag adoption');
+          if(n.installed?.['App Monitor']!=='installed') throw new Error('Registry must record App Monitor notification adoption');
+          if(n.installed?.['Notifications Lab']!=='installed') throw new Error('Registry must retain Notifications Lab adoption');
+          console.log('Notifications v1 is registered with Lab and App Monitor adoption.');
           NODE
