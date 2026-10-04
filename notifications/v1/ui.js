@@ -133,20 +133,93 @@ export async function mountPolicyDefaults(root, {
   for (const item of eventTypes) {
     const key = typeof item === 'string' ? item : item.id;
     const label = typeof item === 'string' ? item : (item.label || item.id);
-    eventRoot.appendChild(row({
-      label,
-      checked: policy.allowedEvents?.[key] !== false,
+    const group = document.createElement('div');
+    group.className = 'apps-notification-dual-row';
+    group.innerHTML = '<div><strong></strong><small>Scope default</small></div><label>Available <input type="checkbox" data-policy-event></label><label>Required <input type="checkbox" data-policy-required></label>';
+    group.querySelector('strong').textContent = label;
+    const available = group.querySelector('[data-policy-event]');
+    const required = group.querySelector('[data-policy-required]');
+    available.dataset.key = key;
+    required.dataset.key = key;
+    available.checked = policy.allowedEvents?.[key] !== false;
+    required.checked = policy.mandatoryEvents?.[key] === true;
+    required.disabled = !available.checked;
+    eventRoot.appendChild(group);
+  }
+
+  root.addEventListener('change', async event => {
+    const target = event.target;
+    const key = target.dataset.key;
+    if (target.dataset.kind === 'policy-channel') policy.allowedChannels[key] = target.checked;
+    if (target.matches('[data-policy-event]')) {
+      policy.allowedEvents[key] = target.checked;
+      const required = root.querySelector('[data-policy-required][data-key="'+CSS.escape(key)+'"]');
+      if (required) {
+        required.disabled = !target.checked;
+        if (!target.checked) {
+          required.checked = false;
+          policy.mandatoryEvents[key] = false;
+        }
+      }
+    }
+    if (target.matches('[data-policy-required]')) policy.mandatoryEvents[key] = target.checked;
+    await client.savePolicy(scopeId, policy);
+    root.querySelector('[data-status]').textContent = 'Notification policy saved';
+  });
+
+  return policy;
+}
+
+export async function mountRoleNotificationPolicy(root, {
+  client,
+  scopeId = 'default',
+  role,
+  eventTypes = []
+} = {}) {
+  if (!role) throw new Error('role is required');
+  const policy = normalisePolicy(await client.policy(scopeId));
+  policy.roleChannels[role] = policy.roleChannels[role] || {};
+  policy.roleEvents[role] = policy.roleEvents[role] || {};
+
+  root.innerHTML = '<section class="apps-notification-role-editor"><h2>Role notification permissions</h2><p class="apps-notification-help">Override the scope defaults for one app-defined role. Leave an item matching the scope default when no special role rule is needed.</p><h3>Delivery methods</h3><div data-role-channels></div><h3>Notification events</h3><div data-role-events></div><div data-status role="status"></div></section>';
+
+  const channels = root.querySelector('[data-role-channels]');
+  for (const [key, meta] of Object.entries(CHANNELS)) {
+    const explicit = Object.prototype.hasOwnProperty.call(policy.roleChannels[role], key);
+    const scopeDefault = policy.allowedChannels?.[key] !== false;
+    channels.appendChild(row({
+      label: meta.label,
+      checked: explicit ? policy.roleChannels[role][key] !== false : scopeDefault,
+      disabled: key === 'in_app',
+      reason: explicit ? 'Role override' : 'Using scope default',
+      extra: meta.cost === 'metered' ? 'May incur usage charges' : '',
       key,
-      kind: 'policy-event'
+      kind: 'role-channel'
+    }));
+  }
+
+  const events = root.querySelector('[data-role-events]');
+  for (const item of eventTypes) {
+    const key = typeof item === 'string' ? item : item.id;
+    const label = typeof item === 'string' ? item : (item.label || item.id);
+    const explicit = Object.prototype.hasOwnProperty.call(policy.roleEvents[role], key);
+    const scopeDefault = policy.allowedEvents?.[key] !== false;
+    events.appendChild(row({
+      label,
+      checked: explicit ? policy.roleEvents[role][key] !== false : scopeDefault,
+      reason: explicit ? 'Role override' : 'Using scope default',
+      key,
+      kind: 'role-event'
     }));
   }
 
   root.addEventListener('change', async event => {
     const target = event.target;
-    if (target.dataset.kind === 'policy-channel') policy.allowedChannels[target.dataset.key] = target.checked;
-    if (target.dataset.kind === 'policy-event') policy.allowedEvents[target.dataset.key] = target.checked;
+    const key = target.dataset.key;
+    if (target.dataset.kind === 'role-channel') policy.roleChannels[role][key] = target.checked;
+    if (target.dataset.kind === 'role-event') policy.roleEvents[role][key] = target.checked;
     await client.savePolicy(scopeId, policy);
-    root.querySelector('[data-status]').textContent = 'Notification policy saved';
+    root.querySelector('[data-status]').textContent = 'Role notification policy saved';
   });
 
   return policy;
