@@ -1,6 +1,6 @@
-import { CHANNELS, normaliseOwnerPolicy, normalisePreferences, effectivePreferences, canRecipientChange } from './policy.js';
+import { CHANNELS, normalisePolicy, normalisePreferences, effectivePreferences, canRecipientChange } from './policy.js';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
 
 function eventId() {
   return globalThis.crypto?.randomUUID?.() || ('evt-' + Date.now() + '-' + Math.random().toString(16).slice(2));
@@ -15,7 +15,7 @@ export function normaliseEvent(input = {}) {
     id: String(input.id || eventId()),
     type: String(input.type),
     app: String(input.app),
-    projectId: String(input.projectId || ''),
+    scopeId: String(input.scopeId || input.projectId || 'default'),
     audience: input.audience === 'admin' ? 'admin' : 'user',
     actorId: String(input.actorId || ''),
     recipients: Array.isArray(input.recipients) ? input.recipients.map(String) : [],
@@ -40,20 +40,23 @@ export function createNotifications({ app, transport, eventTypes = [] } = {}) {
     emit(type, payload = {}) {
       return transport.emit(normaliseEvent({ ...payload, type, app: payload.app || app }));
     },
-    policy(projectId) {
-      return transport.policy(projectId);
+    policy(scopeId = 'default') {
+      return transport.policy(scopeId);
     },
-    savePolicy(projectId, policy) {
-      return transport.savePolicy(projectId, normaliseOwnerPolicy(policy));
+    savePolicy(scopeId = 'default', policy) {
+      return transport.savePolicy(scopeId, normalisePolicy(policy));
     },
-    preferences(projectId, userId) {
-      return transport.preferences(projectId, userId);
+    preferences(scopeId = 'default', userId) {
+      return transport.preferences(scopeId, userId);
     },
-    savePreferences(projectId, userId, preferences) {
-      return transport.savePreferences(projectId, userId, normalisePreferences(preferences));
+    savePreferences(scopeId = 'default', userId, preferences) {
+      return transport.savePreferences(scopeId, userId, normalisePreferences(preferences));
     },
-    inbox(projectId, userId, options = {}) {
-      return transport.inbox(projectId, userId, options);
+    inbox(scopeId = 'default', userId, options = {}) {
+      return transport.inbox(scopeId, userId, options);
+    },
+    deliveryLog(scopeId = 'default', options = {}) {
+      return transport.deliveryLog?.(scopeId, options) || [];
     },
     effective({ policy, preferences, userId, role }) {
       return effectivePreferences({ policy, preferences, userId, role, eventTypes });
@@ -63,7 +66,7 @@ export function createNotifications({ app, transport, eventTypes = [] } = {}) {
 
 export {
   CHANNELS,
-  normaliseOwnerPolicy,
+  normalisePolicy,
   normalisePreferences,
   effectivePreferences,
   canRecipientChange
