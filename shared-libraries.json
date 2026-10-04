@@ -303,6 +303,24 @@
       "notes": "Verified: Snag's GitHub Actions secrets provide CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID for the delegated shared App Monitor Worker deployment. Apps owns the Worker source; Snag is the credential host."
     },
     {
+      "id": "notification-provider-credentials",
+      "name": "Notification provider credentials",
+      "category": "Credentials / notifications",
+      "purpose": "Server-side credentials used by the shared Notifications service for push, email, SMS, WhatsApp and messaging providers.",
+      "apps": {
+        "Apps": [
+          "source_owner"
+        ],
+        "Snag": [
+          "credential_host"
+        ],
+        "App Monitor": [
+          "uses"
+        ]
+      },
+      "notes": "Provider secret values are not stored here. For App Monitor, provider secrets are added to Snag GitHub Actions secrets and synchronised automatically into the shared apps-monitor-api Cloudflare Worker."
+    },
+    {
       "id": "cloudflare-workers",
       "name": "Cloudflare Workers",
       "category": "Runtime",
