@@ -1,5 +1,6 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
+import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
 const WORKER_BUILD='2026.10.04.notifications-v1-install';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
@@ -66,6 +67,28 @@ async function appMonitorPasskeys(env){return listJSON(env,APP_MONITOR_SECURITY+
 async function bootstrapProof(request,record){const secret=request.headers.get('X-App-Monitor-Bootstrap')||'';if(!record?.proofHash||secret.length<32)return false;return (await sha256(secret))===record.proofHash}
 async function saveChallenge(env,kind,challenge,sessionHash=''){const id=randomSecret(18),record={version:2,id,kind,challenge,sessionHash,createdAt:new Date().toISOString()};await putJSON(env,APP_MONITOR_SECURITY+'challenges/'+id+'.json',record);return id}
 async function takeChallenge(env,id,kind){const key=APP_MONITOR_SECURITY+'challenges/'+String(id||'')+'.json',x=await getJSON(env,key);if(!x||x.kind!==kind||Date.now()-Date.parse(x.createdAt)>APP_MONITOR_CHALLENGE_MS)return null;await env.APP_MONITOR_DATA.delete(key);return x}
+
+function notificationBridgeAuthorised(request,env){const key=String(env.NOTIFICATION_INGEST_KEY||'');return key.length>=32&&request.headers.get('X-Apps-Notification-Key')===key}
+async function sharedNotificationBridge(request,env,headers,url){
+  headers={...headers,'Cache-Control':'no-store'};
+  if(url.pathname==='/notifications/public-config'&&request.method==='GET'){
+    const providers=providerStatus(env);
+    return Response.json({ok:true,webPush:{provider:'fcm',configured:providers.web_push?.configured===true,firebaseConfig:{apiKey:String(env.FCM_WEB_API_KEY||''),authDomain:String(env.FCM_AUTH_DOMAIN||''),projectId:String(env.FCM_PROJECT_ID||''),messagingSenderId:String(env.FCM_MESSAGING_SENDER_ID||''),appId:String(env.FCM_WEB_APP_ID||'')},vapidKey:String(env.FCM_VAPID_KEY||'')}},{headers});
+  }
+  if(!notificationBridgeAuthorised(request,env))return new Response('Unauthorized',{status:401,headers});
+  if(url.pathname==='/notifications/providers'&&request.method==='GET')return Response.json({ok:true,providers:providerStatus(env)},{headers});
+  if(url.pathname==='/notifications/deliver'&&request.method==='POST'){
+    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
+    const channel=String(body.channel||''),notification=body.notification&&typeof body.notification==='object'?body.notification:{},destination=body.destination&&typeof body.destination==='object'?body.destination:{};
+    const providers=providerStatus(env),provider=providers[channel];
+    if(!provider)return Response.json({ok:false,error:'unsupported-channel'},{status:400,headers});
+    if(provider.approved===false)return Response.json({ok:false,error:'approval-required'},{status:403,headers});
+    if(!provider.configured)return Response.json({ok:false,error:'setup-required'},{status:503,headers});
+    const result=await deliverNotification(env,channel,notification,destination);
+    return Response.json({ok:result.ok===true,delivery:{channel,result}},{status:result.ok?200:502,headers});
+  }
+  return new Response('Not found',{status:404,headers});
+}
 
 async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
@@ -371,6 +394,7 @@ export default {
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
   const url=new URL(request.url);
   if(url.pathname==='/health')return Response.json({ok:true,service:'apps-monitor-api',build:WORKER_BUILD,sourceSha:String(env.APP_MONITOR_SOURCE_SHA||''),r2Bound:!!env.APP_MONITOR_DATA,notifications:true},{headers});
+  if(url.pathname.startsWith('/notifications/'))return sharedNotificationBridge(request,env,headers,url);
   if(url.pathname.startsWith('/app-monitor/'))return appMonitorRoute(request,env,headers,url);
   return new Response('Not found',{status:404,headers});
  }
