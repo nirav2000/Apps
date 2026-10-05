@@ -1,6 +1,6 @@
 import { CHANNELS, normalisePolicy, normalisePreferences, effectivePreferences, canRecipientChange } from './policy.js';
 
-export const VERSION = '1.2.0';
+export const VERSION = '1.3.0';
 
 function eventId() {
   return globalThis.crypto?.randomUUID?.() || ('evt-' + Date.now() + '-' + Math.random().toString(16).slice(2));
@@ -114,5 +114,7 @@ export {
 
 export {
   registerWebPush,
+  registerConsumerWebPush,
+  unregisterConsumerWebPush,
   webPushPublicConfig
 } from './push.js';
