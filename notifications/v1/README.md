@@ -147,3 +147,12 @@ Provider setup is an administrator/developer surface only. `mountRecipientPrefer
 
 A notification installation is **not complete** merely because the shared UI, FCM configuration or sender backend exists. Before marking browser push installed/ready, verify the full chain: consumer opt-in → OS permission → FCM/device registration → authenticated server storage of the recipient device → server event routing → FCM delivery → notification received while the app is backgrounded/closed → deep link opens correctly.
 
+
+## Shared consumer browser-push registry (v1.3)
+
+For consumer-facing apps that send public/non-sensitive alerts, use `registerConsumerWebPush()`. It performs the OS/FCM registration and then registers the returned Firebase Installation ID with the trusted shared Worker. The consumer never sees Firebase/provider setup and does not need a Google account.
+
+The shared Worker exposes public device register/unregister endpoints only for an explicit allow-list of consumer apps. Those endpoints **cannot send notifications**. Sending remains protected by `X-Apps-Notification-Key` through `POST /notifications/consumer/deliver`. Registrations are stored in R2 by app and hashed FID key; the FID is retained only as the FCM delivery destination.
+
+Use this public registry only for non-sensitive subscription alerts. Apps with private/user-specific notification content must use an authenticated recipient registration transport instead.
+
