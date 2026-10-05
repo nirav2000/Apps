@@ -1,6 +1,6 @@
 import { CHANNELS, normalisePolicy, normalisePreferences, effectivePreferences, canRecipientChange } from './policy.js';
 
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.0';
 
 function eventId() {
   return globalThis.crypto?.randomUUID?.() || ('evt-' + Date.now() + '-' + Math.random().toString(16).slice(2));
@@ -102,6 +102,7 @@ if (typeof window !== 'undefined') {
 export {
   createNotificationBell,
   mountRecipientPreferences,
+  mountConsumerNotificationActivation,
   mountPolicyDefaults,
   mountRoleNotificationPolicy,
   mountMemberNotificationSettings,

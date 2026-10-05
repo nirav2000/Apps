@@ -171,7 +171,7 @@ An audit should cover:
 
 6. **Notifications when installed**
    - in-app inbox/preferences, owner/policy boundaries, event routing, user-facing Enable notifications/push action, OS permission request, device registration, delivery and deep-link behaviour;
-   - PWA/browser-push dependency is verified but never silently installed.
+   - PWA/browser-push dependency is verified but never silently installed.\n   - Provider/developer setup must never appear in recipient-facing UI. A consumer sees Enable notifications, the OS permission flow and preferences only.\n   - Do not mark push installed/ready until device registration, trusted backend storage, remote delivery while closed/backgrounded and deep-link handling are verified end to end.
 
 7. **Data, media and performance**
    - measure important network requests and rendering latency;
