@@ -2,7 +2,7 @@ export const PROVIDER_APPROVAL = Object.freeze({
   in_app:{approved:true,basis:'Built-in; no external service'},
   web_push:{approved:true,basis:'Firebase Cloud Messaging explicitly approved 2026-10-04'},
   ios_push:{approved:false,basis:'Future native push requires separate approval and native app setup'},
-  email:{approved:false,basis:'Third-party email provider not yet approved'},
+  email:{approved:true,basis:'Resend explicitly approved/configured by user 2026-10-04'},
   telegram:{approved:false,basis:'Telegram Bot API not yet approved'},
   whatsapp:{approved:false,basis:'Twilio WhatsApp not yet approved'},
   signal:{approved:false,basis:'Signal bridge not yet approved'},
