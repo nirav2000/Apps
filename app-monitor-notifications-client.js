@@ -1,7 +1,7 @@
 import{createNotifications,mountRecipientPreferences,mountDeliveryDestinations,mountNotificationInbox,showNotificationToast,notificationStyles,registerWebPush}from'./notifications/v1/index.js';
 import{pwaReadiness}from'./pwa/v1/index.js';
 
-const USER='app-monitor-admin',SCOPE='admin',EVENTS=[{id:'security.new_human',label:'New human visitor'}];
+const USER='app-monitor-admin',SCOPE='admin',PROMPT_KEY='app-monitor.notifications-choice.v1',EVENTS=[{id:'security.new_human',label:'New human visitor'}];
 
 function styles(){
  if(document.getElementById('appMonitorNotificationsStyles'))return;
@@ -66,5 +66,16 @@ export async function mountAppMonitorNotifications({root,apiBase,getHeaders,onUn
  root.querySelector('#amnSave').onclick=async()=>{const ownerPeople=[...root.querySelectorAll('#amnPeople input:checked')].map(x=>x.value),enabled=root.querySelector('#amnEnabled').checked;try{await req('/settings',{method:'POST',body:JSON.stringify({enabled,ownerPeople})});cache=null;root.querySelector('#amnStatus').textContent=enabled?'New human visitor alerts enabled.':'New human visitor alerts disabled.';await render()}catch(e){root.querySelector('#amnStatus').textContent=e.message==='owner-identity-required'?'Choose at least one of your Person labels before enabling alerts.':e.message}};
  root.querySelector('#amnTest').onclick=async()=>{const b=root.querySelector('#amnTest');b.disabled=true;try{await req('/test',{method:'POST'});cache=null;showNotificationToast({title:'App Monitor notifications are working',body:'The test reached the production R2 notification inbox.'});await render()}finally{b.disabled=false}};
  root.querySelector('#amnPush').onclick=async()=>{const status=root.querySelector('#amnPushStatus');try{const s=await state(true),cfg=s.publicConfig?.webPush;if(!cfg?.configured){status.textContent='Firebase Cloud Messaging is not configured yet.';return}const result=await registerWebPush({firebaseConfig:cfg.firebaseConfig,vapidKey:cfg.vapidKey});if(!result.ok){status.textContent='Push was not enabled: '+result.reason;return}const p=await client.preferences(SCOPE,USER);p.destinations=p.destinations||{};p.channels=p.channels||{};const ids=new Set(Array.isArray(p.destinations.fcmInstallationIds)?p.destinations.fcmInstallationIds:[]);if(p.destinations.fcmInstallationId)ids.add(p.destinations.fcmInstallationId);ids.add(result.installationId);p.destinations.fcmInstallationIds=[...ids].slice(-20);delete p.destinations.fcmInstallationId;p.channels.web_push=true;await client.savePreferences(SCOPE,USER,p);cache=null;status.textContent='Browser push enabled on this device using Firebase Cloud Messaging.';await render()}catch(e){status.textContent=String(e?.message||e)}};
- await render();return{client,refresh:render};
+ await render();
+ if(localStorage.getItem(PROMPT_KEY)!=='presented'){
+   localStorage.setItem(PROMPT_KEY,'presented');
+   const push=root.querySelector('#amnPush');
+   if(push&&!push.disabled){
+     const box=document.createElement('div');box.className='amn-box';box.innerHTML='<h3>Stay updated?</h3><p class="small">Would you like App Monitor to send browser notifications on this device?</p><div class="amn-actions"><button type="button" data-not-now>Not now</button><button type="button" class="primary" data-enable>Enable notifications</button></div>';
+     root.querySelector('.amn').prepend(box);
+     box.querySelector('[data-not-now]').onclick=()=>box.remove();
+     box.querySelector('[data-enable]').onclick=()=>{box.remove();push.click()};
+   }
+ }
+ return{client,refresh:render};
 }
