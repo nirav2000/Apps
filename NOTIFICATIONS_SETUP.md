@@ -233,3 +233,12 @@ After adding them:
 9. Run a real notification test.
 
 The shared client stores multiple Firebase Installation IDs for the administrator, so enabling push on several devices does not replace the previously registered device.
+
+## Shared consumer browser-push registry (v1.3)
+
+For consumer-facing apps that send public/non-sensitive alerts, use `registerConsumerWebPush()`. It performs the OS/FCM registration and then registers the returned Firebase Installation ID with the trusted shared Worker. The consumer never sees Firebase/provider setup and does not need a Google account.
+
+The shared Worker exposes public device register/unregister endpoints only for an explicit allow-list of consumer apps. Those endpoints **cannot send notifications**. Sending remains protected by `X-Apps-Notification-Key` through `POST /notifications/consumer/deliver`. Registrations are stored in R2 by app and hashed FID key; the FID is retained only as the FCM delivery destination.
+
+Use this public registry only for non-sensitive subscription alerts. Apps with private/user-specific notification content must use an authenticated recipient registration transport instead.
+

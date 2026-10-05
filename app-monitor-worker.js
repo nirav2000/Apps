@@ -1,13 +1,13 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
 import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
-const WORKER_BUILD='2026.10.04.notifications-v1-install';
+const WORKER_BUILD='2026.10.05.notifications-consumer-push-registry';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
   'Access-Control-Allow-Origin': origin===allowed?origin:allowed,
   'Access-Control-Allow-Methods':'PUT,POST,GET,OPTIONS',
-  'Access-Control-Allow-Headers':'Authorization,Content-Type,X-App-Monitor-Key,X-App-Monitor-Session,X-App-Monitor-Bootstrap',
+  'Access-Control-Allow-Headers':'Authorization,Content-Type,X-App-Monitor-Key,X-App-Monitor-Session,X-App-Monitor-Bootstrap,X-Apps-Notification-Key',
   'Access-Control-Max-Age':'86400'
 });
 const allowedOrigin=(request,env)=>(request.headers.get('Origin')||'')===(env.ALLOWED_ORIGIN||'https://nirav2000.github.io');
@@ -68,15 +68,49 @@ async function bootstrapProof(request,record){const secret=request.headers.get('
 async function saveChallenge(env,kind,challenge,sessionHash=''){const id=randomSecret(18),record={version:2,id,kind,challenge,sessionHash,createdAt:new Date().toISOString()};await putJSON(env,APP_MONITOR_SECURITY+'challenges/'+id+'.json',record);return id}
 async function takeChallenge(env,id,kind){const key=APP_MONITOR_SECURITY+'challenges/'+String(id||'')+'.json',x=await getJSON(env,key);if(!x||x.kind!==kind||Date.now()-Date.parse(x.createdAt)>APP_MONITOR_CHALLENGE_MS)return null;await env.APP_MONITOR_DATA.delete(key);return x}
 
+const CONSUMER_PUSH_ROOT='_notifications/v1/consumer-push/';
+const CONSUMER_PUSH_APPS=new Set(['openday']);
+const cleanConsumerApp=value=>String(value||'').trim().toLowerCase().replace(/[^a-z0-9._-]/g,'').slice(0,80);
+const validFid=value=>/^[A-Za-z0-9._:-]{12,300}$/.test(String(value||''));
+async function consumerPushRegistrationKey(app,fid){return CONSUMER_PUSH_ROOT+app+'/'+await sha256(fid)+'.json'}
+async function consumerPushRegistrations(env,app){return listJSON(env,CONSUMER_PUSH_ROOT+app+'/',5000)}
+async function registerConsumerPush(request,env,headers){
+  let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
+  const app=cleanConsumerApp(body.app),fid=String(body.installationId||'').trim();
+  if(!CONSUMER_PUSH_APPS.has(app))return Response.json({ok:false,error:'app-not-enabled'},{status:403,headers});
+  if(!validFid(fid))return Response.json({ok:false,error:'invalid-installation'},{status:400,headers});
+  const now=new Date().toISOString(),key=await consumerPushRegistrationKey(app,fid),prior=await getJSON(env,key);
+  const record={version:1,app,installationId:fid,events:Array.isArray(body.events)?[...new Set(body.events.map(x=>String(x||'').slice(0,120)).filter(Boolean))].slice(0,50):[],enabled:body.enabled!==false,createdAt:prior?.createdAt||now,updatedAt:now,lastSeenAt:now,userAgent:String(request.headers.get('User-Agent')||'').slice(0,500)};
+  await putJSON(env,key,record);return Response.json({ok:true,app,registered:true,updatedAt:now},{headers});
+}
+async function unregisterConsumerPush(request,env,headers){
+  let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
+  const app=cleanConsumerApp(body.app),fid=String(body.installationId||'').trim();
+  if(!CONSUMER_PUSH_APPS.has(app)||!validFid(fid))return Response.json({ok:false,error:'invalid-registration'},{status:400,headers});
+  await env.APP_MONITOR_DATA.delete(await consumerPushRegistrationKey(app,fid));return Response.json({ok:true,app,registered:false},{headers});
+}
 function notificationBridgeAuthorised(request,env){const key=String(env.NOTIFICATION_INGEST_KEY||'');return key.length>=32&&request.headers.get('X-Apps-Notification-Key')===key}
 async function sharedNotificationBridge(request,env,headers,url){
   headers={...headers,'Cache-Control':'no-store'};
   if(url.pathname==='/notifications/public-config'&&request.method==='GET'){
-    const providers=providerStatus(env);
-    return Response.json({ok:true,webPush:{provider:'fcm',configured:providers.web_push?.configured===true,firebaseConfig:{apiKey:String(env.FCM_WEB_API_KEY||''),authDomain:String(env.FCM_AUTH_DOMAIN||''),projectId:String(env.FCM_PROJECT_ID||''),messagingSenderId:String(env.FCM_MESSAGING_SENDER_ID||''),appId:String(env.FCM_WEB_APP_ID||'')},vapidKey:String(env.FCM_VAPID_KEY||'')}},{headers});
+    const providers=providerStatus(env),app=cleanConsumerApp(url.searchParams.get('app'));
+    return Response.json({ok:true,consumerRegistration:CONSUMER_PUSH_APPS.has(app),webPush:{provider:'fcm',configured:providers.web_push?.configured===true,firebaseConfig:{apiKey:String(env.FCM_WEB_API_KEY||''),authDomain:String(env.FCM_AUTH_DOMAIN||''),projectId:String(env.FCM_PROJECT_ID||''),messagingSenderId:String(env.FCM_MESSAGING_SENDER_ID||''),appId:String(env.FCM_WEB_APP_ID||'')},vapidKey:String(env.FCM_VAPID_KEY||'')}},{headers});
   }
+  if(url.pathname==='/notifications/consumer/register'&&request.method==='POST')return registerConsumerPush(request,env,headers);
+  if(url.pathname==='/notifications/consumer/unregister'&&request.method==='POST')return unregisterConsumerPush(request,env,headers);
   if(!notificationBridgeAuthorised(request,env))return new Response('Unauthorized',{status:401,headers});
   if(url.pathname==='/notifications/providers'&&request.method==='GET')return Response.json({ok:true,providers:providerStatus(env)},{headers});
+  if(url.pathname==='/notifications/consumer/deliver'&&request.method==='POST'){
+    let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
+    const app=cleanConsumerApp(body.app),notification=body.notification&&typeof body.notification==='object'?body.notification:{};
+    if(!CONSUMER_PUSH_APPS.has(app))return Response.json({ok:false,error:'app-not-enabled'},{status:403,headers});
+    const providers=providerStatus(env);if(!providers.web_push?.configured)return Response.json({ok:false,error:'setup-required'},{status:503,headers});
+    const registrations=(await consumerPushRegistrations(env,app)).filter(x=>x.enabled!==false&&(!x.events?.length||!notification.type||x.events.includes(notification.type)));
+    if(!registrations.length)return Response.json({ok:true,app,recipientCount:0,delivery:{ok:false,error:'no-registered-devices'}},{headers});
+    const ids=[...new Set(registrations.map(x=>x.installationId).filter(validFid))];
+    const result=await deliverNotification(env,'web_push',{...notification,app:notification.app||app},{fcmInstallationIds:ids});
+    return Response.json({ok:result.ok===true,app,recipientCount:ids.length,delivery:result},{status:result.ok?200:502,headers});
+  }
   if(url.pathname==='/notifications/deliver'&&request.method==='POST'){
     let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
     const channel=String(body.channel||''),notification=body.notification&&typeof body.notification==='object'?body.notification:{},destination=body.destination&&typeof body.destination==='object'?body.destination:{};

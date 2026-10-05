@@ -132,7 +132,18 @@ jobs:
           if(!ui.includes('mountConsumerNotificationActivation')) throw new Error('Shared consumer activation component missing');
           const install=fs.readFileSync('notifications/v1/INSTALLATION.md','utf8');
           if(!install.includes('Recipient-facing notification UI must never expose provider setup')) throw new Error('Consumer safety installation rule missing');
+          NODE      - name: Consumer push registry
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const push=fs.readFileSync('notifications/v1/push.js','utf8');
+          const worker=fs.readFileSync('app-monitor-worker.js','utf8');
+          if(!push.includes('registerConsumerWebPush'))throw new Error('Shared consumer registration client missing');
+          if(!worker.includes('/notifications/consumer/register'))throw new Error('Consumer device registration endpoint missing');
+          if(!worker.includes('/notifications/consumer/deliver'))throw new Error('Protected consumer delivery endpoint missing');
+          if(worker.indexOf("if(!notificationBridgeAuthorised(request,env))")>worker.indexOf("/notifications/consumer/deliver"))throw new Error('Consumer delivery must remain behind trusted bridge authentication');
           NODE
+
 
 
       - name: Shared registration
