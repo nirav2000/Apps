@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shared Libraries · App Monitor</title>
 <style>
-:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;color:#142033;background:#f4f7f9}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1500px;margin:auto;padding:22px}.top,.controls{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.controls{justify-content:flex-start}.card{background:#fff;border:1px solid #dce3e8;border-radius:18px;padding:18px;margin:14px 0}.muted{color:#66727d}.small{font-size:13px}.btn,button,input,select{border:1px solid #ccd5db;border-radius:11px;padding:9px 12px;background:#fff;color:#142033;font:inherit}.btn{text-decoration:none;font-weight:700}.primary{background:#102033;color:#fff;border-color:#102033}.pill{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:#eef3f7;border:1px solid #d7e0e6;font-size:12px}.pill.proposed{background:#fff8e6;border-color:#efd592}.table-wrap{overflow:auto;border:1px solid #edf1f4;border-radius:14px}.table{width:100%;border-collapse:collapse;font-size:13px;min-width:1350px}.table th,.table td{text-align:left;padding:10px 9px;border-top:1px solid #edf1f4;vertical-align:top}.table th{background:#fafcfd;color:#66727d;font-size:12px;position:sticky;top:0;z-index:2}.table th:first-child,.table td:first-child{position:sticky;left:0;background:#fff;z-index:1}.table th:first-child{background:#fafcfd;z-index:3}.tick{text-align:center;font-size:18px}.yes{color:#08783e}.local{color:#9a5b00}.unknown{color:#9aa5ae}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.metric{border:1px solid #e0e6eb;border-radius:14px;padding:14px}.metric strong{display:block;font-size:28px}.timeline{display:grid;gap:0}.event{display:grid;grid-template-columns:170px 140px 1fr;gap:14px;padding:13px 0;border-top:1px solid #edf1f4}.event:first-child{border-top:0}.event strong{display:block}.legend{display:flex;gap:14px;flex-wrap:wrap}.legend span{white-space:nowrap}.infra-cell{display:flex;gap:5px;flex-wrap:wrap;min-width:120px}.infra-badge{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid #d7e0e6;background:#f6f8fa;white-space:nowrap}.infra-badge.yes,.infra-badge.configured{background:#e9f7ef;color:#166534;border-color:#b8dfc4}.infra-badge.credential{background:#f3ebff;color:#6b21a8;border-color:#d6b7f1}.infra-badge.uses{background:#eaf2ff;color:#1d4ed8;border-color:#bfd0f4}.infra-badge.local{background:#fff8e6;color:#9a5b00;border-color:#efd592}.infra-badge.unknown{background:#f3f4f6;color:#667085}.infra-badge.not-used{background:#fafafa;color:#98a2b3;border-color:#eceff1}@media(max-width:760px){.wrap{padding:14px}.event{grid-template-columns:1fr;gap:3px}}
+:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;color:#142033;background:#f4f7f9}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1500px;margin:auto;padding:22px}.top,.controls{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.controls{justify-content:flex-start}.card{background:#fff;border:1px solid #dce3e8;border-radius:18px;padding:18px;margin:14px 0}.muted{color:#66727d}.small{font-size:13px}.btn,button,input,select{border:1px solid #ccd5db;border-radius:11px;padding:9px 12px;background:#fff;color:#142033;font:inherit}.btn{text-decoration:none;font-weight:700}.primary{background:#102033;color:#fff;border-color:#102033}.pill{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:#eef3f7;border:1px solid #d7e0e6;font-size:12px}.pill.proposed{background:#fff8e6;border-color:#efd592}.table-wrap{overflow:auto;border:1px solid #edf1f4;border-radius:14px}.table{width:100%;border-collapse:collapse;font-size:13px;min-width:1350px}.table th,.table td{text-align:left;padding:10px 9px;border-top:1px solid #edf1f4;vertical-align:top}.table th{background:#fafcfd;color:#66727d;font-size:12px;position:sticky;top:0;z-index:2}.table th:first-child,.table td:first-child{position:sticky;left:0;background:#fff;z-index:1}.table th:first-child{background:#fafcfd;z-index:3}.tick{text-align:center;font-size:18px}.yes{color:#08783e}.local{color:#9a5b00}.unknown{color:#9aa5ae}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.metric{border:1px solid #e0e6eb;border-radius:14px;padding:14px}.metric strong{display:block;font-size:28px}.timeline{display:grid;gap:0}.event{display:grid;grid-template-columns:170px 140px 1fr;gap:14px;padding:13px 0;border-top:1px solid #edf1f4}.event:first-child{border-top:0}.event strong{display:block}.legend{display:flex;gap:14px;flex-wrap:wrap}.legend span{white-space:nowrap}.infra-cell{display:flex;gap:5px;flex-wrap:wrap;min-width:120px}.infra-badge{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid #d7e0e6;background:#f6f8fa;white-space:nowrap}.infra-badge.yes,.infra-badge.configured{background:#e9f7ef;color:#166534;border-color:#b8dfc4}.infra-badge.credential{background:#f3ebff;color:#6b21a8;border-color:#d6b7f1}.infra-badge.uses{background:#eaf2ff;color:#1d4ed8;border-color:#bfd0f4}.infra-badge.local{background:#fff8e6;color:#9a5b00;border-color:#efd592}.infra-badge.unknown{background:#f3f4f6;color:#667085}.infra-badge.not-used{background:#fafafa;color:#98a2b3;border-color:#eceff1}.compatible{color:#2563eb}.available{color:#667085}.activation{font-size:11px;display:block;margin-top:3px;color:#66727d}.portfolio-table{min-width:900px}@media(max-width:760px){.wrap{padding:14px}.event{grid-template-columns:1fr;gap:3px}}
 </style></head>
 <body><div class="wrap">
 <div class="top"><div><h1>Shared libraries</h1><p class="muted">Central register of reusable Apps modules, proposed libraries and verified app adoption.</p></div>
@@ -15,11 +15,16 @@
 <div class="metric"><span class="muted small">Apps tracked</span><strong id="appCount">0</strong></div>
 </div></section>
 
-<section class="card"><div class="top"><div><h2>Library register</h2><p class="muted small">A tick means installation/use is verified. Amber “L” means the app has a local/legacy implementation of the feature but migration to the central shared module is not confirmed.</p></div>
+<section class="card"><div class="top"><div><h2>Library register</h2><p class="muted small">Adoption is explicit: Available does not authorise an app change; Tested/compatible verifies fit without installation; Installed means the app repository was actually changed to consume the shared capability.</p></div>
 <div class="controls"><select id="statusFilter"><option value="*">All statuses</option><option value="implemented">Implemented</option><option value="proposed">Proposed</option></select><input id="search" type="search" placeholder="Search libraries, purpose, file…"></div></div>
-<div class="legend"><span><b class="yes">✓</b> verified shared install</span><span><b class="local">L</b> local/legacy feature</span><span><b class="unknown">—</b> not verified</span></div>
+<div class="legend"><span><b class="yes">✓</b> Installed</span><span><b class="compatible">C</b> Tested/compatible</span><span><b class="available">A</b> Available</span><span><b class="local">L</b> Local/legacy</span><span><b class="unknown">—</b> Not available/unknown</span></div>
 <div class="table-wrap" style="margin-top:12px"><table class="table"><thead><tr id="headRow"></tr></thead><tbody id="libRows"></tbody></table></div>
-<p class="muted small">Dates are repository-history dates. Proposed libraries show “Not created” until a central module actually exists.</p>
+<p class="muted small">A second line in an installed cell shows whether the user can actually activate/control the capability. Dates are repository-history dates.</p>
+</section>
+
+<section class="card">
+  <div class="top"><div><h2>App capability status</h2><p class="muted small">Quick operational view of product version, PWA, Notifications and whether a user-facing activation path exists.</p></div></div>
+  <div class="table-wrap" style="margin-top:12px"><table class="table portfolio-table"><thead><tr><th>App</th><th>Version</th><th>PWA</th><th>Notifications</th><th>User activation available</th></tr></thead><tbody id="appStatusRows"></tbody></table></div>
 </section>
 
 <section class="card">
@@ -43,7 +48,7 @@
 <script>
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 let DATA=null;
-function mark(v){if(v==='installed')return '<span class="tick yes" title="Verified installed">✓</span>';if(v==='local')return '<span class="tick local" title="Local/legacy implementation">L</span>';return '<span class="tick unknown" title="Not verified">—</span>'}
+function mark(v,activation){let out;if(v==='installed')out='<span class="tick yes" title="Installed">✓</span>';else if(v==='compatible')out='<span class="tick compatible" title="Tested/compatible">C</span>';else if(v==='available')out='<span class="tick available" title="Available; not installed">A</span>';else if(v==='local')out='<span class="tick local" title="Local/legacy implementation">L</span>';else out='<span class="tick unknown" title="Not available / unknown">—</span>';if(activation&&v==='installed'){const label={available:'User control ✓',browser:'Browser / OS',not_required:'No activation needed',missing:'Activation missing',unknown:'Activation audit pending'}[activation]||activation;out+='<span class="activation">'+esc(label)+'</span>'}return out}
 function infraBadge(v){
  const map={
    source_owner:['Source owner','yes'],
@@ -62,6 +67,11 @@ function infraMark(v){
  if(!values.length)return '<span class="tick unknown">—</span>';
  return '<div class="infra-cell">'+values.map(infraBadge).join('')+'</div>';
 }
+function renderAppStatus(){
+ const rows=DATA.appStatus||{};
+ const label=v=>({installed:'Installed',compatible:'Tested / compatible',available:'Available',missing:'Missing',browser:'Browser / OS',not_required:'Not required'}[v]||v||'—');
+ $('appStatusRows').innerHTML=Object.entries(rows).map(([app,x])=>'<tr><td><strong>'+esc(app)+'</strong></td><td class="mono">'+esc(x.version||'—')+'</td><td>'+esc(label(x.pwa))+'</td><td>'+esc(label(x.notifications))+'</td><td>'+esc(label(x.userActivation))+'</td></tr>').join('');
+}
 function renderInfrastructure(){
  const infra=DATA.infrastructure||[];
  $('infraHeadRow').innerHTML='<th>Infrastructure / service</th><th>Category</th><th>Purpose</th>'+DATA.apps.map(a=>'<th>'+esc(a)+'</th>').join('');
@@ -73,7 +83,7 @@ function render(){
  const q=$('search').value.trim().toLowerCase(),sf=$('statusFilter').value;
  $('headRow').innerHTML='<th>Library</th><th>Status</th><th>Created</th><th>What it does</th>'+DATA.apps.map(a=>'<th>'+esc(a)+'</th>').join('');
  const libs=DATA.libraries.filter(x=>(sf==='*'||x.status===sf)&&(!q||[x.name,x.file,x.purpose,x.notes].join(' ').toLowerCase().includes(q)));
- $('libRows').innerHTML=libs.map(x=>'<tr><td><strong>'+esc(x.name)+'</strong><div class="mono muted">'+esc(x.file)+'</div>'+(x.notes?'<div class="muted small" style="margin-top:5px">'+esc(x.notes)+'</div>':'')+'</td><td><span class="pill '+(x.status==='proposed'?'proposed':'')+'">'+esc(x.status)+'</span></td><td>'+(x.created?esc(new Date(x.created+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})):'<span class="muted">Not created</span>')+'</td><td>'+esc(x.purpose)+'</td>'+DATA.apps.map(a=>'<td class="tick">'+mark(x.installed?.[a])+'</td>').join('')+'</tr>').join('');
+ $('libRows').innerHTML=libs.map(x=>'<tr><td><strong>'+esc(x.name)+'</strong><div class="mono muted">'+esc(x.file)+'</div>'+(x.notes?'<div class="muted small" style="margin-top:5px">'+esc(x.notes)+'</div>':'')+'</td><td><span class="pill '+(x.status==='proposed'?'proposed':'')+'">'+esc(x.status)+'</span></td><td>'+(x.created?esc(new Date(x.created+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})):'<span class="muted">Not created</span>')+'</td><td>'+esc(x.purpose)+'</td>'+DATA.apps.map(a=>'<td class="tick">'+mark(x.adoption?.[a]||x.installed?.[a],x.userActivation?.[a])+'</td>').join('')+'</tr>').join('');
 }
 fetch('./shared-libraries.json',{cache:'no-store'}).then(r=>r.json()).then(d=>{
  DATA=d;
@@ -83,6 +93,7 @@ fetch('./shared-libraries.json',{cache:'no-store'}).then(r=>r.json()).then(d=>{
  $('appCount').textContent=d.apps.length;
  $('versionTimeline').innerHTML=d.versionLabHistory.map(e=>'<div class="event"><div><strong>'+esc(e.date)+'</strong></div><div><span class="pill">'+esc(e.app)+'</span></div><div><strong>'+esc(e.event)+'</strong><div class="muted small">'+esc(e.detail)+'</div></div></div>').join('');
  render();
+ renderAppStatus();
  renderInfrastructure();
 }).catch(e=>{$('libRows').innerHTML='<tr><td colspan="20">Could not load shared library register: '+esc(e.message)+'</td></tr>'});
 $('search').oninput=()=>DATA&&render();$('statusFilter').onchange=()=>DATA&&render();
