@@ -2,6 +2,15 @@
 
 Notifications v1 is app-independent. Provider configuration belongs behind a trusted server-side transport, never in a browser bundle.
 
+
+## Consumer UI safety rule
+
+**Recipient-facing notification UI must never expose provider setup, credentials, Firebase/Google console links, Worker configuration, secrets, or other developer controls.** New installations default to the consumer experience: explain the benefit, offer an app-level **Enable notifications** action, request the OS/browser permission only after the user taps it, register the device with the trusted backend, and offer normal event/delivery preferences. On iPhone/iPad, explain the Home Screen requirement when applicable.
+
+Provider setup is an administrator/developer surface only. `mountRecipientPreferences()` therefore hides provider setup actions by default. A deliberately developer-only tool may opt in with `developerSetup: true`; production consumer apps must not set it.
+
+A notification installation is **not complete** merely because the shared UI, FCM configuration or sender backend exists. Before marking browser push installed/ready, verify the full chain: consumer opt-in → OS permission → FCM/device registration → authenticated server storage of the recipient device → server event routing → FCM delivery → notification received while the app is backgrounded/closed → deep link opens correctly.
+
 ## Shared provider adapters
 
 `notifications/v1/providers.js` contains adapters for:
