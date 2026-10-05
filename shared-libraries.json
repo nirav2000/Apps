@@ -319,9 +319,10 @@
       "purpose": "App-independent notification event, policy, recipient-preference, delivery-method and reusable UI capability with role/user overrides, cost governance, push registration and provider adapters.",
       "installed": {
         "Notifications Lab": "installed",
-        "App Monitor": "installed"
+        "App Monitor": "installed",
+        "Snag": "installed"
       },
-      "notes": "Notifications v1.1 is installed in the standalone Lab and App Monitor. App Monitor uses the shared R2 production transport, shared preference/inbox/destination UI, provider readiness and a thin app-specific adapter for security.new_human detection. Snag is not installed.",
+      "notes": "Notifications v1.1 is installed in the standalone Lab, App Monitor and Snag. Snag uses a thin authenticated app adapter with its existing Firebase identity/project membership and R2-backed notification state, consumes the shared Notifications SDK/UI, emits snag.created / snag.updated / snag.comment_added / snag.status_changed, and exposes explicit browser-push activation. App-specific roles and recipient rules remain outside the shared package.",
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
@@ -329,7 +330,7 @@
         "LearnLatin": "available",
         "Comprehension": "available",
         "beyond100": "available",
-        "Snag": "available",
+        "Snag": "installed",
         "Next": "available",
         "InClass": "available",
         "App Monitor": "installed",
@@ -340,7 +341,7 @@
       "userActivation": {
         "Notifications Lab": "available",
         "App Monitor": "available",
-        "Snag": "missing"
+        "Snag": "available"
       }
     },
     {
@@ -785,10 +786,11 @@
           "uses"
         ],
         "Snag": [
-          "deployment_bridge"
+          "deployment_bridge",
+          "uses"
         ]
       },
-      "notes": "FCM is the approved/default browser-push provider. Firebase authority is Kk-syllabus. App Monitor consumes FCM. Snag historically hosts/delegates parts of the Cloudflare deployment path; that infrastructure role does not mean the Snag app consumes FCM or Notifications. A Snag consumer state is tracked separately in the shared-library register."
+      "notes": "FCM is the approved/default browser-push provider. Firebase authority is Kk-syllabus. App Monitor and Snag consume FCM through shared Notifications. Snag also hosts/delegates parts of the Cloudflare deployment path; deployment ownership and app consumption are deliberately represented separately."
     },
     {
       "id": "github-actions",
@@ -918,8 +920,8 @@
     "Snag": {
       "version": "2026.09.28.1053",
       "pwa": "installed",
-      "notifications": "available",
-      "userActivation": "missing"
+      "notifications": "installed",
+      "userActivation": "available"
     },
     "Next": {
       "version": "2026.09.25.2",
