@@ -108,7 +108,7 @@ The app should not copy provider, policy or preference logic into its own codeba
 
 Firebase Cloud Messaging (FCM) is the approved/default browser-push provider.
 
-External providers require explicit user approval before activation. OneSignal is not active and has been removed from the default runtime. Email/SMS/messaging adapters may exist in shared code but remain approval-gated until the user explicitly approves the provider.
+External providers require explicit user approval before activation. OneSignal is not active and has been removed from the default runtime. Resend email and FCM browser push are approved providers. SMS/messaging adapters may exist in shared code but remain approval-gated until the user explicitly approves the provider.
 
 See `THIRD_PARTY_SERVICES.md` and `notifications/v1/INSTALLATION.md`.
 
