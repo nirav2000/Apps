@@ -44,6 +44,8 @@ await initPWA();
 
 On iPhone/iPad, browser push requires the web app to be installed to the Home Screen and launched in standalone mode. Notifications UI should use PWA readiness and must not imply push is enabled when this prerequisite is missing.
 
+PWA and Notifications are companion capabilities, not a bundle. Installing this PWA library does **not** authorise installation of Notifications in the consuming app. Likewise, a Notifications request must not silently install PWA; if PWA is missing, report the dependency and wait for explicit authorisation.
+
 ## Release gate
 
 An app recorded as PWA-installed must have:
