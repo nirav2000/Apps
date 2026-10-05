@@ -103,3 +103,21 @@ export async function webPushPublicConfig(endpoint){
 export function currentWebPushRegistration(){
   return messagingState;
 }
+
+export async function registerConsumerWebPush({apiBase,app,eventTypes=[],firebaseConfig,vapidKey,serviceWorkerScope='/Apps/',serviceWorkerUrl='/Apps/firebase-messaging-sw.js'}={}){
+  if(!apiBase||!app)throw new Error('apiBase and app are required for consumer push registration');
+  const result=await registerWebPush({firebaseConfig,vapidKey,serviceWorkerScope,serviceWorkerUrl});
+  if(!result.ok)return result;
+  const response=await fetch(String(apiBase).replace(/\/$/,'')+'/notifications/consumer/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({app,installationId:result.installationId,events:eventTypes,enabled:true})});
+  let data=null;try{data=await response.json()}catch{}
+  if(!response.ok)throw new Error(data?.error||'Could not register this device for notifications');
+  return{...result,consumerRegistered:true,consumer:data};
+}
+
+export async function unregisterConsumerWebPush({apiBase,app,installationId}={}){
+  if(!apiBase||!app||!installationId)return{ok:false,reason:'missing-registration'};
+  const response=await fetch(String(apiBase).replace(/\/$/,'')+'/notifications/consumer/unregister',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({app,installationId})});
+  let data=null;try{data=await response.json()}catch{}
+  if(!response.ok)throw new Error(data?.error||'Could not unregister this device');
+  return data;
+}
