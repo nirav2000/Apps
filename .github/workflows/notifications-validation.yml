@@ -122,7 +122,18 @@ jobs:
           for(const forbidden of ['TWILIO_ACCOUNT_SID','RESEND_API_KEY','SLACK_WEBHOOK_URL']){
             if(server.includes(forbidden)||client.includes(forbidden)) throw new Error('Provider-specific secret logic leaked into App Monitor adapter: '+forbidden);
           }
+          NODE      - name: Consumer UI safety
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const ui=fs.readFileSync('notifications/v1/ui.js','utf8');
+          if(!ui.includes('developerSetup = false')) throw new Error('Recipient UI must hide developer/provider setup by default');
+          if(!ui.includes('developerSetup && setupRequired')) throw new Error('Provider setup action is not developer-gated');
+          if(!ui.includes('mountConsumerNotificationActivation')) throw new Error('Shared consumer activation component missing');
+          const install=fs.readFileSync('notifications/v1/INSTALLATION.md','utf8');
+          if(!install.includes('Recipient-facing notification UI must never expose provider setup')) throw new Error('Consumer safety installation rule missing');
           NODE
+
 
       - name: Shared registration
         run: |
