@@ -320,13 +320,14 @@
       "installed": {
         "Notifications Lab": "installed",
         "App Monitor": "installed",
-        "Snag": "installed"
+        "Snag": "installed",
+        "Openday": "installed"
       },
-      "notes": "Notifications v1.1 is installed in the standalone Lab, App Monitor and Snag. Snag uses a thin authenticated app adapter with its existing Firebase identity/project membership and R2-backed notification state, consumes the shared Notifications SDK/UI, emits snag.created / snag.updated / snag.comment_added / snag.status_changed, and exposes explicit browser-push activation. App-specific roles and recipient rules remain outside the shared package. External delivery from Snag requires the existing shared bridge secret to be configured on both Workers; in-app notification state does not depend on that secret.",
+      "notes": "Notifications v1.1 is installed in the standalone Lab, App Monitor, Snag and Openday. Openday uses a thin private-state adapter with the existing memorable-token sync: in-app inbox/preferences are live, while browser push remains setup-required until Openday has a trusted authenticated server transport for FCM registration/delivery. Snag continues to use its authenticated Firebase/R2 adapter.",
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
-        "Openday": "available",
+        "Openday": "installed",
         "LearnLatin": "available",
         "Comprehension": "available",
         "beyond100": "available",
@@ -341,7 +342,8 @@
       "userActivation": {
         "Notifications Lab": "available",
         "App Monitor": "available",
-        "Snag": "available"
+        "Snag": "available",
+        "Openday": "available"
       }
     },
     {
