@@ -55,7 +55,7 @@ const readiness=await service.readiness('admin',{});
 assert.equal(readiness.core.status,'ready');
 assert.equal(readiness.inApp.status,'ready');
 assert.equal(readiness.production.status,'ready');
-assert.equal(readiness.providers.email.status,'approval-required');
+assert.equal(readiness.providers.email.status,'setup-required');
 assert.equal(readiness.providers.web_push.status,'setup-required');
 
 console.log('R2 notification production transport test passed');
