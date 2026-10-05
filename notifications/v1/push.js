@@ -16,8 +16,8 @@ function loadFirebaseModules(){
   ]).then(([app,messaging])=>({app,messaging}));
   return firebaseModulesPromise;
 }
-function workerUrl(config){
-  const u=new URL('/Apps/firebase-messaging-sw.js',location.origin);
+function workerUrl(config,serviceWorkerUrl='/Apps/firebase-messaging-sw.js'){
+  const u=new URL(serviceWorkerUrl,location.href);
   for(const [key,value] of Object.entries({
     apiKey:config.apiKey,
     authDomain:config.authDomain,
@@ -34,6 +34,7 @@ export async function registerWebPush({
   firebaseConfig,
   vapidKey,
   serviceWorkerScope='/Apps/',
+  serviceWorkerUrl='/Apps/firebase-messaging-sw.js',
   requestPermission=true,
   onRegistration
 }={}){
@@ -53,7 +54,7 @@ export async function registerWebPush({
     if(permission!=='granted')return{ok:false,configured:true,supported:true,permission:false,reason:'permission-not-granted'};
   }
 
-  const registration=await navigator.serviceWorker.register(workerUrl(firebaseConfig),{scope:serviceWorkerScope});
+  const registration=await navigator.serviceWorker.register(workerUrl(firebaseConfig,serviceWorkerUrl),{scope:serviceWorkerScope});
   await navigator.serviceWorker.ready;
 
   let firebaseApp;
