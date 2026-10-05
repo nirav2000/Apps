@@ -145,6 +145,34 @@ export function createNotificationBell({ count = 0, label = 'Notifications' } = 
   return button;
 }
 
+
+export async function mountConsumerNotificationActivation(root, {
+  enable,
+  permission = () => (typeof Notification === 'undefined' ? 'unsupported' : Notification.permission),
+  isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent||''),
+  isStandalone = () => navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)')?.matches===true,
+  title = 'Enable notifications',
+  body = 'Get useful alerts from this app.',
+  onInstallHelp,
+  onNotNow,
+  test,
+  enabledText = 'Notifications are enabled on this device.'
+} = {}) {
+  if (typeof enable !== 'function') throw new Error('enable callback is required');
+  const current = permission();
+  const iosNeedsInstall = isIOS() && !isStandalone();
+  const enabled = current === 'granted';
+  root.innerHTML = '<section class="apps-notification-consumer-activation"><h3></h3><p class="apps-notification-help"></p><div class="apps-notification-consumer-actions"></div><div data-consumer-status role="status"></div></section>';
+  root.querySelector('h3').textContent = enabled ? 'Notifications enabled' : (iosNeedsInstall ? 'Install this app for notifications' : title);
+  root.querySelector('p').textContent = enabled ? enabledText : (iosNeedsInstall ? 'On iPhone and iPad, browser push is available from an installed Home Screen web app.' : body);
+  const actions=root.querySelector('.apps-notification-consumer-actions'),status=root.querySelector('[data-consumer-status]');
+  const button=(label,fn,primary=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;if(primary)b.className='primary';b.onclick=async()=>{b.disabled=true;try{const result=await fn();if(result?.message)status.textContent=result.message}catch(error){status.textContent=String(error?.message||error)}finally{b.disabled=false}};actions.appendChild(b);return b};
+  if(enabled){if(typeof test==='function')button('Send test notification',test)}
+  else if(iosNeedsInstall){button('How to add to Home Screen',async()=>{if(onInstallHelp)return onInstallHelp();return{message:'In Safari, use Share → Add to Home Screen, then open the installed app.'}},true)}
+  else {button('Enable notifications',enable,true);if(typeof onNotNow==='function')button('Not now',onNotNow)}
+  return {enabled,permission:current,iosNeedsInstall};
+}
+
 export async function mountRecipientPreferences(root, {
   client,
   scopeId = 'default',
@@ -153,7 +181,8 @@ export async function mountRecipientPreferences(root, {
   eventTypes = [],
   respectReadiness = false,
   setupContext = {},
-  visibleChannels = null
+  visibleChannels = null,
+  developerSetup = false
 } = {}) {
   const [policy, preferences, readiness] = await Promise.all([
     client.policy(scopeId),
@@ -181,8 +210,8 @@ export async function mountRecipientPreferences(root, {
       extra: value.cost === 'metered' ? 'May incur usage charges' : '',
       key,
       kind: 'channel',
-      actionLabel: setupRequired ? (approvalRequired?'Review provider':'Setup') : '',
-      onAction: setupRequired ? ()=>showDeliverySetupPanel(root,key,{...setupContext,providerState:providerInfo}) : null
+      actionLabel: developerSetup && setupRequired ? (approvalRequired?'Review provider':'Setup') : '',
+      onAction: developerSetup && setupRequired ? ()=>showDeliverySetupPanel(root,key,{...setupContext,providerState:providerInfo}) : null
     }));
   }
 
@@ -443,7 +472,7 @@ export async function mountMemberNotificationSettings(root, {
 export const mountOwnerPolicy = mountPolicyDefaults;
 
 export function notificationStyles() {
-  return '.apps-notification-bell{position:relative;border:1px solid #d6dde5;background:#fff;border-radius:12px;padding:8px 10px;font:inherit}.apps-notification-count{position:absolute;right:-5px;top:-6px;min-width:18px;height:18px;border-radius:999px;background:#b42318;color:#fff;font-size:11px;line-height:18px}.apps-notification-help{color:#667085}.apps-notification-row,.apps-notification-dual-row{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:13px 14px;margin:8px 0;border:1px solid #e1e7ec;border-radius:12px;background:#fff}.apps-notification-row-text{display:grid;gap:4px;min-width:0;line-height:1.35}.apps-notification-row-controls{display:flex;align-items:center;gap:10px;flex:0 0 auto}.apps-notification-check{display:grid;place-items:center;width:30px;height:30px}.apps-notification-check input{width:20px;height:20px;margin:0}.apps-notification-setup-button{padding:7px 10px;border:1px solid #ccd5db;border-radius:9px;background:#fff;font-size:12px;font-weight:700}.apps-notification-row small,.apps-notification-dual-row small{display:block;color:#667085;margin-top:3px}.apps-notification-dual-row{display:grid;grid-template-columns:minmax(190px,1fr) minmax(140px,auto) minmax(125px,auto);gap:14px;align-items:center}.apps-notification-dual-row label{display:flex;gap:9px;align-items:center;justify-content:space-between;min-height:38px;padding:6px 10px;border-left:1px solid #edf1f4;font-size:13px;white-space:nowrap}.apps-notification-dual-row input[type="checkbox"]{width:20px;height:20px;margin:0}.apps-notification-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0}.apps-notification-field{display:grid;gap:5px;font-size:13px}.apps-notification-field input{padding:9px 10px;border:1px solid #d6dde5;border-radius:10px}.apps-notification-inbox-item{display:flex;justify-content:space-between;gap:12px;padding:11px 12px;margin:8px 0;border:1px solid #e1e7ec;border-radius:12px;background:#fff}.apps-notification-inbox-item.unread{background:#f6fbff;border-color:#98bdd6}.apps-notification-inbox-item p{margin:4px 0;color:#667085}.apps-notification-inbox-item small{color:#667085}.apps-notification-toast{position:fixed;right:20px;top:20px;z-index:99999;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;width:min(390px,calc(100vw - 32px));padding:14px;border:1px solid #cfdde7;border-radius:15px;background:#fff;box-shadow:0 18px 55px rgba(20,45,65,.2)}.apps-notification-toast-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:#eef6fb}.apps-notification-toast p{margin:4px 0 0;color:#667085}.apps-notification-toast-close{border:0;background:transparent;color:#667085;font-size:20px;padding:0 4px}.apps-notification-setup-panel{margin:12px 0;padding:14px;border:1px solid #cbdce8;border-radius:14px;background:#f8fbfd}.apps-notification-setup-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.apps-notification-setup-head h3{margin:0 0 4px}.apps-notification-setup-head p{margin:0}.apps-notification-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.apps-notification-setup-grid>div{display:grid;gap:4px;padding:10px;border:1px solid #dfe7ec;border-radius:10px;background:#fff}.apps-notification-setup-section{margin:12px 0}.apps-notification-secret-list{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.apps-notification-secret-list code{padding:5px 7px;border-radius:7px;background:#eef3f7;font-size:12px}.apps-notification-setup-link{display:inline-block;margin:5px 8px 0 0;padding:8px 10px;border-radius:9px;background:#102033;color:#fff;text-decoration:none;font-weight:700;font-size:12px}.apps-notification-setup-link.secondary{background:#fff;color:#102033;border:1px solid #ccd5db}[data-status]{min-height:20px;color:#08783e}@media(max-width:640px){.apps-notification-fields,.apps-notification-setup-grid{grid-template-columns:1fr}.apps-notification-row{align-items:flex-start}.apps-notification-row-controls{flex-direction:column-reverse;align-items:flex-end}.apps-notification-setup-button{min-width:72px}.apps-notification-dual-row{grid-template-columns:1fr}.apps-notification-dual-row label{border-left:0;border-top:1px solid #edf1f4;padding:9px 0 2px}}';
+  return '.apps-notification-bell{position:relative;border:1px solid #d6dde5;background:#fff;border-radius:12px;padding:8px 10px;font:inherit}.apps-notification-count{position:absolute;right:-5px;top:-6px;min-width:18px;height:18px;border-radius:999px;background:#b42318;color:#fff;font-size:11px;line-height:18px}.apps-notification-help{color:#667085}.apps-notification-consumer-activation{border:1px solid #dbe6ed;background:#f8fbfd;border-radius:14px;padding:14px;margin:10px 0}.apps-notification-consumer-activation h3{margin:0 0 6px}.apps-notification-consumer-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.apps-notification-consumer-actions button{border:1px solid #ccd5db;border-radius:9px;background:#fff;padding:8px 11px;font-weight:700}.apps-notification-consumer-actions button.primary{background:#102033;color:#fff;border-color:#102033}.apps-notification-row,.apps-notification-dual-row{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:13px 14px;margin:8px 0;border:1px solid #e1e7ec;border-radius:12px;background:#fff}.apps-notification-row-text{display:grid;gap:4px;min-width:0;line-height:1.35}.apps-notification-row-controls{display:flex;align-items:center;gap:10px;flex:0 0 auto}.apps-notification-check{display:grid;place-items:center;width:30px;height:30px}.apps-notification-check input{width:20px;height:20px;margin:0}.apps-notification-setup-button{padding:7px 10px;border:1px solid #ccd5db;border-radius:9px;background:#fff;font-size:12px;font-weight:700}.apps-notification-row small,.apps-notification-dual-row small{display:block;color:#667085;margin-top:3px}.apps-notification-dual-row{display:grid;grid-template-columns:minmax(190px,1fr) minmax(140px,auto) minmax(125px,auto);gap:14px;align-items:center}.apps-notification-dual-row label{display:flex;gap:9px;align-items:center;justify-content:space-between;min-height:38px;padding:6px 10px;border-left:1px solid #edf1f4;font-size:13px;white-space:nowrap}.apps-notification-dual-row input[type="checkbox"]{width:20px;height:20px;margin:0}.apps-notification-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0}.apps-notification-field{display:grid;gap:5px;font-size:13px}.apps-notification-field input{padding:9px 10px;border:1px solid #d6dde5;border-radius:10px}.apps-notification-inbox-item{display:flex;justify-content:space-between;gap:12px;padding:11px 12px;margin:8px 0;border:1px solid #e1e7ec;border-radius:12px;background:#fff}.apps-notification-inbox-item.unread{background:#f6fbff;border-color:#98bdd6}.apps-notification-inbox-item p{margin:4px 0;color:#667085}.apps-notification-inbox-item small{color:#667085}.apps-notification-toast{position:fixed;right:20px;top:20px;z-index:99999;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;width:min(390px,calc(100vw - 32px));padding:14px;border:1px solid #cfdde7;border-radius:15px;background:#fff;box-shadow:0 18px 55px rgba(20,45,65,.2)}.apps-notification-toast-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:#eef6fb}.apps-notification-toast p{margin:4px 0 0;color:#667085}.apps-notification-toast-close{border:0;background:transparent;color:#667085;font-size:20px;padding:0 4px}.apps-notification-setup-panel{margin:12px 0;padding:14px;border:1px solid #cbdce8;border-radius:14px;background:#f8fbfd}.apps-notification-setup-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.apps-notification-setup-head h3{margin:0 0 4px}.apps-notification-setup-head p{margin:0}.apps-notification-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.apps-notification-setup-grid>div{display:grid;gap:4px;padding:10px;border:1px solid #dfe7ec;border-radius:10px;background:#fff}.apps-notification-setup-section{margin:12px 0}.apps-notification-secret-list{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.apps-notification-secret-list code{padding:5px 7px;border-radius:7px;background:#eef3f7;font-size:12px}.apps-notification-setup-link{display:inline-block;margin:5px 8px 0 0;padding:8px 10px;border-radius:9px;background:#102033;color:#fff;text-decoration:none;font-weight:700;font-size:12px}.apps-notification-setup-link.secondary{background:#fff;color:#102033;border:1px solid #ccd5db}[data-status]{min-height:20px;color:#08783e}@media(max-width:640px){.apps-notification-fields,.apps-notification-setup-grid{grid-template-columns:1fr}.apps-notification-row{align-items:flex-start}.apps-notification-row-controls{flex-direction:column-reverse;align-items:flex-end}.apps-notification-setup-button{min-width:72px}.apps-notification-dual-row{grid-template-columns:1fr}.apps-notification-dual-row label{border-left:0;border-top:1px solid #edf1f4;padding:9px 0 2px}}';
 }
 
 
