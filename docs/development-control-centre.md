@@ -114,3 +114,84 @@ Cards provide:
 - **Open source chat** — shown when a stable source conversation URL has been captured.
 
 These actions intentionally avoid requiring the user to navigate GitHub. Until secure authenticated write-through is added, actions copy an exact command for ChatGPT rather than exposing a GitHub credential in the browser.
+
+
+## Shared-library adoption controls
+
+The Control Centre / Shared Libraries experience should support a checkbox-driven adoption planner rather than requiring the user to remember which shared capabilities each app already has.
+
+For each app, show each shared capability with its current state:
+- **Available** — capability exists; no app change is authorised.
+- **Tested / compatible** — compatibility was verified without installing it.
+- **Installed** — app repository actually consumes it.
+- **Local / legacy** — equivalent app-local functionality exists.
+
+A separate **User activation available** indicator records whether an installed capability can actually be enabled/controlled by the end user.
+
+### Checkbox installation workflow
+
+1. The user selects one or more apps and shared capabilities.
+2. The UI shows the exact proposed transitions, dependencies and conflicts before any repository is changed.
+3. Dependency requirements are informational by default. A dependency is never silently selected/installed.
+4. The user explicitly confirms the installation batch.
+5. Development installs only the checked/confirmed app-capability pairs.
+6. Each installation runs the capability's canonical installation guide, app release gate and an App Audit.
+7. The register is updated to Installed only after successful validation.
+8. Failed integrations remain at their prior state and are reported individually rather than causing unrelated apps to be modified.
+
+The checkbox is an authorisation control, not merely a status display.
+
+## App Audit
+
+Use an App Audit after substantial, cross-cutting or unexpected changes, and periodically for actively developed apps.
+
+An audit should cover:
+
+1. **Baseline and version**
+   - identify current app version/commit and last known-good baseline;
+   - identify all changes since the baseline and whether they were authorised.
+
+2. **Core functional journeys**
+   - exercise the app's real primary workflows, create/read/update/delete paths where applicable, persistence, authentication, sharing/roles and error/empty states;
+   - verify failure of an optional/shared service cannot break the primary app action unless deliberately designed that way.
+
+3. **Shared-library conformance**
+   - compare every installed shared capability with the central register and canonical installation guide;
+   - verify app identity, scope, auth/roles, service-worker ownership, transport/backend mappings and user activation surfaces;
+   - detect duplicated, stale or app-specific forks of shared logic.
+
+4. **Rendered visual QA**
+   - inspect the actual rendered app rather than relying only on source/static checks;
+   - test representative iPhone, iPad/tablet and desktop widths;
+   - check clipping, overlap, modals/drawers, safe areas, keyboard/focus, touch targets, typography, loading/empty/error states and installed-PWA presentation;
+   - capture screenshots for material UI regressions.
+
+5. **PWA and offline/update behaviour**
+   - manifest, icons, standalone launch, service-worker scope/conflicts, first load/repeat load, update propagation, offline/reconnection and stale-cache behaviour.
+
+6. **Notifications when installed**
+   - in-app inbox/preferences, owner/policy boundaries, event routing, user-facing Enable notifications/push action, OS permission request, device registration, delivery and deep-link behaviour;
+   - PWA/browser-push dependency is verified but never silently installed.
+
+7. **Data, media and performance**
+   - measure important network requests and rendering latency;
+   - check image/media dimensions, formats, thumbnails/previews, cache headers, repeat-view caching and backend/storage latency;
+   - flag avoidable full-resolution downloads and serial request waterfalls.
+
+8. **Security/privacy/cost**
+   - auth and role boundaries, private-media access, secrets, third-party providers, telemetry/privacy controls and metered-provider policy;
+   - confirm third-party approval status against the central register.
+
+9. **Automated validation**
+   - syntax/static checks, app-specific release gate, shared-capability gates and browser smoke tests;
+   - distinguish pre-existing failures from regressions introduced by the audited change.
+
+10. **Report**
+    - PASS / PASS WITH FINDINGS / FAIL;
+    - version/commit audited;
+    - findings ranked critical/high/medium/low;
+    - exact user verification still needed;
+    - recommended fixes, each requiring normal authorisation;
+    - update the register only for facts verified by the audit.
+
+A useful request is: **“Run an App Audit on <app> since <version/change>.”** For a major unexpected change, use: **“Run a full App Audit on <app> against the last known-good version.”**
