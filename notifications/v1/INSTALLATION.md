@@ -328,6 +328,7 @@ PWA and Notifications are companion capabilities, but **they are never implicitl
 - Browser push on iPhone/iPad requires compatible PWA/Home Screen support.
 - If Notifications is requested and PWA is absent, stop and report the dependency instead of modifying the app unless PWA installation was also explicitly authorised.
 - A Notifications installation that exposes browser push is incomplete until the consuming app has a clear user-facing action such as **Enable browser push** / **Enable notifications**. That action must be user initiated and is the point at which browser/OS permission is requested.
+- If the notification choice has never been presented to a user/device, the consuming app must present a first-use notification choice on the next eligible app open. The app should remember that the choice was presented so it does not nag on every launch; notification settings remain available later.
 - Policy permission and browser permission are separate: an owner/controller can allow push, but cannot grant device notification permission for another user.
 
 The shared-library register tracks both **adoption state** and **user activation available** so a technically installed capability is not mistaken for a usable one.
