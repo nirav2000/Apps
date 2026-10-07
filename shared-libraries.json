@@ -19,7 +19,8 @@
     "App Monitor",
     "Firebase Usage Monitor",
     "Notifications Lab",
-    "PWA Lab"
+    "PWA Lab",
+    "TouchType"
   ],
   "libraries": [
     {
@@ -46,7 +47,8 @@
         "App Monitor": "local",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {}
     },
@@ -78,7 +80,8 @@
         "App Monitor": "available",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {}
     },
@@ -105,7 +108,8 @@
         "App Monitor": "installed",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {}
     },
@@ -131,7 +135,8 @@
         "App Monitor": "available",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {}
     },
@@ -149,7 +154,8 @@
         "Comprehension": "installed",
         "beyond100": "installed",
         "Snag": "installed",
-        "App Monitor": "installed"
+        "App Monitor": "installed",
+        "TouchType": "installed"
       },
       "adoption": {
         "Apps": "available",
@@ -164,9 +170,12 @@
         "App Monitor": "installed",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "installed"
       },
-      "userActivation": {}
+      "userActivation": {
+        "TouchType": "not_required"
+      }
     },
     {
       "id": "firebase-usage",
@@ -197,7 +206,8 @@
         "App Monitor": "available",
         "Firebase Usage Monitor": "installed",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {}
     },
@@ -211,9 +221,10 @@
       "installed": {
         "Openday": "local",
         "beyond100": "local",
-        "Snag": "local"
+        "Snag": "local",
+        "TouchType": "installed"
       },
-      "notes": "Full shared system is built but intentionally not installed in a consuming app yet. Beyond100 is the reference/full bespoke implementation; Openday uses the earlier thin shared v1; Snag has version history/archive. Next step is trial installation on an app with no prior Version Lab.",
+      "notes": "Full shared system is installed in InClass and TouchType. TouchType is a clean visual-only consumer with localStorage learner data; Beyond100 remains the reference implementation and Openday/Snag retain legacy/local history pending deliberate migration.",
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
@@ -227,9 +238,12 @@
         "App Monitor": "available",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "installed"
       },
-      "userActivation": {}
+      "userActivation": {
+        "TouchType": "not_required"
+      }
     },
     {
       "id": "privacy",
@@ -253,7 +267,8 @@
         "App Monitor": "available",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {}
     },
@@ -279,7 +294,8 @@
         "App Monitor": "available",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {}
     },
@@ -306,7 +322,8 @@
         "App Monitor": "available",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {}
     },
@@ -337,7 +354,8 @@
         "App Monitor": "installed",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "installed",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {
         "Notifications Lab": "available",
@@ -379,7 +397,8 @@
         "App Monitor": "installed",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "installed"
+        "PWA Lab": "installed",
+        "TouchType": "available"
       },
       "userActivation": {
         "App Monitor": "browser",
@@ -400,7 +419,9 @@
       "status": "implemented",
       "created": "2026-09-27",
       "purpose": "Versioned integration layer and lazy capability loader that keeps shared infrastructure separate from consuming app business logic.",
-      "installed": {},
+      "installed": {
+        "TouchType": "installed"
+      },
       "notes": "Apps Platform v1.5.0 exposes Notifications, PWA and Shared Notes & Annotations as canonical shared capabilities while keeping consuming-app business logic outside shared modules.",
       "adoption": {
         "Apps": "available",
@@ -415,9 +436,12 @@
         "App Monitor": "available",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "installed"
       },
-      "userActivation": {},
+      "userActivation": {
+        "TouchType": "not_required"
+      },
       "version": "1.5.0"
     },
     {
@@ -441,7 +465,8 @@
         "App Monitor": "available",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {},
       "notes": "Created from the strongest patterns in Beyond100, Snag, LearnLatin, Next and Openday. TouchType is the intended first clean consumer; existing bespoke implementations remain local until deliberately migrated."
@@ -467,7 +492,8 @@
         "App Monitor": "unavailable",
         "Firebase Usage Monitor": "unavailable",
         "Notifications Lab": "unavailable",
-        "PWA Lab": "unavailable"
+        "PWA Lab": "unavailable",
+        "TouchType": "unavailable"
       },
       "userActivation": {}
     },
@@ -492,7 +518,8 @@
         "App Monitor": "unavailable",
         "Firebase Usage Monitor": "unavailable",
         "Notifications Lab": "unavailable",
-        "PWA Lab": "unavailable"
+        "PWA Lab": "unavailable",
+        "TouchType": "unavailable"
       },
       "userActivation": {}
     },
@@ -517,7 +544,8 @@
         "App Monitor": "unavailable",
         "Firebase Usage Monitor": "unavailable",
         "Notifications Lab": "unavailable",
-        "PWA Lab": "unavailable"
+        "PWA Lab": "unavailable",
+        "TouchType": "unavailable"
       },
       "userActivation": {}
     },
@@ -545,7 +573,8 @@
         "App Monitor": "available",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
-        "PWA Lab": "available"
+        "PWA Lab": "available",
+        "TouchType": "available"
       },
       "userActivation": {}
     },
@@ -570,7 +599,8 @@
         "App Monitor": "unavailable",
         "Firebase Usage Monitor": "unavailable",
         "Notifications Lab": "unavailable",
-        "PWA Lab": "unavailable"
+        "PWA Lab": "unavailable",
+        "TouchType": "unavailable"
       },
       "userActivation": {}
     }
@@ -968,6 +998,12 @@
       "pwa": "installed",
       "notifications": "available",
       "userActivation": "missing"
+    },
+    "TouchType": {
+      "version": "0.1.0",
+      "platform": "1.5.0",
+      "appMonitor": "installed",
+      "versionLab": "installed"
     }
   },
   "governance": {
