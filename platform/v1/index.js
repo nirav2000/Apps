@@ -41,7 +41,7 @@ async function loadCapability(name,options={},context={}){
     value=mod[def.exportName]||mod.default||mod;
   }else value=await script(ROOT+def.src,def.global);
   if(options&&typeof value?.init==='function'){
-    const initOptions=name==='auth'?{appId:context.appId,...options}:options;
+    const initOptions=(name==='auth'||name==='notes')?{appId:context.appId,...options}:options;
     await value.init(initOptions);
   }
   return value;
