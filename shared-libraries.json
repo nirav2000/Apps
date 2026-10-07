@@ -395,13 +395,13 @@
     },
     {
       "id": "platform",
-      "name": "Apps Platform v1.5",
+      "name": "Apps Platform v1.5.0",
       "file": "platform/v1/",
       "status": "implemented",
       "created": "2026-09-27",
       "purpose": "Versioned integration layer and lazy capability loader that keeps shared infrastructure separate from consuming app business logic.",
       "installed": {},
-      "notes": "Apps Platform v1.5 exposes Notifications, PWA and Shared Notes & Annotations as canonical shared capabilities while keeping consuming-app business logic outside shared modules.",
+      "notes": "Apps Platform v1.5.0 exposes Notifications, PWA and Shared Notes & Annotations as canonical shared capabilities while keeping consuming-app business logic outside shared modules.",
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
@@ -417,7 +417,8 @@
         "Notifications Lab": "available",
         "PWA Lab": "available"
       },
-      "userActivation": {}
+      "userActivation": {},
+      "version": "1.5.0"
     },
     {
       "id": "devnotes",
