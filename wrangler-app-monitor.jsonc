@@ -4,11 +4,22 @@
   "main": "app-monitor-worker.js",
   "compatibility_date": "2026-09-24",
   "workers_dev": true,
-  "observability": { "enabled": true },
+  "observability": {
+    "enabled": true
+  },
   "r2_buckets": [
-    { "binding": "APP_MONITOR_DATA", "bucket_name": "apps-monitor-data" }
+    {
+      "binding": "APP_MONITOR_DATA",
+      "bucket_name": "apps-monitor-data"
+    }
   ],
   "vars": {
-    "ALLOWED_ORIGIN": "https://nirav2000.github.io"
+    "ALLOWED_ORIGIN": "https://nirav2000.github.io",
+    "FCM_PROJECT_ID": "kk-syllabus",
+    "FCM_WEB_API_KEY": "AIzaSyDrreK9rhsoOpIYNr4QeNZ7CsXgQiMPW0E",
+    "FCM_WEB_APP_ID": "1:821660665663:web:c708860329bb97dc24758a",
+    "FCM_MESSAGING_SENDER_ID": "821660665663",
+    "FCM_VAPID_KEY": "BL9rh7uBwWUTHCQiSSBI2St7s9CgCcZGX5_WTRdwzS1HKYUukM9ODUZFP1UunK7KQEfeFGB6x9H3hBiXu_hpAz8",
+    "FCM_AUTH_DOMAIN": "kk-syllabus.firebaseapp.com"
   }
 }
