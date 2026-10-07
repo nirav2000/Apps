@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05",
+  "generatedAt": "2026-10-07",
   "legend": {
     "installed": "Verified installed/used",
     "local": "Feature exists locally/legacy, not confirmed on shared module",
@@ -395,13 +395,13 @@
     },
     {
       "id": "platform",
-      "name": "Apps Platform v1.4",
+      "name": "Apps Platform v1.5",
       "file": "platform/v1/",
       "status": "implemented",
       "created": "2026-09-27",
       "purpose": "Versioned integration layer and lazy capability loader that keeps shared infrastructure separate from consuming app business logic.",
       "installed": {},
-      "notes": "Apps Platform v1.4 exposes Notifications v1.1 and PWA v1.0 as canonical shared capabilities while keeping consuming-app business logic outside shared modules.",
+      "notes": "Apps Platform v1.5 exposes Notifications, PWA and Shared Notes & Annotations as canonical shared capabilities while keeping consuming-app business logic outside shared modules.",
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
@@ -421,28 +421,29 @@
     },
     {
       "id": "devnotes",
-      "name": "DevNotes",
-      "file": "proposed",
-      "status": "proposed",
-      "created": null,
-      "purpose": "One shared developer-feedback/notes component and data contract instead of per-app implementations.",
+      "name": "Shared Notes & Annotations v1.0",
+      "file": "notes/v1/",
+      "status": "implemented",
+      "created": "2026-10-07",
+      "purpose": "Shared developer notes, feedback and element-linked annotations with drafts, review queue, implementation history and optional transport hooks.",
       "installed": {},
       "adoption": {
-        "Apps": "unavailable",
-        "Kk-syllabus": "unavailable",
-        "Openday": "unavailable",
-        "LearnLatin": "unavailable",
-        "Comprehension": "unavailable",
-        "beyond100": "unavailable",
-        "Snag": "unavailable",
-        "Next": "unavailable",
-        "InClass": "unavailable",
-        "App Monitor": "unavailable",
-        "Firebase Usage Monitor": "unavailable",
-        "Notifications Lab": "unavailable",
-        "PWA Lab": "unavailable"
+        "Apps": "available",
+        "Kk-syllabus": "available",
+        "Openday": "local",
+        "LearnLatin": "local",
+        "Comprehension": "available",
+        "beyond100": "local",
+        "Snag": "local",
+        "Next": "local",
+        "InClass": "available",
+        "App Monitor": "available",
+        "Firebase Usage Monitor": "available",
+        "Notifications Lab": "available",
+        "PWA Lab": "available"
       },
-      "userActivation": {}
+      "userActivation": {},
+      "notes": "Created from the strongest patterns in Beyond100, Snag, LearnLatin, Next and Openday. TouchType is the intended first clean consumer; existing bespoke implementations remain local until deliberately migrated."
     },
     {
       "id": "learning",
