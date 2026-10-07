@@ -37,6 +37,16 @@
       "status": "managed",
       "releaseManifest": "https://nirav2000.github.io/InClass/version-lab-data/releases.json",
       "gatewayUrl": "https://nirav2000.github.io/InClass/versionlabs/"
+    },
+    {
+      "appId": "touchtype",
+      "name": "TouchType",
+      "repository": "nirav2000/TouchType",
+      "liveUrl": "https://nirav2000.github.io/TouchType/",
+      "managed": true,
+      "status": "managed",
+      "releaseManifest": "https://nirav2000.github.io/TouchType/version-lab-data/releases.json",
+      "gatewayUrl": "https://nirav2000.github.io/TouchType/versionlabs/"
     }
   ]
 }
