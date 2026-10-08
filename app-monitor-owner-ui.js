@@ -18,6 +18,9 @@ function drawDashboard(data) {
   $('projectTabs').innerHTML = projects.map(p=>'<button type="button" class="tab '+(selectedProject===p.projectId?'active':'')+'" data-project="'+escapeHTML(p.projectId)+'">'+escapeHTML(p.projectId)+'</button>').join('');
   $('summary').innerHTML = projects.map(p=>'<div class="item"><h3>'+escapeHTML(p.projectId)+'</h3><p class="muted">'+escapeHTML((p.apps||[]).join(', ')||'Firebase project')+'</p><p>Firestore: '+(p.firestore.ok?'Connected':'HTTP '+p.firestore.status)+'</p><p>Authentication: '+(p.authentication.ok?'Connected':'HTTP '+p.authentication.status)+'</p><p class="small muted">'+p.firestore.collections.length+' root collections returned · '+p.authentication.users.length+' users sampled</p><p class="small muted">These are sample sizes, not totals.</p></div>').join('');
   $('projectTabs').querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>selectProject(button.dataset.project)));
+  const apps = projects.flatMap(p=>(p.apps||[]).filter(name=>name!=='Shared Firebase apps').map(name=>({name,project:p.projectId})));
+  $('appShortcuts').innerHTML=apps.map(a=>'<button type="button" class="tab" data-app-project="'+escapeHTML(a.project)+'">'+escapeHTML(a.name)+' <span class="small muted">('+escapeHTML(a.project)+')</span></button>').join('');
+  $('appShortcuts').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>selectProject(b.dataset.appProject)));
 }
 async function refresh() {
   $('refresh').disabled = true;
