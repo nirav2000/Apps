@@ -1,4 +1,4 @@
-name: Validate App Monitor worker source (deployment delegated)
+name: Deploy App Monitor Worker (requires Cloudflare credentials)
 
 on:
   workflow_dispatch:
@@ -38,7 +38,7 @@ jobs:
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Apps repo has no Cloudflare deploy secrets; deployment is delegated."
+            echo "::error::Cloudflare deployment credentials are missing. Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to repository Actions secrets."\n            exit 1
           fi
       - name: Deploy dedicated worker
         if: steps.creds.outputs.available == 'true'
