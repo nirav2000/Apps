@@ -1,7 +1,7 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
 import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
-const WORKER_BUILD='2026.10.08.owner-console-redirect-fix';
+const WORKER_BUILD='2026.10.08.owner-console-firestore-root-check';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -155,14 +155,14 @@ async function appMonitorRoute(request,env,headers,url){
     try{
       const accessToken=await ownerGoogleToken(env);
       const projects=await Promise.all([...new Set(ids)].map(async projectId=>{
-        async function check(endpoint){
+        async function check(endpoint,options={}){
           try{
-            const response=await fetch(endpoint,{headers:{Authorization:'Bearer '+accessToken},redirect:'manual'});
+            const response=await fetch(endpoint,{method:options.method||'GET',headers:{Authorization:'Bearer '+accessToken,...(options.method==='POST'?{'Content-Type':'application/json'}:{})},body:options.method==='POST'?'{}':undefined,redirect:'manual'});
             return {connected:response.ok,status:response.status};
           }catch(error){return {connected:false,status:0,reason:String(error?.name||'RequestError'),detail:String(error?.message||'Outbound request failed').slice(0,160)}}
         }
         const [firestore,authentication]=await Promise.all([
-          check('https://firestore.googleapis.com/v1/projects/'+projectId+'/databases/(default)/documents?pageSize=1'),
+          check('https://firestore.googleapis.com/v1/projects/'+projectId+'/databases/(default)/documents:listCollectionIds',{method:'POST'}),
           check('https://identitytoolkit.googleapis.com/v1/projects/'+projectId+'/accounts:batchGet?maxResults=1')
         ]);
         return {projectId,status:firestore.connected&&authentication.connected?'connected':'attention-required',firestore,authentication};
