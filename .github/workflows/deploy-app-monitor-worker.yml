@@ -32,7 +32,11 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Test Owner Console data layer
-        run: node --test app-monitor-owner-data.test.mjs
+        run: |
+          node --check app-monitor-owner-data.js
+          node --check app-monitor-owner-routes.js
+          node --check app-monitor-owner-ui.js
+          node --test app-monitor-owner-data.test.mjs
       - name: Check repository-local Cloudflare credentials
         id: creds
         env:
