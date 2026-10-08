@@ -2,7 +2,7 @@ const $ = id => document.getElementById(id);
 const api = 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor';
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let token = '', selectedProject = '', selectedTab = 'users', pageToken = '', selectedCollection = '', parentDocument = '';
-let userRows = [], documentRows = [];
+let userRows = [], documentRows = [], collectionRows = [];
 const state = id => $(id);
 const setStatus = message => { $('message').textContent = message; };
 const formatDate = value => { if (!value) return '—'; const n = Number(value); const d = new Date(Number.isFinite(n) && n > 100000000000 ? n : value); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('en-GB'); };
@@ -37,7 +37,7 @@ async function refresh() {
   finally { $('refresh').disabled = false; }
 }
 async function selectProject(id) {
-  selectedProject = id; selectedCollection = ''; parentDocument = ''; pageToken = '';
+  selectedProject = id; selectedCollection = ''; parentDocument = ''; pageToken = ''; collectionRows = [];
   $('projectTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.project===id));
   await openTab('users');
 }
@@ -54,10 +54,10 @@ function drawDocuments() {
   const search = $('search').value.trim().toLowerCase();
   const docs = documentRows.filter(d=>d.id.toLowerCase().includes(search));
   $('results').innerHTML = '<p class="muted">Collection: '+escapeHTML(selectedCollection)+'</p><div class="list">'+docs.map(d=>'<button type="button" class="collection" data-doc="'+escapeHTML(d.path)+'">'+escapeHTML(d.id)+' <span>Subcollections →</span></button>').join('')+'</div><p class="small muted">'+docs.length+' documents shown; search covers loaded records only.</p>';
-  $('results').querySelectorAll('[data-doc]').forEach(b=>b.addEventListener('click',async()=>{parentDocument=b.dataset.doc;selectedCollection='';pageToken='';await loadCollections();}));
+  $('results').querySelectorAll('[data-doc]').forEach(b=>b.addEventListener('click',async()=>{parentDocument=b.dataset.doc;selectedCollection='';pageToken='';collectionRows=[];await loadCollections();}));
 }
 async function openTab(tab) {
-  selectedTab=tab;pageToken='';parentDocument='';selectedCollection='';userRows=[];documentRows=[];
+  selectedTab=tab;pageToken='';parentDocument='';selectedCollection='';userRows=[];documentRows=[];collectionRows=[];
   $('search').value='';$('results').textContent='Loading…';$('more').hidden=true;
   $('viewTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.view===tab));
   if(tab==='users')await loadUsers();else await loadCollections();
@@ -73,7 +73,7 @@ async function loadCollections() {
   try {
     const r=await request('collections',{project:selectedProject,document:parentDocument,pageToken});
     pageToken=r.nextPageToken||'';
-    drawCollections(r.collections||[]);$('more').hidden=!pageToken;
+    collectionRows.push(...(r.collections||[]));drawCollections(collectionRows);$('more').hidden=!pageToken;
     $('trail').textContent=parentDocument?'Subcollections of '+parentDocument:'Root collections';
   }catch(error){$('results').textContent=error.message;$('more').hidden=true;}
 }
