@@ -173,7 +173,7 @@ async function appMonitorRoute(request,env,headers,url){
         }));
         return {projectId,collections:{status:collections.status||200,names,previews,limited:names.length>=100},authentication:{status:users.status||200,users:users.ok?(users.data.users||[]).map(u=>({uid:u.localId,email:u.email||null,disabled:!!u.disabled,createdAt:u.createdAt||null,lastLoginAt:u.lastLoginAt||null})):[],nextPageToken:users.ok?!!users.data.nextPageToken:false},scope:'Sample only; not complete user or document counts'};
       }));
-      return Response.json({projects,checkedAt:new Date().toISOString(),readOnly:true},{headers:{...Object.fromEntries(headers),'Cache-Control':'no-store'}});
+      return Response.json({projects,checkedAt:new Date().toISOString(),readOnly:true},{headers:{...headers,'Cache-Control':'no-store'}});
     }catch{return Response.json({error:'Firebase overview unavailable'},{status:502,headers})}
   }
   if(url.pathname==='/app-monitor/owner/firebase/projects'&&request.method==='GET'){
