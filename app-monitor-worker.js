@@ -124,6 +124,23 @@ async function sharedNotificationBridge(request,env,headers,url){
   return new Response('Not found',{status:404,headers});
 }
 
+async function ownerGoogleToken(env){
+  const account=JSON.parse(env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON);
+  const jwtHeader={alg:'RS256',typ:'JWT'};
+  const now=Math.floor(Date.now()/1000);
+  const jwtPayload={iss:account.client_email,scope:'https://www.googleapis.com/auth/cloud-platform',aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+1800};
+  const encode=x=>b64uBytes(new TextEncoder().encode(JSON.stringify(x)));
+  const unsigned=encode(jwtHeader)+'.'+encode(jwtPayload);
+  const pem=account.private_key.replace(/-----[^-]+-----/g,'').replace(/\s/g,'');
+  const bytes=Uint8Array.from(atob(pem),x=>x.charCodeAt(0));
+  const key=await crypto.subtle.importKey('pkcs8',bytes,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign']);
+  const sig=new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key,new TextEncoder().encode(unsigned)));
+  const response=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion:unsigned+'.'+b64uBytes(sig)})});
+  if(!response.ok)throw Error('Google authentication failed');
+  const result=await response.json();
+  return result.access_token;
+}
+
 async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
