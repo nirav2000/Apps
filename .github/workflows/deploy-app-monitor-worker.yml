@@ -38,14 +38,17 @@ jobs:
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::error::Cloudflare deployment credentials are missing. Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to repository Actions secrets."\n            exit 1
+            echo "::error::Cloudflare deployment credentials are missing. Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to repository Actions secrets."
+            exit 1
           fi
       - name: Deploy dedicated worker
         if: steps.creds.outputs.available == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |\n          npx wrangler whoami\n          npx wrangler deploy -c wrangler-app-monitor.jsonc
+        run: |
+          npx wrangler whoami
+          npx wrangler deploy -c wrangler-app-monitor.jsonc
       - name: Smoke test
         if: steps.creds.outputs.available == 'true'
         run: |
