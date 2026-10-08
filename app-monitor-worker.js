@@ -1,7 +1,7 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
 import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
-const WORKER_BUILD='2026.10.08.owner-console-outbound-diagnostics';
+const WORKER_BUILD='2026.10.08.owner-console-redirect-fix';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -157,7 +157,7 @@ async function appMonitorRoute(request,env,headers,url){
       const projects=await Promise.all([...new Set(ids)].map(async projectId=>{
         async function check(endpoint){
           try{
-            const response=await fetch(endpoint,{headers:{Authorization:'Bearer '+accessToken},redirect:'error'});
+            const response=await fetch(endpoint,{headers:{Authorization:'Bearer '+accessToken},redirect:'manual'});
             return {connected:response.ok,status:response.status};
           }catch(error){return {connected:false,status:0,reason:String(error?.name||'RequestError'),detail:String(error?.message||'Outbound request failed').slice(0,160)}}
         }
