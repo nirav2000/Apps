@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>App Monitor · App detail</title><style>
+:root{font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;color:#172b3c;background:#f3f6f9}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1120px;margin:auto;padding:22px}a{color:#0b62b5}.head,.controls{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.card{background:white;border:1px solid #dce5ed;border-radius:17px;padding:18px;margin:14px 0}.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px}.metric{background:#f6f9fc;border-radius:12px;padding:14px}.metric strong{display:block;font-size:28px}.muted{color:#627489}.small{font-size:13px}button,select{font:inherit;border:1px solid #bfcbd7;background:white;border-radius:9px;padding:9px 12px}button{cursor:pointer}.primary{background:#172b3c;color:white}table{width:100%;border-collapse:collapse;text-align:left;font-size:13px}th,td{padding:11px;border-bottom:1px solid #e7edf3}th{color:#627489}table{min-width:650px}.scroll{overflow:auto}.warning{border-color:#e5ce99;background:#fffaf0}@media(max-width:550px){.wrap{padding:12px}}
+</style></head><body><main class="wrap"><div class="head"><div><a href="./app-monitor.html">← App Monitor</a><h1 id="title">App detail</h1><p class="muted">Activity and identified users from the authenticated App Monitor ledger</p></div><div class="controls"><label>Period <select id="days"><option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option></select></label><button id="refresh" class="primary">Refresh</button></div></div><div class="card"><p id="message" role="status">Checking administrator session…</p></div><div id="content" hidden><section class="metrics" id="metrics"></section><section class="card"><h2>Identified users</h2><p class="small muted">These are observed identities, not the complete Firebase user registry. A user may have multiple devices or anonymous IDs.</p><div class="scroll"><table><thead><tr><th>Name / identity</th><th>Provider</th><th>Sessions</th><th>Last seen</th></tr></thead><tbody id="users"></tbody></table></div></section><section class="card"><h2>Recent sessions</h2><div class="scroll"><table><thead><tr><th>Person</th><th>Device</th><th>Started</th><th>Last seen</th><th>Active time</th></tr></thead><tbody id="sessions"></tbody></table></div></section><section class="card warning"><h2>Projects & contractors</h2><p>The activity ledger cannot enumerate Firebase projects or project memberships. Those records require a separate, audited service credential and a protected backend route. No browser-wide Firebase administrator credential is used here.</p></section></div></main><script>
+const $=id=>document.getElementById(id),app=new URLSearchParams(location.search).get('app')||'Snag',api='https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor';
+$('title').textContent=app+' · Activity';
+const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const day=d=>{const date=new Date();date.setDate(date.getDate()-d);return date.toISOString().slice(0,10)};
+const fmt=v=>v?new Date(v).toLocaleString('en-GB'):'—';
+function duration(ms){return Math.round((Number(ms)||0)/60000)+' min'}
+async function load(){
+  $('refresh').disabled=true;$('message').textContent='Loading protected activity records…';$('content').hidden=true;
+  try{
+    const saved=JSON.parse(localStorage.getItem('app-monitor.admin-session.v2')||'null'),token=saved?.token;
+    if(!token)throw new Error('Sign in to App Monitor with your passkey first, then reopen this page.');
+    const headers={'X-App-Monitor-Session':token};
+    const auth=await fetch(api+'/auth/session',{headers,cache:'no-store'});
+    if(!auth.ok)throw new Error('Your administrator session has expired. Sign in to App Monitor again.');
+    const n=Number($('days').value),responses=await Promise.all(Array.from({length:n},(_,i)=>fetch(api+'/day?date='+day(i),{headers,cache:'no-store'})));
+    if(responses.some(r=>!r.ok))throw new Error('One or more activity days could not be retrieved.');
+    const docs=await Promise.all(responses.map(r=>r.json()));
+    const sessions=docs.flatMap(d=>d.sessions||[]).filter(s=>String(s.app||'').toLowerCase()===app.toLowerCase());
+    const users=new Map();
+    for(const s of sessions){
+      const id=s.identity?.uid||s.identity?.username||'';
+      if(!id)continue;
+      const x=users.get(id)||{id,name:s.identity?.username||id,provider:s.identity?.provider||'Unknown',n:0,last:0};
+      x.n++;x.last=Math.max(x.last,Date.parse(s.lastSeenAt||s.observedAt||0)||0);users.set(id,x);
+    }
+    const last=Math.max(0,...sessions.map(s=>Date.parse(s.lastSeenAt||0)||0));
+    const metrics=[['Sessions',sessions.length],['Identified users',users.size],['Unique devices',new Set(sessions.map(s=>s.deviceId).filter(Boolean)).size],['Active minutes',Math.round(sessions.reduce((n,s)=>n+(Number(s.activeMs)||0),0)/60000)],['Last activity',last?fmt(last):'—']];
+    $('metrics').innerHTML=metrics.map(([name,value])=>'<div class="metric"><span>'+escape(name)+'</span><strong>'+escape(value)+'</strong></div>').join('');
+    $('users').innerHTML=[...users.values()].sort((a,b)=>b.last-a.last).map(u=>'<tr><td><strong>'+escape(u.name)+'</strong><div class="small muted">'+escape(u.id)+'</div></td><td>'+escape(u.provider)+'</td><td>'+u.n+'</td><td>'+fmt(u.last)+'</td></tr>').join('')||'<tr><td colspan="4">No identified users in this period</td></tr>';
+    $('sessions').innerHTML=sessions.sort((a,b)=>Date.parse(b.lastSeenAt||0)-Date.parse(a.lastSeenAt||0)).slice(0,150).map(s=>'<tr><td>'+escape(s.identity?.username||s.identity?.uid||'Anonymous')+'</td><td>'+escape(s.device?.kind||s.deviceId||'Unknown')+'</td><td>'+fmt(s.startedAt)+'</td><td>'+fmt(s.lastSeenAt)+'</td><td>'+duration(s.activeMs)+'</td></tr>').join('')||'<tr><td colspan="5">No sessions</td></tr>';
+    $('message').textContent='Showing '+sessions.length+' observed sessions for '+app+' over '+n+' day(s).';
+    $('content').hidden=false;
+  }catch(e){$('message').textContent=e.message}
+  finally{$('refresh').disabled=false}
+}
+$('refresh').onclick=load;$('days').onchange=load;load();
+</script></body></html>
