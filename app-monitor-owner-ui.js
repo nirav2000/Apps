@@ -80,7 +80,7 @@ function drawDocuments() {
 }
 async function openTab(tab) {
   selectedTab=tab;pageToken='';parentDocument='';selectedCollection='';userRows=[];documentRows=[];collectionRows=[];
-  $('search').value='';$('results').textContent='Loading…';$('more').hidden=true;
+  $('search').value='';$('results').textContent='Loading…';$('more').hidden=true;$('details').hidden=true;
   $('viewTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.view===tab));
   if(tab==='users')await loadUsers();else await loadCollections();
 }
@@ -100,7 +100,7 @@ async function loadCollections() {
   }catch(error){$('results').textContent=error.message;$('more').hidden=true;}
 }
 async function openCollection(path) {
-  selectedCollection=path;pageToken='';documentRows=[];$('results').textContent='Loading documents…';await loadDocuments();
+  selectedCollection=path;pageToken='';documentRows=[];$('details').hidden=true;$('results').textContent='Loading documents…';await loadDocuments();
 }
 async function loadDocuments() {
   try {
