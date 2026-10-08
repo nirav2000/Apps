@@ -6,7 +6,7 @@
 </style></head><body><main class="wrap">
 <div class="top"><div><a href="./app-monitor.html">← App Monitor</a><h1>Owner Console</h1><p class="muted">Firebase overview · read-only</p></div><button id="refresh">Refresh connections</button></div>
 <div class="panel"><h2>Connection health</h2><p id="message" role="status">Checking your administrator session…</p><div id="projects" class="grid"></div></div>
-<div class="panel"><h2>Security</h2><p class="muted">This console requires an active App Monitor administrator session. Firebase credentials are never exposed to the browser. Projects appear only when the protected backend confirms access.</p></div>
+<div class="panel"><h2>Firebase overview</h2><div id="overview" class="grid">Loading summary...</div></div><div class="panel"><h2>Security</h2><p class="muted">This console requires an active App Monitor administrator session. Firebase credentials are never exposed to the browser. Projects appear only when the protected backend confirms access.</p></div>
 </main><script>
 const $=id=>document.getElementById(id),api='https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
