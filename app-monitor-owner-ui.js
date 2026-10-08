@@ -53,10 +53,29 @@ function drawCollections(names) {
   $('results').innerHTML = '<div class="list">'+names.map(name=>'<button type="button" class="collection" data-collection="'+escapeHTML(parentDocument?parentDocument+'/'+name:name)+'">'+escapeHTML(name)+' <span>Browse documents →</span></button>').join('')+'</div>'+(names.length?'':'<p class="muted">No collections found.</p>');
   $('results').querySelectorAll('[data-collection]').forEach(button=>button.addEventListener('click',()=>openCollection(button.dataset.collection)));
 }
+function readableField(value) {
+  if (value?.stringValue !== undefined) return String(value.stringValue);
+  if (value?.integerValue !== undefined) return String(value.integerValue);
+  if (value?.booleanValue !== undefined) return String(value.booleanValue);
+  if (value?.timestampValue !== undefined) return String(value.timestampValue);
+  if (value?.arrayValue) return (value.arrayValue.values||[]).map(readableField).join(', ');
+  if (value?.mapValue) return '[structured data]';
+  return '—';
+}
+async function showDocument(path) {
+  try {
+    const r=await request('document',{project:selectedProject,path});
+    const details=Object.entries(r.document.fields||{}).map(([key,value])=>'<tr><th>'+escapeHTML(key)+'</th><td>'+escapeHTML(readableField(value))+'</td></tr>').join('');
+    $('details').innerHTML='<h3>'+escapeHTML(r.document.id)+'</h3><table>'+details+'</table><button type="button" id="closeDetails">Close details</button>';
+    $('details').hidden=false;
+    $('closeDetails').onclick=()=>{$('details').hidden=true;};
+  }catch(error){$('details').textContent=error.message;$('details').hidden=false;}
+}
 function drawDocuments() {
   const search = $('search').value.trim().toLowerCase();
   const docs = documentRows.filter(d=>d.id.toLowerCase().includes(search));
-  $('results').innerHTML = '<p class="muted">Collection: '+escapeHTML(selectedCollection)+'</p><div class="list">'+docs.map(d=>'<button type="button" class="collection" data-doc="'+escapeHTML(d.path)+'">'+escapeHTML(d.id)+' <span>Subcollections →</span></button>').join('')+'</div><p class="small muted">'+docs.length+' documents shown; search covers loaded records only.</p>';
+  $('results').innerHTML = '<p class="muted">Collection: '+escapeHTML(selectedCollection)+'</p><div class="list">'+docs.map(d=>'<div class="docrow"><button type="button" class="collection" data-doc="'+escapeHTML(d.path)+'">'+escapeHTML(d.id)+' <span>Subcollections →</span></button><button type="button" data-detail="'+escapeHTML(d.path)+'">Details</button></div>').join('')+'</div><p class="small muted">'+docs.length+' documents shown; search covers loaded records only.</p>';
+  $('results').querySelectorAll('[data-detail]').forEach(b=>b.addEventListener('click',()=>showDocument(b.dataset.detail)));
   $('results').querySelectorAll('[data-doc]').forEach(b=>b.addEventListener('click',async()=>{parentDocument=b.dataset.doc;selectedCollection='';pageToken='';collectionRows=[];await loadCollections();}));
 }
 async function openTab(tab) {
