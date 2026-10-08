@@ -53,5 +53,17 @@ export async function ownerDataRoute(request, env, headers, url, getAccessToken)
     const r = await get(endpoint.toString());
     return response(r.ok ? { ok: true, documents: (r.data.documents || []).map(ownerDocSummary), nextPageToken: r.data.nextPageToken || null } : { ok: false, error: r.reason, upstreamStatus: r.status }, headers, r.ok ? 200 : 502);
   }
+  if (action === 'document') {
+    const path = ownerDocumentPath(url.searchParams.get('path'), false);
+    if (!path) return response({ error: 'Invalid document path' }, headers, 400);
+    const r = await get(database(project) + '/' + path);
+    if (!r.ok) return response({ ok: false, error: r.reason, upstreamStatus: r.status }, headers, 502);
+    const fields = {};
+    for (const [name, value] of Object.entries(r.data.fields || {})) {
+      if (/secret|token|password|credential|private|api.?key|recovery|session|webhook|authorization/i.test(name)) continue;
+      if (/^(name|title|displayName|email|role|status|ownerUid|createdBy|assignedTo|updatedAt|createdAt|participantUids|members|description|location|priority|category)$/i.test(name)) fields[name] = value;
+    }
+    return response({ ok: true, document: { ...ownerDocSummary(r.data), fields } }, headers);
+  }
   return response({ error: 'Not found' }, headers, 404);
 }
