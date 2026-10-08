@@ -23,7 +23,7 @@ async function load(){
   if(!r.ok)throw Error('Firebase connection check failed ('+r.status+').');
   const data=await r.json();
   $('message').textContent=data.backendReady?'Firebase backend is available.':data.configured?'Credential detected; Firebase connection implementation is still pending.':'Firebase administrator credentials are not configured in the deployed Worker.';
-  $('projects').innerHTML=(data.projects||[]).map(p=>'<article class="item"><strong>'+esc(p.projectId)+'</strong><span class="status">'+esc(p.status||'Checking')+'</span><p class="small muted">Firestore: '+esc(p.firestore?.connected?'Connected':('Not connected (HTTP '+(p.firestore?.status??'unknown')+')'))+' · Authentication: '+esc(p.authentication?.connected?'Connected':('Not connected (HTTP '+(p.authentication?.status??'unknown')+')'))+'</p></article>').join('')||'<p class="muted">No projects registered.</p>';
+  $('projects').innerHTML=(data.projects||[]).map(p=>'<article class="item"><strong>'+esc(p.projectId)+'</strong><span class="status">'+esc(p.status||'Checking')+'</span><p class="small muted">Firestore: '+esc(p.firestore?.connected?'Connected':('Not connected (HTTP '+(p.firestore?.status??'unknown')+')'))+' · Authentication: '+esc(p.authentication?.connected?'Connected':('Not connected (HTTP '+(p.authentication?.status??'unknown')+')'))+'<p class="small muted">'+esc(p.firestore?.detail||p.authentication?.detail||'')+'</p>'+'</p></article>').join('')||'<p class="muted">No projects registered.</p>';
  }catch(e){$('message').textContent=e.message}
  finally{$('refresh').disabled=false}
 }
