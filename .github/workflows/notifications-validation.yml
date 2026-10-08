@@ -122,7 +122,9 @@ jobs:
           for(const forbidden of ['TWILIO_ACCOUNT_SID','RESEND_API_KEY','SLACK_WEBHOOK_URL']){
             if(server.includes(forbidden)||client.includes(forbidden)) throw new Error('Provider-specific secret logic leaked into App Monitor adapter: '+forbidden);
           }
-          NODE      - name: Consumer UI safety
+          NODE
+
+      - name: Consumer UI safety
         run: |
           node <<'NODE'
           const fs=require('fs');
@@ -132,7 +134,9 @@ jobs:
           if(!ui.includes('mountConsumerNotificationActivation')) throw new Error('Shared consumer activation component missing');
           const install=fs.readFileSync('notifications/v1/INSTALLATION.md','utf8');
           if(!install.includes('Recipient-facing notification UI must never expose provider setup')) throw new Error('Consumer safety installation rule missing');
-          NODE      - name: Consumer push registry
+          NODE
+
+      - name: Consumer push registry
         run: |
           node <<'NODE'
           const fs=require('fs');
