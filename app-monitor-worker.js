@@ -1,7 +1,7 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
 import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
-const WORKER_BUILD='2026.10.05.notifications-consumer-push-registry';
+const WORKER_BUILD='2026.10.08.owner-console-connection-diagnostics';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -128,6 +128,14 @@ async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
   if(url.pathname==='/app-monitor/health')return Response.json({ok:true,service:'app-monitor',build:WORKER_BUILD,sourceSha:String(env.APP_MONITOR_SOURCE_SHA||''),storage:'r2-session-snapshots',adminProtected:true},{headers});
+  if(url.pathname==='/app-monitor/owner/firebase/projects'&&request.method==='GET'){
+    const session=await appMonitorSession(request,env);
+    if(!session.ok)return new Response('Unauthorized',{status:401,headers});
+    if(session.record.method!=='passkey')return new Response('Passkey required',{status:403,headers});
+    const ids=String(env.FIREBASE_OWNER_PROJECT_IDS||'kk-syllabus,snag-509418').split(',').map(x=>x.trim()).filter(x=>/^[a-z][a-z0-9-]{4,40}$/.test(x));
+    const configured=Boolean(env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON);
+    return Response.json({configured,backendReady:false,projects:[...new Set(ids)].map(projectId=>({projectId,status:configured?'connector-pending':'credential-missing',firestore:{connected:false},authentication:{connected:false}}))},{headers});
+  }
   if(url.pathname.startsWith('/app-monitor/notifications/')){
     if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
     return handleAppMonitorNotificationRoute(request,env,headers,url);
