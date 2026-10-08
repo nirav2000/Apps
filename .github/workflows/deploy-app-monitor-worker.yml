@@ -9,6 +9,7 @@ on:
       - "app-monitor-owner-data.js"
       - "app-monitor-owner-routes.js"
       - "app-monitor-owner-data.test.mjs"
+      - "app-monitor-owner-routes.test.mjs"
       - "notifications/v1/providers.js"
       - "notifications/v1/r2-transport.js"
       - "app-monitor-notifications.js"
@@ -36,7 +37,7 @@ jobs:
           node --check app-monitor-owner-data.js
           node --check app-monitor-owner-routes.js
           node --check app-monitor-owner-ui.js
-          node --test app-monitor-owner-data.test.mjs
+          node --test app-monitor-owner-data.test.mjs app-monitor-owner-routes.test.mjs
       - name: Check repository-local Cloudflare credentials
         id: creds
         env:
