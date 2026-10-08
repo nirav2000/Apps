@@ -55,3 +55,16 @@ test('Firestore browsing requests are read-only',async()=>{
   assert.deepEqual((await response.json()).collections,['snag_projects']);
  }finally{globalThis.fetch=previous}
 });
+
+test('document details are read-only and sensitive fields are filtered',async()=>{
+ const previous=globalThis.fetch;
+ globalThis.fetch=async()=>Response.json({name:'projects/x/databases/(default)/documents/snag_projects/abc',fields:{name:{stringValue:'House'},ownerUid:{stringValue:'uid'},privateKey:{stringValue:'hidden'},apiToken:{stringValue:'hidden'}}});
+ try{
+  const response=await run('document',{project:'snag-509418',path:'snag_projects/abc'});
+  assert.equal(response.status,200);
+  const data=await response.json();
+  assert.equal(data.document.fields.name.stringValue,'House');
+  assert.equal(data.document.fields.privateKey,undefined);
+  assert.equal(data.document.fields.apiToken,undefined);
+ }finally{globalThis.fetch=previous}
+});
