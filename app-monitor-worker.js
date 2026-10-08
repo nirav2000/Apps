@@ -1,7 +1,7 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
 import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
-const WORKER_BUILD='2026.10.08.owner-console-firestore-root-check';
+const WORKER_BUILD='2026.10.08.owner-console-overview-v1';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -145,6 +145,37 @@ async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
   if(url.pathname==='/app-monitor/health')return Response.json({ok:true,service:'app-monitor',build:WORKER_BUILD,sourceSha:String(env.APP_MONITOR_SOURCE_SHA||''),storage:'r2-session-snapshots',adminProtected:true},{headers});
+  if(url.pathname==='/app-monitor/owner/firebase/overview'&&request.method==='GET'){
+    const session=await appMonitorSession(request,env);
+    if(!session.ok)return new Response('Unauthorized',{status:401,headers});
+    if(session.record.method!=='passkey')return new Response('Passkey required',{status:403,headers});
+    if(!env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON)return Response.json({error:'Firebase credential not configured'},{status:503,headers});
+    const ids=[...new Set(String(env.FIREBASE_OWNER_PROJECT_IDS||'kk-syllabus,snag-509418').split(',').map(x=>x.trim()).filter(x=>/^[a-z][a-z0-9-]{4,40}$/.test(x)))].slice(0,25);
+    try{
+      const accessToken=await ownerGoogleToken(env);
+      const projects=await Promise.all(ids.map(async projectId=>{
+        const base='https://firestore.googleapis.com/v1/projects/'+projectId+'/databases/(default)/documents';
+        async function call(endpoint,method='GET',body){
+          try{
+            const response=await fetch(endpoint,{method,headers:{Authorization:'Bearer '+accessToken,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,redirect:'manual'});
+            if(!response.ok)return {ok:false,status:response.status};
+            return {ok:true,data:await response.json()};
+          }catch{return {ok:false,status:0}}
+        }
+        const [collections,users]=await Promise.all([
+          call(base+':listCollectionIds','POST',{pageSize:100}),
+          call('https://identitytoolkit.googleapis.com/v1/projects/'+projectId+'/accounts:batchGet?maxResults=100')
+        ]);
+        const names=collections.ok?(collections.data.collectionIds||[]):[];
+        const previews=await Promise.all(names.slice(0,15).map(async name=>{
+          const result=await call(base+'/'+encodeURIComponent(name)+'?pageSize=5');
+          return {name,accessible:result.ok,documents:result.ok?(result.data.documents||[]).map(doc=>({id:doc.name?.split('/').pop()})):[],sampleOnly:true};
+        }));
+        return {projectId,collections:{status:collections.status||200,names,previews,limited:names.length>=100},authentication:{status:users.status||200,users:users.ok?(users.data.users||[]).map(u=>({uid:u.localId,email:u.email||null,disabled:!!u.disabled,createdAt:u.createdAt||null,lastLoginAt:u.lastLoginAt||null})):[],nextPageToken:users.ok?!!users.data.nextPageToken:false},scope:'Sample only; not complete user or document counts'};
+      }));
+      return Response.json({projects,checkedAt:new Date().toISOString(),readOnly:true},{headers:{...Object.fromEntries(headers),'Cache-Control':'no-store'}});
+    }catch{return Response.json({error:'Firebase overview unavailable'},{status:502,headers})}
+  }
   if(url.pathname==='/app-monitor/owner/firebase/projects'&&request.method==='GET'){
     const session=await appMonitorSession(request,env);
     if(!session.ok)return new Response('Unauthorized',{status:401,headers});
