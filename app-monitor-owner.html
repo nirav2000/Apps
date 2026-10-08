@@ -22,7 +22,7 @@ async function load(){
   if(r.status===404){$('message').textContent='The Owner Console backend has not been deployed yet. No Firebase data has been accessed.';return}
   if(!r.ok)throw Error('Firebase connection check failed ('+r.status+').');
   const data=await r.json();
-  $('message').textContent=data.configured?'Connected to the Firebase administration backend.':'Firebase administrator credentials are not configured in the deployed Worker.';
+  $('message').textContent=data.backendReady?'Firebase backend is available.':data.configured?'Credential detected; Firebase connection implementation is still pending.':'Firebase administrator credentials are not configured in the deployed Worker.';
   $('projects').innerHTML=(data.projects||[]).map(p=>'<article class="item"><strong>'+esc(p.projectId)+'</strong><span class="status">'+esc(p.status||'Checking')+'</span><p class="small muted">Firestore: '+esc(p.firestore?.connected?'Connected':'Not connected')+' · Authentication: '+esc(p.authentication?.connected?'Connected':'Not connected')+'</p></article>').join('')||'<p class="muted">No projects registered.</p>';
  }catch(e){$('message').textContent=e.message}
  finally{$('refresh').disabled=false}
