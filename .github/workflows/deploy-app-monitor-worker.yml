@@ -6,6 +6,9 @@ on:
     branches: ["main"]
     paths:
       - "app-monitor-worker.js"
+      - "app-monitor-owner-data.js"
+      - "app-monitor-owner-routes.js"
+      - "app-monitor-owner-data.test.mjs"
       - "notifications/v1/providers.js"
       - "notifications/v1/r2-transport.js"
       - "app-monitor-notifications.js"
@@ -28,6 +31,8 @@ jobs:
           cache-dependency-path: package.json
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Test Owner Console data layer
+        run: node --test app-monitor-owner-data.test.mjs
       - name: Check repository-local Cloudflare credentials
         id: creds
         env:
@@ -56,3 +61,5 @@ jobs:
           echo
           curl --fail --silent --show-error -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/security/status'
           echo
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/owner/data/dashboard')
+          test "$code" = "401"
