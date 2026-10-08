@@ -1,7 +1,7 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
 import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
-const WORKER_BUILD='2026.10.08.owner-console-connection-diagnostics';
+const WORKER_BUILD='2026.10.08.owner-console-firebase-connector';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -151,7 +151,26 @@ async function appMonitorRoute(request,env,headers,url){
     if(session.record.method!=='passkey')return new Response('Passkey required',{status:403,headers});
     const ids=String(env.FIREBASE_OWNER_PROJECT_IDS||'kk-syllabus,snag-509418').split(',').map(x=>x.trim()).filter(x=>/^[a-z][a-z0-9-]{4,40}$/.test(x));
     const configured=Boolean(env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON);
-    return Response.json({configured,backendReady:false,projects:[...new Set(ids)].map(projectId=>({projectId,status:configured?'connector-pending':'credential-missing',firestore:{connected:false},authentication:{connected:false}}))},{headers});
+    if(!configured)return Response.json({configured:false,backendReady:true,projects:[...new Set(ids)].map(projectId=>({projectId,status:'credential-missing',firestore:{connected:false},authentication:{connected:false}}))},{headers});
+    try{
+      const accessToken=await ownerGoogleToken(env);
+      const projects=await Promise.all([...new Set(ids)].map(async projectId=>{
+        async function check(endpoint){
+          try{
+            const response=await fetch(endpoint,{headers:{Authorization:'Bearer '+accessToken},redirect:'error'});
+            return {connected:response.ok,status:response.status};
+          }catch{return {connected:false,status:0}}
+        }
+        const [firestore,authentication]=await Promise.all([
+          check('https://firestore.googleapis.com/v1/projects/'+projectId+'/databases/(default)/documents?pageSize=1'),
+          check('https://identitytoolkit.googleapis.com/v1/projects/'+projectId+'/accounts:batchGet?maxResults=1')
+        ]);
+        return {projectId,status:firestore.connected&&authentication.connected?'connected':'attention-required',firestore,authentication};
+      }));
+      return Response.json({configured:true,backendReady:true,projects,checkedAt:new Date().toISOString()},{headers});
+    }catch(error){
+      return Response.json({configured:true,backendReady:false,error:'Firebase credential exchange failed',projects:[]},{status:502,headers});
+    }
   }
   if(url.pathname.startsWith('/app-monitor/notifications/')){
     if(!(await appMonitorAdmin(request,env)))return new Response('Unauthorized',{status:401,headers});
