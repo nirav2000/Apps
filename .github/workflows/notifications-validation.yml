@@ -159,7 +159,7 @@ jobs:
           const libs=JSON.parse(fs.readFileSync('shared-libraries.json','utf8'));
           const n=libs.libraries.find(x=>x.id==='notifications-v1');
           if(!n||n.status!=='implemented') throw new Error('Notifications missing from shared library registry');
-          if(n.installed?.Snag==='installed') throw new Error('Registry incorrectly claims Snag adoption');
+          if(n.installed?.Snag!=='installed') throw new Error('Registry must record Snag notification adoption');
           if(n.installed?.['App Monitor']!=='installed') throw new Error('Registry must record App Monitor notification adoption');
           if(n.installed?.['Notifications Lab']!=='installed') throw new Error('Registry must retain Notifications Lab adoption');
           console.log('Notifications v1 is registered with Lab and App Monitor adoption.');
