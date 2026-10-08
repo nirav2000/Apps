@@ -20,7 +20,7 @@ function drawDashboard(data) {
   $('projectTabs').querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>selectProject(button.dataset.project)));
   const apps = projects.flatMap(p=>(p.apps||[]).filter(name=>name!=='Shared Firebase apps').map(name=>({name,project:p.projectId})));
   $('appShortcuts').innerHTML=apps.map(a=>'<button type="button" class="tab" data-app-project="'+escapeHTML(a.project)+'">'+escapeHTML(a.name)+' <span class="small muted">('+escapeHTML(a.project)+')</span></button>').join('');
-  $('appShortcuts').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>selectProject(b.dataset.appProject)));
+  $('appShortcuts').querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{await selectProject(b.dataset.appProject);if(b.textContent.includes('Snag')){await openTab('collections');await openCollection('snag_projects');}}));
 }
 async function refresh() {
   $('refresh').disabled = true;
