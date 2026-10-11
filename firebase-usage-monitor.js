@@ -45,7 +45,7 @@
     const wait=last?Math.max(FIRST_SYNC,ACTIVE_SYNC-elapsed):FIRST_SYNC;
     syncTimer=setTimeout(()=>{syncTimer=null;syncCloud(false)},wait);
   }
-  const save=d=>{rawSave(d);localStorage.setItem(KEY+'.dirty','1');window.dispatchEvent(new CustomEvent('firebase-usage-monitor:update',{detail:d}));scheduleSync()};
+  const save=d=>{rawSave(d);localStorage.setItem(KEY+'.revision',String(Number(localStorage.getItem(KEY+'.revision')||0)+1));localStorage.setItem(KEY+'.dirty','1');window.dispatchEvent(new CustomEvent('firebase-usage-monitor:update',{detail:d}));scheduleSync()};
   function appCounter(container,app){
     const A=container[app]??={reads:0,writes:0,deletes:0,listeners:0,ops:{}};
     A.ops??={};return A;
@@ -88,6 +88,53 @@
       }
     }
   }
+
+  // Listener callbacks are event-driven: these counts are observations, NEVER billable-read totals.
+  // Names and sources are static developer labels. Do not include document IDs, tokens or user input.
+  function trackListener(options={}){
+    const clean=(value,max=90)=>String(value??'').replace(/[^a-zA-Z0-9 _.:/()-]/g,'').slice(0,max);
+    const app=clean(options.app||detectApp()),project=clean(options.project||detectProject()),database=clean(options.database||detectDatabase());
+    const name=clean(options.name||'unnamed listener'),source=clean(options.source||'not supplied',120);
+    const purpose=clean(options.purpose||'Real-time document synchronisation',150),trigger=clean(options.trigger||'when matching Firestore documents change',150);
+    const id=[project,database,app,name].join('::');
+    let closed=false,first=true,previousAt=0;
+    const touch=callback=>{
+      const data=load(),date=day(),daily=data.days[date]??={targets:{},hours:{},buckets:{}};
+      const registry=daily.listenerTelemetry??={};
+      const e=registry[id]??={app,project,database,name,source,purpose,trigger,opens:0,stops:0,callbacks:0,serverCallbacks:0,cacheCallbacks:0,initialDocuments:0,documentsDelivered:0,documentChanges:0,errors:0,minIntervalMs:null,maxIntervalMs:0,lastIntervalMs:null,lastStartedAt:null,lastCallbackAt:null,lastStoppedAt:null,lastErrorCode:null,hours:{}};
+      callback(e);
+      const keys=Object.keys(data.days).sort();while(keys.length>LIMIT)delete data.days[keys.shift()];
+      save(data);
+    };
+    touch(e=>{e.opens++;e.lastStartedAt=new Date().toISOString()});
+    record('listener',1,name,app,project,database);
+    return {
+      snapshot(snap){
+        if(closed)return;
+        const at=Date.now(),isQuery=Array.isArray(snap?.docs),docs=isQuery?(Number(snap.size??snap.docs.length)||0):Number(snap?.exists?.()===true);
+        let changes=0;try{changes=isQuery?(Number(snap.docChanges?.().length)||0):docs}catch{}
+        const fromCache=snap?.metadata?.fromCache===true,isInitial=first;
+        touch(e=>{
+          e.callbacks++;e[fromCache?'cacheCallbacks':'serverCallbacks']++;
+          e.documentsDelivered+=Math.max(0,docs);e.documentChanges+=Math.max(0,changes);
+          if(isInitial)e.initialDocuments+=Math.max(0,docs);
+          if(previousAt){const interval=at-previousAt;e.lastIntervalMs=interval;e.minIntervalMs=e.minIntervalMs===null?interval:Math.min(e.minIntervalMs,interval);e.maxIntervalMs=Math.max(e.maxIntervalMs,interval)}
+          e.lastCallbackAt=new Date(at).toISOString();
+          const h=e.hours[hour()]??={callbacks:0,documents:0,changes:0};
+          h.callbacks++;h.documents+=Math.max(0,docs);h.changes+=Math.max(0,changes);
+        });
+        first=false;previousAt=at;
+      },
+      error(error){
+        if(closed)return;
+        touch(e=>{e.errors++;e.lastErrorCode=clean(error?.code||'unknown',60)});
+      },
+      stop(){
+        if(closed)return;
+        closed=true;touch(e=>{e.stops++;e.lastStoppedAt=new Date().toISOString()});
+      }
+    };
+  }
   function privacyAllowsCloud(){return window.FIREBASE_USAGE_PRIVACY_GATE!==true||window.AppsPrivacy?.analyticsAllowed?.()===true}
   async function syncCloud(force=false){
     if(!privacyAllowsCloud())return {ok:true,skipped:'privacy'};
@@ -95,12 +142,12 @@
     const last=Number(localStorage.getItem(KEY+'.lastSync')||0);
     if(!force&&last&&Date.now()-last<ACTIVE_SYNC){scheduleSync();return {ok:true,skipped:'recent'};}
     const d=load(),k=day(),x=d.days?.[k];if(!x)return {ok:true,skipped:'empty'};
-    const body={version:3,date:k,deviceId:deviceId(),device:deviceInfo(),targets:x.targets||{},hours:x.hours||{},buckets:x.buckets||{}};
+    const revision=localStorage.getItem(KEY+'.revision');const body={version:3,date:k,deviceId:deviceId(),device:deviceInfo(),targets:x.targets||{},hours:x.hours||{},buckets:x.buckets||{},listenerTelemetry:x.listenerTelemetry||{}};
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
     try{
       const r=await fetch(CLOUD+'/snapshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true,signal:controller.signal});
       if(!r.ok)throw new Error('Cloud sync '+r.status);
-      localStorage.setItem(KEY+'.dirty','0');localStorage.setItem(KEY+'.lastSync',String(Date.now()));
+      localStorage.setItem(KEY+'.dirty',localStorage.getItem(KEY+'.revision')===revision?'0':'1');localStorage.setItem(KEY+'.lastSync',String(Date.now()));if(localStorage.getItem(KEY+'.dirty')==='1')scheduleSync();
       window.dispatchEvent(new CustomEvent('firebase-usage-monitor:cloud',{detail:{ok:true,at:new Date().toISOString()}}));
       return {ok:true};
     }catch(error){
@@ -122,7 +169,7 @@
   setInterval(()=>syncCloud(false),ACTIVE_SYNC);
   if(localStorage.getItem(KEY+'.dirty')==='1')setTimeout(()=>syncCloud(true),1000);
   const api={
-    record,
+    record,trackListener,
     read:(n=1,l='read',a,p,d)=>record('read',n,l,a,p,d),
     write:(n=1,l='write',a,p,d)=>record('write',n,l,a,p,d),
     del:(n=1,l='delete',a,p,d)=>record('delete',n,l,a,p,d),
