@@ -20,7 +20,8 @@
     "Firebase Usage Monitor",
     "Notifications Lab",
     "PWA Lab",
-    "TouchType"
+    "TouchType",
+    "Dol"
   ],
   "libraries": [
     {
@@ -48,7 +49,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -81,7 +83,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -109,7 +112,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -136,7 +140,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -171,7 +176,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "installed"
+        "TouchType": "installed",
+        "Dol": "available"
       },
       "userActivation": {
         "TouchType": "not_required"
@@ -207,7 +213,8 @@
         "Firebase Usage Monitor": "installed",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -239,7 +246,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "installed"
+        "TouchType": "installed",
+        "Dol": "available"
       },
       "userActivation": {
         "TouchType": "not_required"
@@ -268,7 +276,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -295,7 +304,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -323,7 +333,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -355,7 +366,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "installed",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {
         "Notifications Lab": "available",
@@ -398,7 +410,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "installed",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {
         "App Monitor": "browser",
@@ -437,7 +450,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "installed"
+        "TouchType": "installed",
+        "Dol": "available"
       },
       "userActivation": {
         "TouchType": "not_required"
@@ -466,17 +480,18 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {},
       "notes": "Created from the strongest patterns in Beyond100, Snag, LearnLatin, Next and Openday. TouchType is the intended first clean consumer; existing bespoke implementations remain local until deliberately migrated."
     },
     {
       "id": "learning",
-      "name": "Learning SDK",
-      "file": "proposed",
-      "status": "proposed",
-      "created": null,
+      "name": "Learning SDK v0.1",
+      "file": "learning/v1/",
+      "status": "implemented",
+      "created": "2026-10-11",
       "purpose": "Shared learners, curriculum, learning events, mastery, assessments and spaced-repetition model for learning apps.",
       "installed": {},
       "adoption": {
@@ -493,9 +508,11 @@
         "Firebase Usage Monitor": "unavailable",
         "Notifications Lab": "unavailable",
         "PWA Lab": "unavailable",
-        "TouchType": "unavailable"
+        "TouchType": "unavailable",
+        "Dol": "available"
       },
-      "userActivation": {}
+      "userActivation": {},
+      "notes": "Domain-neutral local-first learning event, heuristic mastery, review intervals; Dol is first consumer. Not a validated assessment model."
     },
     {
       "id": "data",
@@ -519,7 +536,8 @@
         "Firebase Usage Monitor": "unavailable",
         "Notifications Lab": "unavailable",
         "PWA Lab": "unavailable",
-        "TouchType": "unavailable"
+        "TouchType": "unavailable",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -545,7 +563,8 @@
         "Firebase Usage Monitor": "unavailable",
         "Notifications Lab": "unavailable",
         "PWA Lab": "unavailable",
-        "TouchType": "unavailable"
+        "TouchType": "unavailable",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -574,7 +593,8 @@
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
-        "TouchType": "available"
+        "TouchType": "available",
+        "Dol": "available"
       },
       "userActivation": {}
     },
@@ -600,7 +620,8 @@
         "Firebase Usage Monitor": "unavailable",
         "Notifications Lab": "unavailable",
         "PWA Lab": "unavailable",
-        "TouchType": "unavailable"
+        "TouchType": "unavailable",
+        "Dol": "available"
       },
       "userActivation": {}
     }

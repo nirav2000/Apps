@@ -47,6 +47,16 @@
       "status": "managed",
       "releaseManifest": "https://nirav2000.github.io/TouchType/version-lab-data/releases.json",
       "gatewayUrl": "https://nirav2000.github.io/TouchType/versionlabs/"
+    },
+    {
+      "appId": "dol",
+      "name": "Dol — Factor Frenzy",
+      "repository": "nirav2000/Dol",
+      "liveUrl": "https://nirav2000.github.io/Dol/",
+      "managed": true,
+      "status": "managed",
+      "releaseManifest": "https://nirav2000.github.io/Dol/version-lab-data/releases.json",
+      "gatewayUrl": "https://nirav2000.github.io/Dol/versionlabs/"
     }
   ]
 }

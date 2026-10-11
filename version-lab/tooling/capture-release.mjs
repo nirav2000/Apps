@@ -61,7 +61,8 @@ for(const rel0 of tracked){
   }
 }
 
-const safety=config.snapshotSafety||'visual-only';
+// Commits predating the app entry point are source-only, not broken snapshots.
+const safety=fs.existsSync(path.join(snapDir,config.snapshot?.entry||'index.html')) ? (config.snapshotSafety||'visual-only') : 'source-only';
 const entry=config.snapshot?.entry||'index.html';
 const entryPath=path.join(snapDir,entry);
 if(fs.existsSync(entryPath)&&safety!=='interactive-safe'){
