@@ -14,7 +14,8 @@ const CAPABILITIES={
   firebaseUsage:{src:'firebase-usage-monitor.js',global:'FirebaseUsageMonitor'},
   notifications:{src:'notifications/v1/index.js',module:true},
   pwa:{src:'pwa/v1/index.js',module:true},
-  notes:{src:'notes/v1/index.js',module:true,exportName:'Notes'}
+  notes:{src:'notes/v1/index.js',module:true,exportName:'Notes'},
+  learning:{src:'learning/v1/index.js',module:true}
 };
 const loaded=new Map();
 function script(url,global){
