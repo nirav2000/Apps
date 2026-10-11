@@ -15,10 +15,11 @@
 <input id="datePick" type="date"><button id="refresh" class="primary">Refresh</button>
 </div><div class="statusline"><span id="cloudDot" class="dot"></span><span id="status" class="muted small">Loading…</span></div></div></div>
 
+<section class="card" role="note" style="border-left:4px solid #b7791f"><strong>Coverage: not Google Cloud billing totals</strong><p class="muted small">These counts are browser-instrumented operations, not authoritative Firestore document reads or writes. Missing or consent-restricted devices, cached reads, query minimums, listener reconnects and uninstrumented activity can create differences. A selected calendar day also differs from Google Cloud alerts based on a rolling 24-hour window.</p><p class="muted small">Compare the same project, database and time window in <a href="https://console.cloud.google.com/monitoring/metrics-explorer?project=snag-509418" target="_blank" rel="noopener">Google Cloud Metrics Explorer</a>. The 9 October alert reported 1,013 reads in <code>snag-509418</code> over a rolling 24-hour window; it was not a write alert.</p></section>
 <div id="panelHost">
 <section class="card panel" data-panel-id="summary"><button class="drag-handle" aria-label="Drag summary panel" title="Drag panel">⋮⋮</button><div class="grid">
-<div class="metric"><span>Reads</span><strong id="reads">0</strong><small id="readsNote">Observed</small></div>
-<div class="metric"><span>Writes</span><strong id="writes">0</strong><small id="writesNote">Observed</small></div>
+<div class="metric"><span>Reads</span><strong id="reads">0</strong><small id="readsNote">Client-observed only</small></div>
+<div class="metric"><span>Writes</span><strong id="writes">0</strong><small id="writesNote">Client-observed only</small></div>
 <div class="metric"><span>Projects / databases</span><strong id="projects">0</strong></div>
 <div class="metric"><span>Apps</span><strong id="appsCount">0</strong></div>
 </div></section>
@@ -33,7 +34,7 @@
 
 <section class="card panel" data-panel-id="drill"><button class="drag-handle" aria-label="Drag drill-down panel" title="Drag panel">⋮⋮</button><div class="top"><div><h2 class="section-title">Project / database drill-down</h2><p class="muted small">Tap anywhere on an app row to expand its Firestore operations.</p></div><span id="deviceCount" class="pill">0 devices</span></div><div id="drill"></div></section>
 
-<section class="card panel" data-panel-id="about"><button class="drag-handle" aria-label="Drag explanation panel" title="Drag panel">⋮⋮</button><h2>How the cloud monitor works</h2><p class="muted">Counters are recorded locally as Firestore calls happen. Active sessions upload a cumulative R2 snapshot after about 30 seconds and then at most every five minutes, with a best-effort sync when the page is hidden or closed. The monitor itself creates no Firestore reads or writes. Google Cloud Monitoring remains the authoritative project-wide total.</p></section>
+<section class="card panel" data-panel-id="about"><button class="drag-handle" aria-label="Drag explanation panel" title="Drag panel">⋮⋮</button><h2>How the cloud monitor works · v2026.10.11.1</h2><p class="muted">Counters are recorded locally as Firestore calls happen. Active sessions upload a cumulative R2 snapshot after about 30 seconds and then at most every five minutes, with a best-effort sync when the page is hidden or closed. The monitor itself creates no Firestore reads or writes. Google Cloud Monitoring remains the authoritative project-wide total.</p></section>
 </div>
 </div><script>
 const $=id=>document.getElementById(id);
@@ -92,7 +93,7 @@ function renderDrill(data){
   E.drill.querySelectorAll('.app-toggle').forEach(b=>b.onclick=()=>{const p=$(b.dataset.panel),open=b.getAttribute('aria-expanded')==='true';b.setAttribute('aria-expanded',String(!open));b.querySelector('.expand-symbol').textContent=open?'＋':'−';p.classList.toggle('open',!open)});
 }
 function render(){
-  if(!rawView)return;renderFilters();renderDevices();const selected=selectedView(),data=filterApp(selected),t=totals(data);E.reads.textContent=t.R.toLocaleString();E.writes.textContent=t.W.toLocaleString();E.projects.textContent=t.targets;E.apps.textContent=t.apps;E.readsNote.textContent=mode==='cloud'?'Instrumented cloud-observed':'Observed in this browser';E.writesNote.textContent=E.readsNote.textContent;renderHourly(selected);renderFiveMinute(data);renderDrill(data);
+  if(!rawView)return;renderFilters();renderDevices();const selected=selectedView(),data=filterApp(selected),t=totals(data);E.reads.textContent=t.R.toLocaleString();E.writes.textContent=t.W.toLocaleString();E.projects.textContent=t.targets;E.apps.textContent=t.apps;E.readsNote.textContent=mode==='cloud'?'Partial · instrumented devices':'Partial · this browser only';E.writesNote.textContent=E.readsNote.textContent;renderHourly(selected);renderFiveMinute(data);renderDrill(data);
   E.appFilters.querySelectorAll('[data-app]').forEach(b=>b.onclick=()=>{selectedApp=b.dataset.app;const u=new URL(location.href);if(selectedApp==='*')u.searchParams.delete('app');else u.searchParams.set('app',selectedApp);history.replaceState({},'',u);render()});
   E.deviceFilters.querySelectorAll('[data-device]').forEach(b=>b.onclick=()=>{selectedDevice=b.dataset.device;selectedApp='*';render()});
 }
