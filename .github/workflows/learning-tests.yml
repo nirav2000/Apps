@@ -1,0 +1,19 @@
+name: Shared Learning SDK tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'learning/**'
+      - 'tests/learning.test.mjs'
+      - '.github/workflows/learning-tests.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check learning/v1/index.js
+      - run: node --test tests/learning.test.mjs
