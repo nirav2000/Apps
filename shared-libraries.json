@@ -229,7 +229,8 @@
         "Openday": "local",
         "beyond100": "local",
         "Snag": "local",
-        "TouchType": "installed"
+        "TouchType": "installed",
+        "Dol": "installed"
       },
       "notes": "Full shared system is installed in InClass and TouchType. TouchType is a clean visual-only consumer with localStorage learner data; Beyond100 remains the reference implementation and Openday/Snag retain legacy/local history pending deliberate migration.",
       "adoption": {
@@ -247,10 +248,11 @@
         "Notifications Lab": "available",
         "PWA Lab": "available",
         "TouchType": "installed",
-        "Dol": "available"
+        "Dol": "installed"
       },
       "userActivation": {
-        "TouchType": "not_required"
+        "TouchType": "not_required",
+        "Dol": "not_required"
       }
     },
     {
@@ -393,7 +395,8 @@
         "Kk-syllabus": "installed",
         "LearnLatin": "installed",
         "beyond100": "installed",
-        "Comprehension": "installed"
+        "Comprehension": "installed",
+        "Dol": "installed"
       },
       "notes": "PWA v1 installations across the main portfolio were explicitly accepted on 5 Oct 2026 as assumed working, subject to periodic app audits. Installed does not imply Notifications is installed.",
       "adoption": {
@@ -411,7 +414,7 @@
         "Notifications Lab": "available",
         "PWA Lab": "installed",
         "TouchType": "available",
-        "Dol": "available"
+        "Dol": "installed"
       },
       "userActivation": {
         "App Monitor": "browser",
@@ -422,7 +425,8 @@
         "Kk-syllabus": "browser",
         "LearnLatin": "browser",
         "beyond100": "browser",
-        "Comprehension": "browser"
+        "Comprehension": "browser",
+        "Dol": "browser"
       }
     },
     {
@@ -433,7 +437,8 @@
       "created": "2026-09-27",
       "purpose": "Versioned integration layer and lazy capability loader that keeps shared infrastructure separate from consuming app business logic.",
       "installed": {
-        "TouchType": "installed"
+        "TouchType": "installed",
+        "Dol": "installed"
       },
       "notes": "Apps Platform v1.5.0 exposes Notifications, PWA and Shared Notes & Annotations as canonical shared capabilities while keeping consuming-app business logic outside shared modules.",
       "adoption": {
@@ -451,10 +456,11 @@
         "Notifications Lab": "available",
         "PWA Lab": "available",
         "TouchType": "installed",
-        "Dol": "available"
+        "Dol": "installed"
       },
       "userActivation": {
-        "TouchType": "not_required"
+        "TouchType": "not_required",
+        "Dol": "not_required"
       },
       "version": "1.5.0"
     },
@@ -493,7 +499,9 @@
       "status": "implemented",
       "created": "2026-10-11",
       "purpose": "Shared learners, curriculum, learning events, mastery, assessments and spaced-repetition model for learning apps.",
-      "installed": {},
+      "installed": {
+        "Dol": "installed"
+      },
       "adoption": {
         "Apps": "unavailable",
         "Kk-syllabus": "unavailable",
@@ -509,9 +517,11 @@
         "Notifications Lab": "unavailable",
         "PWA Lab": "unavailable",
         "TouchType": "unavailable",
-        "Dol": "available"
+        "Dol": "installed"
       },
-      "userActivation": {},
+      "userActivation": {
+        "Dol": "not_required"
+      },
       "notes": "Domain-neutral local-first learning event, heuristic mastery, review intervals; Dol is first consumer. Not a validated assessment model."
     },
     {
@@ -576,7 +586,8 @@
       "created": "2026-10-01",
       "purpose": "Shared recursive syntax/data/asset validation, browser smoke tests, app-specific regression scenarios, sync quiescence checks, resource/Firebase budgets, CI reports and bounded load-testing tools.",
       "installed": {
-        "Openday": "installed"
+        "Openday": "installed",
+        "Dol": "installed"
       },
       "notes": "Reference integration: Openday. Shared engine lives in Apps; consuming apps provide only config and app-specific fixtures/invariants. Recommended flow: validation/preflight -> shared gate -> promote exact passed SHA -> CI repeat -> deploy. Load testing blocks production unless explicitly opted in.",
       "adoption": {
@@ -594,9 +605,11 @@
         "Notifications Lab": "available",
         "PWA Lab": "available",
         "TouchType": "available",
-        "Dol": "available"
+        "Dol": "installed"
       },
-      "userActivation": {}
+      "userActivation": {
+        "Dol": "not_required"
+      }
     },
     {
       "id": "diagnostics",
@@ -1025,6 +1038,15 @@
       "platform": "1.5.0",
       "appMonitor": "installed",
       "versionLab": "installed"
+    },
+    "Dol": {
+      "version": "2.0.1",
+      "platform": "1.5.0",
+      "learning": "0.1.0",
+      "versionLab": "installed",
+      "pwa": "installed",
+      "releaseValidation": "installed",
+      "appMonitor": "available"
     }
   },
   "governance": {
