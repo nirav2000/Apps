@@ -431,7 +431,7 @@
     },
     {
       "id": "platform",
-      "name": "Apps Platform v1.5.0",
+      "name": "Apps Platform v1.6.0",
       "file": "platform/v1/",
       "status": "implemented",
       "created": "2026-09-27",
@@ -440,7 +440,7 @@
         "TouchType": "installed",
         "Dol": "installed"
       },
-      "notes": "Apps Platform v1.5.0 exposes Notifications, PWA and Shared Notes & Annotations as canonical shared capabilities while keeping consuming-app business logic outside shared modules.",
+      "notes": "Version 1.6.0 adds the domain-neutral shared Learning SDK capability while keeping app business logic local.",
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
@@ -462,7 +462,7 @@
         "TouchType": "not_required",
         "Dol": "not_required"
       },
-      "version": "1.5.0"
+      "version": "1.6.0"
     },
     {
       "id": "devnotes",
@@ -1041,7 +1041,7 @@
     },
     "Dol": {
       "version": "2.0.1",
-      "platform": "1.5.0",
+      "platform": "1.6.0",
       "learning": "0.1.0",
       "versionLab": "installed",
       "pwa": "installed",

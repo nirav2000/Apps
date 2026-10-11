@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 if(window.AppsPlatformV1)return;
-const PLATFORM_VERSION='1.5.0';
+const PLATFORM_VERSION='1.6.0';
 const ROOT=(document.currentScript?.src||'https://nirav2000.github.io/Apps/platform/v1/index.js').replace(/\/platform\/v1\/index\.js(?:\?.*)?$/,'/');
 const CAPABILITIES={
   auth:{src:'auth/v1/index.js',module:true,exportName:'Auth'},
