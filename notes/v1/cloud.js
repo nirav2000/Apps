@@ -24,6 +24,7 @@ export function createCloudTransport({apiBase, getHeaders, appId, fetchImpl=fetc
     async saveDraft(value){if(value)localStorage.setItem(draftKey,JSON.stringify(value));else localStorage.removeItem(draftKey)},
     async clearDraft(){localStorage.removeItem(draftKey)},
     async publishReviewFeed(pack){return request('/sync','POST',{appId,notes:pack.notes})},
-    async pullStatuses(){return request('/statuses?appId='+encodeURIComponent(appId))}
+    async pullStatuses(){return request('/statuses?appId='+encodeURIComponent(appId))},
+    async verify(id,{version,commit,message,testsVerified,deploymentVerified}){return request('','POST',{action:'verify',appId,id,version,commit,message,testsVerified,deploymentVerified})}
   };
 }
