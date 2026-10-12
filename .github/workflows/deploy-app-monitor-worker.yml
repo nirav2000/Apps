@@ -7,6 +7,7 @@ on:
     paths:
       - "app-monitor-worker.js"
       - "notes/v1/server.js"
+      - "notes/v1/cloud.test.mjs"
       - "app-monitor-owner-data.js"
       - "app-monitor-owner-routes.js"
       - "app-monitor-owner-data.test.mjs"
@@ -74,3 +75,6 @@ jobs:
           echo
           code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/owner/data/dashboard')
           test "$code" = "401"
+          echo
+          notes_code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/notes?appId=app-monitor')
+          test "$notes_code" = "401"
