@@ -33,6 +33,13 @@
 
     <section class="capture panel" id="annotationQueue"><h2>Cloud annotations</h2><p class="muted">Loading shared annotation queue…</p></section>
 
+    <section class="panel review-panel" aria-label="Issue review progress">
+      <div class="review-heading"><div><p class="eyebrow">ISSUE REVIEW</p><h2>Portfolio resolution progress</h2><p class="muted">Implementation evidence and live verification are tracked separately.</p></div><a class="ghost-btn small" href="https://github.com/nirav2000/Apps/issues" target="_blank" rel="noopener">GitHub issues</a></div>
+      <div class="review-metrics"><div><strong id="reviewTotal">—</strong><span>Open issues</span></div><div><strong id="reviewPartial">—</strong><span>Status reconciled</span></div><div><strong id="reviewPending">—</strong><span>Awaiting review</span></div></div>
+      <div class="review-bar" role="progressbar" aria-label="Issue status reconciliation" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="reviewProgress"><span id="reviewDoneBar"></span><span id="reviewPendingBar"></span></div>
+      <div class="review-legend"><span><i class="dot teal"></i>Reconciled, not necessarily resolved</span><span><i class="dot amber"></i>Needs deeper review</span></div>
+      <p class="muted review-note" id="reviewNote">Loading current GitHub issue records…</p>
+    </section>
     <section class="summary" aria-label="Development summary">
       <button class="summary-card active" data-view="needs-me"><span>Needs me</span><strong id="needsMeCount">0</strong><small>Your next actions</small></button>
       <button class="summary-card" data-view="today"><span>Today / overdue</span><strong id="todayCount">0</strong><small>Time-sensitive</small></button>
