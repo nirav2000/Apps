@@ -1,4 +1,4 @@
-# Shared Notes & Annotations v1.1 — complete cloud workflow
+# Shared Notes & Annotations v1.2 — complete cloud workflow
 
 The shared library is reusable. Install it only in explicitly authorised apps; do not silently install dependencies in other apps.
 
@@ -51,3 +51,17 @@ Test on main after the Worker deployment succeeds:
 8. Test mobile layout and ensure the core App Monitor workflows still work with Notes disabled.
 
 Do not mark the register `installed` until these live checks pass.
+
+## v1.2 workflow (October 2026)
+
+- Saving an open annotation with **Create development task** selected now attempts to create its GitHub issue immediately, server-side, after Firestore persistence. No separate review action is required.
+- A missing or failing GitHub integration does not discard the saved annotation; the UI reports the failure and offers **Retry issue sync**.
+- GitHub issue creation searches for the stable annotation marker before posting, so a retry after a failed link write can recover the existing issue.
+- The DCC pending cloud panel shows only annotations not yet linked to a GitHub issue; linked annotations are handled in the main GitHub task cards.
+- Verified return: the authenticated administrator can call `transport.verify(noteId,{version,commit,message,testsVerified:true,deploymentVerified:true})` **after** the linked issue is closed, the commit exists in the Apps repository, and tests and deployment are confirmed. The server writes implementation version, commit, timestamp and verification note into Firebase. The next cloud reload shows Implemented.
+- The server validates the existence of the issue and commit, but the deployment/test flags are **attestations by the administrator**, not independent CI/deployment proofs. Do not submit them without checking the actual build and live app.
+- Existing ordinary save calls cannot mark an open annotation implemented without verification.
+
+### Live checks still required
+
+Test automatic issue creation after saving a new note, issue deduplication after retry, DCC visibility, return verification after actual deploy, and mobile element selection. This code change alone does not establish that Cloudflare deployed successfully.
