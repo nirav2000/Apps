@@ -14,11 +14,11 @@ export async function mountAnnotationQueue(root){
    const manifest=await (await fetch('./shared-libraries.json',{cache:'no-store'})).json();
    const apps=[...new Set(['app-monitor',...(manifest.apps||[]).map(x=>String(x).toLowerCase().replace(/[^a-z0-9_.-]/g,'-'))])];
    const results=await Promise.allSettled(apps.map(async app=>({app,notes:await createCloudTransport({apiBase:api,appId:app,getHeaders:headers}).list()})));
-   const notes=results.filter(r=>r.status==='fulfilled').flatMap(r=>r.value.notes).filter(n=>n.status==='open'&&n.reviewRequired);
+   const notes=results.filter(r=>r.status==='fulfilled').flatMap(r=>r.value.notes).filter(n=>n.status==='open'&&n.reviewRequired&&!n.metadata?.developmentIssue?.number);
    const failures=results.filter(r=>r.status==='rejected');
    status.textContent=notes.length+' open annotation(s)'+(failures.length?' · '+failures.length+' app query failures':'');
    notes.sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
-   host.innerHTML=notes.length?notes.map(n=>'<article class="panel" style="margin:12px 0"><strong>'+escape(n.appId)+' · '+escape(n.anchorLabel)+'</strong><p>'+escape(n.text)+'</p><p class="muted">'+escape(n.page)+' · '+escape(n.appVersion)+' · '+escape(n.updatedAt)+'</p>'+(n.metadata?.developmentIssue?.url?'<a href="'+escape(n.metadata.developmentIssue.url)+'" target="_blank" rel="noopener">Open GitHub issue</a>':'<span class="muted">Awaiting GitHub issue synchronisation</span>')+'</article>').join(''):'<p class="muted">No open annotations found.</p>';
+   host.innerHTML=notes.length?notes.map(n=>'<article class="panel" style="margin:12px 0"><strong>'+escape(n.appId)+' · '+escape(n.anchorLabel)+'</strong><p>'+escape(n.text)+'</p><p class="muted">'+escape(n.page)+' · '+escape(n.appVersion)+' · '+escape(n.updatedAt)+'</p>'+(n.metadata?.developmentIssue?.url?'<a href="'+escape(n.metadata.developmentIssue.url)+'" target="_blank" rel="noopener">Open GitHub issue</a>':'<span class="muted">Issue sync pending; retry from the annotation panel</span>')+'</article>').join(''):'<p class="muted">No open annotations found.</p>';
   }catch(error){status.textContent='Annotation queue unavailable: '+String(error.message||error)}
  }
  root.querySelector('#notesRefresh').onclick=load;await load();
