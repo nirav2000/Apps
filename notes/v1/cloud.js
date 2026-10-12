@@ -18,7 +18,7 @@ export function createCloudTransport({apiBase, getHeaders, appId, fetchImpl=fetc
   return {
     mode:'firebase',
     async list(){return (await request('?appId='+encodeURIComponent(appId))).notes||[]},
-    async save(note){const result=await request('','POST',{action:'save',note:{...note,appId}});return result.note},
+    async save(note){const result=await request('','POST',{action:'save',note:{...note,appId}});return {note:result.note,review:result.review}},
     async remove(id){await request('','POST',{action:'remove',appId,id})},
     async getDraft(){return localDraft()},
     async saveDraft(value){if(value)localStorage.setItem(draftKey,JSON.stringify(value));else localStorage.removeItem(draftKey)},
