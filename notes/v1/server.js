@@ -11,7 +11,7 @@ const docId=(app,id)=>id;
 const parseDoc=d=>{try{return JSON.parse(d?.fields?.payload?.stringValue||'null')}catch{return null}};
 async function call(env,token,app,path,method='GET',body){
   const r=await fetch(root(env,app)+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});
-  if(!r.ok){const e=new Error('Firestore '+r.status);e.status=r.status;throw e}
+  if(!r.ok){const e=new Error('Firestore '+r.status);e.status=r.status;e.operation=method;throw e}
   return method==='DELETE'?{}:r.json();
 }
 async function list(env,token,app){
@@ -86,5 +86,5 @@ export async function notesRoute(request,env,headers,url,getGoogleToken){
       return Response.json({ok:true},{headers});
     }
     return err('Unknown action',400,headers);
-  }catch(error){const upstream=Number(error.status)||0;console.error('Shared notes backend failure',{operation:request.method,upstreamStatus:upstream,message:String(error.message||error).slice(0,180)});return err(upstream?'Firestore returned '+upstream+' while processing annotations':'Annotation backend request failed',upstream===403?403:502,headers)}
+  }catch(error){const upstream=Number(error.status)||0;console.error('Shared notes backend failure',{operation:error.operation||request.method,upstreamStatus:upstream,message:String(error.message||error).slice(0,180)});return err(upstream?'Firestore returned '+upstream+' while processing annotations':'Annotation backend request failed',upstream===403?403:502,headers)}
 }
