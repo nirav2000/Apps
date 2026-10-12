@@ -105,6 +105,26 @@ export async function notesRoute(request,env,headers,url,getGoogleToken){
       }
       return Response.json({ok:true,note,review},{headers});
     }
+    if(data.action==='verify'){
+      const target=validApp(data.appId),id=validId(data.id),version=text(data.version,100).trim(),commit=text(data.commit,100).trim();
+      if(!target||!id||!version||!(/^[a-f0-9]{7,40}$/i.test(commit)))return err('App, annotation ID, deployed version and commit SHA are required',400,headers);
+      const note=await call(env,token,target,'/'+encodeURIComponent(id)).then(parseDoc);
+      if(!note||!note.metadata?.developmentIssue?.number)return err('Annotation must have a linked GitHub issue',409,headers);
+      if(!env.NOTES_GITHUB_ISSUES_TOKEN)return err('GitHub verification integration not configured',503,headers);
+      const issueNumber=Number(note.metadata.developmentIssue.number);
+      const ghHeaders={Authorization:'Bearer '+env.NOTES_GITHUB_ISSUES_TOKEN,Accept:'application/vnd.github+json','User-Agent':'apps-shared-notes'};
+      const [issueResponse,commitResponse]=await Promise.all([
+        fetch('https://api.github.com/repos/nirav2000/Apps/issues/'+issueNumber,{headers:ghHeaders}),
+        fetch('https://api.github.com/repos/nirav2000/Apps/commits/'+encodeURIComponent(commit),{headers:ghHeaders})
+      ]);
+      if(!issueResponse.ok||!commitResponse.ok)return err('Cannot verify linked GitHub issue or commit',409,headers);
+      const issue=await issueResponse.json(),revision=await commitResponse.json();
+      if(issue.state!=='closed'||!revision.sha?.startsWith(commit))return err('Close the GitHub issue and provide an existing commit before verification',409,headers);
+      const message=text(data.message,1000).trim();
+      if(!message||data.deploymentVerified!==true||data.testsVerified!==true)return err('Document tests, deployment and verification before marking implemented',400,headers);
+      const updated={...note,status:'implemented',reviewRequired:false,implementationStatus:'implemented',implementationVersion:version,implementationCommit:revision.sha,implementationMessage:message,implementedAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+      await save(env,token,updated);return Response.json({ok:true,note:updated},{headers});
+    }
     if(data.action==='remove'){
       const target=validApp(data.appId),id=validId(data.id);
       if(!target||!id)return err('Invalid annotation ID',400,headers);
