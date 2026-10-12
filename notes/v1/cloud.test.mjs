@@ -19,7 +19,7 @@ test('cloud adapter sends scoped authenticated requests',async()=>{
  assert.match(calls[3].url,/\/statuses\?appId=app-monitor$/);
 });
 test('cloud save failure must not add a false local note',async()=>{
- const notes=createNotes({appId:'test',transport:{list:async()=>[],save:async()=>{throw Error('cloud down')}}});
+ const notes=createNotes({appId:'test',page:()=>'/test',transport:{list:async()=>[],save:async()=>{throw Error('cloud down')}}});
  await notes.load();await assert.rejects(notes.upsert({text:'Not persisted'}),/cloud down/);
  assert.equal(notes.list().length,0);
 });
