@@ -1,4 +1,4 @@
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const DEFAULT_TYPES = ['developer','feedback','annotation'];
 const now = () => new Date().toISOString();
 const uid = () => globalThis.crypto?.randomUUID?.() || `note-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -99,9 +99,12 @@ export function createNotes(options={}){
     const existing=input.id?notes.find(n=>n.id===input.id):null;
     const note=normaliseNote({...existing,...input,appId:config.appId,appVersion:input.appVersion||existing?.appVersion||config.appVersion,page:input.page||existing?.page||page(),createdAt:existing?.createdAt||input.createdAt||now(),updatedAt:now()},{appId:config.appId,appVersion:config.appVersion,page:page()});
     if(!note.text)throw new Error('Note text is required');
-    await config.transport.save?.(clone(note));
-    const i=notes.findIndex(n=>n.id===note.id);if(i<0)notes.push(note);else notes[i]=note;
-    emit(existing?'updated':'created',{note:clone(note)});return clone(note);
+    const saved=await config.transport.save?.(clone(note));
+    const stored=saved?.note||saved||note;
+    const persisted=normaliseNote(stored,{appId:config.appId,appVersion:config.appVersion,page:page()});
+    const i=notes.findIndex(n=>n.id===note.id);if(i<0)notes.push(persisted);else notes[i]=persisted;
+    emit(existing?'updated':'created',{note:clone(persisted),review:saved?.review});
+    return {...clone(persisted),reviewResult:saved?.review||null};
   }
   async function setStatus(id,status,details={}){
     await ensure();const existing=notes.find(n=>n.id===id);if(!existing)throw new Error('Unknown note: '+id);
