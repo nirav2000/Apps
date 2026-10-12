@@ -2,15 +2,15 @@
 // App Monitor Worker to a verified administrator session.
 const APP_RE=/^[a-zA-Z0-9_.-]{1,80}$/;
 const ID_RE=/^[a-zA-Z0-9_.-]{1,120}$/;
-const root=env=>'https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(env.NOTES_FIREBASE_PROJECT_ID||'kk-syllabus')+'/databases/(default)/documents/sharedDevelopmentAnnotations';
+const root=(env,app)=>'https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(env.NOTES_FIREBASE_PROJECT_ID||'kk-syllabus')+'/databases/(default)/documents/sharedDevelopmentAnnotations/'+encodeURIComponent(app)+'/notes';
 const err=(message,status,headers)=>Response.json({ok:false,error:message},{status,headers});
 const text=(v,max=6000)=>String(v??'').slice(0,max);
 const validApp=v=>APP_RE.test(String(v||''))?String(v):'';
 const validId=v=>ID_RE.test(String(v||''))?String(v):'';
-const docId=(app,id)=>app+'__'+id;
+const docId=(app,id)=>id;
 const parseDoc=d=>{try{return JSON.parse(d?.fields?.payload?.stringValue||'null')}catch{return null}};
-async function call(env,token,path,method='GET',body){
-  const r=await fetch(root(env)+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+async function call(env,token,app,path,method='GET',body){
+  const r=await fetch(root(env,app)+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});
   if(!r.ok){const e=new Error('Firestore '+r.status);e.status=r.status;throw e}
   return method==='DELETE'?{}:r.json();
 }
@@ -18,7 +18,7 @@ async function list(env,token,app){
   let pageToken='',notes=[],pages=0;
   do{
     const query='?pageSize=200'+(pageToken?'&pageToken='+encodeURIComponent(pageToken):'');
-    const url=root(env)+query;
+    const url=root(env,app)+query;
     const r=await fetch(url,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
     if(r.status===404)return [];
     if(!r.ok){const e=new Error('Firestore '+r.status);e.status=r.status;throw e}
@@ -31,7 +31,7 @@ async function list(env,token,app){
 }
 async function save(env,token,note){
   const id=docId(note.appId,note.id);
-  await call(env,token+'/'+encodeURIComponent(id),'PATCH',{fields:{payload:{stringValue:JSON.stringify(note)}}});
+  await call(env,token,note.appId,'/'+encodeURIComponent(id),'PATCH',{fields:{payload:{stringValue:JSON.stringify(note)}}});
   return note;
 }
 async function createIssue(env,note){
@@ -75,14 +75,14 @@ export async function notesRoute(request,env,headers,url,getGoogleToken){
       if(!target||!id||!text(raw.text).trim()||String(raw.text).length>6000)return err('Invalid annotation',400,headers);
       const note={...raw,id,appId:target,text:text(raw.text),page:text(raw.page,1000),anchorId:text(raw.anchorId,300),anchorLabel:text(raw.anchorLabel,300),appVersion:text(raw.appVersion,100),createdAt:text(raw.createdAt,60),updatedAt:new Date().toISOString()};
       if(!['open','implemented','archived','wont-fix'].includes(note.status))return err('Invalid status',400,headers);
-      const existing=await call(env,token+'/'+encodeURIComponent(docId(target,id))).then(parseDoc).catch(e=>{if(e.status===404)return null;throw e});
+      const existing=await call(env,token,target,'/'+encodeURIComponent(docId(target,id))).then(parseDoc).catch(e=>{if(e.status===404)return null;throw e});
       if(existing?.metadata?.developmentIssue)note.metadata={...note.metadata,developmentIssue:existing.metadata.developmentIssue};
       await save(env,token,note);return Response.json({ok:true,note},{headers});
     }
     if(data.action==='remove'){
       const target=validApp(data.appId),id=validId(data.id);
       if(!target||!id)return err('Invalid annotation ID',400,headers);
-      try{await call(env,token+'/'+encodeURIComponent(docId(target,id)),'DELETE')}catch(e){if(e.status!==404)throw e}
+      try{await call(env,token,target,'/'+encodeURIComponent(docId(target,id)),'DELETE')}catch(e){if(e.status!==404)throw e}
       return Response.json({ok:true},{headers});
     }
     return err('Unknown action',400,headers);
