@@ -86,5 +86,5 @@ export async function notesRoute(request,env,headers,url,getGoogleToken){
       return Response.json({ok:true},{headers});
     }
     return err('Unknown action',400,headers);
-  }catch(error){return err(error.status===403?'Firestore permission denied':'Cloud annotation operation failed',error.status===403?403:502,headers)}
+  }catch(error){const upstream=Number(error.status)||0;console.error('Shared notes backend failure',{operation:request.method,upstreamStatus:upstream,message:String(error.message||error).slice(0,180)});return err(upstream?'Firestore returned '+upstream+' while processing annotations':'Annotation backend request failed',upstream===403?403:502,headers)}
 }
