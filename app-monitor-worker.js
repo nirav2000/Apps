@@ -1,8 +1,9 @@
 import { ownerDataRoute } from './app-monitor-owner-routes.js';
+import { notesRoute } from './notes/v1/server.js';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
 import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
-const WORKER_BUILD='2026.10.08.owner-console-data-v2';
+const WORKER_BUILD='2026.10.12.shared-notes-v1.1';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -145,6 +146,11 @@ async function ownerGoogleToken(env){
 async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
+  if(/^\/app-monitor\/notes(?:\/sync|\/statuses)?$/.test(url.pathname)){
+    const session=await appMonitorSession(request,env);
+    if(!session.ok)return new Response('Unauthorized',{status:401,headers});
+    return notesRoute(request,env,headers,url,ownerGoogleToken);
+  }
   if(url.pathname==='/app-monitor/health')return Response.json({ok:true,service:'app-monitor',build:WORKER_BUILD,sourceSha:String(env.APP_MONITOR_SOURCE_SHA||''),storage:'r2-session-snapshots',adminProtected:true},{headers});
   if(url.pathname.startsWith('/app-monitor/owner/data/')){
     const session=await appMonitorSession(request,env);
