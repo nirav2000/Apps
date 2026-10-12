@@ -1,4 +1,4 @@
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const DEFAULT_TYPES = ['developer','feedback','annotation'];
 const now = () => new Date().toISOString();
 const uid = () => globalThis.crypto?.randomUUID?.() || `note-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -99,8 +99,9 @@ export function createNotes(options={}){
     const existing=input.id?notes.find(n=>n.id===input.id):null;
     const note=normaliseNote({...existing,...input,appId:config.appId,appVersion:input.appVersion||existing?.appVersion||config.appVersion,page:input.page||existing?.page||page(),createdAt:existing?.createdAt||input.createdAt||now(),updatedAt:now()},{appId:config.appId,appVersion:config.appVersion,page:page()});
     if(!note.text)throw new Error('Note text is required');
+    await config.transport.save?.(clone(note));
     const i=notes.findIndex(n=>n.id===note.id);if(i<0)notes.push(note);else notes[i]=note;
-    await config.transport.save?.(clone(note));emit(existing?'updated':'created',{note:clone(note)});return clone(note);
+    emit(existing?'updated':'created',{note:clone(note)});return clone(note);
   }
   async function setStatus(id,status,details={}){
     await ensure();const existing=notes.find(n=>n.id===id);if(!existing)throw new Error('Unknown note: '+id);
@@ -109,7 +110,7 @@ export function createNotes(options={}){
   }
   async function archive(id){return setStatus(id,'archived');}
   async function restore(id){return setStatus(id,'open',{reviewRequired:true});}
-  async function remove(id){await ensure();notes=notes.filter(n=>n.id!==id);await config.transport.remove?.(id);emit('removed',{id});}
+  async function remove(id){await ensure();await config.transport.remove?.(id);notes=notes.filter(n=>n.id!==id);emit('removed',{id});}
   async function saveDraft(draft){return config.transport.saveDraft?.(draft?{...draft,appId:config.appId,appVersion:config.appVersion,page:page(),updatedAt:now()}:null);}
   async function getDraft(){return config.transport.getDraft?.()||null;}
   async function clearDraft(){return config.transport.clearDraft?.();}
@@ -122,7 +123,7 @@ export function createNotes(options={}){
     await ensure();return config.transport.publishReviewFeed(reviewPack(),{force});
   }
   async function syncStatuses(){
-    if(typeof config.transport.pullStatuses!=='function')return {status:'unavaile',changed:0};
+    if(typeof config.transport.pullStatuses!=='function')return {status:'unavailable',changed:0};
     await ensure();const ledger=await config.transport.pullStatuses({appId:config.appId,notes:listSync()});let changed=0;
     for(const decision of ledger?.notes||[]){
       const note=notes.find(n=>n.id===decision.id);if(!note)continue;
@@ -147,6 +148,7 @@ export const Notes={
   },
   get current(){return singleton;},
   create:createNotes,
-  createLocalStorageTransport
+  createLocalStorageTransport,
+  async createCloudTransport(options){return (await import('./cloud.js')).createCloudTransport(options)}
 };
 export default Notes;
