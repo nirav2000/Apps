@@ -31,6 +31,8 @@
       </div>
     </section>
 
+    <section class="capture panel" id="annotationQueue"><h2>Cloud annotations</h2><p class="muted">Loading shared annotation queue…</p></section>
+
     <section class="summary" aria-label="Development summary">
       <button class="summary-card active" data-view="needs-me"><span>Needs me</span><strong id="needsMeCount">0</strong><small>Your next actions</small></button>
       <button class="summary-card" data-view="today"><span>Today / overdue</span><strong id="todayCount">0</strong><small>Time-sensitive</small></button>
@@ -82,7 +84,7 @@
     </article>
   </template>
 
-  <script src="development-control.js" type="module"></script>
+  <script src="development-control.js" type="module"></script><script type="module">import{mountAnnotationQueue}from"./notes/v1/development-panel.js?v=1.1.0";mountAnnotationQueue(document.getElementById("annotationQueue")).catch(error=>{document.getElementById("annotationQueue").textContent="Cloud annotation queue unavailable: "+String(error.message||error)})</script>
   <script>window.APP_MONITOR_APP="Apps-Control";</script>
   <script src="./app-monitor.js?v=2"></script>
 </body>
