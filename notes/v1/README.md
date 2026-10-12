@@ -1,4 +1,4 @@
-# Shared Notes & Annotations v1
+# Shared Notes & Annotations v1.1
 
 Canonical shared notes, feedback and annotation capability for the Apps portfolio.
 
@@ -42,6 +42,10 @@ Preferred lifecycle: `open -> review -> implemented -> visible release history`.
 
 Archiving is separate from implementation. Implemented notes retain implementation version/message/commit metadata.
 
+## Complete cloud integration
+
+See [FULL_WORKFLOW.md](./FULL_WORKFLOW.md) for the authenticated central Firestore transport, Development Control Centre integration, GitHub issue publishing, dependency rules and mandatory live validation. Cloud access is administrator-only until an app-scoped user-auth backend is implemented. Cloud write errors are surfaced; there is no silent local fallback.
+
 ## First consumer
 
-TouchType is intended to be the first clean consumer. Existing bespoke implementations should be migrated deliberately after that integration is proven.
+App Monitor is the first integrated cloud consumer (live deployment and cross-device verification pending). TouchType remains a candidate for subsequent deliberate installation. Existing bespoke implementations should be migrated deliberately after that integration is proven.
