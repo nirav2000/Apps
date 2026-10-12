@@ -36,11 +36,34 @@ async function save(env,token,note){
 }
 async function createIssue(env,note){
   if(!env.NOTES_GITHUB_ISSUES_TOKEN)return {status:'pending-configuration'};
-  const body=['## Annotation','App: '+note.appId,'Page: '+note.page,'Element: '+note.anchorLabel+' ('+note.anchorId+')','Version: '+note.appVersion,'Note ID: '+note.id,'','## Requested change',note.text,'','## Verification','Confirm the issue is resolved in the app, then sync implementation status.'].join('\n');
-  const r=await fetch('https://api.github.com/repos/nirav2000/Apps/issues',{method:'POST',headers:{Authorization:'Bearer '+env.NOTES_GITHUB_ISSUES_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json','User-Agent':'apps-shared-notes'},body:JSON.stringify({title:'['+note.appId+'] '+note.text.slice(0,95),body})});
-  if(!r.ok)return {status:'failed',code:r.status};
-  const data=await r.json();return {status:'created',number:data.number,url:data.html_url};
+  const marker='<!-- shared-annotation:'+note.appId+':'+note.id+' -->';
+  const headers={Authorization:'Bearer '+env.NOTES_GITHUB_ISSUES_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json','User-Agent':'apps-shared-notes'};
+  // Retry-safe lookup: recover issues created before a previous Firestore link update failed.
+  const search=await fetch('https://api.github.com/search/issues?q='+encodeURIComponent('repo:nirav2000/Apps is:issue in:body "shared-annotation:'+note.appId+':'+note.id+'"'),{headers:{Authorization:headers.Authorization,Accept:headers.Accept,'User-Agent':headers['User-Agent']}});
+  if(!search.ok)return {status:'failed',code:search.status};
+  const matches=(await search.json()).items||[];
+  const existing=matches.find(issue=>issue.body?.includes(marker));
+  if(existing)return {status:'created',number:existing.number,url:existing.html_url,reused:true};
+  const body=[marker,'## Annotation','App: '+note.appId,'Page: '+note.page,'Element: '+note.anchorLabel+' ('+note.anchorId+')','Version: '+note.appVersion,'Note ID: '+note.id,'','## Requested change',note.text,'','## Verification','Implement, test and deploy before marking this annotation verified.'].join('\n');
+  const response=await fetch('https://api.github.com/repos/nirav2000/Apps/issues',{method:'POST',headers,body:JSON.stringify({title:'['+note.appId+'] '+note.text.slice(0,95),body})});
+  if(!response.ok)return {status:'failed',code:response.status};
+  const issue=await response.json();return {status:'created',number:issue.number,url:issue.html_url};
 }
+async function publishPending(env,token,app,limit=20){
+  const existing=await list(env,token,app);
+  const pending=existing.filter(n=>n.reviewRequired&&n.status==='open'&&!n.metadata?.developmentIssue?.number);
+  const results=[];
+  for(const note of pending.slice(0,limit)){
+    const issue=await createIssue(env,note);
+    if(issue.status==='created'){
+      const updated={...note,metadata:{...note.metadata,developmentIssue:issue},updatedAt:new Date().toISOString()};
+      await save(env,token,updated);
+    }
+    results.push({id:note.id,...issue});
+  }
+  return {status:!env.NOTES_GITHUB_ISSUES_TOKEN?'pending-configuration':results.some(x=>x.status==='failed')?'partial':'processed',results,remaining:Math.max(0,pending.length-limit)};
+}
+
 export async function notesRoute(request,env,headers,url,getGoogleToken){
   if(!env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON)return err('Firebase backend credentials not configured',503,headers);
   let token;try{token=await getGoogleToken(env)}catch{return err('Firebase authentication unavailable',503,headers)}
@@ -58,17 +81,8 @@ export async function notesRoute(request,env,headers,url,getGoogleToken){
     let data;try{data=await request.json()}catch{return err('Invalid JSON',400,headers)}
     if(sync){
       const target=validApp(data.appId);if(!target)return err('Valid appId required',400,headers);
-      const existing=await list(env,token,target),pending=existing.filter(n=>n.reviewRequired&&n.status==='open'&&!n.metadata?.developmentIssue?.number);
-      const results=[];
-      for(const note of pending.slice(0,20)){
-        const issue=await createIssue(env,note);
-        if(issue.status==='created'){
-          const updated={...note,metadata:{...note.metadata,developmentIssue:issue},updatedAt:new Date().toISOString()};
-          await save(env,token,updated);
-        }
-        results.push({id:note.id,...issue});
-      }
-      return Response.json({ok:true,status:!env.NOTES_GITHUB_ISSUES_TOKEN?'pending-configuration':'processed',results,remaining:Math.max(0,pending.length-20)},{headers});
+      const result=await publishPending(env,token,target);
+      return Response.json({ok:true,...result},{headers});
     }
     if(data.action==='save'){
       const raw=data.note||{},target=validApp(raw.appId),id=validId(raw.id);
@@ -77,7 +91,19 @@ export async function notesRoute(request,env,headers,url,getGoogleToken){
       if(!['open','implemented','archived','wont-fix'].includes(note.status))return err('Invalid status',400,headers);
       const existing=await call(env,token,target,'/'+encodeURIComponent(docId(target,id))).then(parseDoc).catch(e=>{if(e.status===404)return null;throw e});
       if(existing?.metadata?.developmentIssue)note.metadata={...note.metadata,developmentIssue:existing.metadata.developmentIssue};
-      await save(env,token,note);return Response.json({ok:true,note},{headers});
+      await save(env,token,note);
+      let review={status:'not-required'};
+      if(note.status==='open'&&note.reviewRequired&&!note.metadata?.developmentIssue?.number){
+        try{
+          const issue=await createIssue(env,note);
+          review=issue;
+          if(issue.status==='created'){
+            note.metadata={...note.metadata,developmentIssue:issue};
+            await save(env,token,note);
+          }
+        }catch(error){console.error('Annotation issue publishing failed',{message:String(error.message||error).slice(0,160)});review={status:'failed'}}
+      }
+      return Response.json({ok:true,note,review},{headers});
     }
     if(data.action==='remove'){
       const target=validApp(data.appId),id=validId(data.id);
