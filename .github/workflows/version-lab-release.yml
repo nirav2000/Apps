@@ -77,4 +77,16 @@ jobs:
             exit 0
           fi
           git commit -m "Version Lab checkpoint $CHECKPOINT_ID"
-          git push
+          # App commits may land while capture runs. Rebase the immutable snapshot
+          # onto the latest main rather than failing with a non-fast-forward push.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; exit 1; }
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Main advanced during checkpoint push (attempt $attempt); retrying"
+            sleep $((attempt * 2))
+          done
+          echo "Could not publish Version Lab checkpoint after five retries" >&2
+          exit 1
