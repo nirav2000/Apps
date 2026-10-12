@@ -1,0 +1,90 @@
+// Shared Notes central Firestore backend. Access is restricted by the calling
+// App Monitor Worker to a verified administrator session.
+const APP_RE=/^[a-zA-Z0-9_.-]{1,80}$/;
+const ID_RE=/^[a-zA-Z0-9_.-]{1,120}$/;
+const root=env=>'https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(env.NOTES_FIREBASE_PROJECT_ID||'kk-syllabus')+'/databases/(default)/documents/sharedDevelopmentAnnotations';
+const err=(message,status,headers)=>Response.json({ok:false,error:message},{status,headers});
+const text=(v,max=6000)=>String(v??'').slice(0,max);
+const validApp=v=>APP_RE.test(String(v||''))?String(v):'';
+const validId=v=>ID_RE.test(String(v||''))?String(v):'';
+const docId=(app,id)=>app+'__'+id;
+const parseDoc=d=>{try{return JSON.parse(d?.fields?.payload?.stringValue||'null')}catch{return null}};
+async function call(env,token,path,method='GET',body){
+  const r=await fetch(root(env)+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+  if(!r.ok){const e=new Error('Firestore '+r.status);e.status=r.status;throw e}
+  return method==='DELETE'?{}:r.json();
+}
+async function list(env,token,app){
+  let pageToken='',notes=[],pages=0;
+  do{
+    const query='?pageSize=200'+(pageToken?'&pageToken='+encodeURIComponent(pageToken):'');
+    const url=root(env)+query;
+    const r=await fetch(url,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+    if(r.status===404)return [];
+    if(!r.ok){const e=new Error('Firestore '+r.status);e.status=r.status;throw e}
+    const data=await r.json();
+    for(const doc of data.documents||[]){const note=parseDoc(doc);if(note&&note.appId===app)notes.push(note)}
+    pageToken=data.nextPageToken||'';pages++;
+  }while(pageToken&&pages<20);
+  if(pageToken)throw new Error('Annotation collection exceeds safe pagination limit');
+  return notes;
+}
+async function save(env,token,note){
+  const id=docId(note.appId,note.id);
+  await call(env,token+'/'+encodeURIComponent(id),'PATCH',{fields:{payload:{stringValue:JSON.stringify(note)}}});
+  return note;
+}
+async function createIssue(env,note){
+  if(!env.NOTES_GITHUB_ISSUES_TOKEN)return {status:'pending-configuration'};
+  const body=['## Annotation','App: '+note.appId,'Page: '+note.page,'Element: '+note.anchorLabel+' ('+note.anchorId+')','Version: '+note.appVersion,'Note ID: '+note.id,'','## Requested change',note.text,'','## Verification','Confirm the issue is resolved in the app, then sync implementation status.'].join('\n');
+  const r=await fetch('https://api.github.com/repos/nirav2000/Apps/issues',{method:'POST',headers:{Authorization:'Bearer '+env.NOTES_GITHUB_ISSUES_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json','User-Agent':'apps-shared-notes'},body:JSON.stringify({title:'['+note.appId+'] '+note.text.slice(0,95),body})});
+  if(!r.ok)return {status:'failed',code:r.status};
+  const data=await r.json();return {status:'created',number:data.number,url:data.html_url};
+}
+export async function notesRoute(request,env,headers,url,getGoogleToken){
+  if(!env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON)return err('Firebase backend credentials not configured',503,headers);
+  let token;try{token=await getGoogleToken(env)}catch{return err('Firebase authentication unavailable',503,headers)}
+  const sync=url.pathname.endsWith('/sync'),statuses=url.pathname.endsWith('/statuses');
+  const app=validApp(url.searchParams.get('appId'));
+  try{
+    if(request.method==='GET'){
+      if(!app)return err('Valid appId required',400,headers);
+      const notes=await list(env,token,app);
+      if(statuses)return Response.json({ok:true,notes:notes.filter(n=>n.status==='implemented').map(n=>({id:n.id,status:n.status,updatedAt:n.updatedAt,implementationVersion:n.implementationVersion,commit:n.implementationCommit,message:n.implementationMessage}))},{headers});
+      return Response.json({ok:true,notes},{headers});
+    }
+    if(request.method!=='POST')return err('Method not allowed',405,headers);
+    if(Number(request.headers.get('Content-Length')||0)>32000)return err('Payload too large',413,headers);
+    let data;try{data=await request.json()}catch{return err('Invalid JSON',400,headers)}
+    if(sync){
+      const target=validApp(data.appId);if(!target)return err('Valid appId required',400,headers);
+      const existing=await list(env,token,target),pending=existing.filter(n=>n.reviewRequired&&n.status==='open'&&!n.metadata?.developmentIssue?.number);
+      const results=[];
+      for(const note of pending.slice(0,20)){
+        const issue=await createIssue(env,note);
+        if(issue.status==='created'){
+          const updated={...note,metadata:{...note.metadata,developmentIssue:issue},updatedAt:new Date().toISOString()};
+          await save(env,token,updated);
+        }
+        results.push({id:note.id,...issue});
+      }
+      return Response.json({ok:true,status:!env.NOTES_GITHUB_ISSUES_TOKEN?'pending-configuration':'processed',results,remaining:Math.max(0,pending.length-20)},{headers});
+    }
+    if(data.action==='save'){
+      const raw=data.note||{},target=validApp(raw.appId),id=validId(raw.id);
+      if(!target||!id||!text(raw.text).trim()||String(raw.text).length>6000)return err('Invalid annotation',400,headers);
+      const note={...raw,id,appId:target,text:text(raw.text),page:text(raw.page,1000),anchorId:text(raw.anchorId,300),anchorLabel:text(raw.anchorLabel,300),appVersion:text(raw.appVersion,100),createdAt:text(raw.createdAt,60),updatedAt:new Date().toISOString()};
+      if(!['open','implemented','archived','wont-fix'].includes(note.status))return err('Invalid status',400,headers);
+      const existing=await call(env,token+'/'+encodeURIComponent(docId(target,id))).then(parseDoc).catch(e=>{if(e.status===404)return null;throw e});
+      if(existing?.metadata?.developmentIssue)note.metadata={...note.metadata,developmentIssue:existing.metadata.developmentIssue};
+      await save(env,token,note);return Response.json({ok:true,note},{headers});
+    }
+    if(data.action==='remove'){
+      const target=validApp(data.appId),id=validId(data.id);
+      if(!target||!id)return err('Invalid annotation ID',400,headers);
+      try{await call(env,token+'/'+encodeURIComponent(docId(target,id)),'DELETE')}catch(e){if(e.status!==404)throw e}
+      return Response.json({ok:true},{headers});
+    }
+    return err('Unknown action',400,headers);
+  }catch(error){return err(error.status===403?'Firestore permission denied':'Cloud annotation operation failed',error.status===403?403:502,headers)}
+}
