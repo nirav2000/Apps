@@ -88,9 +88,11 @@ export async function notesRoute(request,env,headers,url,getGoogleToken){
       const raw=data.note||{},target=validApp(raw.appId),id=validId(raw.id);
       if(!target||!id||!text(raw.text).trim()||String(raw.text).length>6000)return err('Invalid annotation',400,headers);
       const note={...raw,id,appId:target,text:text(raw.text),page:text(raw.page,1000),anchorId:text(raw.anchorId,300),anchorLabel:text(raw.anchorLabel,300),appVersion:text(raw.appVersion,100),createdAt:text(raw.createdAt,60),updatedAt:new Date().toISOString()};
-      if(!['open','implemented','archived','wont-fix'].includes(note.status))return err('Invalid status',400,headers);
+      if(!['open','archived','wont-fix'].includes(note.status)&&note.status!=='implemented')return err('Invalid status',400,headers);
       const existing=await call(env,token,target,'/'+encodeURIComponent(docId(target,id))).then(parseDoc).catch(e=>{if(e.status===404)return null;throw e});
       if(existing?.metadata?.developmentIssue)note.metadata={...note.metadata,developmentIssue:existing.metadata.developmentIssue};
+      if(note.status==='implemented'&&existing?.status!=='implemented')return err('Use verified completion workflow to mark implemented',409,headers);
+      if(existing?.status==='implemented'&&note.status==='implemented'){note.implementationVersion=existing.implementationVersion;note.implementationCommit=existing.implementationCommit;note.implementationMessage=existing.implementationMessage;note.implementedAt=existing.implementedAt;}
       await save(env,token,note);
       let review={status:'not-required'};
       if(note.status==='open'&&note.reviewRequired&&!note.metadata?.developmentIssue?.number){
