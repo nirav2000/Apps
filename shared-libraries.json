@@ -471,9 +471,7 @@
       "status": "implemented",
       "created": "2026-10-07",
       "purpose": "Shared element annotations with authenticated central Firebase persistence, Development Control Centre review and optional GitHub issue publishing.",
-      "installed": {
-        "App Monitor": "installed"
-      },
+      "installed": {},
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
@@ -484,7 +482,7 @@
         "Snag": "local",
         "Next": "local",
         "InClass": "available",
-        "App Monitor": "installed",
+        "App Monitor": "compatible",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
@@ -492,9 +490,9 @@
         "Dol": "available"
       },
       "userActivation": {
-        "App Monitor": "available"
+        "App Monitor": "pending-verification"
       },
-      "notes": "App Monitor consumer wired to central Firestore through authenticated App Monitor Worker. GitHub issue publishing requires NOTES_GITHUB_ISSUES_TOKEN; verify backend deployment and live cloud round-trip before declaring fully operational. Other apps require explicit installation."
+      "notes": "App Monitor code integrated on main; NOT YET verified live. Central Firestore requires deployed Worker with service account; issue publishing requires NOTES_GITHUB_ISSUES_TOKEN. Do not mark installed until live end-to-end tests pass."
     },
     {
       "id": "learning",
