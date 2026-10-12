@@ -1,4 +1,4 @@
-const REPO='nirav2000/Apps';const SEARCH_API='https://api.github.com/search/issues?q=user%3Anirav2000+is%3Aissue+is%3Aopen&per_page=100&page=';const cardsEl=document.querySelector('#cards');const emptyEl=document.querySelector('#empty');const statusEl=document.querySelector('#loadStatus');const template=document.querySelector('#cardTemplate');const search=document.querySelector('#search');let items=[];let currentView='needs-me';
+const REPO='nirav2000/Apps';const SEARCH_API='https://api.github.com/search/issues?q=user%3Anirav2000+is%3Aissue&per_page=100&page=';const cardsEl=document.querySelector('#cards');const emptyEl=document.querySelector('#empty');const statusEl=document.querySelector('#loadStatus');const template=document.querySelector('#cardTemplate');const search=document.querySelector('#search');let items=[];let currentView='needs-me';
 
 const clean=s=>(s||'').replace(/\r/g,'').trim();
 function section(body,names){for(const name of names){const rx=new RegExp('(?:^|\\n)#{1,4}\\s*'+name+'\\s*\\n([\\s\\S]*?)(?=\\n#{1,4}\\s|$)','i');const m=body.match(rx);if(m)return clean(m[1]).replace(/^[-*]\s*/gm,'');}return''}
