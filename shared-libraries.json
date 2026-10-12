@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-07",
+  "generatedAt": "2026-10-12",
   "legend": {
     "installed": "Verified installed/used",
     "local": "Feature exists locally/legacy, not confirmed on shared module",
@@ -466,12 +466,14 @@
     },
     {
       "id": "devnotes",
-      "name": "Shared Notes & Annotations v1.0",
+      "name": "Shared Notes & Annotations v1.1",
       "file": "notes/v1/",
       "status": "implemented",
       "created": "2026-10-07",
-      "purpose": "Shared developer notes, feedback and element-linked annotations with drafts, review queue, implementation history and optional transport hooks.",
-      "installed": {},
+      "purpose": "Shared element annotations with authenticated central Firebase persistence, Development Control Centre review and optional GitHub issue publishing.",
+      "installed": {
+        "App Monitor": "installed"
+      },
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
@@ -482,15 +484,17 @@
         "Snag": "local",
         "Next": "local",
         "InClass": "available",
-        "App Monitor": "available",
+        "App Monitor": "installed",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
         "PWA Lab": "available",
         "TouchType": "available",
         "Dol": "available"
       },
-      "userActivation": {},
-      "notes": "Created from the strongest patterns in Beyond100, Snag, LearnLatin, Next and Openday. TouchType is the intended first clean consumer; existing bespoke implementations remain local until deliberately migrated."
+      "userActivation": {
+        "App Monitor": "available"
+      },
+      "notes": "App Monitor consumer wired to central Firestore through authenticated App Monitor Worker. GitHub issue publishing requires NOTES_GITHUB_ISSUES_TOKEN; verify backend deployment and live cloud round-trip before declaring fully operational. Other apps require explicit installation."
     },
     {
       "id": "learning",
