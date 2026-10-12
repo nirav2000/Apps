@@ -2,3 +2,19 @@
 .action-button{font:inherit;color:var(--text);background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:.82rem;cursor:pointer}
 .action-button:hover,.action-link:hover{border-color:rgba(92,225,230,.42);background:rgba(92,225,230,.07)}
 .primary-action{color:#fff;background:linear-gradient(135deg,rgba(59,183,202,.28),rgba(110,101,223,.28));border-color:rgba(92,225,230,.3)}
+
+/* Issue review progress */
+.review-panel{padding:22px;margin:18px 0}
+.review-heading,.review-legend{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.review-heading h2{margin:0 0 6px}.review-heading p{margin:0 0 8px}
+.review-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:20px 0 14px}
+.review-metrics strong{display:block;font-size:clamp(1.6rem,4vw,2.5rem);font-variant-numeric:tabular-nums}
+.review-metrics span{color:var(--muted);font-size:.84rem}
+.review-bar{display:flex;height:14px;overflow:hidden;border-radius:99px;background:rgba(255,255,255,.08)}
+.review-bar span{display:block;height:100%;transition:width .25s}
+#reviewDoneBar{background:#17a58f}#reviewPendingBar{background:#e9b24d}
+.review-legend{margin:12px 0;font-size:.84rem;color:var(--muted)}
+.review-legend>span{display:inline-flex;gap:8px;align-items:center}
+.dot{width:9px;height:9px;display:inline-block;border-radius:50%}.dot.teal{background:#17a58f}.dot.amber{background:#e9b24d}
+.review-note{font-size:.8rem;margin:10px 0 0}
+@media(max-width:600px){.review-panel{padding:16px}.review-metrics{gap:8px}.review-metrics span{font-size:.73rem}}
