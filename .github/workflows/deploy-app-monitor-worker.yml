@@ -6,6 +6,7 @@ on:
     branches: ["main"]
     paths:
       - "app-monitor-worker.js"
+      - "notes/v1/server.js"
       - "app-monitor-owner-data.js"
       - "app-monitor-owner-routes.js"
       - "app-monitor-owner-data.test.mjs"
@@ -37,6 +38,11 @@ jobs:
           node --check app-monitor-owner-data.js
           node --check app-monitor-owner-routes.js
           node --check app-monitor-owner-ui.js
+          node --check notes/v1/server.js
+          node --check notes/v1/cloud.js
+          node --check notes/v1/index.js
+          node --check notes/v1/ui.js
+          node --test notes/v1/cloud.test.mjs
           node --test app-monitor-owner-data.test.mjs app-monitor-owner-routes.test.mjs
       - name: Check repository-local Cloudflare credentials
         id: creds
