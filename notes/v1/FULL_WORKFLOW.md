@@ -65,3 +65,7 @@ Do not mark the register `installed` until these live checks pass.
 ### Live checks still required
 
 Test automatic issue creation after saving a new note, issue deduplication after retry, DCC visibility, return verification after actual deploy, and mobile element selection. This code change alone does not establish that Cloudflare deployed successfully.
+
+### Administrator UI completion
+
+For an open note linked to a GitHub issue, select **Verify fix** in Notes history. Enter the deployed version, commit SHA and verification evidence, then explicitly confirm tests and production deployment. The server checks that the GitHub issue is closed and the commit exists before saving implementation metadata. This does not independently inspect the deployment; the administrator must check it first.
