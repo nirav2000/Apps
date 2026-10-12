@@ -18,3 +18,8 @@
 .dot{width:9px;height:9px;display:inline-block;border-radius:50%}.dot.teal{background:#17a58f}.dot.amber{background:#e9b24d}
 .review-note{font-size:.8rem;margin:10px 0 0}
 @media(max-width:600px){.review-panel{padding:16px}.review-metrics{gap:8px}.review-metrics span{font-size:.73rem}}
+
+/* Match review figures to the corresponding progress segments. */
+#reviewTotal{color:#d9e9f8}
+#reviewPartial{color:#17a58f}
+#reviewPending{color:#e9b24d}
