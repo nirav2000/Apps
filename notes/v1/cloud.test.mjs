@@ -23,3 +23,16 @@ test('cloud save failure must not add a false local note',async()=>{
  await notes.load();await assert.rejects(notes.upsert({text:'Not persisted'}),/cloud down/);
  assert.equal(notes.list().length,0);
 });
+
+test('cloud save returns issue status without dropping note metadata',async()=>{
+ const transport=createCloudTransport({appId:'app-monitor',apiBase:'https://example.com/notes',getHeaders:()=>({'X-App-Monitor-Session':'test'}),fetchImpl:async()=>({ok:true,json:async()=>({note:{id:'one',appId:'app-monitor',text:'Test',metadata:{developmentIssue:{number:42,url:'https://github.com/nirav2000/Apps/issues/42'}}},review:{status:'created',number:42}})})});
+ const result=await transport.save({id:'one',text:'Test'});
+ assert.equal(result.review.number,42);
+ assert.equal(result.note.metadata.developmentIssue.number,42);
+});
+test('verified status API sends deployment evidence',async()=>{
+ let body;
+ const transport=createCloudTransport({appId:'app-monitor',apiBase:'https://example.com/notes',getHeaders:()=>({'X-App-Monitor-Session':'test'}),fetchImpl:async(_url,options)=>{body=JSON.parse(options.body);return {ok:true,json:async()=>({ok:true})}}});
+ await transport.verify('one',{version:'1.2.0',commit:'abcdef1234567',message:'Tested',testsVerified:true,deploymentVerified:true});
+ assert.equal(body.action,'verify');assert.equal(body.appId,'app-monitor');assert.equal(body.testsVerified,true);
+});
