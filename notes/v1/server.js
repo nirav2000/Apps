@@ -45,7 +45,16 @@ async function createIssue(env,note){
   const existing=matches.find(issue=>issue.body?.includes(marker));
   if(existing)return {status:'created',number:existing.number,url:existing.html_url,reused:true};
   const body=[marker,'## Annotation','App: '+note.appId,'Page: '+note.page,'Element: '+note.anchorLabel+' ('+note.anchorId+')','Version: '+note.appVersion,'Note ID: '+note.id,'','## Requested change',note.text,'','## Verification','Implement, test and deploy before marking this annotation verified.'].join('\n');
-  const response=await fetch('https://api.github.com/repos/nirav2000/Apps/issues',{method:'POST',headers,body:JSON.stringify({title:'['+note.appId+'] '+note.text.slice(0,95),body})});
+  // Notes can contain full diagnostic reports. Never derive issue titles from multiline bodies.
+  const isDiagnostic=note.anchorId==='diagnostics-report'||note.metadata?.evidenceKind==='measured-geometry';
+  const appName=String(note.appId||'app').replace(/[^a-zA-Z0-9-]/g,'').slice(0,24)||'app';
+  const comment=String(note.text||'').match(/## Owner comment\\s*\\n([^\\n]+)/i)?.[1]?.trim();
+  const cleanTitle=(value)=>String(value||'').replace(/\\[[^\\]\\n]{1,30}\\]/g,' ').replace(/https?:\\/\\/\\S+/g,' ').replace(/\\s+/g,' ').replace(/[^\\p{L}\\p{N} .,;:!?()'/-]/gu,'').trim();
+  const description=isDiagnostic
+    ? (comment?cleanTitle(comment):'UI diagnostic report')
+    : cleanTitle(String(note.text||'').split('\\n').find(line=>line.trim())||'Development issue');
+  const title='['+appName+'] '+(description.slice(0,100)||'Development issue');
+  const response=await fetch('https://api.github.com/repos/nirav2000/Apps/issues',{method:'POST',headers,body:JSON.stringify({title,body})});
   if(!response.ok)return {status:'failed',code:response.status};
   const issue=await response.json();return {status:'created',number:issue.number,url:issue.html_url};
 }
