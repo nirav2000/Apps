@@ -615,30 +615,33 @@
     },
     {
       "id": "diagnostics",
-      "name": "Diagnostics / error reporting",
-      "file": "proposed",
-      "status": "proposed",
-      "created": null,
-      "purpose": "Common client diagnostics, structured errors, health reporting and operational troubleshooting hooks.",
-      "installed": {},
-      "adoption": {
-        "Apps": "unavailable",
-        "Kk-syllabus": "unavailable",
-        "Openday": "unavailable",
-        "LearnLatin": "unavailable",
-        "Comprehension": "unavailable",
-        "beyond100": "unavailable",
-        "Snag": "unavailable",
-        "Next": "unavailable",
-        "InClass": "unavailable",
-        "App Monitor": "unavailable",
-        "Firebase Usage Monitor": "unavailable",
-        "Notifications Lab": "unavailable",
-        "PWA Lab": "unavailable",
-        "TouchType": "unavailable",
-        "Dol": "available"
+      "name": "Shared Diagnostics v1.0.0",
+      "file": "diagnostics/releases/1.0.0/index.mjs",
+      "status": "implemented",
+      "created": "2026-10-13",
+      "purpose": "Free opt-in local interaction and measured layout diagnostics, private report review and existing owner-passkey Notes/GitHub issue integration.",
+      "installed": {
+        "Dol": "installed"
       },
-      "userActivation": {}
+      "adoption": {
+        "Apps": "available",
+        "Kk-syllabus": "available",
+        "Openday": "available",
+        "LearnLatin": "available",
+        "Comprehension": "available",
+        "beyond100": "available",
+        "Snag": "available",
+        "Next": "available",
+        "InClass": "available",
+        "App Monitor": "available",
+        "Firebase Usage Monitor": "available",
+        "Notifications Lab": "available",
+        "PWA Lab": "available",
+        "TouchType": "available",
+        "Dol": "installed"
+      },
+      "userActivation": {},
+      "notes": "Installed only in Dol v2.6.0. GitHub issues route through the existing Apps Notes worker; no client token or new credentials. Local reports are not automatically uploaded. Real iOS screen recording remains OS-managed. Browser CI for Shared Diagnostics v1.0.0 passed; Dol device validation tracked separately."
     }
   ],
   "versionLabHistory": [
@@ -1042,13 +1045,14 @@
       "versionLab": "installed"
     },
     "Dol": {
-      "version": "2.0.3",
+      "version": "2.6.0",
       "platform": "1.6.0",
       "learning": "0.1.0",
       "versionLab": "installed",
       "pwa": "installed",
       "releaseValidation": "installed",
-      "appMonitor": "available"
+      "appMonitor": "available",
+      "diagnostics": "installed"
     }
   },
   "governance": {
