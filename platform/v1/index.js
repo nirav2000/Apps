@@ -1,11 +1,11 @@
 (function(){
 'use strict';
 if(window.AppsPlatformV1)return;
-const PLATFORM_VERSION='1.6.0';
+const PLATFORM_VERSION='1.7.0';
 const ROOT=(document.currentScript?.src||'https://nirav2000.github.io/Apps/platform/v1/index.js').replace(/\/platform\/v1\/index\.js(?:\?.*)?$/,'/');
 const CAPABILITIES={
   auth:{src:'auth/v1/index.js',module:true,exportName:'Auth'},
-  identity:{src:'apps-auth.js?v=1',global:'AppsAuth'},
+  identity:{src:'apps-auth.js?v=1',global:'AppsAuth',legacy:true},
   account:{src:'apps-account.js?v=2',global:'AppsAccount'},
   privacy:{src:'apps-privacy.js?v=2',global:'AppsPrivacy'},
   billing:{src:'apps-billing.js?v=1',global:'AppsBilling'},
@@ -15,7 +15,8 @@ const CAPABILITIES={
   notifications:{src:'notifications/v1/index.js',module:true},
   pwa:{src:'pwa/v1/index.js',module:true},
   notes:{src:'notes/v1/index.js',module:true,exportName:'Notes'},
-  learning:{src:'learning/v1/index.js',module:true}
+  learning:{src:'learning/v1/index.js',module:true},
+  learningSync:{src:'learning-sync/v1/index.js',module:true,exportName:'LearningSync'}
 };
 const loaded=new Map();
 function script(url,global){
@@ -42,7 +43,7 @@ async function loadCapability(name,options={},context={}){
     value=mod[def.exportName]||mod.default||mod;
   }else value=await script(ROOT+def.src,def.global);
   if(options&&typeof value?.init==='function'){
-    const initOptions=(name==='auth'||name==='notes')?{appId:context.appId,...options}:options;
+    const initOptions=(name==='auth'||name==='notes'||name==='learningSync')?{appId:context.appId,...options}:options;
     await value.init(initOptions);
   }
   return value;
