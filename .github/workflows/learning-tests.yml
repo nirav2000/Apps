@@ -4,7 +4,10 @@ on:
     branches: [main]
     paths:
       - 'learning/**'
+      - 'learning-sync/**'
       - 'tests/learning.test.mjs'
+      - 'tests/learning-sync.test.mjs'
+      - 'platform/v1/index.js'
       - '.github/workflows/learning-tests.yml'
   workflow_dispatch:
 jobs:
@@ -16,4 +19,5 @@ jobs:
         with:
           node-version: '22'
       - run: node --check learning/v1/index.js
-      - run: node --test tests/learning.test.mjs
+      - run: node --check learning-sync/v1/index.js
+      - run: node --test tests/learning.test.mjs tests/learning-sync.test.mjs
