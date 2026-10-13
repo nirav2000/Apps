@@ -2,8 +2,10 @@ import fs from 'node:fs';import path from 'node:path';import {execFileSync} from
 const plan=JSON.parse(fs.readFileSync('artifacts/diagnostic-plan.json'));
 if(!plan||plan.recipe!==RECIPE)throw Error('No approved recipe');
 const css='ui/pairboard-tablet.css',original=fs.readFileSync(css,'utf8');
-if(original.includes('diagnostic-recipe:'+RECIPE))throw Error('Recipe already present: review required');
-fs.appendFileSync(css,fs.readFileSync(new URL('./recipes/tablet-factor-visibility.css',import.meta.url)));
+// A manually tested bootstrap may already contain this exact recipe. Do not duplicate it.
+const recipe=fs.readFileSync(new URL('./recipes/tablet-factor-visibility.css',import.meta.url),'utf8');
+if(original.includes('diagnostic-recipe:'+RECIPE)){if(!original.endsWith(recipe))throw Error('Installed recipe differs: review required');}
+else fs.appendFileSync(css,recipe);
 const metadata=JSON.parse(fs.readFileSync('version.json')),old=metadata.version,version=nextPatch(old);metadata.version=version;metadata.description='Tablet factor pairs stay visible through keypad review.';
 fs.writeFileSync('version.json',JSON.stringify(metadata,null,2)+'\n');
 const html=fs.readFileSync('index.html','utf8');if(!html.includes('Dol v'+old))throw Error('Footer/version mismatch');
