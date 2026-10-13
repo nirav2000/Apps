@@ -1,0 +1,12 @@
+import fs from 'node:fs';import {execFileSync} from 'node:child_process';import {allowedChanges} from './policy.mjs';
+const run=(...args)=>execFileSync('git',args,{encoding:'utf8'}).trim();
+const candidate=JSON.parse(fs.readFileSync('artifacts/diagnostic-candidate.json'));
+const baseline=run('rev-parse','HEAD');run('fetch','origin','main');if(run('rev-parse','origin/main')!==baseline)throw Error('Main changed during testing; rerun on latest main.');
+const paths=run('diff','--name-only').split('\n');if(!allowedChanges(paths))throw Error('Scope gate rejected candidate');
+for(const file of ['baseline-reproduced.txt','regression-passed.txt'])if(!fs.existsSync('artifacts/'+file))throw Error('Missing test gate '+file);
+const cases=JSON.parse(fs.readFileSync('artifacts/issue25-browser.json')).results;if(cases.length!==12||!cases.every(c=>c.actionPreserved&&c.learningPreserved&&c.measurement.every(m=>m.inside&&m.overlap<1)))throw Error('Browser evidence incomplete');
+run('config','user.name','github-actions[bot]');run('config','user.email','41898282+github-actions[bot]@users.noreply.github.com');
+run('add','--',...paths);run('commit','-m',`Fix ${candidate.key}: tested tablet factor visibility (${candidate.version})`);run('push','origin','HEAD:main');
+const commit=run('rev-parse','HEAD');fs.writeFileSync('artifacts/diagnostic-commit.json',JSON.stringify({...candidate,baseCommit:baseline,commit},null,2));
+if(process.env.GITHUB_OUTPUT)fs.appendFileSync(process.env.GITHUB_OUTPUT,`commit=${commit}\nversion=${candidate.version}\n`);
+console.log('Committed directly to main',commit);

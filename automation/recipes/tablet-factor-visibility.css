@@ -1,0 +1,51 @@
+
+/* diagnostic-recipe:tablet-factor-visibility-v1
+   Scoped to touch-tablet play/review. Keep factor tiles above the action key. */
+body[data-dol-profile=tablet] #playView .number-tile{
+  min-height:0!important;aspect-ratio:auto!important;height:clamp(110px,23dvh,190px)
+}
+body[data-dol-profile=tablet] #playView .number-tile strong{font-size:clamp(70px,10vw,135px)!important}
+body[data-dol-profile=tablet] #playView .play-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+body[data-dol-profile=tablet] #playView .work-panel{padding:12px}
+body[data-dol-profile=tablet] #playView .tablet-pad{padding:7px;margin:6px 0 0;max-width:none;width:100%}
+body[data-dol-profile=tablet] #playView .tablet-pad-fields{margin-bottom:6px}
+body[data-dol-profile=tablet] #playView .tablet-pad-fields button{min-height:44px}
+body[data-dol-profile=tablet] #playView .tablet-pad-grid{gap:6px}
+body[data-dol-profile=tablet] #playView .tablet-pad-grid button{min-height:44px;font-size:24px}
+body[data-dol-profile=tablet] #playView .tablet-pad-toolbar{margin:5px 0}
+body[data-dol-profile=tablet] #playView .panel-title{margin-bottom:6px}
+body[data-dol-profile=tablet] #playView .entry-feedback{margin:5px 0;min-height:20px}
+body[data-dol-profile=tablet] #playView #pairSlots{margin-top:8px}
+body[data-dol-profile=tablet] #playView .timer-line,body[data-dol-profile=tablet] #playView .action-row{margin:6px 0}
+body[data-dol-profile=tablet] #playView .layout-pair-board{padding:9px;margin-top:8px}
+body[data-dol-profile=tablet] #playView #layoutPairGrid .review-pair{min-height:64px;padding:7px 4px}
+body[data-dol-profile=tablet] #playView #layoutPairGrid .pair-number{font-size:clamp(19px,2vw,27px)}
+body[data-dol-profile=tablet] #playView .tablet-pad.is-finished{width:auto}
+body[data-dol-profile=tablet] #playView .tablet-pad.is-finished .tablet-pad-grid button{min-height:0;font-size:16px}
+body[data-dol-profile=tablet][data-dol-touchpad=tablet] #answerForm>.small,
+body[data-dol-profile=tablet][data-dol-touchpad=tablet] #answerForm>.input-row{display:none}
+body[data-dol-profile=tablet][data-dol-touchpad=tablet] #activePanel{display:flex;flex-direction:column}
+body[data-dol-profile=tablet][data-dol-touchpad=tablet] #activePanel>.panel-title{order:0}
+body[data-dol-profile=tablet][data-dol-touchpad=tablet] #activePanel>#pairSlots{order:1}
+body[data-dol-profile=tablet][data-dol-touchpad=tablet] #activePanel>#entryFeedback{order:2}
+body[data-dol-profile=tablet][data-dol-touchpad=tablet] #activePanel>#answerForm{order:3}
+body[data-dol-profile=tablet][data-dol-touchpad=tablet] #activePanel>#helpToggle,
+body[data-dol-profile=tablet][data-dol-touchpad=tablet] #activePanel>#helpSection{order:4}
+body[data-dol-profile=tablet] #playView .tablet-pad.is-finished{padding:0;margin:0;border:0}
+/* During a tablet round, setup controls yield their height to the board. */
+body[data-dol-profile=tablet] #playView:has(#readyPanel[hidden]){padding-top:12px}
+body[data-dol-profile=tablet] #playView:has(#readyPanel[hidden]) .page-head>div:first-child,
+body[data-dol-profile=tablet] #playView:has(#readyPanel[hidden]) .mode-tabs,
+body[data-dol-profile=tablet] #playView:has(#readyPanel[hidden]) .controls,
+body[data-dol-profile=tablet] #playView:has(#readyPanel[hidden]) .number-section>.eyebrow{display:none}
+body[data-dol-profile=tablet] #playView:has(#readyPanel[hidden]) .page-head{justify-content:flex-end;margin-bottom:8px}
+body[data-dol-profile=tablet] #playView:has(#readyPanel[hidden]) .scoreboard>div{min-width:70px;padding:8px 12px}
+body[data-dol-profile=tablet] #playView .panel-title .eyebrow{margin-bottom:4px}
+/* A round uses a stable viewport play area, independent of setup-page scroll. */
+body[data-dol-profile=tablet] #playView:has(#readyPanel[hidden]) .play-grid{
+  position:fixed;top:96px;left:max(16px,calc((100vw - 1120px)/2));
+  right:max(16px,calc((100vw - 1120px)/2));max-height:calc(100dvh - 108px);
+  overflow-y:auto;z-index:20;background:#050505;border-radius:14px
+}
+body[data-dol-profile=tablet].focus-mode #playView:has(#readyPanel[hidden]) .play-grid{top:76px;max-height:calc(100dvh - 88px)}
+body[data-dol-profile=tablet]:not(.focus-mode) .topbar{position:sticky;top:0;z-index:30;background:#050505}

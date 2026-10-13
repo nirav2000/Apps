@@ -34,6 +34,14 @@ async function save(env,token,note){
   await call(env,token,note.appId,'/'+encodeURIComponent(id),'PATCH',{fields:{payload:{stringValue:JSON.stringify(note)}}});
   return note;
 }
+export function annotationIssueTitle(note){
+  const diagnostic=note.anchorId==='diagnostics-report'||note.metadata?.evidenceKind==='measured-geometry';
+  const app=String(note.appId||'app').replace(/[^a-zA-Z0-9-]/g,'').slice(0,24)||'app';
+  const clean=value=>String(value||'').replace(/\[[^\]\n]{1,30}\]/g,' ').replace(/https?:\/\/\S+/g,' ').replace(/\s+/g,' ').replace(/[^\p{L}\p{N} .,;:!?()'/-]/gu,'').trim();
+  const comment=String(note.text||'').match(/## Owner comment\s*\n([^\n]+)/i)?.[1];
+  const description=diagnostic?(comment?clean(comment):'UI diagnostic report'):clean(String(note.text||'').split('\n').find(line=>line.trim()));
+  return '['+app+'] '+((description||'Development issue').slice(0,100));
+}
 async function createIssue(env,note){
   if(!env.NOTES_GITHUB_ISSUES_TOKEN)return {status:'pending-configuration'};
   const marker='<!-- shared-annotation:'+note.appId+':'+note.id+' -->';
@@ -46,14 +54,7 @@ async function createIssue(env,note){
   if(existing)return {status:'created',number:existing.number,url:existing.html_url,reused:true};
   const body=[marker,'## Annotation','App: '+note.appId,'Page: '+note.page,'Element: '+note.anchorLabel+' ('+note.anchorId+')','Version: '+note.appVersion,'Note ID: '+note.id,'','## Requested change',note.text,'','## Verification','Implement, test and deploy before marking this annotation verified.'].join('\n');
   // Notes can contain full diagnostic reports. Never derive issue titles from multiline bodies.
-  const isDiagnostic=note.anchorId==='diagnostics-report'||note.metadata?.evidenceKind==='measured-geometry';
-  const appName=String(note.appId||'app').replace(/[^a-zA-Z0-9-]/g,'').slice(0,24)||'app';
-  const comment=String(note.text||'').match(/## Owner comment\\s*\\n([^\\n]+)/i)?.[1]?.trim();
-  const cleanTitle=(value)=>String(value||'').replace(/\\[[^\\]\\n]{1,30}\\]/g,' ').replace(/https?:\\/\\/\\S+/g,' ').replace(/\\s+/g,' ').replace(/[^\\p{L}\\p{N} .,;:!?()'/-]/gu,'').trim();
-  const description=isDiagnostic
-    ? (comment?cleanTitle(comment):'UI diagnostic report')
-    : cleanTitle(String(note.text||'').split('\\n').find(line=>line.trim())||'Development issue');
-  const title='['+appName+'] '+(description.slice(0,100)||'Development issue');
+  const title=annotationIssueTitle(note);
   const response=await fetch('https://api.github.com/repos/nirav2000/Apps/issues',{method:'POST',headers,body:JSON.stringify({title,body})});
   if(!response.ok)return {status:'failed',code:response.status};
   const issue=await response.json();return {status:'created',number:issue.number,url:issue.html_url};

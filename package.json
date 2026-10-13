@@ -1,7 +1,7 @@
 {
   "name": "apps-monitor-worker",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "deploy:monitor": "wrangler deploy -c wrangler-app-monitor.jsonc",
     "check:monitor": "wrangler deploy --dry-run -c wrangler-app-monitor.jsonc"
