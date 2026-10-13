@@ -1,12 +1,20 @@
-# Apps issue #25 deployment handoff
+# Verified deployment: Apps issue #25
 
-Dol's controlled workflow completed successfully:
-https://github.com/nirav2000/Dol/actions/runs/38411930902
+Completed automatically on 13 October 2026 at 14:31 UTC. Issue #25 is closed with the `diagnostic:verified` label.
 
-Deployed product: Dol v2.6.4.
-Source commit: e1e8f489fdecef85d160b28adf90646b0c64d1a2.
-Evidence: https://github.com/nirav2000/Dol/blob/main/docs/diagnostics/Apps-25.json
+| Item | Verified result |
+| --- | --- |
+| Live app | Dol v2.6.4 — https://nirav2000.github.io/Dol/ |
+| Fix/release source | `e1e8f489fdecef85d160b28adf90646b0c64d1a2` |
+| Controlled worker | https://github.com/nirav2000/Dol/actions/runs/38411930902 — success |
+| Independent verifier | https://github.com/nirav2000/Apps/actions/runs/38413848378 — success |
+| Originating issue | https://github.com/nirav2000/Apps/issues/25 — verified, closed |
+| Durable worker receipt | https://github.com/nirav2000/Dol/blob/main/docs/diagnostics/Apps-25.json |
+| Version Lab | `vl-20261013T142238Z-e1e8f489` — shared checkpoint captured after live verification |
+| Installed control | v1.0.2 in both repositories, including bounded safe GitHub retries |
 
-The worker reproduced the historical tablet CSS failure, passed all unit and browser regressions before the release commit, deployed the tested tree, verified twelve Chromium/WebKit Classic and Pair Board cases on phone and portrait/landscape tablet, and captured a verified shared Version Lab checkpoint.
+The original tablet CSS failure was reproduced before the repair gate. Twenty-six unit tests and the existing browser regression suites passed. The deployed interface then passed twelve cases: Chromium and WebKit, phone 390×844, tablet portrait 834×1194, tablet landscape 1210×675, and both Classic and Pair Board. All four factors remained visible; the action key retained its position; review preserved learner evidence.
 
-Issue #25 remains open pending Apps' independent deployed verification. This handoff triggers the central verifier immediately; it may close the issue only after checking the successful source workflow, allowed diff, deployed version, and its own twelve-case browser matrix.
+Apps reran the twelve-case matrix independently and closed the issue only after it passed. An earlier verifier run passed every browser case but hit a transient GitHub connection failure while recording status; it left the issue open. Control v1.0.2 fixes that failure with three bounded retries for safe reads/status replacement, while avoiding blind retries of creation requests.
+
+Both workflows use main only. Only the familiar tested tablet recipe is eligible for automatic changes; unfamiliar or consequential reports receive `diagnostic:needs-review`. Scheduled sweeps, issue triggers, per-issue pause labels, a repository pause variable and the two-attempt fix limit are installed. Each repository writes only to itself; no cross-repository credential was added.
