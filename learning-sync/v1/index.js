@@ -60,7 +60,7 @@ export function createLearningSync({appId,learnerId='default',accountId='guest',
  }
  function resetGuest(){
   if(owner!=='guest')throw Error('Signed-in cloud resets require a server-authorised deletion flow');
-  state=blank();save();onSnapshot(snapshot(),owner);return status();
+  const previousSequence=state.seq||0;state=blank();state.seq=previousSequence;save();onSnapshot(snapshot(),owner);return status();
  }
  function importGuest({approved=false}={}){
   if(owner==='guest')throw Error('Sign in first');
