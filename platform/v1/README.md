@@ -77,3 +77,25 @@ const platform = await AppsPlatformLoaderV1.boot({
 
 const Auth = platform.services.auth;
 ```
+
+## Learning Sync v1.0 (App Platform v1.7.0)
+
+`learningSync` is an **opt-in** capability. It does not automatically install into existing apps or start Firebase writes.
+
+```json
+{"appId":"dol","platformVersion":"1.7.0","capabilities":{"learningSync":true}}
+```
+
+```js
+const platform = await AppsPlatformLoaderV1.boot({manifestUrl:'./apps-manifest.json'});
+const sync = platform.services.learningSync.create({
+  appId:'dol', learnerId:'learner-1', accountId:'guest',
+  onSnapshot(snapshot,accountId){ /* reload the selected learner store */ }
+});
+sync.capture(learningStore.getState()); // capture completed-round learning evidence
+// After Firebase login, create a transport using the SAME Firebase project for Auth and Firestore.
+// A transport must verify the actual signed-in UID; accountId is never proof of identity.
+// Explicit user consent is required before importing a device's guest history.
+```
+
+For production use, configure secure Firestore rules from `learning-sync/v1/firestore.rules`, install the authenticated transport, test account switching and offline replay, and enable the capability only in the target app. Apps Auth (`identity`) is legacy and remains available solely for backwards compatibility; new apps use `auth`.
