@@ -1,10 +1,11 @@
 {
-  "generatedAt": "2026-10-12",
+  "generatedAt": "2026-10-13",
   "legend": {
     "installed": "Verified installed/used",
     "local": "Feature exists locally/legacy, not confirmed on shared module",
     "proposed": "Proposed shared library",
-    "unknown": "Not yet verified"
+    "unknown": "Not yet verified",
+    "legacy": "Maintenance-only shared library retained for existing installations; not offered for new installs."
   },
   "apps": [
     "Apps",
@@ -56,11 +57,11 @@
     },
     {
       "id": "apps-auth",
-      "name": "Apps Auth / canonical identity",
+      "name": "Apps Auth (legacy)",
       "file": "apps-auth.js",
-      "status": "implemented",
+      "status": "legacy",
       "created": "2026-09-24",
-      "purpose": "Stable cross-app device identity plus app-user identity bridging for monitoring and future central authentication.",
+      "purpose": "Legacy cross-app browser/device identity and app-user bridge; retained for existing consumers. Superseded for all new integrations by Auth v1.3 through App Platform.",
       "installed": {
         "Kk-syllabus": "installed",
         "Openday": "installed",
@@ -86,7 +87,8 @@
         "TouchType": "available",
         "Dol": "available"
       },
-      "userActivation": {}
+      "userActivation": {},
+      "notes": "Legacy, maintenance/compatibility only. Do not install into new apps. Existing installed consumers remain unchanged; migrate individually using Auth shadow mode and verified UID mapping. No automatic data migration."
     },
     {
       "id": "passkey",
