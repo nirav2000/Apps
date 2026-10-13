@@ -58,6 +58,10 @@ export function createLearningSync({appId,learnerId='default',accountId='guest',
   if(busy)throw Error('Sync in progress');
   owner=valid(next);state=load(owner);onSnapshot(snapshot(),owner);notify();return status();
  }
+ function resetGuest(){
+  if(owner!=='guest')throw Error('Signed-in cloud resets require a server-authorised deletion flow');
+  state=blank();save();onSnapshot(snapshot(),owner);return status();
+ }
  function importGuest({approved=false}={}){
   if(owner==='guest')throw Error('Sign in first');
   if(!approved)throw Error('Explicit approval required to import guest history');
@@ -95,7 +99,7 @@ export function createLearningSync({appId,learnerId='default',accountId='guest',
  }
  const onOnline=()=>{if(owner!=='guest')sync().catch(()=>{})};
  const observeOnline=(host=typeof window==='undefined'?null:window)=>{host?.addEventListener?.('online',onOnline);return()=>host?.removeEventListener?.('online',onOnline)};
- notify();return {capture,snapshot,status,switchAccount,importGuest,sync,observeOnline,dispose(){disposed=true}};
+ notify();return {capture,snapshot,status,switchAccount,importGuest,resetGuest,sync,observeOnline,dispose(){disposed=true}};
 }
 // Firebase Auth and Firestore must use the SAME Firebase project. Firestore rules enforce request.auth.uid.
 export function createFirestoreTransport({db,auth,sdk}={}){
