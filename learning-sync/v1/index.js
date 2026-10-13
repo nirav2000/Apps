@@ -54,6 +54,12 @@ export function createLearningSync({appId,learnerId='default',accountId='guest',
   if(events.length||sessions.length)add(events,sessions,'learning');else save();
   return status();
  }
+ function adoptSnapshot(data){
+  if(!Array.isArray(data?.events)||!Array.isArray(data?.sessions))throw Error('Invalid learning snapshot');
+  state.seen={events:data.events.length,sessions:data.sessions.length};
+  state.tails={events:data.events.length?JSON.stringify(data.events.at(-1)):null,sessions:data.sessions.length?JSON.stringify(data.sessions.at(-1)):null};
+  save();return status();
+ }
  function switchAccount(next){
   if(busy)throw Error('Sync in progress');
   owner=valid(next);state=load(owner);onSnapshot(snapshot(),owner);notify();return status();
@@ -98,7 +104,7 @@ export function createLearningSync({appId,learnerId='default',accountId='guest',
  }
  const onOnline=()=>{if(owner!=='guest')sync().catch(()=>{})};
  const observeOnline=(host=typeof window==='undefined'?null:window)=>{host?.addEventListener?.('online',onOnline);return()=>host?.removeEventListener?.('online',onOnline)};
- notify();return {capture,snapshot,status,switchAccount,importGuest,resetGuest,sync,observeOnline,dispose(){disposed=true}};
+ notify();return {capture,adoptSnapshot,snapshot,status,switchAccount,importGuest,resetGuest,sync,observeOnline,dispose(){disposed=true}};
 }
 // Firebase Auth and Firestore must use the SAME Firebase project. Firestore rules enforce request.auth.uid.
 export function createFirestoreTransport({db,auth,sdk}={}){
