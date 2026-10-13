@@ -13,7 +13,7 @@ Completed automatically on 13 October 2026 at 14:31 UTC. Issue #25 is closed wit
 | Version Lab | `vl-20261013T142238Z-e1e8f489` — shared checkpoint captured after live verification |
 | Installed control | v1.0.2 in both repositories, including bounded safe GitHub retries |
 
-The original tablet CSS failure was reproduced before the repair gate. Twenty-six unit tests and the existing browser regression suites passed. The deployed interface then passed twelve cases: Chromium and WebKit, phone 390×844, tablet portrait 834×1194, tablet landscape 1210×675, and both Classic and Pair Board. All four factors remained visible; the action key retained its position; review preserved learner evidence.
+The original tablet CSS failure was reproduced before the repair gate. Twenty-six unit tests and the existing browser regression suites passed. The deployed interface then passed twelve cases: Chromium and WebKit, phone 390×844, tablet portrait 834×1194, tablet landscape 1210×675, and both Classic and Pair Board. All four factor pairs remained visible; the action key retained its position; review preserved learner evidence.
 
 Apps reran the twelve-case matrix independently and closed the issue only after it passed. An earlier verifier run passed every browser case but hit a transient GitHub connection failure while recording status; it left the issue open. Control v1.0.2 fixes that failure with three bounded retries for safe reads/status replacement, while avoiding blind retries of creation requests.
 
