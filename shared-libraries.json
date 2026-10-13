@@ -535,8 +535,10 @@
       "status": "implemented",
       "created": "2026-10-13",
       "purpose": "Identity-scoped offline-first learning evidence with durable local queue, explicit guest import, idempotent round chunks, authenticated Firestore transport and account isolation.",
-      "notes": "Opt-in App Platform capability. Requires matching Firebase Auth/Firestore project, secure Firestore rules and consumer integration. Not yet installed in consumer apps.",
-      "installed": {},
+      "notes": "Dol v2.6.8 integrates guest-only local evidence. Cloud login, Firebase rules, signed-in migration, and remote reset are deliberately not enabled; integration must pass security gates first.",
+      "installed": {
+        "Dol": "local"
+      },
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
@@ -552,7 +554,7 @@
         "Notifications Lab": "available",
         "PWA Lab": "available",
         "TouchType": "available",
-        "Dol": "available"
+        "Dol": "local"
       },
       "userActivation": {}
     },
