@@ -66,7 +66,6 @@ export function createLearningSync({appId,learnerId='default',accountId='guest',
   if(owner==='guest')throw Error('Sign in first');
   if(!approved)throw Error('Explicit approval required to import guest history');
   const guest=load('guest'),marker=device+':guest';
-  if(state.imports[marker])return status();
   for(const original of Object.values(guest.chunks)){
    const id='import-'+original.id;
    if(!state.chunks[id]){const c={...copy(original),id,source:'guest-import'};if(!checkChunk(c))throw Error('Invalid guest data');state.chunks[id]=c;state.pending.push(id);}
