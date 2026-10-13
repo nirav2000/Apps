@@ -1,0 +1,40 @@
+name: Shared Diagnostics browser validation
+on:
+  push:
+    branches: [main]
+    paths: ['diagnostics/**', '.github/workflows/diagnostics-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Apps
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and unit tests
+        working-directory: Apps
+        run: |
+          find diagnostics -name '*.mjs' -print0 | xargs -0 -n1 node --check
+          node --test diagnostics/tests/core.test.mjs
+      - name: Install browser tools
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Browser test
+        working-directory: Apps
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 --directory .. > /tmp/diagnostics-server.log 2>&1 &
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8000/Apps/diagnostics/ >/dev/null && break; sleep 1; done
+          node diagnostics/tests/browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-diagnostics-browser
+          path: Apps/artifacts/
+          if-no-files-found: warn

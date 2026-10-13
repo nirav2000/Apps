@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {context,cleanEvent,RollingEvidence,analyse,makeReport,importReport,issueText} from '../v1/core.mjs';
+const frame={time:100,context:{phase:'running',profile:'phone',layout:'pairboard'},viewport:{x:0,y:0,width:390,height:844,scale:1},nodes:[{id:'pair-0',role:'pair',rect:{x:10,y:820,width:100,height:50},visible:true,required:true}]};
+test('no account or typed data in context',()=>{const c=context({phase:'running',target:840,password:'secret',email:'private'});assert.equal(c.target,840);assert.ok(!('password'in c));assert.ok(!('email'in c));});
+test('no raw key capture',()=>{const e=cleanEvent({type:'keydown',target:'pairInput',key:'a',value:'secret'});assert.ok(!('key'in e));assert.ok(!('value'in e));});
+test('ring bounds',()=>{let now=0;const r=new RollingEvidence(()=>now);for(let i=0;i<1000;i++){now++;r.event({type:'click',target:'key'});r.frame(frame);}assert.ok(r.snapshot().events.length<=600);assert.ok(r.snapshot().frames.length<=36);});
+test('outside viewport',()=>assert.equal(analyse([frame])[0].code,'outside-viewport'));
+test('untrusted imported findings are recalculated',()=>{const r=makeReport({appId:'dol',appVersion:'2.6.0',repository:'nirav2000/Dol',evidence:{frames:[frame]}});const x=importReport(JSON.stringify({...r,token:'secret',findings:[{code:'fake'}]}));assert.ok(!('token'in x));assert.equal(x.findings[0].code,'outside-viewport');assert.ok(issueText(x).includes('nirav2000/Dol'));});
