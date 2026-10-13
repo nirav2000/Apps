@@ -433,7 +433,7 @@
     },
     {
       "id": "platform",
-      "name": "Apps Platform v1.6.0",
+      "name": "Apps Platform v1.7.0",
       "file": "platform/v1/",
       "status": "implemented",
       "created": "2026-09-27",
@@ -442,7 +442,7 @@
         "TouchType": "installed",
         "Dol": "installed"
       },
-      "notes": "Version 1.6.0 adds the domain-neutral shared Learning SDK capability while keeping app business logic local.",
+      "notes": "v1.7.0 adds opt-in Learning Sync; legacy identity capability remains supported but marked legacy. No automatic installation in consumer apps.",
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
@@ -527,6 +527,34 @@
         "Dol": "not_required"
       },
       "notes": "Domain-neutral local-first learning event, heuristic mastery, review intervals; Dol is first consumer. Not a validated assessment model."
+    },
+    {
+      "id": "learning-sync",
+      "name": "Learning Sync v1.0",
+      "file": "learning-sync/v1/index.js",
+      "status": "implemented",
+      "created": "2026-10-13",
+      "purpose": "Identity-scoped offline-first learning evidence with durable local queue, explicit guest import, idempotent round chunks, authenticated Firestore transport and account isolation.",
+      "notes": "Opt-in App Platform capability. Requires matching Firebase Auth/Firestore project, secure Firestore rules and consumer integration. Not yet installed in consumer apps.",
+      "installed": {},
+      "adoption": {
+        "Apps": "available",
+        "Kk-syllabus": "available",
+        "Openday": "available",
+        "LearnLatin": "available",
+        "Comprehension": "available",
+        "beyond100": "available",
+        "Snag": "available",
+        "Next": "available",
+        "InClass": "available",
+        "App Monitor": "available",
+        "Firebase Usage Monitor": "available",
+        "Notifications Lab": "available",
+        "PWA Lab": "available",
+        "TouchType": "available",
+        "Dol": "available"
+      },
+      "userActivation": {}
     },
     {
       "id": "data",
