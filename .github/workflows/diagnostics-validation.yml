@@ -32,6 +32,14 @@ jobs:
           python3 -m http.server 8000 --bind 127.0.0.1 --directory .. > /tmp/diagnostics-server.log 2>&1 &
           for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8000/Apps/diagnostics/ >/dev/null && break; sleep 1; done
           node diagnostics/tests/browser.mjs
+      - name: Verify published Pages assets
+        run: |
+          set -e
+          for path in / /review.mjs /v1/index.mjs /releases/1.0.0/index.mjs; do
+            curl --fail --location --retry 10 --retry-delay 3 --retry-all-errors --silent --show-error "https://nirav2000.github.io/Apps/diagnostics$path" -o /tmp/shared-diagnostics-live
+            test -s /tmp/shared-diagnostics-live
+          done
+          echo 'Published Shared Diagnostics assets verified.'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
