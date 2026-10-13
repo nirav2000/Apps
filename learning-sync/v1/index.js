@@ -3,7 +3,7 @@ import {initialLearningState,recordLearningEvent,recordLearningSession} from '..
 export const VERSION='1.0.0';
 const valid=s=>{s=String(s||'');if(!/^[a-zA-Z0-9._-]{1,128}$/.test(s)||s==='.'||s==='..')throw Error('Invalid identifier');return s;};
 const copy=x=>JSON.parse(JSON.stringify(x));
-const blank=()=>({schema:1,seq:0,chunks:{},pending:[],seen:{events:0,sessions:0},imports:{}});
+const blank=()=>({schema:1,seq:0,chunks:{},pending:[],seen:{events:0,sessions:0},tails:{events:null,sessions:null},imports:{}});
 const checkChunk=x=>x&&x.schema===1&&/^[a-zA-Z0-9._-]{1,180}$/.test(x.id)&&Array.isArray(x.events)&&Array.isArray(x.sessions)&&x.events.length<=100&&x.sessions.length<=100&&Number.isFinite(x.createdAt)&&JSON.stringify(x).length<400000;
 export function mergeChunks(chunks){
  const rows=kind=>chunks.flatMap(c=>(c[kind]||[]).map((v,i)=>({id:c.id+':'+kind+':'+i,v}))).sort((a,b)=>(Number(a.v.timestamp||0)-Number(b.v.timestamp||0))||a.id.localeCompare(b.id));
@@ -39,10 +39,18 @@ export function createLearningSync({appId,learnerId='default',accountId='guest',
  function capture(data){
   if(disposed)throw Error('Disposed');
   if(!Array.isArray(data?.events)||!Array.isArray(data?.sessions))throw Error('Invalid learning snapshot');
-  // Explicit reset or capped learning history: do not accidentally reupload old rows.
-  if(data.events.length<state.seen.events||data.sessions.length<state.seen.sessions){state.seen={events:0,sessions:0};}
-  const events=data.events.slice(state.seen.events),sessions=data.sessions.slice(state.seen.sessions);
+  // Detect SDK capped-array sliding using the previous tail rather than array length alone.
+  // If the previous tail disappeared, require an explicit migration/rebase instead of silently duplicating evidence.
+  const delta=kind=>{
+   const rows=data[kind],tail=state.tails?.[kind],oldLength=state.seen[kind]||0;
+   if(!tail)return rows.slice(oldLength);
+   const index=rows.findLastIndex(row=>JSON.stringify(row)===tail);
+   if(index<0){if(!rows.length)return [];throw Error('Learning history was replaced; explicit rebase required');}
+   return rows.slice(index+1);
+  };
+  const events=delta('events'),sessions=delta('sessions');
   state.seen={events:data.events.length,sessions:data.sessions.length};
+  state.tails={events:data.events.length?JSON.stringify(data.events.at(-1)):state.tails?.events||null,sessions:data.sessions.length?JSON.stringify(data.sessions.at(-1)):state.tails?.sessions||null};
   if(events.length||sessions.length)add(events,sessions,'learning');else save();
   return status();
  }
