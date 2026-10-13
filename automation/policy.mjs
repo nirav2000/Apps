@@ -1,6 +1,6 @@
 // Only owner-created, structured diagnostics can enter the automatic recipe queue.
 // Text is data: never use it as code, shell input, a file path or an agent prompt.
-export const VERSION='1.0.1';
+export const VERSION='1.0.2';
 export const RECIPE='tablet-factor-visibility-v1';
 export function diagnostic(issue){
  const b=String(issue.body||'');

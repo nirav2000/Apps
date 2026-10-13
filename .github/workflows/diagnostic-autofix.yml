@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '22'
       - name: Validate bounded diagnostic policy
-        run: node --test automation/policy.test.mjs
+        run: node --test automation/*.test.mjs
       - name: Investigate new diagnostic reports
         env:
           GITHUB_TOKEN: ${{ github.token }}

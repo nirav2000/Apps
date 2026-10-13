@@ -1,10 +1,18 @@
 export const repository=process.env.GITHUB_REPOSITORY||'nirav2000/Apps';
-export async function api(path,{method='GET',body,optional=false}={}){
+export async function api(path,{method='GET',body,optional=false,retryDelayMs=500}={}){
  if(!/^\/repos\/nirav2000\/(Apps|Dol)\//.test(path))throw Error('Repository outside allow-list');
- const r=await fetch('https://api.github.com'+path,{method,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+process.env.GITHUB_TOKEN,'X-GitHub-Api-Version':'2022-11-28'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(45000)});
- if(optional&&r.status===404)return null;
- if(!r.ok)throw Error(`GitHub ${method} ${path.split('?')[0]}: ${r.status}`);
- return r.status===204?null:r.json();
+ // Reads and status replacement are idempotent. Never blindly repeat creation POSTs.
+ const attempts=['GET','PATCH'].includes(method)?3:1;
+ for(let attempt=1;attempt<=attempts;attempt++){
+  let r;
+  try{
+   r=await fetch('https://api.github.com'+path,{method,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+process.env.GITHUB_TOKEN,'X-GitHub-Api-Version':'2022-11-28',Connection:'close'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(45000)});
+  }catch(error){if(attempt===attempts)throw error;await new Promise(resolve=>setTimeout(resolve,retryDelayMs*attempt));continue;}
+  if(optional&&r.status===404)return null;
+  if(r.status>=500&&attempt<attempts){await r.arrayBuffer();await new Promise(resolve=>setTimeout(resolve,retryDelayMs*attempt));continue;}
+  if(!r.ok)throw Error(`GitHub ${method} ${path.split('?')[0]}: ${r.status}`);
+  return r.status===204?null:r.json();
+ }
 }
 export const issuePath=(repo,n)=>`/repos/${repo}/issues/${n}`;
 export async function commentStatus(repo,issue,status,message){

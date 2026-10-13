@@ -1,4 +1,4 @@
-# Controlled diagnostic fixes v1.0.1
+# Controlled diagnostic fixes v1.0.2
 
 Apps and Dol run on main only. New structured diagnostic issues are investigated on issue events and by scheduled sweeps. Apps triages its own reports immediately; the Dol worker polls Apps and Dol every ten minutes. GitHub schedules can be delayed. Run workflow manually for an immediate sweep.
 
@@ -13,3 +13,5 @@ Set repository variable `DIAGNOSTIC_AUTOFIX_PAUSED` to `true` in either reposito
 No cross-repository secret is needed: each token writes only to its own repository. Apps reads Dol's public evidence; Dol reads Apps' public issues. No raw media, account data or recorded typed text is published.
 
 A bootstrap can include the independently tested recipe. In that case the worker reproduces the parent revision of the tablet CSS, restores the tested installed recipe, and validates it before incrementing the release and deploying. It rejects a modified recipe rather than silently applying over unfamiliar code.
+
+GitHub reads and status replacement PATCH requests have three bounded retries for transient connection/5xx failures. Creation POST requests are not blindly retried; marker lookup makes a later run retry-safe without duplicate comments or labels. Each request closes its connection to avoid stale sockets after a long browser gate.
