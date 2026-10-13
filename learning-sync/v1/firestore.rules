@@ -1,0 +1,25 @@
+// Merge into the target Firebase project's Firestore rules; not auto-deployed.
+// Auth and Firestore MUST be the same Firebase project.
+// Rules reject cross-user reads, updates, deletes and unauthenticated writes.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /learningSyncApps/{appId}/users/{userId}/learners/{learnerId}/chunks/{chunkId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.ownerUid == userId
+        && request.resource.data.id == chunkId
+        && request.resource.data.schema == 1
+        && request.resource.data.events is list
+        && request.resource.data.sessions is list
+        && request.resource.data.events.size() <= 100
+        && request.resource.data.sessions.size() <= 100;
+      // Immutable event chunks. Retry a write with the same ID only if identical.
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && resource.data == request.resource.data;
+      allow delete: if false;
+    }
+  }
+}
