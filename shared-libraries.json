@@ -535,9 +535,9 @@
       "status": "implemented",
       "created": "2026-10-13",
       "purpose": "Identity-scoped offline-first learning evidence with durable local queue, explicit guest import, idempotent round chunks, authenticated Firestore transport and account isolation.",
-      "notes": "Dol v2.6.8 integrates guest-only local evidence. Cloud login, Firebase rules, signed-in migration, and remote reset are deliberately not enabled; integration must pass security gates first.",
+      "notes": "Dol v2.6.9 has Firebase login and authenticated Learning Sync using kk-syllabus. Live browser and cross-device smoke verification pending. Cloud reset remains disabled pending tombstone/deletion support.",
       "installed": {
-        "Dol": "local"
+        "Dol": "installed"
       },
       "adoption": {
         "Apps": "available",
@@ -554,7 +554,7 @@
         "Notifications Lab": "available",
         "PWA Lab": "available",
         "TouchType": "available",
-        "Dol": "local"
+        "Dol": "installed"
       },
       "userActivation": {}
     },
