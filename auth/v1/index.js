@@ -220,9 +220,15 @@ function providerFor(fb,name){
   if(name==='apple')return new fb.Auth.OAuthProvider('apple.com');
   throw new Error('Unsupported provider: '+name);
 }
-async function popupProvider(name){
+function popupProvider(name){
   if(state.identityProvider?.signInProvider)return state.identityProvider.signInProvider(name);
-  const fb=await ensureFirebase();return fb.Auth.signInWithPopup(fb.auth,providerFor(fb,name));
+  // Firebase is warmed during Auth.init. Do not await before opening the
+  // provider popup: Safari/iOS may discard the original user activation.
+  const fb=state.firebase;
+  if(fb)return fb.Auth.signInWithPopup(fb.auth,providerFor(fb,name));
+  // Before initialization, fail clearly instead of launching an OAuth popup
+  // outside the trusted tap event.
+  return Promise.reject(Object.assign(new Error('Sign-in is still loading. Please try again.'),{code:'AUTH_NOT_READY'}));
 }
 async function linkProvider(name){
   if(state.identityProvider?.linkProvider)return state.identityProvider.linkProvider(name);
