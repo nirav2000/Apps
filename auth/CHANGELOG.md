@@ -1,3 +1,6 @@
+## Unreleased (v1 line)
+- Keep Google/Apple popup creation synchronous with the user tap on Safari/iOS; avoid losing popup permission while awaiting Firebase initialization. Consumer apps should initialize Auth before enabling provider buttons.
+
 # Shared Auth changelog
 
 ## 1.3.0 - 2026-10-03
