@@ -1,0 +1,13 @@
+{
+  "source": "ai-atlas/source",
+  "destination": "ai-atlas",
+  "files": ["index.html", "app.js", "boot.js", "styles.css", "version.json"],
+  "datasets": {
+    "ai-atlas/data/2026-10-18.json": "release-data/2026-10-18.json",
+    "ai-atlas/data/history.json": "release-data/history.json"
+  },
+  "testFiles": {
+    "ai-atlas/validation.config.json": "validation.config.json",
+    "ai-atlas/tests/release-scenario.mjs": "tests/release-scenario.mjs"
+  }
+}

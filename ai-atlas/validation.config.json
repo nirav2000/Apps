@@ -1,0 +1,22 @@
+{
+  "ignore": ["artifacts"],
+  "pages": [{"path":"/", "readySelector":"#status[data-state=ready]", "minCount":1}],
+  "jsonSchemas": [
+    {"file":"release-data/2026-10-18.json","path":["models"],"type":"array","minItems":1},
+    {"file":"release-data/history.json","path":["annual"],"type":"array","minItems":1}
+  ],
+  "releaseGate": {
+    "enabled": true,
+    "scenarioModule": "tests/release-scenario.mjs",
+    "path": "/",
+    "readySelector": "#status[data-state=ready]",
+    "allowExternalNetwork": false,
+    "maxExternalRequests": 0,
+    "maxLocalRequests": 20,
+    "maxLocalBytes": 2000000,
+    "maxFirebaseReads": 0,
+    "maxFirebaseWrites": 0,
+    "maxFirebaseDeletes": 0,
+    "maxFirebaseListeners": 0
+  }
+}
