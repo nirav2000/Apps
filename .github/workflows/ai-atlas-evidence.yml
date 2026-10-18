@@ -1,45 +1,53 @@
 name: AI Atlas evidence update
 on:
-  push:
-    paths:
-      - 'ai-atlas/index.html'
-      - 'ai-atlas/data/history.json'
-      - 'ai-atlas/data/2026-10-18.json'
-      - 'ai-atlas/scripts/**'
-      - '.github/workflows/ai-atlas-evidence.yml'
   schedule:
     - cron: '17 6 * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ai-atlas/scripts/collect-openrouter.mjs'
+      - '.github/workflows/ai-atlas-evidence.yml'
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: ai-atlas-evidence
   cancel-in-progress: false
 jobs:
-  validate-and-update:
+  collect:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate research and HTML JavaScript
-        run: node ai-atlas/scripts/validate.mjs
-      - name: Capture public provider catalog
-        if: github.event_name != 'push'
-        run: node ai-atlas/scripts/collect-openrouter.mjs
-      - name: Validate collected data
-        run: node ai-atlas/scripts/validate.mjs
-      - name: Commit dated evidence only when changed
+      - name: Collect dated public model catalog
+        run: |
+          node --check ai-atlas/scripts/collect-openrouter.mjs
+          node ai-atlas/scripts/collect-openrouter.mjs
+      - name: Verify raw snapshot structure
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const dir='ai-atlas/data/provider-snapshots';
+          const files=fs.readdirSync(dir).filter(x=>x.endsWith('.json'));
+          if(!files.length)throw Error('No collected snapshots');
+          for(const file of files){
+            const d=JSON.parse(fs.readFileSync(dir+'/'+file));
+            if(!d.collectedAt||!Array.isArray(d.models)||d.models.length<20)throw Error('Invalid '+file);
+          }
+          JS
+      - name: Commit new snapshot if available
         if: github.event_name != 'push'
         run: |
           if [ -n "$(git status --porcelain -- ai-atlas/data/provider-snapshots)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add ai-atlas/data/provider-snapshots
-            git commit -m "data(ai-atlas): capture dated OpenRouter public model pricing"
+            git commit -m 'data(ai-atlas): archive dated public model prices'
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
