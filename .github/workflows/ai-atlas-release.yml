@@ -1,0 +1,66 @@
+name: AI Atlas gated release
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ai-atlas/source/**'
+      - 'ai-atlas/data/history.json'
+      - 'ai-atlas/data/2026-10-18.json'
+      - 'ai-atlas/scripts/validate.mjs'
+      - 'ai-atlas/tests/**'
+      - 'ai-atlas/validation.config.json'
+      - '.github/workflows/ai-atlas-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: ai-atlas-release
+  cancel-in-progress: false
+jobs:
+  validate-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare isolated candidate
+        run: |
+          mkdir -p .atlas-candidate/release-data .atlas-candidate/tests
+          cp ai-atlas/source/index.html ai-atlas/source/app.js ai-atlas/source/boot.js ai-atlas/source/styles.css ai-atlas/source/version.json .atlas-candidate/
+          cp ai-atlas/data/2026-10-18.json ai-atlas/data/history.json .atlas-candidate/release-data/
+          cp ai-atlas/validation.config.json .atlas-candidate/validation.config.json
+          cp ai-atlas/tests/release-scenario.mjs .atlas-candidate/tests/
+      - name: Static and evidence checks
+        run: |
+          node ai-atlas/scripts/validate.mjs .atlas-candidate
+          node validation/validate-static-app.mjs .atlas-candidate validation.config.json
+      - name: Install browser dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Shared browser release gate
+        run: |
+          node validation/smoke-test.mjs .atlas-candidate validation.config.json
+          node validation/release-gate.mjs .atlas-candidate validation.config.json
+      - name: Promote approved assets to public directory
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+          cp .atlas-candidate/index.html .atlas-candidate/app.js .atlas-candidate/boot.js .atlas-candidate/styles.css .atlas-candidate/version.json ai-atlas/
+          mkdir -p ai-atlas/release-data
+          cp .atlas-candidate/release-data/*.json ai-atlas/release-data/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ai-atlas/index.html ai-atlas/app.js ai-atlas/boot.js ai-atlas/styles.css ai-atlas/version.json ai-atlas/release-data
+          if ! git diff --cached --quiet; then
+            git commit -m "release(ai-atlas): publish validated assets"
+            git push origin HEAD:main
+          fi
+      - name: Save test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-atlas-gate-evidence
+          path: .atlas-candidate/artifacts/
+          if-no-files-found: ignore
