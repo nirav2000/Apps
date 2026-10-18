@@ -1,0 +1,36 @@
+name: AI Atlas evidence update
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: ai-atlas-evidence
+  cancel-in-progress: false
+jobs:
+  validate-and-update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate research and HTML JavaScript
+        run: node ai-atlas/scripts/validate.mjs
+      - name: Capture public provider catalog
+        run: node ai-atlas/scripts/collect-openrouter.mjs
+      - name: Validate collected data
+        run: node ai-atlas/scripts/validate.mjs
+      - name: Commit dated evidence only when changed
+        run: |
+          if [ -n "$(git status --porcelain -- ai-atlas/data/provider-snapshots)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add ai-atlas/data/provider-snapshots
+            git commit -m "data(ai-atlas): capture dated OpenRouter public model pricing"
+            git push origin HEAD:main
+          fi
