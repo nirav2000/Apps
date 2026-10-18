@@ -1,0 +1,1089 @@
+{
+  "schemaVersion": 2,
+  "version": "1.0.0",
+  "curatedAt": "2026-10-18",
+  "method": "A separate append-only curated history; fiscal years end in June for Microsoft, December for Alphabet, Amazon and Meta. No fabricated monthly investment amounts.",
+  "sources": {
+    "capexAnnual": {
+      "label": "capex Annual",
+      "url": "https://www.financecharts.com/compare/META%2CAMZN%2CMSFT%2CGOOG/cash-flow/capital-expenditures-annual",
+      "type": "SEC-derived financial aggregator"
+    },
+    "capexAlphabet": {
+      "label": "capex Alphabet",
+      "url": "https://www.financecharts.com/stocks/GOOGL/cash-flow/capital-expenditures-annual",
+      "type": "SEC-derived financial aggregator"
+    },
+    "capexMicrosoft": {
+      "label": "capex Microsoft",
+      "url": "https://www.financecharts.com/stocks/MSFT/cash-flow/capital-expenditures-annual",
+      "type": "SEC-derived financial aggregator"
+    },
+    "capexMeta": {
+      "label": "capex Meta",
+      "url": "https://www.financecharts.com/stocks/META/cash-flow/capital-expenditures-annual",
+      "type": "SEC-derived financial aggregator"
+    },
+    "capexAmazon": {
+      "label": "capex Amazon",
+      "url": "https://www.financecharts.com/compare/AMZN%2CGOOG/cash-flow/capital-expenditures-annual",
+      "type": "SEC-derived financial aggregator"
+    },
+    "alphabetQuarter": {
+      "label": "alphabet Quarter",
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm",
+      "type": "dated original reporting or research"
+    },
+    "alphabetSlides25": {
+      "label": "alphabet Slides25",
+      "url": "https://s206.q4cdn.com/479360582/files/doc_financials/2025/q2/2025q2-alphabet-earnings-slides.pdf",
+      "type": "dated original reporting or research"
+    },
+    "alphabetQuarterHistory": {
+      "label": "alphabet Quarter History",
+      "url": "https://tickerstat.com/GOOGL/capital-expenditures",
+      "type": "dated original reporting or research"
+    },
+    "microsoft10k": {
+      "label": "microsoft10k",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+      "type": "dated original reporting or research"
+    },
+    "metaQuarter": {
+      "label": "meta Quarter",
+      "url": "https://investor.atmeta.com/investor-news/press-release-details/2026/Meta-Reports-Second-Quarter-2026-Results/",
+      "type": "dated original reporting or research"
+    },
+    "openai2020": {
+      "label": "openai2020",
+      "url": "https://openai.com/index/openai-api/",
+      "type": "dated original reporting or research"
+    },
+    "chatgpt": {
+      "label": "chatgpt",
+      "url": "https://openai.com/index/chatgpt/",
+      "type": "dated original reporting or research"
+    },
+    "gpt4": {
+      "label": "gpt4",
+      "url": "https://openai.com/index/gpt-4/",
+      "type": "dated original reporting or research"
+    },
+    "llama2": {
+      "label": "llama2",
+      "url": "https://about.fb.com/news/2023/07/llama-2/",
+      "type": "dated original reporting or research"
+    },
+    "llama3": {
+      "label": "llama3",
+      "url": "https://ai.meta.com/blog/meta-llama-3",
+      "type": "dated original reporting or research"
+    },
+    "gpt4o": {
+      "label": "gpt4o",
+      "url": "https://openai.com/index/hello-gpt-4o/",
+      "type": "dated original reporting or research"
+    },
+    "gpt4omini": {
+      "label": "gpt4omini",
+      "url": "https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/",
+      "type": "dated original reporting or research"
+    },
+    "claude35": {
+      "label": "claude35",
+      "url": "https://www.anthropic.com/research/claude-3-5-sonnet",
+      "type": "dated original reporting or research"
+    },
+    "deepseek": {
+      "label": "deepseek",
+      "url": "https://deepseek.com/en/news/deepseek-r1/",
+      "type": "dated original reporting or research"
+    },
+    "qwen3": {
+      "label": "qwen3",
+      "url": "https://www.alibabacloud.com/en/press-room/alibaba-introduces-qwen3-setting-new-benchmark",
+      "type": "dated original reporting or research"
+    },
+    "gpt41": {
+      "label": "gpt41",
+      "url": "https://openai.com/index/gpt-4-1/",
+      "type": "dated original reporting or research"
+    },
+    "gpt5": {
+      "label": "gpt5",
+      "url": "https://openai.com/index/introducing-gpt-5-for-developers/",
+      "type": "dated original reporting or research"
+    },
+    "gpt6": {
+      "label": "gpt6",
+      "url": "https://openai.com/index/gpt-6-astra/",
+      "type": "dated original reporting or research"
+    },
+    "anthropicNews": {
+      "label": "anthropic News",
+      "url": "https://www.anthropic.com/news",
+      "type": "dated original reporting or research"
+    },
+    "anthropicHaiku": {
+      "label": "anthropic Haiku",
+      "url": "https://www.anthropic.com/claude-haiku-5-5",
+      "type": "dated original reporting or research"
+    },
+    "openaiJun23": {
+      "label": "openai Jun23",
+      "url": "https://openai.com/index/function-calling-and-other-api-updates/",
+      "type": "dated original reporting or research"
+    },
+    "openaiDevDay": {
+      "label": "openai Dev Day",
+      "url": "https://openai.com/index/new-models-and-developer-products-announced-at-devday/",
+      "type": "dated original reporting or research"
+    },
+    "openaiGpt4oAPI": {
+      "label": "openai Gpt4o A P I",
+      "url": "https://community.openai.com/t/announcing-gpt-4o-in-the-api/744700",
+      "type": "dated original reporting or research"
+    },
+    "openaiCache": {
+      "label": "openai Cache",
+      "url": "https://openai.com/index/api-prompt-caching/",
+      "type": "dated original reporting or research"
+    },
+    "artificial": {
+      "label": "artificial",
+      "url": "https://artificialanalysis.ai/ja/articles/artificial-analysis-intelligence-index-v4-3",
+      "type": "dated original reporting or research"
+    },
+    "stanford": {
+      "label": "stanford",
+      "url": "https://hai.stanford.edu/news/ai-index-2025-state-of-ai-in-10-charts",
+      "type": "dated original reporting or research"
+    },
+    "openrouter": {
+      "label": "openrouter",
+      "url": "https://openrouter.ai/api/v1/models",
+      "type": "dated original reporting or research"
+    },
+    "sec": {
+      "label": "sec",
+      "url": "https://data.sec.gov/api/xbrl/companyfacts/",
+      "type": "US SEC"
+    },
+    "meta2024": {
+      "label": "meta2024",
+      "url": "https://investor.atmeta.com/investor-news/press-release-details/2025/Meta-Reports-Fourth-Quarter-and-Full-Year-2024-Results/",
+      "type": "dated original reporting or research"
+    },
+    "meta2026": {
+      "label": "meta2026",
+      "url": "https://investor.atmeta.com/investor-news/press-release-details/2026/Meta-Reports-Second-Quarter-2026-Results/",
+      "type": "dated original reporting or research"
+    }
+  },
+  "annual": [
+    {
+      "id": "alphabet-2020-annual-capex",
+      "company": "Alphabet",
+      "year": 2020,
+      "periodEnd": "2020-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 22.281,
+      "source": "capexAlphabet",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "alphabet-2021-annual-capex",
+      "company": "Alphabet",
+      "year": 2021,
+      "periodEnd": "2021-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 24.64,
+      "source": "capexAlphabet",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "alphabet-2022-annual-capex",
+      "company": "Alphabet",
+      "year": 2022,
+      "periodEnd": "2022-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 31.485,
+      "source": "capexAlphabet",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "alphabet-2023-annual-capex",
+      "company": "Alphabet",
+      "year": 2023,
+      "periodEnd": "2023-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 32.251,
+      "source": "capexAlphabet",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "alphabet-2024-annual-capex",
+      "company": "Alphabet",
+      "year": 2024,
+      "periodEnd": "2024-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 52.535,
+      "source": "capexAlphabet",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "alphabet-2025-annual-capex",
+      "company": "Alphabet",
+      "year": 2025,
+      "periodEnd": "2025-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 91.447,
+      "source": "capexAlphabet",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "microsoft-2020-annual-capex",
+      "company": "Microsoft",
+      "year": 2020,
+      "periodEnd": "2020-06-30",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 15.441,
+      "source": "capexMicrosoft",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": true
+    },
+    {
+      "id": "microsoft-2021-annual-capex",
+      "company": "Microsoft",
+      "year": 2021,
+      "periodEnd": "2021-06-30",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 20.622,
+      "source": "capexMicrosoft",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": true
+    },
+    {
+      "id": "microsoft-2022-annual-capex",
+      "company": "Microsoft",
+      "year": 2022,
+      "periodEnd": "2022-06-30",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 23.886,
+      "source": "capexMicrosoft",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": true
+    },
+    {
+      "id": "microsoft-2023-annual-capex",
+      "company": "Microsoft",
+      "year": 2023,
+      "periodEnd": "2023-06-30",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 28.107,
+      "source": "capexMicrosoft",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": true
+    },
+    {
+      "id": "microsoft-2024-annual-capex",
+      "company": "Microsoft",
+      "year": 2024,
+      "periodEnd": "2024-06-30",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 44.477,
+      "source": "capexMicrosoft",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": true
+    },
+    {
+      "id": "microsoft-2025-annual-capex",
+      "company": "Microsoft",
+      "year": 2025,
+      "periodEnd": "2025-06-30",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 64.551,
+      "source": "capexMicrosoft",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": true
+    },
+    {
+      "id": "microsoft-2026-annual-capex",
+      "company": "Microsoft",
+      "year": 2026,
+      "periodEnd": "2026-06-30",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 115.948,
+      "source": "capexMicrosoft",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": true
+    },
+    {
+      "id": "amazon-2020-annual-capex",
+      "company": "Amazon",
+      "year": 2020,
+      "periodEnd": "2020-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 40.14,
+      "source": "capexAmazon",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "amazon-2021-annual-capex",
+      "company": "Amazon",
+      "year": 2021,
+      "periodEnd": "2021-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 61.053,
+      "source": "capexAmazon",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "amazon-2022-annual-capex",
+      "company": "Amazon",
+      "year": 2022,
+      "periodEnd": "2022-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 63.645,
+      "source": "capexAmazon",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "amazon-2023-annual-capex",
+      "company": "Amazon",
+      "year": 2023,
+      "periodEnd": "2023-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 52.729,
+      "source": "capexAmazon",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "amazon-2024-annual-capex",
+      "company": "Amazon",
+      "year": 2024,
+      "periodEnd": "2024-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 82.999,
+      "source": "capexAmazon",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "amazon-2025-annual-capex",
+      "company": "Amazon",
+      "year": 2025,
+      "periodEnd": "2025-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 131.819,
+      "source": "capexAmazon",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "meta-2020-annual-capex",
+      "company": "Meta",
+      "year": 2020,
+      "periodEnd": "2020-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 15.115,
+      "source": "capexMeta",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "meta-2021-annual-capex",
+      "company": "Meta",
+      "year": 2021,
+      "periodEnd": "2021-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 18.567,
+      "source": "capexMeta",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "meta-2022-annual-capex",
+      "company": "Meta",
+      "year": 2022,
+      "periodEnd": "2022-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 31.431,
+      "source": "capexMeta",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "meta-2023-annual-capex",
+      "company": "Meta",
+      "year": 2023,
+      "periodEnd": "2023-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 27.266,
+      "source": "capexMeta",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "meta-2024-annual-capex",
+      "company": "Meta",
+      "year": 2024,
+      "periodEnd": "2024-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 37.256,
+      "source": "capexMeta",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    },
+    {
+      "id": "meta-2025-annual-capex",
+      "company": "Meta",
+      "year": 2025,
+      "periodEnd": "2025-12-31",
+      "basis": "cash property and equipment purchases (company-wide; excludes finance lease principal)",
+      "measure": "PPE acquisition cash outflow",
+      "bn": 69.691,
+      "source": "capexMeta",
+      "validation": "reported SEC-based financial aggregation",
+      "status": "actual",
+      "fiscalYear": false
+    }
+  ],
+  "quarterly": [
+    {
+      "company": "Alphabet",
+      "period": "2023-Q1",
+      "bn": 6.29,
+      "source": "alphabetQuarterHistory",
+      "status": "actual",
+      "definition": "cash property/equipment additions, reported quarter; company-wide"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2023-Q2",
+      "bn": 6.89,
+      "source": "alphabetQuarterHistory",
+      "status": "actual",
+      "definition": "cash property/equipment additions, reported quarter; company-wide"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2023-Q3",
+      "bn": 8.05,
+      "source": "alphabetQuarterHistory",
+      "status": "actual",
+      "definition": "cash property/equipment additions, reported quarter; company-wide"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2023-Q4",
+      "bn": 11.02,
+      "source": "alphabetQuarterHistory",
+      "status": "actual",
+      "definition": "cash property/equipment additions, reported quarter; company-wide"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2024-Q1",
+      "bn": 12.01,
+      "source": "alphabetSlides25",
+      "status": "actual",
+      "definition": "cash property/equipment additions, reported quarter; company-wide"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2024-Q2",
+      "bn": 13.186,
+      "source": "alphabetSlides25",
+      "status": "actual",
+      "definition": "cash property/equipment additions, reported quarter; company-wide"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2024-Q3",
+      "bn": 13.061,
+      "source": "alphabetSlides25",
+      "status": "actual",
+      "definition": "cash property/equipment additions, reported quarter; company-wide"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2024-Q4",
+      "bn": 14.276,
+      "source": "alphabetSlides25",
+      "status": "actual",
+      "definition": "cash property/equipment additions, reported quarter; company-wide"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2025-Q1",
+      "bn": 17.197,
+      "source": "alphabetSlides25",
+      "status": "actual",
+      "definition": "cash property/equipment additions, reported quarter; company-wide"
+    }
+  ],
+  "priceHistory": [
+    {
+      "id": "p-2023-06-13-gpt-3-5-turbo-0613-",
+      "date": "2023-06-13",
+      "model": "GPT-3.5 Turbo (0613)",
+      "input": 1.5,
+      "output": 2,
+      "provider": "OpenAI",
+      "source": "openaiJun23",
+      "status": "documented historical offer",
+      "note": "published 2023-06 launch pricing",
+      "basis": "nominal USD per 1 million uncached text tokens; standard API, where available",
+      "notSameModel": true
+    },
+    {
+      "id": "p-2023-11-06-gpt-3-5-turbo-1106-",
+      "date": "2023-11-06",
+      "model": "GPT-3.5 Turbo (1106)",
+      "input": 1,
+      "output": 2,
+      "provider": "OpenAI",
+      "source": "openaiDevDay",
+      "status": "documented historical offer",
+      "note": "published November 2023 launch pricing",
+      "basis": "nominal USD per 1 million uncached text tokens; standard API, where available",
+      "notSameModel": true
+    },
+    {
+      "id": "p-2024-05-13-gpt-4o",
+      "date": "2024-05-13",
+      "model": "GPT-4o",
+      "input": 5,
+      "output": 15,
+      "provider": "OpenAI",
+      "source": "openaiGpt4oAPI",
+      "status": "documented historical offer",
+      "note": "original May 2024 launch pricing",
+      "basis": "nominal USD per 1 million uncached text tokens; standard API, where available",
+      "notSameModel": true
+    },
+    {
+      "id": "p-2024-06-21-claude-3-5-sonnet",
+      "date": "2024-06-21",
+      "model": "Claude 3.5 Sonnet",
+      "input": 3,
+      "output": 15,
+      "provider": "Anthropic",
+      "source": "claude35",
+      "status": "documented historical offer",
+      "note": "June 2024 launch pricing",
+      "basis": "nominal USD per 1 million uncached text tokens; standard API, where available",
+      "notSameModel": true
+    },
+    {
+      "id": "p-2024-07-18-gpt-4o-mini",
+      "date": "2024-07-18",
+      "model": "GPT-4o mini",
+      "input": 0.15,
+      "output": 0.6,
+      "provider": "OpenAI",
+      "source": "gpt4omini",
+      "status": "documented historical offer",
+      "note": "July 2024 launch pricing",
+      "basis": "nominal USD per 1 million uncached text tokens; standard API, where available",
+      "notSameModel": true
+    },
+    {
+      "id": "p-2024-08-06-gpt-4o-aug-2024-snapshot-",
+      "date": "2024-08-06",
+      "model": "GPT-4o (Aug 2024 snapshot)",
+      "input": 2.5,
+      "output": 10,
+      "provider": "OpenAI",
+      "source": "openaiCache",
+      "status": "documented historical offer",
+      "note": "snapshot in October 2024 cache announcement",
+      "basis": "nominal USD per 1 million uncached text tokens; standard API, where available",
+      "notSameModel": true
+    },
+    {
+      "id": "p-2025-01-20-deepseek-r1-cache-miss-",
+      "date": "2025-01-20",
+      "model": "DeepSeek-R1 (cache miss)",
+      "input": 0.55,
+      "output": 2.19,
+      "provider": "DeepSeek",
+      "source": "deepseek",
+      "status": "documented historical offer",
+      "note": "published launch price; excludes cached discounts",
+      "basis": "nominal USD per 1 million uncached text tokens; standard API, where available",
+      "notSameModel": true
+    },
+    {
+      "id": "p-2025-04-14-gpt-4-1-mini",
+      "date": "2025-04-14",
+      "model": "GPT-4.1 mini",
+      "input": 0.4,
+      "output": 1.6,
+      "provider": "OpenAI",
+      "source": "gpt41",
+      "status": "documented historical offer",
+      "note": "April 2025 launch pricing",
+      "basis": "nominal USD per 1 million uncached text tokens; standard API, where available",
+      "notSameModel": true
+    },
+    {
+      "id": "p-2025-04-14-gpt-4-1-nano",
+      "date": "2025-04-14",
+      "model": "GPT-4.1 nano",
+      "input": 0.1,
+      "output": 0.4,
+      "provider": "OpenAI",
+      "source": "gpt41",
+      "status": "documented historical offer",
+      "note": "April 2025 launch pricing",
+      "basis": "nominal USD per 1 million uncached text tokens; standard API, where available",
+      "notSameModel": true
+    }
+  ],
+  "events": [
+    {
+      "id": "e-2020-06-11-openai-opens-its-general-purpose-api",
+      "date": "2020-06-11",
+      "area": "Platform",
+      "provider": "OpenAI",
+      "title": "OpenAI opens its general-purpose API",
+      "detail": "Early commercial foundation for model-as-a-service.",
+      "source": "openai2020",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2022-11-30-chatgpt-research-preview",
+      "date": "2022-11-30",
+      "area": "Adoption",
+      "provider": "OpenAI",
+      "title": "ChatGPT research preview",
+      "detail": "Conversational interface turns large-model capabilities into a mass consumer product.",
+      "source": "chatgpt",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2023-03-14-gpt-4-introduced",
+      "date": "2023-03-14",
+      "area": "Models",
+      "provider": "OpenAI",
+      "title": "GPT-4 introduced",
+      "detail": "A widely followed new model capability milestone, before the later reasoning-model shift.",
+      "source": "gpt4",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2023-06-13-gpt-3-5-turbo-input-pricing-reduced",
+      "date": "2023-06-13",
+      "area": "Pricing",
+      "provider": "OpenAI",
+      "title": "GPT-3.5 Turbo input pricing reduced",
+      "detail": "Published $1.50 per million input and $2 per million output tokens for new version.",
+      "source": "openaiJun23",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2023-07-18-llama-2-weights-released",
+      "date": "2023-07-18",
+      "area": "Open weights",
+      "provider": "Meta",
+      "title": "Llama 2 weights released",
+      "detail": "Redistribution under Meta community terms; open-weight is not automatically open-source.",
+      "source": "llama2",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2023-11-06-gpt-4-turbo-cheaper-than-gpt-4",
+      "date": "2023-11-06",
+      "area": "Pricing",
+      "provider": "OpenAI",
+      "title": "GPT-4 Turbo cheaper than GPT-4",
+      "detail": "Launch rate $10 input / $30 output per million tokens compared with GPT-4 $30/$60.",
+      "source": "openaiDevDay",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2024-04-18-llama-3-released",
+      "date": "2024-04-18",
+      "area": "Open weights",
+      "provider": "Meta",
+      "title": "Llama 3 released",
+      "detail": "Llama family expands open-weight model ecosystem.",
+      "source": "llama3",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2024-05-13-gpt-4o-introduced",
+      "date": "2024-05-13",
+      "area": "Models",
+      "provider": "OpenAI",
+      "title": "GPT-4o introduced",
+      "detail": "Multimodal text, vision and audio platform, initially $5/$15 per million text tokens.",
+      "source": "gpt4o",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2024-06-21-claude-3-5-sonnet-introduced",
+      "date": "2024-06-21",
+      "area": "Models",
+      "provider": "Anthropic",
+      "title": "Claude 3.5 Sonnet introduced",
+      "detail": "Mid-tier model released at $3/$15 per million standard text tokens.",
+      "source": "claude35",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2024-07-18-gpt-4o-mini-resets-small-model-pricing",
+      "date": "2024-07-18",
+      "area": "Pricing",
+      "provider": "OpenAI",
+      "title": "GPT-4o mini resets small-model pricing",
+      "detail": "Initial API pricing $0.15/$0.60 per million input/output tokens.",
+      "source": "gpt4omini",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2025-01-20-deepseek-r1-open-reasoning-release",
+      "date": "2025-01-20",
+      "area": "Open weights",
+      "provider": "DeepSeek",
+      "title": "DeepSeek-R1 open reasoning release",
+      "detail": "Chinese reasoning model released with MIT licence and hosted API.",
+      "source": "deepseek",
+      "country": "China",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2025-04-14-gpt-4-1-family-released",
+      "date": "2025-04-14",
+      "area": "Pricing",
+      "provider": "OpenAI",
+      "title": "GPT-4.1 family released",
+      "detail": "Family launches including mini and nano for cost-sensitive apps.",
+      "source": "gpt41",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2025-04-29-qwen3-family-released",
+      "date": "2025-04-29",
+      "area": "Open weights",
+      "provider": "Alibaba",
+      "title": "Qwen3 family released",
+      "detail": "Dense and mixture-of-experts models across small and very large sizes.",
+      "source": "qwen3",
+      "country": "China",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2025-08-07-gpt-5-api-family-introduced",
+      "date": "2025-08-07",
+      "area": "Models",
+      "provider": "OpenAI",
+      "title": "GPT-5 API family introduced",
+      "detail": "New model generation and published developer token rates.",
+      "source": "gpt5",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2026-09-03-gpt-6-astra-introduced",
+      "date": "2026-09-03",
+      "area": "Models",
+      "provider": "OpenAI",
+      "title": "GPT-6 Astra introduced",
+      "detail": "High-end flagship; published $10/$50 standard API rates.",
+      "source": "gpt6",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2026-09-22-claude-opus-5-5-introduced",
+      "date": "2026-09-22",
+      "area": "Models",
+      "provider": "Anthropic",
+      "title": "Claude Opus 5.5 introduced",
+      "detail": "New flagship generation; provider announces reduced costs relative to earlier Opus.",
+      "source": "anthropicNews",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2026-09-28-claude-sonnet-5-5-introduced",
+      "date": "2026-09-28",
+      "area": "Models",
+      "provider": "Anthropic",
+      "title": "Claude Sonnet 5.5 introduced",
+      "detail": "New general-purpose generation and new pricing; vendor statement.",
+      "source": "anthropicNews",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2026-10-07-claude-haiku-5-5-introduced",
+      "date": "2026-10-07",
+      "area": "Models",
+      "provider": "Anthropic",
+      "title": "Claude Haiku 5.5 introduced",
+      "detail": "Cost-oriented model for high-volume tasks.",
+      "source": "anthropicHaiku",
+      "country": "United States",
+      "status": "verified dated announcement"
+    },
+    {
+      "id": "e-2026-10-18-v4-3-2-index-snapshot",
+      "date": "2026-10-18",
+      "area": "Benchmark",
+      "provider": "Artificial Analysis",
+      "title": "v4.3.2 index snapshot",
+      "detail": "Benchmark methodology changed during 2026; scores from different index versions must not be joined.",
+      "source": "artificial",
+      "country": "United States",
+      "status": "verified dated announcement"
+    }
+  ],
+  "countries": [
+    {
+      "country": "United States",
+      "focus": "Cloud capital, leading commercial model labs, enterprise demand",
+      "players": [
+        "Microsoft / Azure",
+        "Amazon / AWS",
+        "Google / DeepMind",
+        "Meta",
+        "OpenAI",
+        "Anthropic",
+        "xAI"
+      ],
+      "risks": [
+        "Revenue concentration",
+        "Power supply",
+        "Infrastructure depreciation"
+      ]
+    },
+    {
+      "country": "China",
+      "focus": "Highly competitive open-weight families, domestic cloud and chip supply",
+      "players": [
+        "Alibaba / Qwen",
+        "DeepSeek",
+        "Z.ai / GLM",
+        "Moonshot / Kimi",
+        "Xiaomi / MiMo",
+        "Baidu",
+        "Tencent"
+      ],
+      "risks": [
+        "Chip export restrictions",
+        "Local compute availability",
+        "Country-specific commercial licensing"
+      ]
+    },
+    {
+      "country": "United Kingdom",
+      "focus": "Research labs and AI safety ecosystem",
+      "players": [
+        "Google DeepMind",
+        "Mistral partners",
+        "UK AI Security Institute"
+      ],
+      "risks": [
+        "Compute access",
+        "Scale-up finance"
+      ]
+    },
+    {
+      "country": "France",
+      "focus": "European frontier models and sovereign deployment",
+      "players": [
+        "Mistral AI",
+        "Hugging Face"
+      ],
+      "risks": [
+        "Compute capacity",
+        "US cloud reliance"
+      ]
+    },
+    {
+      "country": "UAE",
+      "focus": "Sovereign model programmes, infrastructure and energy",
+      "players": [
+        "TII / Falcon",
+        "G42"
+      ],
+      "risks": [
+        "Export licences",
+        "Partnership access"
+      ]
+    },
+    {
+      "country": "India",
+      "focus": "Multilingual models, enterprise adoption and local data centres",
+      "players": [
+        "Sarvam AI",
+        "Krutrim"
+      ],
+      "risks": [
+        "Chip access",
+        "Price-sensitive deployments"
+      ]
+    },
+    {
+      "country": "South Korea",
+      "focus": "Memory manufacturing and domestic models",
+      "players": [
+        "Samsung",
+        "SK hynix",
+        "Naver"
+      ],
+      "risks": [
+        "HBM manufacturing constraints"
+      ]
+    },
+    {
+      "country": "Taiwan",
+      "focus": "Semiconductor foundry and advanced packaging",
+      "players": [
+        "TSMC"
+      ],
+      "risks": [
+        "Geopolitics",
+        "Packaging constraints"
+      ]
+    }
+  ],
+  "topics": [
+    {
+      "id": "hyperscalers",
+      "title": "Who really builds the AI economy?",
+      "status": "measurable",
+      "thesis": "Cloud infrastructure spend has risen steeply, but the whole figure is not attributable to AI.",
+      "question": "Does each additional dollar of capacity produce incremental recurring revenue?",
+      "lookFor": "Capex, depreciation, energy, utilisation, lease obligations, backlog conversion and AI-specific margin.",
+      "disagree": "Scaling arguments depend on workloads shifting toward inference and product usage, not only training.",
+      "sources": [
+        "capexAnnual",
+        "microsoft10k",
+        "meta2026"
+      ]
+    },
+    {
+      "id": "deflation",
+      "title": "Are tokens turning into a commodity?",
+      "status": "partial",
+      "thesis": "Prices for many comparable-capability tasks have fallen; high-end reasoning remains materially more expensive.",
+      "question": "What is the cost per successfully completed task at equal quality?",
+      "lookFor": "Time-series for same model, fixed-quality benchmark, cache discount, latency, hidden reasoning tokens.",
+      "disagree": "Some newest models command substantial premiums and require more tokens.",
+      "sources": [
+        "openaiDevDay",
+        "gpt4omini",
+        "artificial"
+      ]
+    },
+    {
+      "id": "china",
+      "title": "Can Chinese open-weight models challenge the leaders?",
+      "status": "benchmark-specific",
+      "thesis": "Chinese labs occupy much of the open-weight frontier; highest overall closed scores can still lead.",
+      "question": "Where do licence, hardware cost, language and privacy change the ranking?",
+      "lookFor": "Task benchmarks, model card licence, hardware needs, usage and cost per task.",
+      "disagree": "Benchmark scores are not stable across different suites or reasoning configurations.",
+      "sources": [
+        "deepseek",
+        "qwen3",
+        "artificial"
+      ]
+    },
+    {
+      "id": "roi",
+      "title": "Who is paying for this?",
+      "status": "mostly undisclosed",
+      "thesis": "Cloud revenue and enterprise contracts are real indicators, but AI-only cash flows are seldom isolated.",
+      "question": "How quickly do contracted workloads translate into cash returns on invested capital?",
+      "lookFor": "Azure and AWS revenue, cloud operating margins, provider API revenue, depreciation and utilisation.",
+      "disagree": "Investments also support profitable non-AI workloads and existing customers.",
+      "sources": [
+        "microsoft10k",
+        "meta2026",
+        "alphabetQuarter"
+      ]
+    }
+  ],
+  "knownGaps": [
+    "Q3 2026 hyperscaler earnings not yet reported as of 18 Oct 2026; do not show as actuals.",
+    "Most firms do not disclose monthly company-wide capex or AI-only capex.",
+    "Consistent per-model inference revenues and token volumes are not independently reported.",
+    "Model quality comparisons require a fixed benchmark version and exact reasoning setting.",
+    "Country energy and data-centre data still needs a consistent definition and audited cross-country series."
+  ]
+}

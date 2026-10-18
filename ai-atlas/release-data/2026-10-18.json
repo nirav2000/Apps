@@ -1,0 +1,852 @@
+{
+  "schemaVersion": 1,
+  "release": "0.1.0",
+  "snapshotDate": "2026-10-18",
+  "sources": {
+    "alphabet": {
+      "label": "Alphabet Q2 2026 earnings slides",
+      "url": "https://s206.q4cdn.com/479360582/files/doc_financials/2026/q2/2026q2-alphabet-earnings-slides.pdf",
+      "kind": "company primary",
+      "published": "2026-07-22"
+    },
+    "microsoft": {
+      "label": "Microsoft FY2026 Q4 earnings",
+      "url": "https://www.microsoft.com/en-us/Investor/earnings/FY-2026-Q4/press-release-webcast",
+      "kind": "company primary",
+      "published": "2026-07-29"
+    },
+    "amazon": {
+      "label": "Amazon Q2 2026 results",
+      "url": "https://ir.aboutamazon.com/news-release/news-release-details/2026/Amazon-com-Announces-Second-Quarter-Results/",
+      "kind": "company primary",
+      "published": "2026-07-30"
+    },
+    "meta": {
+      "label": "Meta Q2 2026 results",
+      "url": "https://investor.atmeta.com/investor-news/press-release-details/2026/Meta-Reports-Second-Quarter-2026-Results/",
+      "kind": "company primary",
+      "published": "2026-07-29"
+    },
+    "aa": {
+      "label": "Artificial Analysis model leaderboard",
+      "url": "https://artificialanalysis.ai/leaderboards/models?size=large&weights=open",
+      "kind": "independent benchmarking; live results",
+      "published": "2026-10"
+    },
+    "aaCompare": {
+      "label": "Artificial Analysis comparison & methodology",
+      "url": "https://artificialanalysis.ai/models/comparisons",
+      "kind": "independent benchmarking",
+      "published": "2026-10"
+    },
+    "stanford": {
+      "label": "Stanford HAI AI Index 2025",
+      "url": "https://hai.stanford.edu/news/ai-index-2025-state-of-ai-in-10-charts",
+      "kind": "academic research",
+      "published": "2025-04"
+    },
+    "openaiNow": {
+      "label": "OpenAI API model catalogue",
+      "url": "https://developers.openai.com/api/docs/models",
+      "kind": "provider pricing",
+      "published": "2026-10"
+    },
+    "anthropicNow": {
+      "label": "Anthropic Claude model pricing",
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "kind": "provider pricing",
+      "published": "2026-10"
+    },
+    "googleNow": {
+      "label": "Google Gemini API pricing",
+      "url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "kind": "provider pricing",
+      "published": "2026-10"
+    },
+    "openai2023": {
+      "label": "OpenAI DevDay November 2023 price announcement",
+      "url": "https://openai.com/index/new-models-and-developer-products-announced-at-devday/",
+      "kind": "provider historical announcement",
+      "published": "2023-11-06"
+    },
+    "openai2025": {
+      "label": "OpenAI GPT-4.1 launch pricing",
+      "url": "https://openai.com/index/gpt-4-1/",
+      "kind": "provider historical announcement",
+      "published": "2025-04-14"
+    },
+    "openai5": {
+      "label": "OpenAI GPT-5 developer release",
+      "url": "https://openai.com/index/introducing-gpt-5-for-developers/",
+      "kind": "provider historical announcement",
+      "published": "2025-08-07"
+    },
+    "arena": {
+      "label": "Arena open-weight ranking 15 October 2026",
+      "url": "https://arena.ai/leaderboard/chat/text?license=open-source",
+      "kind": "independent crowd preference benchmark",
+      "published": "2026-10-15"
+    },
+    "ali": {
+      "label": "AP reporting on Alibaba investment pledge",
+      "url": "https://apnews.com/article/3bc6b4b5545a9e51a723805fc31d7691",
+      "kind": "secondary source / multi-year commitment",
+      "published": "2026-03"
+    },
+    "ftGoogle": {
+      "label": "FT report on Alphabet 2026 capex guidance",
+      "url": "https://www.ft.com/content/b02f972c-c764-4006-9377-42563d9d5530",
+      "kind": "secondary guidance report",
+      "published": "2026-07-22"
+    },
+    "hf": {
+      "label": "Hugging Face ZeroGPU access and quotas",
+      "url": "https://huggingface.co/docs/hub/spaces-zerogpu",
+      "kind": "service documentation",
+      "published": "2026-10"
+    },
+    "lm": {
+      "label": "LM Studio system requirements",
+      "url": "https://lmstudio.ai/docs/app/system-requirements",
+      "kind": "software documentation",
+      "published": "2026-10"
+    },
+    "ollama": {
+      "label": "Ollama installer and local inference",
+      "url": "https://ollama.com/download",
+      "kind": "software documentation",
+      "published": "2026-10"
+    },
+    "stanford26": {
+      "label": "Stanford HAI AI Index 2026",
+      "url": "https://hai.stanford.edu/ai-index/2026-ai-index-report",
+      "kind": "academic research",
+      "published": "2026"
+    }
+  },
+  "capex": [
+    {
+      "company": "Alphabet",
+      "period": "2025-Q2",
+      "bn": 22.446,
+      "source": "alphabet",
+      "definition": "Capital expenditures, GAAP",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2025-Q3",
+      "bn": 23.953,
+      "source": "alphabet",
+      "definition": "Capital expenditures, GAAP",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2025-Q4",
+      "bn": 27.851,
+      "source": "alphabet",
+      "definition": "Capital expenditures, GAAP",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2026-Q1",
+      "bn": 35.674,
+      "source": "alphabet",
+      "definition": "Capital expenditures, GAAP",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Alphabet",
+      "period": "2026-Q2",
+      "bn": 44.924,
+      "source": "alphabet",
+      "definition": "Capital expenditures, GAAP",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Microsoft",
+      "period": "2025-Q2",
+      "bn": 17.079,
+      "source": "microsoft",
+      "definition": "Cash additions to property and equipment",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Microsoft",
+      "period": "2026-Q2",
+      "bn": 35.802,
+      "source": "microsoft",
+      "definition": "Cash additions to property and equipment",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Amazon",
+      "period": "2025-Q1",
+      "bn": 25.019,
+      "source": "amazon",
+      "definition": "Purchases of property and equipment, from H1 minus Q2",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Amazon",
+      "period": "2025-Q2",
+      "bn": 32.183,
+      "source": "amazon",
+      "definition": "Purchases of property and equipment",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Amazon",
+      "period": "2026-Q1",
+      "bn": 44.203,
+      "source": "amazon",
+      "definition": "Purchases of property and equipment, from H1 minus Q2",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Amazon",
+      "period": "2026-Q2",
+      "bn": 54.208,
+      "source": "amazon",
+      "definition": "Purchases of property and equipment",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Meta",
+      "period": "2025-Q1",
+      "bn": 13.692,
+      "source": "meta",
+      "definition": "PPE purchases plus finance lease payments, H1 minus Q2",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Meta",
+      "period": "2025-Q2",
+      "bn": 17.012,
+      "source": "meta",
+      "definition": "PPE purchases plus finance lease payments",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Meta",
+      "period": "2026-Q1",
+      "bn": 19.84,
+      "source": "meta",
+      "definition": "PPE purchases plus finance lease payments, H1 minus Q2",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    },
+    {
+      "company": "Meta",
+      "period": "2026-Q2",
+      "bn": 31.078,
+      "source": "meta",
+      "definition": "PPE purchases plus finance lease payments",
+      "category": "company-wide infrastructure capital spending",
+      "status": "reported"
+    }
+  ],
+  "annualCapex": [
+    {
+      "company": "Microsoft",
+      "year": "FY2025",
+      "bn": 64.551,
+      "source": "microsoft",
+      "definition": "cash additions to PPE"
+    },
+    {
+      "company": "Microsoft",
+      "year": "FY2026",
+      "bn": 115.948,
+      "source": "microsoft",
+      "definition": "cash additions to PPE"
+    }
+  ],
+  "capexGuidance": [
+    {
+      "company": "Meta",
+      "year": "CY2026",
+      "lowBn": 130,
+      "highBn": 145,
+      "source": "meta",
+      "definition": "capex incl. finance-lease principal"
+    },
+    {
+      "company": "Alphabet",
+      "year": "CY2026",
+      "lowBn": 195,
+      "highBn": 205,
+      "source": "ftGoogle",
+      "definition": "company forecast reported by FT (secondary)"
+    }
+  ],
+  "models": [
+    {
+      "name": "GPT-6 Astra",
+      "provider": "OpenAI",
+      "country": "United States",
+      "open": false,
+      "score": 53,
+      "input": 10,
+      "output": 50,
+      "tier": "Flagship",
+      "pricingSource": "openaiNow",
+      "scoreSource": "aaCompare",
+      "note": null,
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "GPT-6.1 Sol",
+      "provider": "OpenAI",
+      "country": "United States",
+      "open": false,
+      "score": null,
+      "input": 2,
+      "output": 10,
+      "tier": "General",
+      "pricingSource": "openaiNow",
+      "scoreSource": null,
+      "note": null,
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "GPT-6 Luna",
+      "provider": "OpenAI",
+      "country": "United States",
+      "open": false,
+      "score": null,
+      "input": 0.1,
+      "output": 0.5,
+      "tier": "Efficient",
+      "pricingSource": "openaiNow",
+      "scoreSource": null,
+      "note": null,
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "Claude Opus 5.5",
+      "provider": "Anthropic",
+      "country": "United States",
+      "open": false,
+      "score": 58,
+      "input": 4,
+      "output": 20,
+      "tier": "Flagship",
+      "pricingSource": "anthropicNow",
+      "scoreSource": "aa",
+      "note": null,
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "Claude Sonnet 5.5",
+      "provider": "Anthropic",
+      "country": "United States",
+      "open": false,
+      "score": 56,
+      "input": 2,
+      "output": 10,
+      "tier": "General",
+      "pricingSource": "anthropicNow",
+      "scoreSource": "aa",
+      "note": null,
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "Claude Haiku 5.5 (≤100K prompt)",
+      "provider": "Anthropic",
+      "country": "United States",
+      "open": false,
+      "score": null,
+      "input": 0.1,
+      "output": 0.5,
+      "tier": "Efficient",
+      "pricingSource": "anthropicNow",
+      "scoreSource": null,
+      "note": "Input/output price increases at >100K prompt tokens.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "Gemini 4 Argon (introductory)",
+      "provider": "Google",
+      "country": "United States",
+      "open": false,
+      "score": 53,
+      "input": 2,
+      "output": 10,
+      "tier": "Flagship",
+      "pricingSource": "googleNow",
+      "scoreSource": "aaCompare",
+      "note": "Prices double from 1 December 2026 according to Google.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "Gemini 3.8 Flash (2026 rate)",
+      "provider": "Google",
+      "country": "United States",
+      "open": false,
+      "score": null,
+      "input": 0.75,
+      "output": 3.75,
+      "tier": "General",
+      "pricingSource": "googleNow",
+      "scoreSource": null,
+      "note": "Price due to double from 1 January 2027; free-tier limits apply.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "MiMo-V2.6-Pro",
+      "provider": "Xiaomi",
+      "country": "China",
+      "open": true,
+      "score": 46,
+      "input": null,
+      "output": null,
+      "tier": "Open weight",
+      "pricingSource": null,
+      "scoreSource": "aa",
+      "note": "Hosted prices vary. Check weights, licence and hardware.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "GLM-5.3",
+      "provider": "Z.ai",
+      "country": "China",
+      "open": true,
+      "score": 45,
+      "input": null,
+      "output": null,
+      "tier": "Open weight",
+      "pricingSource": null,
+      "scoreSource": "aa",
+      "note": "Variant: Max benchmark effort.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "Kimi K3",
+      "provider": "Moonshot AI",
+      "country": "China",
+      "open": true,
+      "score": 44,
+      "input": null,
+      "output": null,
+      "tier": "Open weight",
+      "pricingSource": null,
+      "scoreSource": "aa",
+      "note": "Open weights; custom licence and very high memory needs.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "DeepSeek V4.1 Flash",
+      "provider": "DeepSeek",
+      "country": "China",
+      "open": true,
+      "score": null,
+      "input": null,
+      "output": null,
+      "tier": "Open weight",
+      "pricingSource": null,
+      "scoreSource": "arena",
+      "note": "Open weights, not necessarily feasible locally.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "Qwen3.8 27B",
+      "provider": "Alibaba",
+      "country": "China",
+      "open": true,
+      "score": null,
+      "input": null,
+      "output": null,
+      "tier": "Open weight",
+      "pricingSource": null,
+      "scoreSource": "arena",
+      "note": "Check model-specific licence and quantized builds.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "Muse Spark Open",
+      "provider": "Meta",
+      "country": "United States",
+      "open": true,
+      "score": 39,
+      "input": null,
+      "output": null,
+      "tier": "Open weight",
+      "pricingSource": null,
+      "scoreSource": "aaCompare",
+      "note": "October 2026 release; substantial hardware needs.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "Gemma 4 31B",
+      "provider": "Google",
+      "country": "United States",
+      "open": true,
+      "score": null,
+      "input": null,
+      "output": null,
+      "tier": "Open weight",
+      "pricingSource": null,
+      "scoreSource": "arena",
+      "note": "Potential local inference; RAM depends on quantization.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "GPT-5.5",
+      "provider": "OpenAI",
+      "country": "United States",
+      "open": false,
+      "score": null,
+      "input": 5,
+      "output": 30,
+      "tier": "Historical",
+      "pricingSource": "openaiNow",
+      "scoreSource": null,
+      "note": "Release snapshot 2026-04-23.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "GPT-5.4",
+      "provider": "OpenAI",
+      "country": "United States",
+      "open": false,
+      "score": null,
+      "input": 2.5,
+      "output": 15,
+      "tier": "Historical",
+      "pricingSource": "openaiNow",
+      "scoreSource": null,
+      "note": null,
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "GPT-5",
+      "provider": "OpenAI",
+      "country": "United States",
+      "open": false,
+      "score": null,
+      "input": 1.25,
+      "output": 10,
+      "tier": "Historical",
+      "pricingSource": "openai5",
+      "scoreSource": null,
+      "note": "At original Aug 2025 launch.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    },
+    {
+      "name": "GPT-4.1",
+      "provider": "OpenAI",
+      "country": "United States",
+      "open": false,
+      "score": null,
+      "input": 2,
+      "output": 8,
+      "tier": "Historical",
+      "pricingSource": "openai2025",
+      "scoreSource": null,
+      "note": "At original Apr 2025 launch.",
+      "pricingBasis": "USD / 1M tokens; direct standard short-context where applicable",
+      "scoreBasis": "Artificial Analysis Intelligence Index v4.3, variant-specific snapshot"
+    }
+  ],
+  "priceHistory": [
+    {
+      "date": "2023-11-06",
+      "model": "GPT-4 8K",
+      "input": 30,
+      "output": 60,
+      "source": "openai2023",
+      "type": "historical launch/legacy rate"
+    },
+    {
+      "date": "2023-11-06",
+      "model": "GPT-4 Turbo",
+      "input": 10,
+      "output": 30,
+      "source": "openai2023",
+      "type": "historical launch rate"
+    },
+    {
+      "date": "2025-04-14",
+      "model": "GPT-4.1",
+      "input": 2,
+      "output": 8,
+      "source": "openai2025",
+      "type": "historical launch rate"
+    },
+    {
+      "date": "2025-08-07",
+      "model": "GPT-5",
+      "input": 1.25,
+      "output": 10,
+      "source": "openai5",
+      "type": "historical launch rate"
+    },
+    {
+      "date": "2026-10-18",
+      "model": "GPT-6 Luna",
+      "input": 0.1,
+      "output": 0.5,
+      "source": "openaiNow",
+      "type": "price snapshot (NOT launch date)"
+    },
+    {
+      "date": "2026-10-18",
+      "model": "GPT-6.1 Sol",
+      "input": 2,
+      "output": 10,
+      "source": "openaiNow",
+      "type": "price snapshot (NOT launch date)"
+    },
+    {
+      "date": "2026-10-18",
+      "model": "GPT-6 Astra",
+      "input": 10,
+      "output": 50,
+      "source": "openaiNow",
+      "type": "price snapshot (NOT launch date)"
+    },
+    {
+      "date": "2026-10-18",
+      "model": "Claude Opus 5.5",
+      "input": 4,
+      "output": 20,
+      "source": "anthropicNow",
+      "type": "price snapshot (NOT launch date)"
+    },
+    {
+      "date": "2026-10-18",
+      "model": "Claude Sonnet 5.5",
+      "input": 2,
+      "output": 10,
+      "source": "anthropicNow",
+      "type": "price snapshot (NOT launch date)"
+    },
+    {
+      "date": "2026-10-18",
+      "model": "Gemini 4 Argon",
+      "input": 2,
+      "output": 10,
+      "source": "googleNow",
+      "type": "introductory price snapshot (NOT launch date)"
+    }
+  ],
+  "demand": [
+    {
+      "company": "Google Cloud",
+      "period": "2025-Q2",
+      "metric": "cloud revenue",
+      "bn": 13.624,
+      "source": "alphabet",
+      "aiOnly": false
+    },
+    {
+      "company": "Google Cloud",
+      "period": "2026-Q2",
+      "metric": "cloud revenue",
+      "bn": 24.768,
+      "source": "alphabet",
+      "aiOnly": false
+    },
+    {
+      "company": "Google Cloud",
+      "period": "2026-Q2",
+      "metric": "operating income",
+      "bn": 8.814,
+      "source": "alphabet",
+      "aiOnly": false
+    },
+    {
+      "company": "Microsoft Azure",
+      "period": "FY2026",
+      "metric": "annual cloud revenue (exceeded)",
+      "bn": 100,
+      "source": "microsoft",
+      "aiOnly": false,
+      "lowerBound": true
+    },
+    {
+      "company": "Microsoft commercial RPO",
+      "period": "2026-Q2",
+      "metric": "contracted remaining performance obligations",
+      "bn": 678,
+      "source": "microsoft",
+      "aiOnly": false
+    },
+    {
+      "company": "Google Cloud backlog",
+      "period": "2026-Q2",
+      "metric": "contract backlog",
+      "bn": 514,
+      "source": "alphabet",
+      "aiOnly": false
+    },
+    {
+      "company": "AWS",
+      "period": "2026-Q2",
+      "metric": "cloud revenue",
+      "bn": 42.2,
+      "source": "amazon",
+      "aiOnly": false
+    },
+    {
+      "company": "Meta",
+      "period": "2026-Q2",
+      "metric": "advertising revenue",
+      "bn": 59.363,
+      "source": "meta",
+      "aiOnly": false
+    },
+    {
+      "company": "Amazon",
+      "period": "2026-Q2",
+      "metric": "TTM free cash flow",
+      "bn": -7.604,
+      "source": "amazon",
+      "aiOnly": false
+    },
+    {
+      "company": "Meta",
+      "period": "2026-Q2",
+      "metric": "free cash flow",
+      "bn": 0.784,
+      "source": "meta",
+      "aiOnly": false
+    }
+  ],
+  "milestones": [
+    {
+      "date": "2023-11-06",
+      "title": "GPT-4 Turbo brings lower token rates",
+      "area": "Price",
+      "description": "OpenAI cut rates compared with original GPT-4 and expanded context to 128K.",
+      "source": "openai2023"
+    },
+    {
+      "date": "2025-04-14",
+      "title": "GPT-4.1 reaches $2 input / $8 output",
+      "area": "Price",
+      "description": "A new model generation lowers some API prices, not a repricing of the same model.",
+      "source": "openai2025"
+    },
+    {
+      "date": "2025-08-07",
+      "title": "GPT-5 launches",
+      "area": "Models",
+      "description": "Introduces reasoning family with $1.25 / $10 standard text rates.",
+      "source": "openai5"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Alphabet quarterly capex nearly doubles YoY",
+      "area": "Infrastructure",
+      "description": "Q2 2026 capital expenditure $44.9bn, versus $22.4bn a year earlier.",
+      "source": "alphabet"
+    },
+    {
+      "date": "2026-07-29",
+      "title": "Microsoft FY26 annual additions reach $116bn",
+      "area": "Infrastructure",
+      "description": "Cash additions to PPE increase from $64.6bn in FY25 to $115.9bn FY26.",
+      "source": "microsoft"
+    },
+    {
+      "date": "2026-07-29",
+      "title": "Meta guides to $130–145bn FY26 spending",
+      "area": "Infrastructure",
+      "description": "Forecast including finance lease principal; not all AI-specific.",
+      "source": "meta"
+    },
+    {
+      "date": "2026-10-15",
+      "title": "Open-weight models rank within leading AI tools",
+      "area": "Models",
+      "description": "Arena ranks Kimi K3 #18 overall for open-weight-filter text preference (snapshot).",
+      "source": "arena"
+    },
+    {
+      "date": "2026-10-18",
+      "title": "AI Atlas evidence baseline",
+      "area": "Research",
+      "description": "First curated snapshot; ongoing automatic refresh is not yet active.",
+      "source": "stanford26"
+    }
+  ],
+  "observations": [
+    {
+      "question": "Is token pricing collapsing?",
+      "answer": "At fixed older capability, yes: Stanford measured GPT-3.5-class query cost declining from $20 to $0.07 per 1M tokens between 2022 and 2024. But a newer frontier model may command a premium; token count and quality per task matter.",
+      "source": "stanford",
+      "state": "Supported with qualification"
+    },
+    {
+      "question": "Are open-weight models as good as closed frontier models?",
+      "answer": "Not yet at the absolute top in this independent snapshot. The top closed score is 58 and the top open-weight score is 46 on Artificial Analysis Intelligence Index; individual tasks and deployment constraints differ.",
+      "source": "aa",
+      "state": "Benchmark-specific"
+    },
+    {
+      "question": "Are hyperscalers earning adequate returns?",
+      "answer": "Not determinable from public AI-only accounts. Company capex is not 100% AI, cloud revenue includes non-AI, and backlog is not recognised revenue. Proxy measures show strong cloud growth, but do not prove infrastructure-level ROIC.",
+      "source": "alphabet",
+      "state": "Unresolved"
+    },
+    {
+      "question": "Who is actually paying for AI?",
+      "answer": "Large enterprise cloud customers, developers paying API fees, consumers paying subscriptions, advertising buyers benefiting from AI optimisation, and public-sector buyers. Most firms do not break out model-specific paying customers and margins.",
+      "source": "microsoft",
+      "state": "Partial disclosure"
+    },
+    {
+      "question": "Is China competitive?",
+      "answer": "Yes, especially with open-weight releases such as GLM, Kimi, MiMo, Qwen, DeepSeek. Frontier standing depends on task, benchmark, chip access, weights licence, and local economics.",
+      "source": "arena",
+      "state": "Task-dependent"
+    },
+    {
+      "question": "Can I run frontier open models free?",
+      "answer": "Free to download often does not mean free to operate. Small quantised models may run locally without token fees; frontier trillion-parameter models need substantial memory/compute. Hosted demos have quotas.",
+      "source": "hf",
+      "state": "Hardware-dependent"
+    },
+    {
+      "question": "What could break AI infrastructure economics?",
+      "answer": "Electricity, memory/chip supply, depreciation, low utilisation, declining selling prices, customer concentration, financing cost, cancellation and faster model efficiency. Model contracts and backlog are not the same as cash received.",
+      "source": "stanford26",
+      "state": "Scenario / hypothesis"
+    }
+  ]
+}
