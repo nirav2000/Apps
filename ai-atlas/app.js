@@ -1,7 +1,7 @@
 /* AI Atlas: one bounded loader, independent evidence datasets, one render pass. */
 (function () {
   'use strict';
-  const VERSION = '1.0.1';
+  const VERSION = '1.1.0';
   const views = [['overview','Overview'],['money','Infrastructure'],['models','Model race'],['pricing','Token prices'],['customers','Customers & returns'],['world','Geography'],['local','Run locally'],['history','Historical atlas'],['method','Sources & method']];
   const $ = id => document.getElementById(id);
   const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -44,6 +44,31 @@
     bars('capChart',data.map(x=>({...x,label:x.period})));
     $('capTable').innerHTML=table(['Quarter','Reported $bn','Definition','Source'],data.map(x=>row([esc(x.period),x.bn.toFixed(3),esc(x.definition),source(x.source,x.historical)])));
   }
+  const providerPalette=['#a63e2d','#334e52','#ba8654','#64765d','#77718e','#bfaa87','#465b7b','#a75e65'];
+  function composition(models){
+    const counts=Object.entries(models.reduce((a,m)=>(a[m.provider]=(a[m.provider]||0)+1,a),{})).sort((a,b)=>b[1]-a[1]);
+    const total=models.length||1;
+    return '<div class="composition" aria-hidden="true">'+counts.map(([name,n],i)=>'<span style="flex:'+n+';background:'+providerPalette[i%providerPalette.length]+'" title="'+esc(name)+': '+n+' models"></span>').join('')+'</div><div class="composition-key">'+counts.slice(0,5).map(([name,n],i)=>'<span><i style="background:'+providerPalette[i%providerPalette.length]+'"></i>'+esc(name)+' '+n+'</span>').join('')+'</div>';
+  }
+  function renderStacked(){
+    const companies=['Amazon','Alphabet','Microsoft','Meta'];
+    const all=arr(history.annual).filter(x=>companies.includes(x.company));
+    const years=[...new Set(all.map(x=>x.year))].sort();
+    const selected=companies.filter(x=>$('stack-'+x).checked);
+    const rows=years.map(year=>({year,entries:selected.map(company=>all.find(x=>x.year===year&&x.company===company)).filter(Boolean)}));
+    const complete=rows.filter(r=>r.entries.length===selected.length&&selected.length);
+    const data=$('stackIncomplete').checked?rows.filter(r=>r.entries.length):complete;
+    const max=Math.max(1,...data.map(r=>r.entries.reduce((n,x)=>n+x.bn,0)));
+    $('stackChart').innerHTML='<div class="stacked-chart">'+data.map(r=>{
+      const total=r.entries.reduce((n,x)=>n+x.bn,0),missing=selected.filter(c=>!r.entries.some(x=>x.company===c));
+      return '<div class="stack-column"><strong>'+usd(total)+'bn</strong><div class="stack-track" style="height:'+Math.max(4,total/max*235)+'px">'+r.entries.map(x=>{
+        const color=providerPalette[companies.indexOf(x.company)];
+        return '<button type="button" class="stack-segment" style="height:'+(x.bn/total*100)+'%;background:'+color+'" data-company="'+esc(x.company)+'" data-year="'+x.year+'" aria-label="'+esc(x.company)+' '+x.year+' '+usd(x.bn)+' billion"></button>';
+      }).join('')+'</div><span>'+r.year+'</span>'+(missing.length?'<small>Partial</small>':'')+'</div>';
+    }).join('')+'</div><div class="composition-key">'+selected.map(x=>'<span><i style="background:'+providerPalette[companies.indexOf(x)]+'"></i>'+esc(x)+'</span>').join('')+'</div><p class="small">Company-wide capital expenditure, nominal USD billions. Microsoft reports June fiscal years; others use calendar years. Stacked totals are indicative, not a synchronised AI-only spending measure.</p>';
+    $('stackChart').onclick=e=>{const b=e.target.closest('[data-company]');if(!b)return;const x=all.find(x=>x.company===b.dataset.company&&x.year===+b.dataset.year);$('stackDetail').innerHTML='<strong>'+esc(x.company)+' '+x.year+': '+usd(x.bn)+'bn</strong><p>'+esc(x.definition||x.basis||'Company-wide reported capital expenditure')+'</p>'+source(x.source,true);};
+    $('stackTable').innerHTML=table(['Year','Company','Reported $bn','Evidence'],data.flatMap(r=>r.entries.map(x=>row([String(x.year),esc(x.company),x.bn.toFixed(3),source(x.source,true)]))));
+  }
   function renderModels(){
     const region=$('modelRegion').value, weights=$('modelOpen').value, tier=$('modelTier').value, q=$('modelSearch').value.toLowerCase();
     const data=arr(base.models).filter(x=>(!region||x.country===region)&&(!weights||(weights==='Open')===x.open)&&(!tier||tier===x.tier)&&(x.name+' '+x.provider).toLowerCase().includes(q));
@@ -74,10 +99,17 @@
     const out=(id,html)=>{$('view-'+id).innerHTML=html;};
     const models=arr(base.models), annual=arr(history.annual), prices=[...arr(history.priceHistory).map(x=>({...x,historical:true})),...arr(base.priceHistory)].sort((a,b)=>a.date.localeCompare(b.date));
     const questions=arr(base.observations).map(x=>`<details class="question"><summary>${esc(x.question)} <span class="tag">${esc(x.state)}</span></summary><p>${esc(x.answer)}</p><span class="small">${source(x.source)}</span></details>`).join('');
-    const tiles=[['Models in the snapshot',models.length,'Not a complete market census'],['Annual spending records',annual.length,'Company-wide, not AI-only'],['Historical token offers',prices.length,'Not a same-model price index'],['Dated milestones',arr(history.events).length,'Open each source for context']];
-    out('overview','<div class="grid">'+tiles.map(x=>`<div class="tile"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></div>`).join('')+'</div>'+panel('The questions that matter',questions||'<p>The baseline dataset is unavailable. Use Historical atlas to explore the available history.</p>','Expand a question to see the stored evidence and its limitations.')+panel('A story across time','<div id="overviewChart"></div>','Alphabet annual company-wide capital spending ($bn). Tap a bar for evidence.'));
+    const tiles=[
+      ['Models in the snapshot',models.length,'Sample composition, not market share','models',composition(models)],
+      ['Annual spending records',annual.length,'Explore providers and reporting years','money','<div class="tile-art tile-spend"><span>CAPEX</span><span>2020—2026</span></div>'],
+      ['Historical token offers',prices.length,'Compare nominal token offers','pricing','<div class="tile-art tile-price"><span>INPUT</span><span>OUTPUT</span><span>$/M</span></div>'],
+      ['Dated milestones',arr(history.events).length,'Browse launches and industry events','history','<div class="tile-art tile-time"><span>2020</span><span>2023</span><span>2026</span></div>']
+    ];
+    out('overview','<div class="grid">'+tiles.map(x=>'<button type="button" class="tile insight-tile" data-target="'+x[3]+'"><span>'+x[0]+'</span><strong>'+x[1]+'</strong><small>'+x[2]+'</small>'+x[4]+'<em>Explore details ↗</em></button>').join('')+'</div>'+panel('The questions that matter',questions||'<p>The baseline dataset is unavailable. Use Historical atlas to explore the available history.</p>','Expand a question to see the stored evidence and its limitations.')+panel('Investment across providers','<div id="overviewChart"></div>','Company-wide historical spending; tap a bar to inspect its evidence.'));
+    $('view-overview').onclick=e=>{const b=e.target.closest('[data-target]');if(b)selectView(b.dataset.target);};
     bars('overviewChart',annual.filter(x=>x.company==='Alphabet').map(x=>({...x,label:String(x.year),historical:true})));
-    out('money',panel('Infrastructure investment','<div class="controls">'+choose('capCompany','Company',unique([...arr(base.capex),...arr(history.quarterly)].map(x=>x.company)))+'</div><div id="capChart"></div><div id="capTable"></div>','Quarterly actuals. Different companies use different reporting definitions. No invented monthly expenditure.')+panel('Annual reporting and guidance',table(['Company','Period','Figure','Basis','Evidence'],[...arr(base.annualCapex).map(x=>row([esc(x.company),esc(x.year),usd(x.bn)+'bn',esc(x.definition),source(x.source)])),...arr(base.capexGuidance).map(x=>row([esc(x.company),esc(x.year),usd(x.lowBn)+' - '+usd(x.highBn)+'bn <span class="tag">forecast</span>',esc(x.definition),source(x.source)]))]),'Use Historical atlas for the longer annual series. Forecasts are not realised spending.'));
+    out('money',panel('Capital expenditure across hyperscalers','<div class="controls stack-controls">'+['Amazon','Alphabet','Microsoft','Meta'].map(x=>'<label class="checklabel"><input type="checkbox" id="stack-'+x+'" checked>'+x+'</label>').join('')+'<label class="checklabel"><input type="checkbox" id="stackIncomplete">Include partial years</label></div><div id="stackChart"></div><div id="stackDetail" class="bar-detail" aria-live="polite">Tap any segment for company, year and source.</div><div id="stackTable"></div>','Annual stacked comparison. Years without all selected providers are excluded by default.')+panel('Quarterly detail','<div class="controls">'+choose('capCompany','Company',unique([...arr(base.capex),...arr(history.quarterly)].map(x=>x.company)))+'</div><div id="capChart"></div><div id="capTable"></div>','Reported quarterly actuals, not invented monthly figures.')+panel('Annual reporting and guidance',table(['Company','Period','Figure','Basis','Evidence'],[...arr(base.annualCapex).map(x=>row([esc(x.company),esc(x.year),usd(x.bn)+'bn',esc(x.definition),source(x.source)])),...arr(base.capexGuidance).map(x=>row([esc(x.company),esc(x.year),usd(x.lowBn)+' - '+usd(x.highBn)+'bn <span class="tag">forecast</span>',esc(x.definition),source(x.source)]))]),'Guidance is not realised expenditure.'));
+    ['Amazon','Alphabet','Microsoft','Meta'].forEach(x=>$('stack-'+x).onchange=renderStacked);$('stackIncomplete').onchange=renderStacked;renderStacked();
     $('capCompany').onchange=renderCapex;renderCapex();
     out('models',panel('Compare the model landscape','<div class="controls">'+choose('modelRegion','Origin',unique(models.map(x=>x.country)),true)+choose('modelOpen','Weights',['Open','Closed'],true)+choose('modelTier','Tier',unique(models.map(x=>x.tier)),true)+'<label>Find a model<input id="modelSearch" type="search" placeholder="Model or provider"></label></div><div id="modelTable"></div><p class="small">* Benchmarks are comparable only within the same suite, exact model variant and reasoning configuration. The recorded index is not a universal ranking. Open weights do not automatically mean open source.</p>'));
     ['modelRegion','modelOpen','modelTier'].forEach(id=>$(id).onchange=renderModels);$('modelSearch').oninput=renderModels;renderModels();
