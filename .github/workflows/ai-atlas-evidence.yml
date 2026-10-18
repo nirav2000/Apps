@@ -1,5 +1,12 @@
 name: AI Atlas evidence update
 on:
+  push:
+    paths:
+      - 'ai-atlas/index.html'
+      - 'ai-atlas/data/history.json'
+      - 'ai-atlas/data/2026-10-18.json'
+      - 'ai-atlas/scripts/**'
+      - '.github/workflows/ai-atlas-evidence.yml'
   schedule:
     - cron: '17 6 * * *'
   workflow_dispatch:
@@ -22,10 +29,12 @@ jobs:
       - name: Validate research and HTML JavaScript
         run: node ai-atlas/scripts/validate.mjs
       - name: Capture public provider catalog
+        if: github.event_name != 'push'
         run: node ai-atlas/scripts/collect-openrouter.mjs
       - name: Validate collected data
         run: node ai-atlas/scripts/validate.mjs
       - name: Commit dated evidence only when changed
+        if: github.event_name != 'push'
         run: |
           if [ -n "$(git status --porcelain -- ai-atlas/data/provider-snapshots)" ]; then
             git config user.name "github-actions[bot]"
