@@ -1,4 +1,4 @@
-# Shared Learning Sync v1.0.0
+# Shared Learning Sync v1.0.1
 
 **Status:** Implemented shared capability, opt-in. **Not automatically installed into any consumer app.** Apps Auth (`apps-auth.js`) is **legacy**; use `Auth` (`auth/v1/index.js`) for all new sign-in integrations.
 
@@ -48,3 +48,6 @@ The Firestore transport uses `learningSyncApps/{appId}/users/{uid}/learners/{lea
 - Only explicit app integrations should activate this capability; shared-library releases must never auto-modify consumers.
 
 Tests: `node --test tests/learning.test.mjs tests/learning-sync.test.mjs`.
+
+## Collision-safe synchronisation (v1.0.1)
+Cloud chunks are compared canonically, not using JavaScript property insertion order. Before uploading, sync reads remote immutable chunks, preserves remote entries, and deterministically re-IDs a genuinely conflicting local chunk without discarding either history. Uploads use Firestore transactions and never overwrite a different cloud chunk. Races are retried after another read; offline failures leave the local pending queue intact. Existing local data is not erased by this upgrade.

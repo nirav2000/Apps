@@ -1,8 +1,12 @@
 // Learning Sync v1.0.0 — opt-in local-first learning records, identity-scoped cloud transport.
 import {initialLearningState,recordLearningEvent,recordLearningSession} from '../../learning/v1/index.js';
-export const VERSION='1.0.0';
+export const VERSION='1.0.1';
 const valid=s=>{s=String(s||'');if(!/^[a-zA-Z0-9._-]{1,128}$/.test(s)||s==='.'||s==='..')throw Error('Invalid identifier');return s;};
 const copy=x=>JSON.parse(JSON.stringify(x));
+// Firestore can return the same immutable object with a different key insertion order.
+const canonical=value=>JSON.stringify(value,(_key,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a.localeCompare(b))):v);
+const sameChunk=(a,b)=>canonical(a)===canonical(b);
+const fingerprint=text=>{let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return (h>>>0).toString(36)};
 const blank=()=>({schema:1,seq:0,chunks:{},pending:[],seen:{events:0,sessions:0},tails:{events:null,sessions:null},imports:{}});
 const checkChunk=x=>x&&x.schema===1&&/^[a-zA-Z0-9._-]{1,180}$/.test(x.id)&&Array.isArray(x.events)&&Array.isArray(x.sessions)&&x.events.length<=100&&x.sessions.length<=100&&Number.isFinite(x.createdAt)&&JSON.stringify(x).length<400000;
 export function mergeChunks(chunks){
@@ -78,6 +82,40 @@ export function createLearningSync({appId,learnerId='default',accountId='guest',
   }
   state.imports[marker]=true;save();onSnapshot(snapshot(),owner);return status();
  }
+ // Pull before pushing: immutable cloud records must never be overwritten by
+ // an unrelated local chunk that happens to have the same ID.
+ function reconcile(remote){
+  if(!Array.isArray(remote))throw Error('Invalid cloud result');
+  const cloud=new Map();
+  for(const c of remote){
+   if(!checkChunk(c))throw Error('Invalid cloud chunk');
+   if(cloud.has(c.id)&&!sameChunk(cloud.get(c.id),c))throw Error('Inconsistent cloud records');
+   cloud.set(c.id,c);
+  }
+  const occupied=new Map([...Object.entries(state.chunks),...cloud]);
+  for(const [id,local] of Object.entries(state.chunks)){
+   const original=cloud.get(id);
+   if(!original)continue;
+   if(sameChunk(local,original)){state.pending=state.pending.filter(k=>k!==id);continue;}
+   // A genuine collision: preserve BOTH histories. Recover the local chunk
+   // under a deterministic new ID so retries do not multiply its records.
+   const base='recovered-'+id.slice(0,68)+'-'+fingerprint(canonical({...local,id:''}));
+   let recoveredId=base,index=2;
+   while(occupied.has(recoveredId)&&!sameChunk(occupied.get(recoveredId),{...local,id:recoveredId})){
+    recoveredId=base+'-'+index++;
+   }
+   delete state.chunks[id];
+   state.pending=state.pending.filter(k=>k!==id);
+   const recovered={...copy(local),id:recoveredId};
+   if(!cloud.has(recoveredId)){
+    state.chunks[recoveredId]=recovered;state.pending.push(recoveredId);
+    occupied.set(recoveredId,recovered);
+   }
+  }
+  for(const c of cloud.values())state.chunks[c.id]=copy(c);
+  state.pending=[...new Set(state.pending.filter(id=>state.chunks[id]&&!cloud.has(id)))];
+  save();
+ }
  async function sync(){
   if(disposed)throw Error('Disposed');
   if(owner==='guest'||!transport)return {...status(),reason:'local-only'};
@@ -86,20 +124,28 @@ export function createLearningSync({appId,learnerId='default',accountId='guest',
   busy=true;notify();
   try{
    await transport.verifyUser(owner);
-   const ids=[...state.pending];
-   for(let i=0;i<ids.length;i+=20){
-    const batch=ids.slice(i,i+20).map(id=>state.chunks[id]).filter(Boolean);
-    await transport.putChunks({appId,learnerId,accountId:owner,chunks:batch});
-    const sent=new Set(batch.map(x=>x.id));state.pending=state.pending.filter(id=>!sent.has(id));save();
+   for(let attempt=0;attempt<3;attempt++){
+    // Preflight also repairs legacy false collisions caused by property ordering.
+    reconcile(await transport.getChunks({appId,learnerId,accountId:owner}));
+    try{
+     const ids=[...state.pending];
+     for(let i=0;i<ids.length;i+=20){
+      const batch=ids.slice(i,i+20).map(id=>state.chunks[id]).filter(Boolean);
+      if(!batch.length)continue;
+      await transport.putChunks({appId,learnerId,accountId:owner,chunks:batch});
+      const sent=new Set(batch.map(x=>x.id));
+      state.pending=state.pending.filter(id=>!sent.has(id));save();
+     }
+    }catch(error){
+     // Two devices may race for an ID. A Firestore transaction rejects the
+     // unsafe overwrite; pull and reconcile again before one bounded retry.
+     if(attempt<2&&/collision/i.test(String(error?.message||'')))continue;
+     throw error;
+    }
+    reconcile(await transport.getChunks({appId,learnerId,accountId:owner}));
+    if(!state.pending.length){onSnapshot(snapshot(),owner);return status();}
    }
-   const remote=await transport.getChunks({appId,learnerId,accountId:owner});
-   if(!Array.isArray(remote))throw Error('Invalid cloud result');
-   for(const chunk of remote){
-    if(!checkChunk(chunk))throw Error('Invalid cloud chunk');
-    if(state.chunks[chunk.id]&&JSON.stringify(state.chunks[chunk.id])!==JSON.stringify(chunk))throw Error('Cloud ID collision');
-    state.chunks[chunk.id]=copy(chunk);
-   }
-   save();onSnapshot(snapshot(),owner);return status();
+   throw Error('Cloud sync retry limit reached; progress remains local');
   }finally{busy=false;notify()}
  }
  const onOnline=()=>{if(owner!=='guest')sync().catch(()=>{})};
@@ -117,11 +163,23 @@ export function createFirestoreTransport({db,auth,sdk}={}){
   async verifyUser(uid){verify(uid);await auth.currentUser.getIdToken();verify(uid)},
   async putChunks({appId,accountId,learnerId,chunks}){
    verify(accountId);
-   for(const chunk of chunks){if(!checkChunk(chunk))throw Error('Invalid chunk');await sdk.setDoc(sdk.doc(db,...path(appId,accountId,learnerId),chunk.id),{...chunk,ownerUid:accountId});verify(accountId);}
+   if(typeof sdk.runTransaction!=='function')throw Error('Transactional immutable writes required');
+   for(const chunk of chunks){
+    if(!checkChunk(chunk))throw Error('Invalid chunk');
+    const ref=sdk.doc(db,...path(appId,accountId,learnerId),chunk.id);
+    await sdk.runTransaction(db,async tx=>{
+     const existing=await tx.get(ref);
+     if(existing.exists()){
+      const {ownerUid,...saved}=existing.data();
+      if(ownerUid!==accountId||!sameChunk(saved,chunk))throw Error('Cloud ID collision: remote immutable record differs');
+     }else tx.set(ref,{...chunk,ownerUid:accountId});
+    });
+    verify(accountId);
+   }
   },
   async getChunks({appId,accountId,learnerId}){
    verify(accountId);
-   const result=await sdk.getDocs(sdk.collection(db,...path(appId,accountId,learnerId)));verify(accountId);
+   const result=await (sdk.getDocsFromServer||sdk.getDocs)(sdk.collection(db,...path(appId,accountId,learnerId)));verify(accountId);
    return result.docs.map(d=>{const {ownerUid,...chunk}=d.data();if(ownerUid!==accountId||chunk.id!==d.id)throw Error('Cloud ownership mismatch');return chunk;});
   }
  };
