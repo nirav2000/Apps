@@ -33,14 +33,14 @@ export async function runJourneys(root,config,options={}){
     for(const step of spec.steps){
      const l=step.selector?page.locator(step.selector):null;
      switch(step.action){
-      case 'visible':await l.waitFor({state:'visible'});break;
+      case 'visible':await l.first().waitFor({state:'visible'});break;
       case 'click':await l.click();break;
       case 'focus':await l.focus();break;
       case 'fill':await l.fill(step.value);break;
       case 'type':await l.pressSequentially(step.value,{delay:25});break;
       case 'select':await l.selectOption(step.value);break;
       case 'value':if(await l.inputValue()!==step.value)throw Error('Value mismatch for '+step.selector);break;
-      case 'text':await l.waitFor({state:'visible'});if(!(await l.textContent()).includes(step.contains))throw Error('Missing text '+step.contains);break;
+      case 'text':await l.first().waitFor({state:'visible'});if(!(await l.first().textContent()).includes(step.contains))throw Error('Missing text '+step.contains);break;
       case 'count':{const n=await l.count();if(step.min!==undefined&&n<step.min)throw Error('Too few elements '+step.selector);if(step.max!==undefined&&n>step.max)throw Error('Too many elements '+step.selector);break;}
       case 'url':if(new URL(page.url()).searchParams.get(step.param)!==step.value)throw Error('URL parameter mismatch '+step.param);break;
       case 'noOverflow':if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Horizontal overflow');break;
