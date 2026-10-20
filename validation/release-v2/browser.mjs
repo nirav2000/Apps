@@ -20,7 +20,7 @@ export async function runJourneys(root,config,options={}){
    const page=await context.newPage();page.setDefaultTimeout(10000);
    const errors=[],requests=[],steps=[];
    page.on('pageerror',e=>errors.push(e.message));
-   page.on('response',r=>{if(r.url().startsWith(baseURL)&&r.status()>=400)requests.push(r.status()+' '+r.url())});
+   page.on('response',r=>{if(r.url().startsWith(baseURL)&&r.status()>=400&&!((config.ignoreLocalRequestFailures||[]).some(prefix=>new URL(r.url()).pathname.startsWith(prefix))))requests.push(r.status()+' '+r.url())});
    await context.route('**/*',route=>{
     const request=route.request(),u=new URL(request.url());
     if(u.origin!==new URL(baseURL).origin||!['GET','HEAD'].includes(request.method()))return route.abort('blockedbyclient');
