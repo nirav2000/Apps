@@ -61,12 +61,12 @@ export async function runJourneys(root,config,options={}){
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===path.resolve(new URL(import.meta.url).pathname)){
  const root=path.resolve(process.argv[2]||'.'),cfg=JSON.parse(fs.readFileSync(path.join(root,process.argv[3]||'validation.config.json'),'utf8'));
- const port=4199,server=spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1','--directory',root],{stdio:'ignore'});
+ const port=4199,live=process.env.RELEASE_TEST_BASE_URL;const server=live?null:spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1','--directory',root],{stdio:'ignore'});
  try{
-  await waitServer('http://127.0.0.1:'+port+'/');
-  const results=await runJourneys(root,cfg);
+  if(!live)await waitServer('http://127.0.0.1:'+port+'/');
+  const results=await runJourneys(root,cfg,{baseURL:live?live.replace(/\/$/,''):undefined});
   fs.mkdirSync(path.join(root,'artifacts'),{recursive:true});
   fs.writeFileSync(path.join(root,'artifacts','interaction-report.json'),JSON.stringify({status:results.every(x=>x.status==='passed')?'passed':'failed',results},null,2)+'\n');
   console.log(JSON.stringify(results,null,2));if(results.some(x=>x.status==='failed'))process.exitCode=1;
- }finally{server.kill('SIGTERM')}
+ }finally{server?.kill('SIGTERM')}
 }
