@@ -96,16 +96,25 @@ export async function observeAppMonitorSession(env,snapshot){
 
   const fingerprint=await sha256(String(snapshot.app||'')+'|'+key);
   const seenKey=SEEN_PREFIX+fingerprint+'.json';
+  const config=await settings(env);
+  const person=await personForSnapshot(env,snapshot);
+  const owner=Boolean((person&&(config.ownerPeople||[]).includes(person))||(config.ownerDeviceIds||[]).includes(snapshot.deviceId)||authIds(snapshot).some(id=>(config.ownerAuthIds||[]).includes(id)));
+  if(config.enabled&&config.sessionAlerts!==false&&!owner&&snapshot.reason==='start'&&snapshot.sessionId){
+    const sessionHash=await sha256(String(snapshot.app||'')+'|'+String(snapshot.sessionId));
+    const sessionSeen=SEEN_PREFIX+'session-'+sessionHash+'.json';
+    if(!await getJSON(env,sessionSeen)){
+      await putJSON(env,sessionSeen,{app:snapshot.app,firstSeenAt:new Date().toISOString()});
+      await service(env).emit({version:1,id:'session-'+sessionHash,type:'activity.session_started',app:APP,scopeId:SCOPE,audience:'admin',actorId:key,recipients:[ADMIN_USER],title:'Session started - '+String(snapshot.app||'App'),body:(person||snapshot.identity?.username||'Visitor')+' - '+String(snapshot.device?.kind||'Browser'),url:'https://nirav2000.github.io/Apps/app-monitor.html',priority:'normal',data:{app:snapshot.app,sessionId:snapshot.sessionId},createdAt:new Date().toISOString()},env);
+    }
+  }
   if(await getJSON(env,seenKey))return {newIdentity:false,notified:false};
 
-  const person=await personForSnapshot(env,snapshot);
   const now=new Date().toISOString();
   await putJSON(env,seenKey,{
     version:1,fingerprint,app:String(snapshot.app||''),identityKey:key,deviceId:String(snapshot.deviceId||''),
     authIds:authIds(snapshot),person,firstSeenAt:now
   });
 
-  const config=await settings(env);
   if(!config.enabled)return {newIdentity:true,notified:false,reason:'alerts-disabled'};
   if(person&&(config.ownerPeople||[]).includes(person))return {newIdentity:true,notified:false,reason:'owner-person'};
   if((config.ownerDeviceIds||[]).includes(snapshot.deviceId))return {newIdentity:true,notified:false,reason:'owner-device'};
