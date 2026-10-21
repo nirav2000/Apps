@@ -156,7 +156,7 @@ export async function handleAppMonitorNotificationRoute(request,env,headers,url)
     ]);
     return Response.json({
       ok:true,app:APP,scopeId:SCOPE,userId:ADMIN_USER,role:'owner',
-      eventTypes:[{id:'security.new_human',label:'New human visitor'}],
+      eventTypes:[{id:'security.new_human',label:'New human visitor'},{id:'activity.session_started',label:'Session started'}],
       policy,preferences,inbox,deliveryLog,readiness,
       unread:inbox.filter(x=>x.read!==true).length,
       settings:config,availablePeople:people,
@@ -174,11 +174,9 @@ export async function handleAppMonitorNotificationRoute(request,env,headers,url)
     let body;try{body=await request.json()}catch{return new Response('Invalid JSON',{status:400,headers})}
     const current=await settings(env);
     const ownerPeople=Array.isArray(body.ownerPeople)?body.ownerPeople.map(x=>String(x).trim().slice(0,120)).filter(Boolean).slice(0,30):current.ownerPeople;
-    const enabled=body.enabled===true;
-    if(enabled&&!ownerPeople.length&&!current.ownerAuthIds?.length&&!current.ownerDeviceIds?.length){
-      return Response.json({ok:false,error:'owner-identity-required'},{status:400,headers});
-    }
-    const next={...current,enabled,ownerPeople,updatedAt:new Date().toISOString()};
+    const enabled=body.enabled!==false;
+    const sessionAlerts=body.sessionAlerts!==false;
+    const next={...current,enabled,sessionAlerts,ownerPeople,updatedAt:new Date().toISOString()};
     await putJSON(env,SETTINGS_KEY,next);
     return Response.json({ok:true,settings:next},{headers});
   }
