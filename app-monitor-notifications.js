@@ -49,7 +49,7 @@ function service(env){
   });
 }
 function defaultSettings(){
-  return {version:1,enabled:false,ownerPeople:[],ownerAuthIds:[],ownerDeviceIds:[],updatedAt:null};
+  return {version:2,enabled:true,ownerPeople:[],ownerAuthIds:[],ownerDeviceIds:[],updatedAt:null};
 }
 async function settings(env){
   return {...defaultSettings(),...(await getJSON(env,SETTINGS_KEY)||{})};
