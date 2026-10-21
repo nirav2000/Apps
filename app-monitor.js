@@ -86,8 +86,8 @@ addEventListener('apps-auth:change',e=>{
 document.addEventListener('visibilitychange',()=>{tick();send(document.visibilityState==='hidden'?'hidden':'visible',true)});
 addEventListener('focus',()=>{tick();send('focus',true)});
 addEventListener('blur',()=>{tick();send('blur',true)});
-addEventListener('pagehide',()=>{tick();send('pagehide',true)});addEventListener('online',()=>{if(foreground())send('online')});setInterval(()=>{if(foreground())send('heartbeat')},5*60*1000);
-window.AppMonitor={version:5,app,deviceId:deviceId(),sessionId:sessionId(),send,identify:v=>{manual=norm(v)||null;schedule(100,'identify');return manual},clearIdentity:()=>{manual=null;schedule(100,'identity-clear')},data:snap,privacyAllowsMonitor};
+addEventListener('pagehide',()=>{tick();send('pagehide',true)});addEventListener('online',()=>{if(foreground())send('online')});setInterval(()=>{if(foreground())send('heartbeat')},30*1000);
+window.AppMonitor={version:6,app,deviceId:deviceId(),sessionId:sessionId(),send,identify:v=>{manual=norm(v)||null;schedule(100,'identify');return manual},clearIdentity:()=>{manual=null;schedule(100,'identity-clear')},data:snap,privacyAllowsMonitor};
 addEventListener('apps-privacy:change',()=>{if(privacyAllowsMonitor())send('privacy-opt-in',true)});
 schedule(2000,'start');
 })();
