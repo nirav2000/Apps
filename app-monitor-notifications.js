@@ -3,7 +3,7 @@ import { createR2NotificationService } from './notifications/v1/r2-transport.js'
 const APP='app-monitor';
 const SCOPE='admin';
 const ADMIN_USER='app-monitor-admin';
-const EVENT_TYPES=['security.new_human','system.test'];
+const EVENT_TYPES=['security.new_human','activity.session_started','system.test'];
 const SETTINGS_KEY='_app-monitor/v2/notification-adapter/settings.json';
 const SEEN_PREFIX='_app-monitor/v2/notification-adapter/seen/';
 
@@ -11,7 +11,7 @@ const DEFAULT_POLICY={
   policyOwnerId:ADMIN_USER,
   costBearerId:ADMIN_USER,
   allowedChannels:{in_app:true,web_push:true,email:true,telegram:true,whatsapp:true,signal:true,slack:true,discord:true,sms:true,ios_push:true},
-  allowedEvents:{'security.new_human':true,'system.test':true},
+  allowedEvents:{'security.new_human':true,'activity.session_started':true,'system.test':true},
   mandatoryEvents:{}
 };
 
@@ -49,10 +49,11 @@ function service(env){
   });
 }
 function defaultSettings(){
-  return {version:2,enabled:true,ownerPeople:[],ownerAuthIds:[],ownerDeviceIds:[],updatedAt:null};
+  return {version:2,enabled:true,sessionAlerts:true,ownerPeople:[],ownerAuthIds:[],ownerDeviceIds:[],updatedAt:null};
 }
 async function settings(env){
-  return {...defaultSettings(),...(await getJSON(env,SETTINGS_KEY)||{})};
+  const saved=await getJSON(env,SETTINGS_KEY);
+  return {...defaultSettings(),...(saved||{}),enabled:saved?.updatedAt?saved.enabled!==false:true};
 }
 async function availablePeople(env){
   const aliases=await listJSON(env,'_app-monitor/v1/_aliases/',1000);
