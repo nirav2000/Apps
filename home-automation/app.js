@@ -89,6 +89,10 @@
       }
       for(const el of document.querySelectorAll('[data-zone-target="'+roomId+'"]'))
         el.textContent=fmt(room.target)+"°";
+      for(const slider of document.querySelectorAll('[data-zone-range="'+roomId+'"]')){
+        slider.value=String(room.target);
+        slider.style.setProperty("--fill",((room.target-10)/18*100)+"%");
+      }
       window.HomeControlLab?.refresh();
     } else {
       renderOverview();
@@ -131,7 +135,7 @@
     ];
     $("zoneList").innerHTML=zones.map(z=>{
       const room=refs[z.id];
-      return '<div class="zone-row"><span class="zone-icon" aria-hidden="true">'+z.icon+'</span><div class="zone-details"><strong>'+esc(z.title)+'</strong><span>'+esc(z.caption)+'</span></div><div class="temp-control"><button type="button" data-temperature="'+esc(z.id)+'" data-step="-0.5" aria-label="Decrease demo '+esc(z.title)+' temperature">−</button><strong data-zone-target="'+esc(z.id)+'">'+fmt(room.target)+'°</strong><button type="button" data-temperature="'+esc(z.id)+'" data-step="0.5" aria-label="Increase demo '+esc(z.title)+' temperature">+</button></div></div>';
+      return '<div class="zone-row"><span class="zone-icon" aria-hidden="true">'+z.icon+'</span><div class="zone-details"><strong>'+esc(z.title)+'</strong><span>'+esc(z.caption)+'</span></div><div class="temp-control"><button type="button" data-temperature="'+esc(z.id)+'" data-step="-0.5" aria-label="Decrease demo '+esc(z.title)+' temperature">−</button><strong data-zone-target="'+esc(z.id)+'">'+fmt(room.target)+'°</strong><button type="button" data-temperature="'+esc(z.id)+'" data-step="0.5" aria-label="Increase demo '+esc(z.title)+' temperature">+</button></div><label class="zone-slider-row"><span class="sr-only">Slide '+esc(z.title)+' target</span><span aria-hidden="true">10°</span><input type="range" min="10" max="28" step="0.5" value="'+room.target+'" data-zone-range="'+esc(z.id)+'" aria-label="Slide '+esc(z.title)+' simulated temperature"><span aria-hidden="true">28°</span></label></div>';
     }).join("");
     $("routineList").innerHTML=DATA.routines.map(r=>'<div class="routine-item"><span class="routine-icon" aria-hidden="true">'+esc(r.icon)+'</span><span><strong>'+esc(r.name)+'</strong><small>'+esc(r.detail)+'</small></span><span class="routine-state">Idea</span></div>').join("");
     void bedroom;
@@ -290,6 +294,10 @@
     e.preventDefault();const n=tabKeys.indexOf(state.tab);
     const index=key==="Home"?0:key==="End"?tabKeys.length-1:(n+(key==="ArrowRight"?1:-1)+tabKeys.length)%tabKeys.length;
     setTab(tabKeys[index],{focus:true});
+  });
+  document.addEventListener("input",e=>{
+    const input=e.target.closest("[data-zone-range]");
+    if(input)setRoomTarget(input.dataset.zoneRange,Number(input.value),{continuous:true});
   });
   $("systemSearch").addEventListener("input",e=>{state.query=e.target.value;renderRegister();});
   $("systemFilter").addEventListener("change",e=>{state.filter=e.target.value;renderRegister();});
