@@ -304,6 +304,8 @@
     }
     const x=e.clientX-(rect.left+rect.width/2);
     const y=e.clientY-(rect.top+rect.height/2);
+    // Interactions belong to the ring, not the central temperature readout.
+    if(Math.hypot(x,y)<rect.width*.29)return null;
     // Zero degrees is 12 o'clock; 90 is 3 o'clock. The active arc
     // starts at 7 o'clock (210°) and runs clockwise through the top
     // to 5 o'clock (150°), with a 60° dead zone at the bottom.
@@ -316,12 +318,13 @@
     const el=e.target.closest("[data-rotary],[data-scrub]");
     if(!el||!mounted||e.button!==0)return;
     if(el.offsetParent===null)return; // Hidden panel isn't interactive.
+    const next=pointerValue(el,e);
+    if(next===null)return; // Do not capture taps in the dial centre / inactive arc.
     e.preventDefault(); // prevents touch scrolling during intentional drag
     el.focus({preventScroll:true});
     activePointer={id:e.pointerId,element:el};
     try{el.setPointerCapture(e.pointerId);}catch{/* lost capture is handled */}
-    const next=pointerValue(el,e);
-    if(next!==null)setTarget(next,{continuous:true});
+    setTarget(next,{continuous:true});
   }
   function onPointerMove(e){
     if(!activePointer||activePointer.id!==e.pointerId)return;
