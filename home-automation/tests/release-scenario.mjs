@@ -124,6 +124,7 @@ export async function run({page,assert,root,waitForQuiescence,metrics}) {
   assert.equal((await page.locator("#taskPercentage").innerText()).trim(),"10%","Planning checkmark survives reload");
   assert.equal(await page.locator("#designNotes").inputValue(),"Use the room UI and energy trends together.","Design notes survive reload");
   assert((await page.locator("#reviewFavouriteStatus").innerText()).includes("Systems & plans"),"Favourite survives reload");
+  assert((await page.locator("#labShortlist").innerText()).includes("Rotary dial"),"Preferred control style persists between reloads");
   await page.locator("#resetTasks").click();
   assert.equal((await page.locator("#taskPercentage").innerText()).trim(),"0%","Planner checkmarks can be cleared");
 
