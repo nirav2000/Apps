@@ -39,7 +39,7 @@ test("rotary scale uses a 300 degree gesture and a deliberate inactive arc",()=>
   assert.equal(lab.quantise(-5),10,"clamps low targets");
   assert.match(source,/setPointerCapture/,"Drag should capture pointer and remain stable");
   assert.match(source,/releasePointerCapture/,"Pointer release must be handled");
-  assert.match(source,/touch-action:none/);
+  assert.match(fs.readFileSync(path.join(base,"control-lab.css"),"utf8"),/touch-action:none/);
   assert.match(source,/ArrowRight/,"Keyboard control is supported");
 });
 test("the main room dashboard and household heating cards use the same shared target",()=>{
@@ -54,5 +54,5 @@ test("the main room dashboard and household heating cards use the same shared ta
 test("prototype cannot call a live controller",()=>{
   assert.doesNotMatch(source+"\n"+app,/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(/);
   assert.match(html,/nothing is connected to your home/);
-  assert.match(source,/No home hardware is contacted|No real/);
+  assert.match(source,/Never contacts or controls hardware/);
 });
