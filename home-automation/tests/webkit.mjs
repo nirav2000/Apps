@@ -32,8 +32,13 @@ try{
   const response=await page.goto(base+"/",{waitUntil:"networkidle",timeout:30000});
   assert(response&&response.status()<400,"Home Studio should load on WebKit");
   await page.locator("#overviewStats .stat-card").first().waitFor();
+  assert.equal(await page.locator("[data-control-card]").count(),8,"All controls render on WebKit");
   for(const size of [{width:390,height:844,name:"iphone"},{width:820,height:1180,name:"ipad"}]){
     await page.setViewportSize(size);
+    const roomSelect=page.locator("#labRoomPicker");
+    await roomSelect.selectOption("bedroom");
+    await page.locator("#labHybridRange").evaluate(el=>{el.value="20";el.dispatchEvent(new Event("input",{bubbles:true}));});
+    assert.equal(await page.locator("#labLiveTarget").innerText(),"20.0°","Shared controls react on "+size.name);
     for(const view of ["overview","rooms","energy","systems"]){
       await page.locator("#tab-"+view).click();
       assert(await page.locator("#panel-"+view).isVisible(),size.name+"/"+view+" view should be usable");
