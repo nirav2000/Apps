@@ -27,6 +27,16 @@
           "type": "text",
           "selector": ".demo-warning",
           "pattern": "Prototype only|nothing is connected"
+        },
+        {
+          "type": "count",
+          "selector": ".lab-card",
+          "min": 8
+        },
+        {
+          "type": "count",
+          "selector": ".lab-util",
+          "min": 3
         }
       ]
     }
