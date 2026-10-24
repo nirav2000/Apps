@@ -24,16 +24,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install Playwright Chromium
+      - name: Install Playwright Chromium and WebKit
         run: |
           npm install --no-save --package-lock=false playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
       - name: Validate structure, JavaScript, version, and relative paths
         run: node validation/validate-static-app.mjs home-automation validation.config.json
       - name: Run standalone data and integration safety tests
         run: node --test home-automation/tests/static.test.mjs
       - name: Static browser smoke check
         run: node validation/smoke-test.mjs home-automation validation.config.json
+      - name: iPhone/iPad WebKit interaction and layout checks
+        run: node home-automation/tests/webkit.mjs
       - name: Browser interaction, mobile/tablet and zero-network release gate
         run: node validation/release-gate.mjs home-automation validation.config.json
       - name: Upload annotated visual and release evidence
