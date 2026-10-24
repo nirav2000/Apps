@@ -2,7 +2,7 @@
    "reported" is a user statement, NOT verified access or a live connection.
    Never put secrets, tokens, addresses, IPs or API credentials in this public file. */
 window.HOME_STUDIO_DATA = Object.freeze({
-  version: "0.1.0",
+  version: "0.2.0",
   updated: "2026-10-24",
   rooms: [
     {id:"living", name:"Living room", icon:"⌂", area:"room-living", target:21, current:20.4, humidity:45, lights:true, heating:true, detail:"Example main heating zone"},
