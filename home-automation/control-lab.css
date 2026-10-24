@@ -124,7 +124,7 @@ input[type="range"][data-temp-range]::-moz-range-thumb{height:18px;width:18px;bo
 .lab-util p{font-size:11px;color:#90a192;line-height:1.5;margin:0}
 .lab-util-light{background:#e8ebdf}
 .lab-light-visual{height:107px;display:grid;place-items:center;margin:20px 0;background:radial-gradient(circle,#ffe39c99 0,transparent 64%);position:relative}
-.lab-light-visual::before{content:"";position:absolute;width:113px;height:113px;border-radius:50%;background:#ffeeaa;filter:blur(24px);opacity:calc(var(--brightness,.65)*1.2)}
+.lab-light-visual::before{content:"";position:absolute;width:113px;height:113px;border-radius:50%;background:#ffeeaa;filter:blur(24px);opacity:var(--brightness,.65)}
 .lab-light-visual span{position:relative;font-size:66px;color:#f4d375;filter:drop-shadow(0 0 6px #fadd89);opacity:var(--brightness,.65);transition:opacity .15s}
 .lab-util-footer{margin-top:auto}
 .lab-util-footer label{display:flex;justify-content:space-between;color:#5d745c;font-size:12px;font-weight:750;margin-bottom:14px}
