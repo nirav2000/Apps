@@ -1,4 +1,4 @@
-/* Home Automation Studio v0.1.0
+/* Home Automation Studio v0.2.0
    Demo-only UI: no fetch, socket, provider API, secrets, or control gateway.
    Prototype readings and room layouts are entirely synthetic.
    Never interpret UI changes as success of a physical automation. */
@@ -26,6 +26,7 @@
     rooms:DATA.rooms.map(r=>({...r})),
     tasks:new Set(savedTasks), notes:typeof saved.notes==="object"&& saved.notes && !Array.isArray(saved.notes)?saved.notes:{},
     favourite:tabKeys.includes(saved.favourite)?saved.favourite:null,
+    shortlisted:new Set(Array.isArray(saved.shortlisted)?saved.shortlisted.filter(id=>window.HomeControlLab?.options.some(x=>x.id===id)):[]),
     expanded:new Set(), ev:false, filter:"all", query:""
   };
   const refs = Object.fromEntries(state.rooms.map(r=>[r.id,r]));
@@ -33,7 +34,7 @@
 
   function persist() {
     try {
-      localStorage.setItem(storageKey,JSON.stringify({tasks:[...state.tasks],notes:state.notes,favourite:state.favourite}));
+      localStorage.setItem(storageKey,JSON.stringify({tasks:[...state.tasks],notes:state.notes,favourite:state.favourite,shortlisted:[...state.shortlisted]}));
       return true;
     }catch {return false;}
   }
@@ -69,18 +70,40 @@
       r.target=clamp(base + (id==="away"?-3:id==="night"?-2:id==="boost"?1:0),10,28);
       r.lights=id==="away"||id==="night"?false:["living","kitchen","bathroom"].includes(r.id);
     });
-    renderOverview();renderRooms();
+    renderOverview();renderRooms();window.HomeControlLab?.refresh();
     toast("Simulated scene: "+scene.name+" — no physical devices changed");
   }
+  // All inputs use the same validated demo setpoint. During a drag we only
+  // update labels; replacing a rotary node would discard pointer capture.
+  function setRoomTarget(roomId,value,{continuous=false}={}) {
+    const room=refs[roomId];
+    const proposed=Number(value);
+    if(!room||!Number.isFinite(proposed))return;
+    const next=clamp(Math.round(proposed*2)/2,10,28);
+    if(room.target===next){window.HomeControlLab?.refresh();return;}
+    room.target=next;
+    if(continuous){
+      if(roomId==="living"){
+        const overviewReading=$("overviewStats")?.querySelector(".stat-card strong");
+        if(overviewReading)overviewReading.textContent=fmt(room.target)+"°";
+      }
+      for(const el of document.querySelectorAll('[data-zone-target="'+roomId+'"]'))
+        el.textContent=fmt(room.target)+"°";
+      window.HomeControlLab?.refresh();
+    } else {
+      renderOverview();
+      renderRooms();
+      window.HomeControlLab?.refresh();
+      toast(room.name+" sample setpoint: "+fmt(room.target)+"°C (demo only)");
+    }
+  }
   function changeTemperature(roomId,delta) {
-    const room=refs[roomId];if(!room)return;
-    room.target=clamp(room.target+delta,10,28);
-    renderOverview();renderRooms();
-    toast(room.name+" sample setpoint: "+room.target+"°C (demo only)");
+    const room=refs[roomId];
+    if(room)setRoomTarget(roomId,room.target+delta);
   }
   function toggleLight(roomId) {
     const room=refs[roomId];if(!room)return;
-    room.lights=!room.lights;renderRooms();
+    room.lights=!room.lights;renderRooms();window.HomeControlLab?.refresh();
     toast(room.name+" sample lights "+(room.lights?"on":"off")+" — simulation");
   }
   function renderScenes() {
@@ -108,7 +131,7 @@
     ];
     $("zoneList").innerHTML=zones.map(z=>{
       const room=refs[z.id];
-      return '<div class="zone-row"><span class="zone-icon" aria-hidden="true">'+z.icon+'</span><div class="zone-details"><strong>'+esc(z.title)+'</strong><span>'+esc(z.caption)+'</span></div><div class="temp-control"><button type="button" data-temperature="'+esc(z.id)+'" data-step="-0.5" aria-label="Decrease demo '+esc(z.title)+' temperature">−</button><strong>'+fmt(room.target)+'°</strong><button type="button" data-temperature="'+esc(z.id)+'" data-step="0.5" aria-label="Increase demo '+esc(z.title)+' temperature">+</button></div></div>';
+      return '<div class="zone-row"><span class="zone-icon" aria-hidden="true">'+z.icon+'</span><div class="zone-details"><strong>'+esc(z.title)+'</strong><span>'+esc(z.caption)+'</span></div><div class="temp-control"><button type="button" data-temperature="'+esc(z.id)+'" data-step="-0.5" aria-label="Decrease demo '+esc(z.title)+' temperature">−</button><strong data-zone-target="'+esc(z.id)+'">'+fmt(room.target)+'°</strong><button type="button" data-temperature="'+esc(z.id)+'" data-step="0.5" aria-label="Increase demo '+esc(z.title)+' temperature">+</button></div></div>';
     }).join("");
     $("routineList").innerHTML=DATA.routines.map(r=>'<div class="routine-item"><span class="routine-icon" aria-hidden="true">'+esc(r.icon)+'</span><span><strong>'+esc(r.name)+'</strong><small>'+esc(r.detail)+'</small></span><span class="routine-state">Idea</span></div>').join("");
     void bedroom;
@@ -119,7 +142,9 @@
     $("roomInspector").innerHTML=
       '<div class="inspector-top"><span class="overline">ROOM CONTROL · DEMO</span><span aria-hidden="true">'+esc(r.icon)+'</span></div>'+
       '<h3 class="inspector-name">'+esc(r.name)+'</h3><p class="inspector-subtitle">'+esc(r.detail)+'</p>'+
-      '<div class="thermostat-dial"><div class="dial-centre"><span>TARGET</span><strong>'+fmt(r.target)+'°</strong><small>CURRENT '+fmt(r.current)+'°C</small></div></div>'+
+      window.HomeControlLab.rotaryMarkup({inspector:true})+
+      '<label class="inspector-range-label" for="inspectorRoomRange">Slide or rotate to set a temperature</label>'+
+      '<div class="inspector-range-wrap"><small>10°</small><input id="inspectorRoomRange" type="range" min="10" max="28" step="0.5" data-temp-range aria-label="Set '+esc(r.name)+' simulated temperature using slider"><small>28°</small></div>'+
       '<div class="inspector-buttons"><button type="button" data-temperature="'+esc(r.id)+'" data-step="-0.5" aria-label="Decrease '+esc(r.name)+' sample setpoint">−</button><button type="button" data-temperature="'+esc(r.id)+'" data-step="0.5" aria-label="Increase '+esc(r.name)+' sample setpoint">+</button></div>'+
       '<hr class="inspector-divider"><div class="inspector-row"><span>Humidity</span><strong>'+r.humidity+'% · synthetic</strong></div>'+
       '<div class="inspector-row"><span>Heating control</span><strong>'+(r.heating?"Proposed":"Not specified")+'</strong></div>'+
@@ -217,7 +242,8 @@
   function copyFeedback() {
     const notes=tabKeys.map(k=>labelByTab[k]+": "+(state.notes[k]||"No notes")).join("\n\n");
     const finished=DATA.milestones.filter(x=>state.tasks.has(x.id)).map(x=>x.title).join("; ")||"None marked";
-    const message="Home Automation Studio — design brief\nVersion: "+DATA.version+"\nFavourite: "+(state.favourite?labelByTab[state.favourite]:"Not chosen")+"\n\n"+notes+"\n\nPlanning checkmarks (self-reported, not verified): "+finished+"\n\nPrototype: https://nirav2000.github.io/Apps/home-automation/\n";
+    const preferredControls=window.HomeControlLab?.options.filter(x=>state.shortlisted.has(x.id)).map(x=>x.name).join(", ")||"No individual control shortlisted";
+    const message="Home Automation Studio — design brief\nVersion: 0.2.0\nFavourite: "+(state.favourite?labelByTab[state.favourite]:"Not chosen")+"\nPreferred interactions: "+preferredControls+"\n\n"+notes+"\n\nPlanning checkmarks (self-reported, not verified): "+finished+"\n\nPrototype: https://nirav2000.github.io/Apps/home-automation/\n";
     const btn=$("copyFeedback");
     if(navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(message).then(()=>toast("Design brief copied")).catch(()=>fallbackCopy(message,btn));
@@ -235,7 +261,7 @@
     state.scene="home";state.selectedRoom="living";state.period="day";state.selectedBar=null;state.ev=false;
     state.rooms=DATA.rooms.map(r=>({...r}));
     Object.keys(refs).forEach(id=>{refs[id]=state.rooms.find(r=>r.id===id);});
-    renderOverview();renderRooms();renderEnergy();
+    renderOverview();renderRooms();renderEnergy();window.HomeControlLab?.reset();
     toast("Demonstration reset · saved design notes unchanged");
   }
 
@@ -245,7 +271,7 @@
     if(button.dataset.go){setTab(button.dataset.go);$("conceptNav").scrollIntoView({behavior:"smooth",block:"start"});return;}
     if(button.dataset.scene){applyScene(button.dataset.scene);return;}
     if(button.dataset.temperature){changeTemperature(button.dataset.temperature,Number(button.dataset.step));return;}
-    if(button.dataset.room){state.selectedRoom=button.dataset.room;renderRooms();return;}
+    if(button.dataset.room){state.selectedRoom=button.dataset.room;renderRooms();window.HomeControlLab?.refresh();return;}
     if(button.dataset.light){toggleLight(button.dataset.light);return;}
     if(button.dataset.period){
       state.period=button.dataset.period;state.selectedBar=null;renderEnergy();return;
@@ -288,4 +314,17 @@
 
   renderOverview();renderRooms();renderEnergy();renderSystems();
   setTab(state.tab,{updateHash:false});
+  window.HomeControlLab.mount({
+    getTemp:()=>refs[state.selectedRoom].target,
+    setTemp:(value,options)=>setRoomTarget(state.selectedRoom,value,options),
+    currentRoom:()=>state.selectedRoom,
+    changeRoom:(id)=>{if(refs[id]){state.selectedRoom=id;renderRooms();window.HomeControlLab.refresh();}},
+    allRooms:DATA.rooms,
+    selections:()=>[...state.shortlisted],
+    onPick:(id)=>{
+      if(state.shortlisted.has(id))state.shortlisted.delete(id);
+      else state.shortlisted.add(id);
+      $("reviewSaveStatus").textContent=persist()?"Control preferences saved in this browser.":"Storage unavailable. Copy your design brief to keep your choices.";
+    }
+  });
 })();
