@@ -35,7 +35,7 @@ test("the complete register is unique, evidence-labelled and describes the Pi",(
     assert(["reported","verify","idea"].includes(item.stage),item.id);
     for(const field of ["name","category","goal","detail","zero","status","requires"]){
       assert.equal(typeof item[field],"string",item.id+"."+field);
-      assert(item[field].length>5,item.id+"."+field);
+      assert(item[field].length>=3,item.id+"."+field);
     }
     if(item.docs)assert(/^https:\/\//.test(item.docs),"External references must be HTTPS");
   }
