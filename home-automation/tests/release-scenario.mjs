@@ -63,6 +63,11 @@ export async function run({page,assert,root,waitForQuiescence,metrics}) {
   assert((await page.locator("#zoneList").innerText()).includes("18.5°"),"Heating setpoint changes in example only");
   await page.locator("#resetDemo").click();
   assert((await page.locator("#zoneList").innerText()).includes("21.0°"),"Reset restores the default example setpoint");
+  assert.equal(await page.locator('#zoneList input[data-zone-range]').count(),3,"Every overview heating zone has a slider and +/- buttons");
+  await page.locator('#zoneList [data-zone-range="living"]').evaluate(el=>{el.value="21.5";el.dispatchEvent(new Event("input",{bubbles:true}));});
+  assert.equal(await page.locator("#labLiveTarget").innerText(),"21.5°","Overview slider synchronises with Control Playground");
+  await page.locator('#zoneList [data-temperature="living"][data-step="-0.5"]').click();
+  assert.equal(await page.locator("#labLiveTarget").innerText(),"21.0°","Overview precision button synchronises with Control Playground");
 
   // Room map is navigable and the detail panel is linked to chosen room.
   await page.locator("#tab-rooms").click();
@@ -72,6 +77,10 @@ export async function run({page,assert,root,waitForQuiescence,metrics}) {
   assert.equal((await page.locator(".inspector-name").innerText()).trim(),"Bathroom","Selected room has its own inspector");
   await page.locator('#roomInspector [data-temperature="bathroom"][data-step="0.5"]').click();
   assert((await page.locator("#roomInspector .dial-centre").innerText()).includes("23.5°"),"Spatial thermostat buttons adjust mock setpoint");
+  assert.equal(await page.locator("#roomInspector [data-rotary]").count(),1,"Room thermostat ring is genuinely interactive");
+  assert.equal(await page.locator("#roomInspector input[data-temp-range]").count(),1,"Room inspector also provides a slider");
+  await page.locator("#inspectorRoomRange").evaluate(el=>{el.value="22.5";el.dispatchEvent(new Event("input",{bubbles:true}));});
+  assert.equal(await page.locator("#labLiveTarget").innerText(),"22.5°","Inspector slider synchronises with Control Playground");
   await page.locator('#roomInspector [data-light="bathroom"]').click();
   assert((await page.locator("#roomInspector .light-toggle").innerText()).includes("Off"),"Room light toggle operates simulation");
   await page.screenshot({path:path.join(output,"02-rooms-desktop.png"),fullPage:true});
