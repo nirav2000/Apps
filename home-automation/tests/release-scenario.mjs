@@ -13,6 +13,48 @@ export async function run({page,assert,root,waitForQuiescence,metrics}) {
   assert.equal(await page.locator("#sceneChoices button").count(),4,"All example scenes render");
   await page.screenshot({path:path.join(output,"01-overview-desktop.png"),fullPage:true});
 
+  // All eight thermostat styles coexist on one page and share a live mock target.
+  assert.equal(await page.locator("[data-control-card]").count(),8,"Eight distinct comparative thermostat controls on one page");
+  assert.equal(await page.locator(".lab-util").count(),3,"Lighting, ventilation and hot water controls present");
+  await page.locator("#labRoomPicker").selectOption("bathroom");
+  assert((await page.locator("#labRoomCurrent").innerText()).includes("21.8"),"Choosing sample room updates comparison context");
+  await page.locator("#labHybridRange").evaluate(el=>{el.value="22.5";el.dispatchEvent(new Event("input",{bubbles:true}));});
+  assert.equal(await page.locator("#labLiveTarget").innerText(),"22.5°","Slider adjusts shared temperature");
+  assert.equal(await page.locator("#labVerticalRange").inputValue(),"22.5","Vertical fader follows horizontal slider");
+  assert.equal(await page.locator("#labNativePicker").inputValue(),"22.5","Native picker follows slider");
+  await page.locator('[data-control-card="rotary"] [data-rotary]').focus();
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await page.locator("#labLiveTarget").innerText(),"23.0°","Rotary responds to keyboard control");
+  await page.locator('[data-preset="19"]').click();
+  assert.equal(await page.locator("#labLiveTarget").innerText(),"19.0°","One tap preset changes all controls");
+  await page.locator("#labNumberInput").fill("24.5");
+  await page.locator("[data-number-apply]").click();
+  assert.equal(await page.locator("#labLiveTarget").innerText(),"24.5°","Direct numeric entry works");
+  await page.locator('[data-control-card="stepper"] [data-temp-step="-0.5"]').click();
+  assert.equal(await page.locator("#labLiveTarget").innerText(),"24.0°","Large stepper works");
+  await page.locator("#labNativePicker").selectOption("20");
+  assert.equal(await page.locator("#labLiveTarget").innerText(),"20.0°","Native picker works");
+  const rotary=page.locator('[data-control-card="rotary"] [data-rotary]');
+  await rotary.scrollIntoViewIfNeeded();
+  const b=await rotary.boundingBox();
+  const radial=deg=>{const rad=(deg-90)*Math.PI/180;return {x:b.x+b.width/2+Math.cos(rad)*b.width*.43,y:b.y+b.height/2+Math.sin(rad)*b.height*.43};};
+  await page.mouse.move(radial(230).x,radial(230).y);
+  await page.mouse.down();
+  await page.mouse.move(radial(330).x,radial(330).y,{steps:8});
+  await page.mouse.up();
+  assert((await page.locator("#labLiveTarget").innerText())!=="20.0°","Rotary pointer gesture actually changes shared setpoint");
+  await page.locator('[data-pick-control="rotary"]').click();
+  assert((await page.locator("#labShortlist").innerText()).includes("Rotary dial"),"Control shortlist records selection");
+  await page.locator("#labDimmer").evaluate(el=>{el.value="35";el.dispatchEvent(new Event("input",{bubbles:true}));});
+  assert.equal((await page.locator("#labDimmerLabel").innerText()).trim(),"35%","Light dimming simulated");
+  await page.locator('[data-fan-mode="on"]').click();
+  assert((await page.locator("#labFanStatus").innerText()).includes("manual override"),"Ventilation mode works");
+  await page.locator('[data-boost="30"]').click();
+  assert((await page.locator("#labBoostStatus").innerText()).includes("30-minute"),"Hot-water boost example works");
+  await page.screenshot({path:path.join(output,"00-control-playground-desktop.png"),fullPage:true});
+  await page.locator("#labRoomPicker").selectOption("living");
+  await page.locator("#resetDemo").click();
+
   // Scene buttons are interactive but never change hardware.
   await page.locator('[data-scene="away"]').click();
   assert.equal((await page.locator("#heroMood").innerText()).trim(),"taken care of.","Away scene changes illustration copy");
@@ -82,6 +124,7 @@ export async function run({page,assert,root,waitForQuiescence,metrics}) {
   assert(await page.locator("#panel-overview").isVisible(),"Keyboard arrow navigates tab controls");
   for(const viewport of [{width:390,height:844,name:"phone"},{width:820,height:1180,name:"tablet"}]){
     await page.setViewportSize(viewport);
+    assert.equal(await page.locator("[data-control-card]").count(),8,viewport.name+" retains all controls");
     for(const name of ["overview","rooms","energy","systems"]){
       await page.locator("#tab-"+name).click();
       assert(await page.locator("#panel-"+name).isVisible(),viewport.name+" / "+name+" remains navigable");
