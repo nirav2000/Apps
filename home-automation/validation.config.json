@@ -1,0 +1,51 @@
+{
+  "ignore": [
+    "artifacts"
+  ],
+  "pages": [
+    {
+      "path": "/",
+      "readySelector": "#overviewStats .stat-card",
+      "minCount": 4,
+      "assertions": [
+        {
+          "type": "count",
+          "selector": ".concept-tab",
+          "min": 4
+        },
+        {
+          "type": "count",
+          "selector": "#floorplan .floor-room",
+          "min": 5
+        },
+        {
+          "type": "count",
+          "selector": "#inventoryRows tr",
+          "min": 17
+        },
+        {
+          "type": "text",
+          "selector": ".demo-warning",
+          "pattern": "Prototype only|nothing is connected"
+        }
+      ]
+    }
+  ],
+  "releaseGate": {
+    "enabled": true,
+    "scenarioModule": "tests/release-scenario.mjs",
+    "path": "/",
+    "readySelector": "#overviewStats .stat-card",
+    "allowExternalNetwork": false,
+    "quietMs": 350,
+    "timeoutMs": 5000,
+    "maxStateTransitions": 1,
+    "maxExternalRequests": 0,
+    "maxLocalRequests": 18,
+    "maxLocalBytes": 1800000,
+    "maxFirebaseReads": 0,
+    "maxFirebaseWrites": 0,
+    "maxFirebaseDeletes": 0,
+    "maxFirebaseListeners": 0
+  }
+}
