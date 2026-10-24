@@ -30,6 +30,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Validate structure, JavaScript, version, and relative paths
         run: node validation/validate-static-app.mjs home-automation validation.config.json
+      - name: Run standalone data and integration safety tests
+        run: node --test home-automation/tests/static.test.mjs
       - name: Static browser smoke check
         run: node validation/smoke-test.mjs home-automation validation.config.json
       - name: Browser interaction, mobile/tablet and zero-network release gate
