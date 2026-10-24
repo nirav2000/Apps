@@ -1,8 +1,16 @@
 # Home Automation Studio
 
-**Status:** v0.1.0 interactive design prototype, created 24 October 2026. Hosted within [App Monitor's Apps repository](https://github.com/nirav2000/Apps/tree/main/home-automation); public page route: \`/Apps/home-automation/\`.
+**Status:** v0.2.0 interactive design prototype, created 24 October 2026. Hosted within [App Monitor's Apps repository](https://github.com/nirav2000/Apps/tree/main/home-automation); public page route: \`/Apps/home-automation/\`.
 
 **IMPORTANT:** This is an intentionally **offline-from-hardware demonstration**. Temperatures, room layout, scenes, electricity usage, costs, switches, thermostat setpoints, device "states" and the example floor plan are **synthetic**. No home appliances, backend, cloud accounts or local servers have been connected or scanned. Public GitHub Pages is **not** a safe place to store heating credentials, Home Assistant access tokens, LAN IPs or API keys.
+
+## Eight interactive control styles — compare on one page
+
+The **Control Playground** appears above the four dashboard concepts and presents eight live, side-by-side ways to adjust the *same sample room target*: (1) horizontal slider with separate ± stepper buttons, (2) Nest-inspired **rotary dial** with real touch/pointer dragging and keyboard support, (3) draggable/tappable temperature ruler, (4) vertical slider/fader, (5) one-tap comfort presets, (6) precise numeric input with range validation, (7) oversized accessibility-oriented ± buttons and (8) native temperature picker. You can change the example room in one selector and watch all eight controls, the main home overview and the Room by Room inspector synchronise. No home hardware is contacted.
+
+The **Room by Room** inspector now provides the working rotary ring, a slider and ± buttons together. The control lab also includes separate simulations for a light dimmer, ventilation mode and a timed hot-water boost. Each temperature control uses 10–28°C in 0.5°C steps; these are *design exploration bounds*, not operating limits confirmed for Wiser or Warmup.
+
+The eight controls have independent **Shortlist** buttons. Shortlisted controls are saved only in this browser alongside your favourite dashboard and commentary. **Copy design brief** includes the control shortlist so you can choose a hybrid final product without committing prematurely to one interface.
 
 ## Four distinct interactive concepts
 
