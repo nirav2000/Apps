@@ -4,12 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f7f3">
-  <meta name="description" content="Home Automation Studio: four distinct design prototypes, a comprehensive equipment register, and a secure integration roadmap.">
+  <meta name="description" content="Home Automation Studio: four distinct design prototypes, eight interactive thermostat controls, a comprehensive equipment register, and a secure integration roadmap.">
   <title>Home Automation Studio · App Monitor</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css?v=0.1.0">
+  <link rel="stylesheet" href="./styles.css?v=0.2.0">
+  <link rel="stylesheet" href="./control-lab.css?v=0.2.0">
   <script defer src="./data.js?v=0.1.0"></script>
-  <script defer src="./app.js?v=0.1.0"></script>
+  <script defer src="./control-lab.js?v=0.2.0"></script>
+  <script defer src="./app.js?v=0.2.0"></script>
 </head>
 <body data-view="overview">
 <a class="skip-link" href="#content">Skip to main content</a>
@@ -20,7 +22,7 @@
   </header>
   <section class="intro-section">
     <div class="intro-text"><div class="eyebrow"><i></i> YOUR SMART HOME, REIMAGINED</div><h1>One home. <em>Four perspectives.</em></h1><p>Explore four radically different interfaces for the smart-home system you're planning. Try the controls, compare the experiences, and shape what we build for your Raspberry Pi.</p></div>
-    <div class="intro-actions"><button type="button" id="resetDemo" class="btn btn-outline">↺ Reset demo</button><button type="button" id="jumpPlan" class="btn btn-ink">Explore the build plan <span aria-hidden="true">↗</span></button></div>
+    <div class="intro-actions"><a href="#control-playground" class="btn btn-ink btn-playground">Explore 8 controls ↓</a><button type="button" id="resetDemo" class="btn btn-outline">↺ Reset demo</button><button type="button" id="jumpPlan" class="btn btn-ink">Explore the build plan <span aria-hidden="true">↗</span></button></div>
   </section>
   <nav id="conceptNav" class="concept-nav" aria-label="Dashboard designs" role="tablist">
     <button type="button" id="tab-overview" class="concept-tab selected" role="tab" aria-controls="panel-overview" aria-selected="true" tabindex="0" data-tab="overview"><span class="concept-preview preview-overview" aria-hidden="true"><i></i><i></i><i></i></span><span class="concept-details"><small>01 / CALM</small><strong>At a glance</strong><span>Editorial · effortless</span></span></button>
@@ -31,6 +33,23 @@
   <div class="demo-warning" role="note"><span class="info-mark">i</span><p><strong>Design prototype only — nothing is connected to your home.</strong> All temperatures, charts, readings, device statuses and control actions are simulated. The <button type="button" class="inline-button" data-go="systems">equipment register</button> distinguishes reported hardware from future ideas. No real commands are issued. The device inventory in this public repository is visible to others; never add passwords, tokens or private network information.</p></div>
 
   <main id="content">
+    <section id="control-playground" class="control-playground" aria-labelledby="controlPlaygroundTitle">
+      <div class="lab-masthead">
+        <div class="lab-eyebrow"><span class="lab-spark">✳</span> INTERACTIVE COMPONENT SHOWROOM <span class="lab-beta">EXPLORE / COMPARE / SHORTLIST</span></div>
+        <div class="lab-masthead-row">
+          <div>
+            <h2 id="controlPlaygroundTitle">Touch it. <em>Try it.</em> Choose it.</h2>
+            <p>Not just different dashboard colours. Eight genuinely different thermostat controls, all live on one page. Slide, spin, tap or type to find the best interaction for your home.</p>
+          </div>
+          <div class="lab-current" aria-live="polite"><span>SHARED DEMO SETPOINT</span><strong id="labLiveTarget">21.0°</strong><small id="labRoomCurrent">Current example: 20.4°C</small></div>
+        </div>
+      </div>
+      <div class="lab-toolbar">
+        <div class="lab-room-choice"><label for="labRoomPicker">TRY A DIFFERENT ROOM</label><select id="labRoomPicker" aria-label="Choose example room to control"></select><small id="labRoomType">Wiser example · hypothetical zone</small></div>
+        <p><span class="lab-sync-dot"></span> <strong>One connected demonstration:</strong> every thermostat control updates the others, the room-by-room interface, and the household overview. All values are simulated.</p>
+      </div>
+      <div id="controlLabHost" aria-live="off"><p class="lab-loading">Preparing interactive controls…</p></div>
+    </section>
     <section class="dashboard-view overview-view" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
       <div class="overview-lead">
         <div class="lead-text"><div class="overline">YOUR HOME, IN HARMONY <span class="mini-demo">SAMPLE DATA</span></div><h2>Home feels<br><em id="heroMood">just right.</em></h2><p>Everything you need, nothing you don't. Comfort, energy and peace of mind — all in one beautifully simple view.</p><div class="scene-label">QUICK SCENES <span>Tap to try</span></div><div id="sceneChoices" class="scene-choices" role="group" aria-label="Simulated home scenes"></div></div>
@@ -74,7 +93,7 @@
     </section>
     <section class="feedback-section" aria-labelledby="feedbackTitle"><div class="feedback-heading"><div><div class="overline">SHAPE THE FINAL INTERFACE</div><h2 id="feedbackTitle">Which direction feels right?</h2><p>Mark your favourite and jot down what you like. Copy a design brief to bring your feedback back to our conversation.</p></div><div class="feedback-actions"><button type="button" class="btn btn-outline" id="favouriteBtn">☆ Mark as favourite</button><button type="button" class="btn btn-ink" id="copyFeedback">Copy design brief ↗</button></div></div><label id="notesLabel" for="designNotes">Notes on “At a glance”</label><textarea id="designNotes" rows="3" placeholder="For example: use the room interactions from 02 with the energy analytics from 03…"></textarea><div class="feedback-meta"><span id="reviewSaveStatus" role="status" aria-live="polite">Your feedback stays on this device.</span><span id="reviewFavouriteStatus"></span></div></section>
   </main>
-  <footer class="site-footer"><div class="footer-mark">h<span>.</span></div><div><strong>HOME AUTOMATION STUDIO <span>v0.1.0</span></strong><p>Design exploration only. No home credentials, connected data or real device commands. Live control will require a secure authenticated API on the home network; public GitHub Pages must not expose it directly.</p></div><a href="../app-monitor.html">Back to App Monitor ↗</a></footer>
+  <footer class="site-footer"><div class="footer-mark">h<span>.</span></div><div><strong>HOME AUTOMATION STUDIO <span>v0.2.0</span></strong><p>Design exploration only. No home credentials, connected data or real device commands. Live control will require a secure authenticated API on the home network; public GitHub Pages must not expose it directly.</p></div><a href="../app-monitor.html">Back to App Monitor ↗</a></footer>
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 </body>
