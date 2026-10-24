@@ -1,0 +1,44 @@
+name: Home Automation Studio validation
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'home-automation/**'
+      - 'app-monitor.html'
+      - 'index.html'
+      - '.github/workflows/home-automation-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: home-automation-validation
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - name: Checkout Apps repository
+        uses: actions/checkout@v4
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Validate structure, JavaScript, version, and relative paths
+        run: node validation/validate-static-app.mjs home-automation validation.config.json
+      - name: Static browser smoke check
+        run: node validation/smoke-test.mjs home-automation validation.config.json
+      - name: Browser interaction, mobile/tablet and zero-network release gate
+        run: node validation/release-gate.mjs home-automation validation.config.json
+      - name: Upload annotated visual and release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-automation-studio-validation
+          path: home-automation/artifacts/
+          if-no-files-found: ignore
+          retention-days: 30
