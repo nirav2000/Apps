@@ -4,6 +4,7 @@ A no-framework HTML/CSS/JS dashboard that aggregates GitHub Pages apps into one 
 
 ## Features
 
+- [Home Automation Studio](home-automation/): four contrasting, interactive, mobile-first dashboard designs, 17 automation workstreams, secure integration roadmap, and browser-local design feedback. **Prototype only; no actual devices connected.**
 - Curated app blurbs for `nirav2000` repositories with GitHub Pages enabled.
 - Reusable dashboard brand system in `dashboard_brand/` with generated animated SVG previews.
 - Static generated SVG artifacts committed under `dashboard_brand/previews/`.
