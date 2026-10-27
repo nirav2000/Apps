@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-13",
+  "generatedAt": "2026-10-27",
   "legend": {
     "installed": "Verified installed/used",
     "local": "Feature exists locally/legacy, not confirmed on shared module",
@@ -33,7 +33,8 @@
       "created": "2026-09-29",
       "purpose": "Canonical shared authentication SDK plus reusable multi-variant account UI, migration safety, sessions, roles, passkeys and audit integration.",
       "installed": {
-        "App Monitor": "local"
+        "App Monitor": "local",
+        "Comprehension": "installed"
       },
       "notes": "Current immutable release: 1.3.0. Authentication Lab keeps the original full technical test page. The Shared account UI card now compares flow variants and independent Airy/Glass/Warm/Midnight/Playful themes, with modal and in-app previews. Classic remains the default flow.",
       "adoption": {
@@ -41,7 +42,7 @@
         "Kk-syllabus": "available",
         "Openday": "available",
         "LearnLatin": "available",
-        "Comprehension": "available",
+        "Comprehension": "installed",
         "beyond100": "available",
         "Snag": "available",
         "Next": "available",
@@ -198,7 +199,8 @@
         "LearnLatin": "installed",
         "beyond100": "installed",
         "Snag": "installed",
-        "Firebase Usage Monitor": "installed"
+        "Firebase Usage Monitor": "installed",
+        "Comprehension": "installed"
       },
       "notes": "Tracks attributed reads/writes/deletes/listeners with daily thresholds plus shared 5-minute burst warnings (defaults: 200 reads / 50 writes) to surface runaway loops quickly; thresholds remain app/device configurable.",
       "adoption": {
@@ -206,7 +208,7 @@
         "Kk-syllabus": "installed",
         "Openday": "installed",
         "LearnLatin": "installed",
-        "Comprehension": "available",
+        "Comprehension": "installed",
         "beyond100": "installed",
         "Snag": "installed",
         "Next": "available",
@@ -232,7 +234,8 @@
         "beyond100": "local",
         "Snag": "local",
         "TouchType": "installed",
-        "Dol": "installed"
+        "Dol": "installed",
+        "Comprehension": "installed"
       },
       "notes": "Full shared system is installed in InClass and TouchType. TouchType is a clean visual-only consumer with localStorage learner data; Beyond100 remains the reference implementation and Openday/Snag retain legacy/local history pending deliberate migration.",
       "adoption": {
@@ -240,7 +243,7 @@
         "Kk-syllabus": "available",
         "Openday": "local",
         "LearnLatin": "available",
-        "Comprehension": "available",
+        "Comprehension": "installed",
         "beyond100": "local",
         "Snag": "local",
         "Next": "available",
@@ -504,14 +507,15 @@
       "created": "2026-10-11",
       "purpose": "Shared learners, curriculum, learning events, mastery, assessments and spaced-repetition model for learning apps.",
       "installed": {
-        "Dol": "installed"
+        "Dol": "installed",
+        "Comprehension": "local"
       },
       "adoption": {
         "Apps": "unavailable",
         "Kk-syllabus": "unavailable",
         "Openday": "unavailable",
         "LearnLatin": "unavailable",
-        "Comprehension": "unavailable",
+        "Comprehension": "local",
         "beyond100": "unavailable",
         "Snag": "unavailable",
         "Next": "unavailable",
@@ -537,14 +541,15 @@
       "purpose": "Identity-scoped offline-first learning evidence with durable local queue, explicit guest import, idempotent round chunks, authenticated Firestore transport and account isolation.",
       "notes": "Dol v2.6.9 has Firebase login and authenticated Learning Sync using kk-syllabus. Live browser and cross-device smoke verification pending. Cloud reset remains disabled pending tombstone/deletion support.",
       "installed": {
-        "Dol": "installed"
+        "Dol": "installed",
+        "Comprehension": "local"
       },
       "adoption": {
         "Apps": "available",
         "Kk-syllabus": "available",
         "Openday": "available",
         "LearnLatin": "available",
-        "Comprehension": "available",
+        "Comprehension": "local",
         "beyond100": "available",
         "Snag": "available",
         "Next": "available",
@@ -621,7 +626,8 @@
       "purpose": "Shared recursive syntax/data/asset validation, browser smoke tests, app-specific regression scenarios, sync quiescence checks, resource/Firebase budgets, CI reports and bounded load-testing tools.",
       "installed": {
         "Openday": "installed",
-        "Dol": "installed"
+        "Dol": "installed",
+        "Comprehension": "installed"
       },
       "notes": "Reference integration: Openday. Shared engine lives in Apps; consuming apps provide only config and app-specific fixtures/invariants. Recommended flow: validation/preflight -> shared gate -> promote exact passed SHA -> CI repeat -> deploy. Load testing blocks production unless explicitly opted in.",
       "adoption": {
@@ -629,7 +635,7 @@
         "Kk-syllabus": "available",
         "Openday": "installed",
         "LearnLatin": "available",
-        "Comprehension": "available",
+        "Comprehension": "installed",
         "beyond100": "available",
         "Snag": "available",
         "Next": "available",
