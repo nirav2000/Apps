@@ -35,4 +35,11 @@ jobs:
         run: npx --yes wrangler deploy -c wrangler-comprehension.jsonc
       - name: Smoke health
         run: |
-          curl --fail --silent --show-error https://comprehension-coach-ai.nirav2000-github.workers.dev/health
+          for n in $(seq 1 12); do
+            if curl --fail --silent --show-error --max-time 15 https://comprehension-coach-ai.nirav2000-github.workers.dev/health; then
+              echo; exit 0;
+            fi
+            echo "Waiting for Worker route to become available ($n/12)";
+            sleep 5;
+          done
+          echo "::error::Worker route did not become healthy"; exit 1
