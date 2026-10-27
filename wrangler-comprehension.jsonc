@@ -1,1 +1,23 @@
-{"name":"comprehension-coach-ai","main":"comprehension-ai-worker.js","compatibility_date":"2026-10-27","workers_dev":true,"ai":{"binding":"AI"},"vars":{"FIREBASE_PROJECT_ID":"kk-syllabus","PARENT_UID":"2AJSfYdtg5URWHv7HCzpNMmKIlg2"}}
+{
+  "name": "comprehension-coach-ai",
+  "main": "comprehension-ai-worker.js",
+  "compatibility_date": "2026-10-27",
+  "workers_dev": true,
+  "ai": {
+    "binding": "AI"
+  },
+  "vars": {
+    "FIREBASE_PROJECT_ID": "kk-syllabus",
+    "PARENT_UID": "2AJSfYdtg5URWHv7HCzpNMmKIlg2"
+  },
+  "ratelimits": [
+    {
+      "name": "RATE_LIMIT",
+      "namespace_id": "271027",
+      "simple": {
+        "limit": 12,
+        "period": 60
+      }
+    }
+  ]
+}
