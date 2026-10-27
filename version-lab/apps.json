@@ -64,9 +64,10 @@
       "repository": "nirav2000/Comprehension",
       "liveUrl": "https://nirav2000.github.io/Comprehension/",
       "managed": true,
-      "status": "managed-installing",
+      "status": "managed",
       "releaseManifest": "https://nirav2000.github.io/Comprehension/version-lab-data/releases.json",
-      "gatewayUrl": "https://nirav2000.github.io/Comprehension/versionlabs/"
+      "gatewayUrl": "https://nirav2000.github.io/Comprehension/versionlabs/",
+      "notes": "Backfilled 60 historical commits plus adoption baseline. Current historical snapshots are visual-only; Git links are canonical source."
     }
   ]
 }
