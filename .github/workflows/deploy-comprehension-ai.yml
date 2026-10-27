@@ -33,6 +33,20 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler deploy -c wrangler-comprehension.jsonc
+      - name: Install optional private GPT Actions token
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          COMPREHENSION_GPT_ACTION_TOKEN: ${{ secrets.COMPREHENSION_GPT_ACTION_TOKEN }}
+        run: |
+          if [ -n "$COMPREHENSION_GPT_ACTION_TOKEN" ]; then
+            if [ ${#COMPREHENSION_GPT_ACTION_TOKEN} -lt 32 ]; then
+              echo "::error::GPT Actions token must be at least 32 characters"; exit 1
+            fi
+            printf '%s' "$COMPREHENSION_GPT_ACTION_TOKEN" | npx --yes wrangler secret put GPT_ACTION_TOKEN -c wrangler-comprehension.jsonc
+          else
+            echo "::notice::GPT Actions bearer token not yet configured. Parent Firebase marking still works."
+          fi
       - name: Smoke health
         run: |
           for n in $(seq 1 12); do
