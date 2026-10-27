@@ -57,6 +57,16 @@
       "status": "managed",
       "releaseManifest": "https://nirav2000.github.io/Dol/version-lab-data/releases.json",
       "gatewayUrl": "https://nirav2000.github.io/Dol/versionlabs/"
+    },
+    {
+      "appId": "comprehension",
+      "name": "Comprehension Coach",
+      "repository": "nirav2000/Comprehension",
+      "liveUrl": "https://nirav2000.github.io/Comprehension/",
+      "managed": true,
+      "status": "managed-installing",
+      "releaseManifest": "https://nirav2000.github.io/Comprehension/version-lab-data/releases.json",
+      "gatewayUrl": "https://nirav2000.github.io/Comprehension/versionlabs/"
     }
   ]
 }
