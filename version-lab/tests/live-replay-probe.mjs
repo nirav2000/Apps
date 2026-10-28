@@ -30,6 +30,7 @@ try{
       const control=page.frameLocator('#preview').locator(test.selector).first();
       await control.waitFor({state:'attached',timeout:18000});
       await page.waitForTimeout(1200);
+      result.diagnostics=await control.evaluate(el=>({readyState:document.readyState,onclickType:typeof el.onclick,navButtons:document.querySelectorAll('.bottom-nav [data-nav]').length,bridgeReady:!!window.SnagReleaseBridge,bodyFocus:document.activeElement?.id||'',errorCount:document.querySelectorAll('.error').length,htmlClass:document.documentElement.className,buttonClass:el.className}));
       const before=await control.getAttribute(test.attribute);
       // A DOM click also tests listener wiring when historical focus or auth
       // overlays hide the element on this arbitrary test viewport.
