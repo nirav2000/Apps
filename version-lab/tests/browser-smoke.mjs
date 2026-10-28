@@ -30,14 +30,16 @@ try{
   await page.route('https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/**',route=>{
     if(route.request().url().includes('/auth/session'))
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({method:'test passkey'})});
+    await new Promise(resolve=>setTimeout(resolve,1300));
     return route.fulfill({status:200,contentType:'application/json',body:'{"comparisonNotes":[],"decisions":{}}'});
   });
   const dolVersions=[
+    {checkpointId:'vl-new',productVersion:'2.13.2',commit:'28a35f392253d64c65ae041f50f15b92d617317b',title:'Dol 2.13.2'},
     {checkpointId:'vl-a',productVersion:'2.6.4',commit:'e1e8f489fdecef85d160b28adf90646b0c64d1a2',title:'Dol 2.6.4'},
     {checkpointId:'vl-b',productVersion:'2.5.0',commit:'4d97eb52dad186f63eaead9f7024586b1e0a9fa8',title:'Dol 2.5.0'},
     {checkpointId:'vl-c',productVersion:'2.5.0',commit:'01ecc6f4b9bbf1e3d2342cb9069cc15500d4119b',title:'Dol 2.5.0 checkpoint'}
   ];
-  await page.route('https://nirav2000.github.io/Dol/version-lab-data/releases.json',route=>
+  await page.route('https://nirav2000.github.io/Dol/version-lab-data/releases.json**',route=>
     route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({releases:dolVersions})}));
   const expectedHtml='<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="script-src \'none\'"><title>Historical app</title></head><body><button id="archivedAction">Interact</button><span id="actionCount">0</span><span id="writeGuard">not started</span><script type="module" src="./demo.mjs"></script></body></html>';
   const moduleJs=String.raw`const el=document.getElementById('archivedAction');
@@ -61,7 +63,12 @@ el.addEventListener('click',async()=>{
     await page.goto('http://127.0.0.1:'+port+'/version-lab/?app='+appId);
     await page.locator('#releasePanel:not(.hidden)').waitFor({timeout:15000});
     const cards=page.locator('#releaseGrid>.release-card');
-    assert.equal(await cards.count(),expectedVersions,appId+' distinct version cards');
+    assert.equal(await cards.count(),Math.min(expectedVersions,12),appId+' initial version cards rendered promptly');
+    // Progressive expansion keeps iPad selection responsive even with >90 checkpoints.
+    while(await page.locator('#showMoreVersions').count()){
+      await page.locator('#showMoreVersions').click();
+    }
+    assert.equal(await cards.count(),expectedVersions,appId+' total distinct version cards');
     const options=await page.locator('#leftVersion option').allTextContents();
     assert.equal(options.length,expectedVersions,appId+' options equal versions');
     assert.equal(new Set(options).size,options.length,appId+' no duplicate options');
@@ -76,7 +83,8 @@ el.addEventListener('click',async()=>{
     }
     console.log(appId+': '+expectedVersions+' distinct versions, interactive isolation verified');
   }
-  await runApp('dol',2);
+  await runApp('dol',3);
+  assert.match(await page.locator('#releaseGrid .release-card').first().innerText(),/2\\.13\\.2/,'current Dol release first');
   const checkpoints=page.locator('.checkpoint-history');
   assert.equal(await checkpoints.count(),1,'repeated v2.5.0 grouped under one card');
   await checkpoints.first().locator('summary').click();
@@ -87,6 +95,18 @@ el.addEventListener('click',async()=>{
   assert(snag.releases.every(r=>/^[a-f0-9]{40}$/.test(r.commit)),'Snag immutable SHAs');
   await runApp('openday',40);
   await runApp('snag',32);
+  // Selection must be visible synchronously, not after slow cloud review sync.
+  await page.goto('http://127.0.0.1:'+port+'/version-lab/');
+  await page.locator('.app-card[data-app="dol"]').waitFor();
+  await page.locator('.app-card[data-app="dol"]').click();
+  assert(await page.locator('.app-card[data-app="dol"]').evaluate(el=>el.classList.contains('selected')),'Dol selected immediately');
+  await page.locator('.app-card[data-app="openday"]').click();
+  assert(await page.locator('.app-card[data-app="openday"]').evaluate(el=>el.classList.contains('selected')),'Openday selected immediately even during cloud sync');
+  assert.equal(await page.locator('#appTitle').innerText(),'Openday');
+  await page.locator('#releasePanel:not(.hidden)').waitFor();
+  assert.match(await page.locator('#releaseLoading').innerText(),/40 checkpoints loaded/);
+  await page.waitForTimeout(1450);
+  assert.equal(await page.locator('#appTitle').innerText(),'Openday','stale Dol background calls do not replace selected app');
   assert.equal(blockedRequests.length,0,'Browser must not contact Firestore from historical preview');
   await page.screenshot({path:path.join(root,'version-lab-browser-verification.png'),fullPage:false});
   assert(fs.readFileSync(path.join(root,'app-monitor.html'),'utf8').includes('href="./version-lab/"'),'App Monitor has Version Labs link');
