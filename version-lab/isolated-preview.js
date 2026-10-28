@@ -87,10 +87,10 @@ function prepare(html,base){
   const policy=[
     "default-src 'none'",
     "base-uri https://cdn.jsdelivr.net",
-    "script-src 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://www.gstatic.com https://nirav2000.github.io/Apps/platform/v1/",
-    "style-src 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+    "script-src 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://www.gstatic.com https://nirav2000.github.io/Apps/",
+    "style-src 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://nirav2000.github.io/Apps/",
     "connect-src https://cdn.jsdelivr.net",
-    "img-src data: blob: https://cdn.jsdelivr.net",
+    "img-src data: blob: https://cdn.jsdelivr.net https://nirav2000.github.io/Apps/",
     "font-src data: https://cdn.jsdelivr.net https://fonts.gstatic.com",
     "media-src data: blob: https://cdn.jsdelivr.net",
     "object-src 'none'",
