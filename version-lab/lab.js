@@ -6,6 +6,9 @@ const REVIEW_API=CLOUD+'/version-lab/review';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 let registry=[],selected=null,releases=[],comparisonNotes=[],decisions={};
+let selectionEpoch=0,releaseLimit=12;
+function freshUrl(url){const u=new URL(url,location.href);u.searchParams.set('_vl',String(Date.now()));return u.href}
+function setReleaseStatus(message){const el=$('releaseLoading');if(el)el.textContent=message}
 
 function getSession(){try{return JSON.parse(localStorage.getItem(SESSION_STORE)||'null')}catch{return null}}
 function storageKey(kind){return 'apps.version-lab.'+(selected?.appId||'unknown')+'.'+kind+'.v2'}
@@ -23,18 +26,25 @@ async function reviewRequest(method='GET',body=null){
   if(!r.ok)throw new Error('Version Lab review sync '+r.status);
   return r.json();
 }
-async function loadCloudReview(){
+async function loadCloudReview(appId,epoch){
+  // Never block card selection or let a previous app's response replace this app's notes.
+  const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),3500);
   try{
-    const d=await reviewRequest('GET');
-    if(d){
-      comparisonNotes=Array.isArray(d.comparisonNotes)?d.comparisonNotes:comparisonNotes;
-      decisions=d.decisions&&typeof d.decisions==='object'?d.decisions:decisions;
-      localStorage.setItem(storageKey('comparison-notes'),JSON.stringify(comparisonNotes));
-      localStorage.setItem(storageKey('decisions'),JSON.stringify(decisions));
-    }
+    const r=await fetch(REVIEW_API+'?appId='+encodeURIComponent(appId),{
+      method:'GET',headers:reviewHeaders(),signal:controller.signal,cache:'no-store'
+    });
+    if(!r.ok)throw new Error('Version Lab review sync '+r.status);
+    const d=await r.json();
+    if(epoch!==selectionEpoch||selected?.appId!==appId||!d)return;
+    comparisonNotes=Array.isArray(d.comparisonNotes)?d.comparisonNotes:comparisonNotes;
+    decisions=d.decisions&&typeof d.decisions==='object'?d.decisions:decisions;
+    localStorage.setItem(storageKey('comparison-notes'),JSON.stringify(comparisonNotes));
+    localStorage.setItem(storageKey('decisions'),JSON.stringify(decisions));
+    if(!($('comparePanel')?.classList.contains('hidden')))renderComparisonNotes();
+    if(!($('decisionPanel')?.classList.contains('hidden')))renderDecisions();
   }catch(e){
     console.warn('Version Lab cloud review unavailable; using local cache.',e);
-  }
+  }finally{clearTimeout(timer)}
 }
 function idOf(r){return r?.checkpointId||r?.version||''}
 function versionGroups(){const seen=new Map();for(const item of releases){const version=versionOf(item);if(!seen.has(version))seen.set(version,{version,latest:item,checkpoints:[]});seen.get(version).checkpoints.push(item)}return [...seen.values()]}
@@ -85,44 +95,62 @@ async function loadRegistry(){
   const wanted=new URLSearchParams(location.search).get('app');
   if(wanted&&registry.some(a=>a.appId===wanted))selectApp(wanted);
 }
-async function selectApp(id){
-  selected=registry.find(a=>a.appId===id);if(!selected)return;
+function selectApp(id){
+  const app=registry.find(a=>a.appId===id);if(!app)return;
+  const epoch=++selectionEpoch;
+  selected=app;releases=[];releaseLimit=12;
   comparisonNotes=loadLocal(storageKey('comparison-notes'),[]);
   decisions=loadLocal(storageKey('decisions'),{});
-  await loadCloudReview();
-  document.querySelectorAll('.app-card').forEach(c=>c.classList.toggle('selected',c.dataset.app===id));
-  $('appTitle').textContent=selected.name||selected.appId;
-  $('appMeta').textContent=(selected.managed?'Managed shared Version Lab':'Not yet managed by full shared Version Lab')+' · '+selected.repository;
-  $('openLive').href=selected.liveUrl;$('openLive').classList.remove('hidden');
-  $('openRepo').href='https://github.com/'+selected.repository;$('openRepo').classList.remove('hidden');
-  $('appStatus').innerHTML='<div class="timeline-item"><strong>Status</strong><div>'+esc(selected.status||'unknown')+'</div></div><div class="timeline-item"><strong>Managed</strong><div>'+(selected.managed?'Yes':'No — existing implementation remains untouched')+'</div></div><div class="timeline-item"><strong>Developer UI</strong><div>Central/shared only. The release app exposes no Version Lab control.</div></div>';
-  if(selected.legacyUrl)$('appStatus').insertAdjacentHTML('beforeend','<div class="timeline-item"><strong>Original legacy viewer</strong><div><a href="'+esc(selected.legacyUrl)+'" target="_blank" rel="noopener">Open existing '+esc(selected.name)+' viewer</a></div><div class="muted small">This separate viewer may connect to live services. Use for reference; historical replay is not isolated or safety-verified.</div></div>');
-  await loadReleases();
+  // Paint selection immediately. Slow review sync and history requests happen afterwards.
+  document.querySelectorAll('.app-card').forEach(c=>{
+    const active=c.dataset.app===id;
+    c.classList.toggle('selected',active);
+    c.setAttribute('aria-selected',String(active));
+  });
+  $('appTitle').textContent=app.name||app.appId;
+  $('appMeta').textContent=(app.managed?'Managed shared Version Lab':'Not yet managed by full shared Version Lab')+' · '+app.repository;
+  $('openLive').href=app.liveUrl;$('openLive').classList.remove('hidden');
+  $('openRepo').href='https://github.com/'+app.repository;$('openRepo').classList.remove('hidden');
+  ['releasePanel','comparePanel','decisionPanel'].forEach(panel=>$(panel)?.classList.add('hidden'));
+  $('appStatus').innerHTML='<div class="timeline-item"><strong>Status</strong><div>'+esc(app.status||'unknown')+'</div></div>'+
+    '<div class="timeline-item"><strong>Managed</strong><div>'+(app.managed?'Yes':'No — existing implementation remains untouched')+'</div></div>'+
+    '<div class="timeline-item"><strong>Developer UI</strong><div>Central/shared only. The release app exposes no Version Lab control.</div></div>'+
+    '<div class="timeline-item loading-history" role="status"><strong>Release history</strong><div id="releaseLoading">Loading '+esc(app.name||app.appId)+' versions…</div></div>';
+  if(app.legacyUrl)$('appStatus').insertAdjacentHTML('beforeend','<div class="timeline-item"><strong>Original legacy viewer</strong><div><a href="'+esc(app.legacyUrl)+'" target="_blank" rel="noopener">Open existing '+esc(app.name)+' viewer</a></div><div class="muted small">This separate viewer may connect to live services. Use for reference; historical replay is not isolated or safety-verified.</div></div>');
+  // The UI already reflects the selected app before either request begins.
+  void loadReleases(app,epoch);
+  void loadCloudReview(app.appId,epoch);
 }
-async function loadReleases(){
-  releases=[];
-  ['releasePanel','comparePanel','decisionPanel'].forEach(id=>$(id)?.classList.add('hidden'));
-  if(!selected)return;
-  if(selected.managed){
+async function loadReleases(app,epoch){
+  if(!app)return;
+  if(app.managed){
     try{
-      const manifest=selected.releaseManifest||selected.liveUrl+'version-lab-data/releases.json';
-      const d=await fetch(manifest,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Manifest HTTP '+r.status);return r.json()});
-      releases=d.releases||[];
+      const manifest=app.releaseManifest||app.liveUrl+'version-lab-data/releases.json';
+      const d=await fetch(freshUrl(manifest),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Manifest HTTP '+r.status);return r.json()});
+      if(epoch!==selectionEpoch||selected?.appId!==app.appId)return;
+      if(!Array.isArray(d.releases))throw Error('No valid release array returned');
+      releases=d.releases;
+      setReleaseStatus(releases.length+' checkpoints loaded · latest v'+versionOf(releases[0]||{})+' · refreshed just now');
     }catch(error){
+      if(epoch!==selectionEpoch||selected?.appId!==app.appId)return;
+      setReleaseStatus('Release history could not be loaded');
       const detail=error instanceof Error?error.message:String(error);
-      $('appStatus').insertAdjacentHTML('beforeend','<div class="timeline-item"><strong>Checkpoint loading error</strong><div>'+esc(detail)+'</div><div class="muted small">Check the published release manifest URL: '+esc(selected.releaseManifest||selected.liveUrl+'version-lab-data/releases.json')+'</div></div>');
+      $('appStatus').insertAdjacentHTML('beforeend','<div class="timeline-item"><strong>Checkpoint loading error</strong><div>'+esc(detail)+'</div><div class="muted small">Check the published release manifest URL: '+esc(app.releaseManifest||app.liveUrl+'version-lab-data/releases.json')+'</div></div>');
     }
-  }else if(selected.appId==='beyond100'){
+  }else if(app.appId==='beyond100'){
     try{
-      const text=await fetch('https://raw.githubusercontent.com/'+selected.repository+'/main/versions-data.js',{cache:'no-store'}).then(r=>r.text());
+      const text=await fetch(freshUrl('https://raw.githubusercontent.com/'+app.repository+'/main/versions-data.js'),{cache:'no-store'}).then(r=>r.text());
+      if(epoch!==selectionEpoch||selected?.appId!==app.appId)return;
       const marker='window.BEYOND100_RELEASES = ',start=text.indexOf(marker);
       if(start>=0){
         const obj=Function('return ('+text.slice(start+marker.length).replace(/;\s*$/,'')+')')();
-        releases=(obj.releases||[]).map(r=>({...r,checkpointId:r.version,productVersion:r.version,commit:r.ref,sourceUrl:'https://github.com/'+selected.repository+'/tree/'+encodeURIComponent(r.ref),snapshotSafety:r.status==='current'?'interactive-safe':'visual-only'}));
+        releases=(obj.releases||[]).map(r=>({...r,checkpointId:r.version,productVersion:r.version,commit:r.ref,sourceUrl:'https://github.com/'+app.repository+'/tree/'+encodeURIComponent(r.ref),snapshotSafety:r.status==='current'?'interactive-safe':'visual-only'}));
       }
     }catch{}
   }
+  if(epoch!==selectionEpoch||selected?.appId!==app.appId)return;
   if(!releases.length){
+    setReleaseStatus('No versions available');
     $('appStatus').insertAdjacentHTML('beforeend','<div class="timeline-item"><strong>Checkpoint data</strong><div>No checkpoints were returned by the release manifest.</div></div>');
     return;
   }
@@ -133,7 +161,8 @@ async function loadReleases(){
   renderDecisions();
 }
 function renderReleases(){
-  const groups=versionGroups();
+  const allGroups=versionGroups();
+  const groups=allGroups.slice(0,releaseLimit);
   $('releaseGrid').innerHTML=groups.map((g,i)=>{
     const r=g.latest;
     const technical=[dateLabel(r),r.commit?'Latest Git '+String(r.commit).slice(0,8):'',
@@ -156,6 +185,14 @@ function renderReleases(){
       '<div class="release-technical">'+technical.map(x=>'<span>'+esc(x)+'</span>').join('')+'</div>'+
       history+'</div></article>';
   }).join('');
+  if(allGroups.length>releaseLimit){
+    const remaining=allGroups.length-releaseLimit;
+    const more=document.createElement('button');
+    more.id='showMoreVersions';more.className='load-more-releases';more.type='button';
+    more.textContent='Show more versions ('+remaining+' remaining)';
+    more.onclick=()=>{releaseLimit+=12;renderReleases()};
+    $('releaseGrid').appendChild(more);
+  }
   $('releaseGrid').querySelectorAll('[data-compare]').forEach(b=>b.onclick=()=>{
     $('leftVersion').value=b.dataset.with;$('rightVersion').value=b.dataset.compare;compare(true);
   });
