@@ -7,8 +7,13 @@ on:
       - 'app-monitor.html'
       - 'index.html'
       - 'development-control.html'
+      - 'shared-libraries.html'
       - '.github/workflows/version-lab-browser.yml'
   workflow_dispatch:
+
+concurrency:
+  group: version-lab-browser-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
