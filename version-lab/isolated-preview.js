@@ -43,7 +43,7 @@ function runtime(){
         report('blocked-write',method+' '+url.origin);
         return Promise.reject(new TypeError('Version Lab preview: only read-only static CDN requests are permitted'));
       }
-      return nativeFetch(input,{...(init||{}),credentials:'omit',method});
+      // Historical code sometimes adds Cache-Control or authorization headers to\n      // static GETs. Strip them to avoid CORS preflights and credential leaks.\n      return nativeFetch(url.href,{credentials:'omit',method,mode:'cors',cache:'force-cache'});
     };
     try{Object.defineProperty(navigator,'sendBeacon',{configurable:true,value:()=>false})}catch(e){}
     document.addEventListener('submit',e=>e.preventDefault(),true);
