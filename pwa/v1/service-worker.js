@@ -34,6 +34,13 @@ self.addEventListener('fetch',event=>{
   if(req.method!=='GET')return;
   const url=new URL(req.url);
   if(url.origin!==self.location.origin)return;
-  const forceNetwork=req.mode==='navigate'||matches(url.pathname,NETWORK_FIRST)||DEFAULT_STRATEGY==='network-first';
+  // Version Labs must never display a stale release index from an installed
+  // App Monitor PWA. This applies to the standalone Version Lab UI and
+  // /Dol/, /InClass/, etc. release manifest requests made by that UI.
+  // Leave all unrelated apps on their configured caching strategy.
+  const freshVersionLab=url.pathname.startsWith('/Apps/version-lab/')||
+    url.pathname.includes('/version-lab-data/');
+  const forceNetwork=req.mode==='navigate'||freshVersionLab||
+    matches(url.pathname,NETWORK_FIRST)||DEFAULT_STRATEGY==='network-first';
   event.respondWith(forceNetwork?networkFirst(req):cacheFirst(req));
 });
