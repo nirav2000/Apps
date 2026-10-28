@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 1,
+  "appId": "openday",
+  "repository": "nirav2000/Openday",
+  "liveUrl": "https://nirav2000.github.io/Openday/",
+  "generatedFrom": "Existing legacy version history (central read-only import)",
+  "releases": [
+    {
+      "checkpointId": "legacy-2.18.0",
+      "productVersion": "2.18.0",
+      "commit": "a931176fb713e6fe51a80541f887b060920881a5",
+      "title": "Expanded school results archive and shared Version Lab preview behaviour",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/a931176fb713e6fe51a80541f887b060920881a5",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.17.0",
+      "productVersion": "2.17.0",
+      "commit": "01b304b81a73bda0723c651207e7fffe202b1684",
+      "title": "School results archive, full Merchant Taylors subject data, and draggable subject/school ordering",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/01b304b81a73bda0723c651207e7fffe202b1684",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.16.0",
+      "productVersion": "2.16.0",
+      "commit": "534ba28ccc70311eb14e99d836815b75487cd835",
+      "title": "Qualification-aware subject comparisons, saved-set bulk select, cohort headers and correct Merchant Taylors Maths",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/534ba28ccc70311eb14e99d836815b75487cd835",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.15.1",
+      "productVersion": "2.15.1",
+      "commit": "3c256ddd792176e9b71d62a25fff9da3b373acb0",
+      "title": "Performance startup hotfix after saved school-set sync",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/3c256ddd792176e9b71d62a25fff9da3b373acb0",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.15.0",
+      "productVersion": "2.15.0",
+      "commit": "d5f6d16d7800f66c54b2d6efbb4e29d9606934ff",
+      "title": "Metric-cell detail affordances, saved school sets, compact status icons and richer GCSE comparison roll-ups",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/d5f6d16d7800f66c54b2d6efbb4e29d9606934ff",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.14.0",
+      "productVersion": "2.14.0",
+      "commit": "dcbff9200b45d47c61ffa8b215f1479ac61c3649",
+      "title": "Durable live multi-device sync, clear connection status and richer subject comparisons",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/dcbff9200b45d47c61ffa8b215f1479ac61c3649",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.13.0",
+      "productVersion": "2.13.0",
+      "commit": "ff4ae16f14106592e6092e6a66f225de65be7e54",
+      "title": "Word-level merge review, rich Version Lab comparisons and performance metric drill-downs",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/ff4ae16f14106592e6092e6a66f225de65be7e54",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.12.0",
+      "productVersion": "2.12.0",
+      "commit": "20f583fe28079d06b0ba005e2c4886734cb8bebf",
+      "title": "Verified year-selectable performance data, corrected independent-school results and resilient Version Lab",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/20f583fe28079d06b0ba005e2c4886734cb8bebf",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.11.0",
+      "productVersion": "2.11.0",
+      "commit": "30201caef4308bdc05952bcfb0d11cbad969f6f8",
+      "title": "Sortable performance comparisons, synced shortlist/reject workflow and note conflict resolution",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/30201caef4308bdc05952bcfb0d11cbad969f6f8",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.10.0",
+      "productVersion": "2.10.0",
+      "commit": "8c7a1db7aaebdca77e756ce63f50a7ddfc3ba34e",
+      "title": "UB5-centred primary catalogue and distance filters",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/8c7a1db7aaebdca77e756ce63f50a7ddfc3ba34e",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.9.0",
+      "productVersion": "2.9.0",
+      "commit": "f5e3ed1b7ae81da7b2f01e72ea49081a0740e09a",
+      "title": "Grade 9 focus, configurable performance columns and deeper primary tour research",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/f5e3ed1b7ae81da7b2f01e72ea49081a0740e09a",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.8.0",
+      "productVersion": "2.8.0",
+      "commit": "f242408c3df97dd5d760dca23be73c7e0a19c040",
+      "title": "Whole-school context and attendance comparison",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/f242408c3df97dd5d760dca23be73c7e0a19c040",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.7.1",
+      "productVersion": "2.7.1",
+      "commit": "e02eae661168f4bc86b3772c92f0d00f11ede8f7",
+      "title": "Ark event split and performance comparison refinements",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/e02eae661168f4bc86b3772c92f0d00f11ede8f7",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.7.0",
+      "productVersion": "2.7.0",
+      "commit": "10d2ac6f06d710f85f77df728ece8c96f8af8ff0",
+      "title": "Official DfE academic performance comparison dashboard",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/10d2ac6f06d710f85f77df728ece8c96f8af8ff0",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.6.1",
+      "productVersion": "2.6.1",
+      "commit": "b380793c39bdaf11f48354fee12f228c77b131d3",
+      "title": "Pending note cloud-save indicator and save-all notes",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/b380793c39bdaf11f48354fee12f228c77b131d3",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.6.0",
+      "productVersion": "2.6.0",
+      "commit": "a753963af1af1ca30707922bc005d1c6f004aa17",
+      "title": "Upcoming default and collapsed TBC/no-date view",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/a753963af1af1ca30707922bc005d1c6f004aa17",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.5.1",
+      "productVersion": "2.5.1",
+      "commit": "2d7c3a79f1f9175029482806441e095d442485d4",
+      "title": "Transactional three-way multi-device sync",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/2d7c3a79f1f9175029482806441e095d442485d4",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.5.0",
+      "productVersion": "2.5.0",
+      "commit": "73480b00203b76fc2c1e312e1677df250a9a8bc6",
+      "title": "Local notes viewer, lossless conflict preservation and static Version Lab",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/73480b00203b76fc2c1e312e1677df250a9a8bc6",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.4.1",
+      "productVersion": "2.4.1",
+      "commit": "f24aa9fe1f5d95ad501f530ac222762dbb374355",
+      "title": "Token/recovery distinction and safe device-state backup",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/f24aa9fe1f5d95ad501f530ac222762dbb374355",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.4.0",
+      "productVersion": "2.4.0",
+      "commit": "0e623a8800905900360c3ed208d37b1814cb405e",
+      "title": "School decision labels",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/0e623a8800905900360c3ed208d37b1814cb405e",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.3.0",
+      "productVersion": "2.3.0",
+      "commit": "9f69723e076071242405458e348254be4d08c49c",
+      "title": "Low-usage local-first Firestore sync",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/9f69723e076071242405458e348254be4d08c49c",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.2.4",
+      "productVersion": "2.2.4",
+      "commit": "b1b4fce49f2fd7ac120931f7736d2c110b3bfe2b",
+      "title": "Strict change-driven calendar",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/b1b4fce49f2fd7ac120931f7736d2c110b3bfe2b",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.2.3",
+      "productVersion": "2.2.3",
+      "commit": "f84e5b890febb9f5f68bea8f91ee9c4f82e94e1a",
+      "title": "Calendar publisher race fix",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/f84e5b890febb9f5f68bea8f91ee9c4f82e94e1a",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.2.2",
+      "productVersion": "2.2.2",
+      "commit": "e4c12944e04dd2f5bb5137b2b8edfff0526d3906",
+      "title": "Change-driven calendar publishing",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/e4c12944e04dd2f5bb5137b2b8edfff0526d3906",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.2.1",
+      "productVersion": "2.2.1",
+      "commit": "acbab7d3af1788e3eddf33da17c9c900fc9c8631",
+      "title": "Calendar duration fix",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/acbab7d3af1788e3eddf33da17c9c900fc9c8631",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.2.0",
+      "productVersion": "2.2.0",
+      "commit": "88311e2f919a9dad36f5f259ec62a7ede626785a",
+      "title": "Exact Version Lab, global date/time reports and subscribed-calendar refresh",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/88311e2f919a9dad36f5f259ec62a7ede626785a",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.1.0",
+      "productVersion": "2.1.0",
+      "commit": "beb6d21921fe5d12d85dc48ebad297e7f0646413",
+      "title": "Memorable-token restoration",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/beb6d21921fe5d12d85dc48ebad297e7f0646413",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.0.3",
+      "productVersion": "2.0.3",
+      "commit": "95674845ddf58bac5ac797aa66c019cb7777c253",
+      "title": "Safe local/cloud state merge",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/95674845ddf58bac5ac797aa66c019cb7777c253",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.0.2",
+      "productVersion": "2.0.2",
+      "commit": "81de550dd7fe76fb2c29c3ae2713ea069fa2b5d3",
+      "title": "Legacy auth-session recovery",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/81de550dd7fe76fb2c29c3ae2713ea069fa2b5d3",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.0.1",
+      "productVersion": "2.0.1",
+      "commit": "7aaa734c074415b3bb4bef069755ba524d27cc2f",
+      "title": "Kk-syllabus catalogue publisher",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/7aaa734c074415b3bb4bef069755ba524d27cc2f",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2.0.0",
+      "productVersion": "2.0.0",
+      "commit": "398fa3184b59a324c90050b89aa793ce4ec4cba1",
+      "title": "Shared Kk-syllabus authentication migration",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/398fa3184b59a324c90050b89aa793ce4ec4cba1",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-1.6.0",
+      "productVersion": "1.6.0",
+      "commit": "d5a367bd8c1b92233bc311014c2d85dec51c0cf6",
+      "title": "Personal corrections and Firebase usage monitoring",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/d5a367bd8c1b92233bc311014c2d85dec51c0cf6",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-1.5.1",
+      "productVersion": "1.5.1",
+      "commit": "b9e78882bc0bb1b930b9633a4dbded0a4888f992",
+      "title": "Primary catalogue and Firebase reader patch",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/b9e78882bc0bb1b930b9633a4dbded0a4888f992",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-1.5.0",
+      "productVersion": "1.5.0",
+      "commit": "0f67497d0331a5a7ba9d2c0a4793a5a74a1f475f",
+      "title": "Primary/senior views and cloud catalogue",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/0f67497d0331a5a7ba9d2c0a4793a5a74a1f475f",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-1.4.1",
+      "productVersion": "1.4.1",
+      "commit": "f1b4f0cab5ffdc6c342b79578b086dcbe55d4707",
+      "title": "Visible unrestricted memorable token",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/f1b4f0cab5ffdc6c342b79578b086dcbe55d4707",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-1.4.0",
+      "productVersion": "1.4.0",
+      "commit": "0293d9d2c51a425dd40633b2a79b891dbc43ff60",
+      "title": "Direct Firebase token sync",
+      "summary": "Historical Openday release; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/0293d9d2c51a425dd40633b2a79b891dbc43ff60",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-1.3.0",
+      "productVersion": "1.3.0",
+      "commit": "a8424d5f1d20e36ccb8c95bd6913f709fee68a29",
+      "title": "Reusable app plugins, autosave and shared-token sync",
+      "summary": "Historical Openday reconstructed; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/a8424d5f1d20e36ccb8c95bd6913f709fee68a29",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-1.2.0",
+      "productVersion": "1.2.0",
+      "commit": "fa1f9e85c778bc49c8058c82557008e6a05d65be",
+      "title": "Calendar, travel and subscription views",
+      "summary": "Historical Openday reconstructed; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/fa1f9e85c778bc49c8058c82557008e6a05d65be",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-1.1.0",
+      "productVersion": "1.1.0",
+      "commit": "933076be6f2d246864651361642ffb1e5468f02e",
+      "title": "Admissions, score guidance and privacy cleanup",
+      "summary": "Historical Openday reconstructed; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/933076be6f2d246864651361642ffb1e5468f02e",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-1.0.0",
+      "productVersion": "1.0.0",
+      "commit": "207cff2c138e9dec3eec16ce7fbb78e013fa0ec5",
+      "title": "Initial mobile open-day tracker",
+      "summary": "Historical Openday reconstructed; source available. No independently isolated snapshot yet.",
+      "sourceUrl": "https://github.com/nirav2000/Openday/tree/207cff2c138e9dec3eec16ce7fbb78e013fa0ec5",
+      "snapshotSafety": "source-only"
+    }
+  ]
+}
