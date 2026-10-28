@@ -56,6 +56,23 @@ function runtime(){
     },true);
     addEventListener('error',e=>report('runtime-error',e.message||'Script error'));
     addEventListener('unhandledrejection',e=>report('runtime-error',e.reason&&e.reason.message||String(e.reason)));
+    // Scroll synchronization is opt-in in the central comparison UI.
+    let ignoreScroll=false,frame=0;
+    const scrollRatio=()=>{
+      const height=Math.max(document.documentElement.scrollHeight,document.body?.scrollHeight||0)-innerHeight;
+      return height>0?Math.max(0,Math.min(1,scrollY/height)):0;
+    };
+    addEventListener('scroll',()=>{
+      if(ignoreScroll)return;
+      cancelAnimationFrame(frame);
+      frame=requestAnimationFrame(()=>parent.postMessage({type:'apps-version-lab-preview-scroll',ratio:scrollRatio()},'*'));
+    },{passive:true});
+    addEventListener('message',e=>{
+      if(e.source!==parent||e.data?.type!=='apps-version-lab-set-scroll'||typeof e.data.ratio!=='number')return;
+      const max=Math.max(document.documentElement.scrollHeight,document.body?.scrollHeight||0)-innerHeight;
+      ignoreScroll=true;scrollTo(0,Math.max(0,max)*Math.max(0,Math.min(1,e.data.ratio)));
+      setTimeout(()=>ignoreScroll=false,80);
+    });
     addEventListener('DOMContentLoaded',()=>report('preview-ready','Interactive sandbox initialised'));
   })();`;
 }
