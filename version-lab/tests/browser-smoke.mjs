@@ -84,7 +84,7 @@ el.addEventListener('click',async()=>{
     console.log(appId+': '+expectedVersions+' distinct versions, interactive isolation verified');
   }
   await runApp('dol',3);
-  assert.match(await page.locator('#releaseGrid .release-card').first().innerText(),/2\\.13\\.2/,'current Dol release first');
+  assert.match(await page.locator('#releaseGrid .release-card').first().innerText(),/2\.13\.2/,'current Dol release first');
   const checkpoints=page.locator('.checkpoint-history');
   assert.equal(await checkpoints.count(),1,'repeated v2.5.0 grouped under one card');
   await checkpoints.first().locator('summary').click();
