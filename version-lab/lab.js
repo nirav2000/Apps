@@ -72,6 +72,7 @@ async function verifyDeveloper(){
 }
 function badge(a){
   if(a.status==='reference')return '<span class="pill reference">Reference</span>';
+  if(a.status==='history-imported')return '<span class="pill legacy">History imported</span>';
   if(a.managed)return '<span class="pill reference">Managed</span>';
   return '<span class="pill legacy">'+esc(a.status||'legacy')+'</span>';
 }
@@ -93,6 +94,7 @@ async function selectApp(id){
   $('openLive').href=selected.liveUrl;$('openLive').classList.remove('hidden');
   $('openRepo').href='https://github.com/'+selected.repository;$('openRepo').classList.remove('hidden');
   $('appStatus').innerHTML='<div class="timeline-item"><strong>Status</strong><div>'+esc(selected.status||'unknown')+'</div></div><div class="timeline-item"><strong>Managed</strong><div>'+(selected.managed?'Yes':'No — existing implementation remains untouched')+'</div></div><div class="timeline-item"><strong>Developer UI</strong><div>Central/shared only. The release app exposes no Version Lab control.</div></div>';
+  if(selected.legacyUrl)$('appStatus').insertAdjacentHTML('beforeend','<div class="timeline-item"><strong>Original legacy viewer</strong><div><a href="'+esc(selected.legacyUrl)+'" target="_blank" rel="noopener">Open existing '+esc(selected.name)+' viewer</a></div><div class="muted small">This separate viewer may connect to live services. Use for reference; historical replay is not isolated or safety-verified.</div></div>');
   await loadReleases();
 }
 async function loadReleases(){
@@ -101,7 +103,8 @@ async function loadReleases(){
   if(!selected)return;
   if(selected.managed){
     try{
-      const d=await fetch(selected.releaseManifest||selected.liveUrl+'version-lab-data/releases.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('manifest unavailable');return r.json()});
+      const manifest=selected.releaseManifest||selected.liveUrl+'version-lab-data/releases.json';
+      const d=await fetch(manifest,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Manifest HTTP '+r.status);return r.json()});
       releases=d.releases||[];
     }catch(error){
       const detail=error instanceof Error?error.message:String(error);
