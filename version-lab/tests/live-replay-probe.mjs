@@ -6,7 +6,7 @@ import {chromium,webkit} from 'playwright';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const script=fs.readFileSync(path.join(root,'version-lab/isolated-preview.js'),'utf8');
 const cases=[
-  {id:'dol',repository:'nirav2000/Dol',commit:'e1e8f489fdecef85d160b28adf90646b0c64d1a2',selector:'#focusToggle',attribute:'aria-pressed'},
+  {id:'dol',repository:'nirav2000/Dol',commit:'28a35f392253d64c65ae041f50f15b92d617317b',selector:'#focusToggle',attribute:'aria-pressed'},
   {id:'openday',repository:'nirav2000/Openday',commit:'a931176fb713e6fe51a80541f887b060920881a5',selector:'#primaryPhaseBtn',attribute:'class'},
   {id:'snag',repository:'nirav2000/snag',commit:'729408962a16943fc05536b2dd30bf976eaf547f',selector:'button[data-nav="rooms"]',attribute:'class'}
 ];
