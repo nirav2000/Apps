@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "appId": "snag",
+  "repository": "nirav2000/snag",
+  "liveUrl": "https://nirav2000.github.io/snag/",
+  "generatedFrom": "Existing legacy version history (central read-only import)",
+  "releases": [
+    {
+      "checkpointId": "legacy-2026.09.28.1053",
+      "productVersion": "2026.09.28.1053",
+      "title": "Snag build 2026.09.28.1053",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.28.1053",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.28.0743",
+      "productVersion": "2026.09.28.0743",
+      "title": "Snag build 2026.09.28.0743",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.28.0743",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.27.2107",
+      "productVersion": "2026.09.27.2107",
+      "title": "Snag build 2026.09.27.2107",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.2107",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.27.1843",
+      "productVersion": "2026.09.27.1843",
+      "title": "Snag build 2026.09.27.1843",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1843",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.27.1805",
+      "productVersion": "2026.09.27.1805",
+      "title": "Snag build 2026.09.27.1805",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1805",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.27.1715",
+      "productVersion": "2026.09.27.1715",
+      "title": "Snag build 2026.09.27.1715",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1715",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.27.1645",
+      "productVersion": "2026.09.27.1645",
+      "title": "Snag build 2026.09.27.1645",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1645",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1615",
+      "productVersion": "2026.09.22.1615",
+      "title": "Snag build 2026.09.22.1615",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/075b901e912b236559dd6ce9194be0c3209a542a",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1545",
+      "productVersion": "2026.09.22.1545",
+      "title": "Snag build 2026.09.22.1545",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/e58621ef0df1c5e0d3584e1e9a2caf37a2476118",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1510",
+      "productVersion": "2026.09.22.1510",
+      "title": "Snag build 2026.09.22.1510",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/d4fc666f930ba06947481005c57d17d389819f05",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1435",
+      "productVersion": "2026.09.22.1435",
+      "title": "Snag build 2026.09.22.1435",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/bb9da8cd5505348eea34fb737c2f538cae9b80fa",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1410",
+      "productVersion": "2026.09.22.1410",
+      "title": "Snag build 2026.09.22.1410",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/1a9ad5ce7de7fbd08853a04aa18b9d45a973fd1d",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1345",
+      "productVersion": "2026.09.22.1345",
+      "title": "Snag build 2026.09.22.1345",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/d8d1a6e05564979777eeded2a39bb1081c0447e3",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1325",
+      "productVersion": "2026.09.22.1325",
+      "title": "Snag build 2026.09.22.1325",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/47ab414ff4e1d8776ad684a9c94c0679c5dd861e",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1305",
+      "productVersion": "2026.09.22.1305",
+      "title": "Snag build 2026.09.22.1305",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/a3905367debb869326fd7e407ac77545d13f0910",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1235",
+      "productVersion": "2026.09.22.1235",
+      "title": "Snag build 2026.09.22.1235",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/484e15d004784ed99b218e3a47a7dd7f62950d53",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1205",
+      "productVersion": "2026.09.22.1205",
+      "title": "Snag build 2026.09.22.1205",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/f8eebcee5192be2efeb10073c9bb2e7907744aac",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1145",
+      "productVersion": "2026.09.22.1145",
+      "title": "Snag build 2026.09.22.1145",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/f0340aa92ce61e535b9dc2fe2bbc6870975899db",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.22.1115",
+      "productVersion": "2026.09.22.1115",
+      "title": "Snag build 2026.09.22.1115",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/31c45d379ae9b0c60d6631105456df160203ba72",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1930",
+      "productVersion": "2026.09.21.1930",
+      "title": "Snag build 2026.09.21.1930",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/0be2c35c91f62e52190625fc38a4b0ba7b1e9321",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1905",
+      "productVersion": "2026.09.21.1905",
+      "title": "Snag build 2026.09.21.1905",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/3b31372b8bae445118c8b4bcf063a94bc6b7b542",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1835",
+      "productVersion": "2026.09.21.1835",
+      "title": "Snag build 2026.09.21.1835",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/b524ec9af9cf38ebb0e2410461b5dbcac30e0d0c",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1815",
+      "productVersion": "2026.09.21.1815",
+      "title": "Snag build 2026.09.21.1815",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/3da8b61b8bcd5bfbd809fcd96e7ac13e6a08aa0c",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1755",
+      "productVersion": "2026.09.21.1755",
+      "title": "Snag build 2026.09.21.1755",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/50da66392b4f1c6bd8203d941b84677242b5951c",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1745",
+      "productVersion": "2026.09.21.1745",
+      "title": "Snag build 2026.09.21.1745",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/640921c3600150b3bff62fdbf683357090fbe637",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1735",
+      "productVersion": "2026.09.21.1735",
+      "title": "Snag build 2026.09.21.1735",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/218442999dfd4431f574c69ab8a0a70814405cbd",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1725",
+      "productVersion": "2026.09.21.1725",
+      "title": "Snag build 2026.09.21.1725",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/dc169e44466d1f2c5d415fd6723800510e088217",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1715",
+      "productVersion": "2026.09.21.1715",
+      "title": "Snag build 2026.09.21.1715",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/4145a1f255a8da9e79159e7aeb71e74394d2fdd0",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1635",
+      "productVersion": "2026.09.21.1635",
+      "title": "Snag build 2026.09.21.1635",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/ed5d2669d44220c4b5483d515f419f9328601bcb",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1605",
+      "productVersion": "2026.09.21.1605",
+      "title": "Snag build 2026.09.21.1605",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/5babe749c8350e834faacb6bd0d46618b2f39f8c",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1535",
+      "productVersion": "2026.09.21.1535",
+      "title": "Snag build 2026.09.21.1535",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/0958627899d5464d0753a799ba0e76ce2a8b70c1",
+      "snapshotSafety": "source-only"
+    },
+    {
+      "checkpointId": "legacy-2026.09.21.1500",
+      "productVersion": "2026.09.21.1500",
+      "title": "Snag build 2026.09.21.1500",
+      "summary": "Historical Snag build; retained original source reference. Interactive replay is not yet isolated from production services.",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/ff8c34ecd9e3dab2cc4282108eb16800807b882c",
+      "snapshotSafety": "source-only"
+    }
+  ]
+}
