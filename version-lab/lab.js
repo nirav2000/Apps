@@ -90,8 +90,12 @@ function badge(a){
 }
 async function loadRegistry(){
   const d=await fetch('./apps.json',{cache:'no-store'}).then(r=>r.json());registry=d.apps||[];
-  $('appGrid').innerHTML=registry.map(a=>'<article class="app-card" data-app="'+esc(a.appId)+'"><div class="top"><h3>'+esc(a.name||a.appId)+'</h3>'+badge(a)+'</div><p class="muted small">'+esc(a.notes||'')+'</p><div class="mono">'+esc(a.repository||'')+'</div></article>').join('');
-  $('appGrid').querySelectorAll('[data-app]').forEach(c=>c.onclick=()=>selectApp(c.dataset.app));
+  $('appGrid').innerHTML=registry.map(a=>'<article class="app-card" data-app="'+esc(a.appId)+'" role="button" tabindex="0" aria-selected="false"><div class="top"><h3>'+esc(a.name||a.appId)+'</h3>'+badge(a)+'</div><p class="muted small">'+esc(a.notes||'')+'</p><div class="mono">'+esc(a.repository||'')+'</div></article>').join('');
+  $('appGrid').querySelectorAll('[data-app]').forEach(c=>{
+    c.onclick=()=>selectApp(c.dataset.app);
+    c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectApp(c.dataset.app)}};
+  });
+  $('refreshVersions').onclick=()=>{if(selected)selectApp(selected.appId)};
   const wanted=new URLSearchParams(location.search).get('app');
   if(wanted&&registry.some(a=>a.appId===wanted))selectApp(wanted);
 }
