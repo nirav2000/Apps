@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {chromium} from 'playwright';
+import {chromium,webkit} from 'playwright';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const script=fs.readFileSync(path.join(root,'version-lab/isolated-preview.js'),'utf8');
@@ -11,7 +11,7 @@ const cases=[
   {id:'snag',repository:'nirav2000/snag',commit:'729408962a16943fc05536b2dd30bf976eaf547f',selector:'button[data-nav="rooms"]',attribute:'class'}
 ];
 const results=[];
-const browser=await chromium.launch({headless:true});
+const browser=await (process.env.VERSION_LAB_BROWSER==='webkit'?webkit:chromium).launch({headless:true});
 try{
   for(const test of cases){
     const page=await browser.newPage({viewport:{width:1200,height:900}});
