@@ -49,7 +49,7 @@ el.addEventListener('click',async()=>{
   catch{document.getElementById('writeGuard').textContent='blocked'}
 });`;
   await page.route('https://cdn.jsdelivr.net/gh/**',route=>{
-    const url=route.request().url;
+    const url=route.request().url();
     if(url.endsWith('/index.html'))return route.fulfill({status:200,contentType:'text/html',headers:{'Access-Control-Allow-Origin':'*'},body:expectedHtml});
     if(url.endsWith('/demo.mjs'))return route.fulfill({status:200,contentType:'text/javascript',headers:{'Access-Control-Allow-Origin':'*'},body:moduleJs});
     return route.fulfill({status:404,contentType:'text/plain',headers:{'Access-Control-Allow-Origin':'*'},body:'not found'});
