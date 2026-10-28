@@ -66,7 +66,7 @@ el.addEventListener('click',async()=>{
     assert.equal(options.length,expectedVersions,appId+' options equal versions');
     assert.equal(new Set(options).size,options.length,appId+' no duplicate options');
     if(expectedVersions>1){
-      await page.locator('#compare').click();
+      await page.locator('#releaseGrid [data-compare]').first().click();
       await page.frameLocator('#leftFrame').locator('#archivedAction').waitFor({timeout:15000});
       await page.frameLocator('#rightFrame').locator('#archivedAction').waitFor({timeout:15000});
       await page.frameLocator('#leftFrame').locator('#archivedAction').click();
