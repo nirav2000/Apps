@@ -103,7 +103,10 @@ async function loadReleases(){
     try{
       const d=await fetch(selected.releaseManifest||selected.liveUrl+'version-lab-data/releases.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('manifest unavailable');return r.json()});
       releases=d.releases||[];
-    }catch{}
+    }catch(error){
+      const detail=error instanceof Error?error.message:String(error);
+      $('appStatus').insertAdjacentHTML('beforeend','<div class="timeline-item"><strong>Checkpoint loading error</strong><div>'+esc(detail)+'</div><div class="muted small">Check the published release manifest URL: '+esc(selected.releaseManifest||selected.liveUrl+'version-lab-data/releases.json')+'</div></div>');
+    }
   }else if(selected.appId==='beyond100'){
     try{
       const text=await fetch('https://raw.githubusercontent.com/'+selected.repository+'/main/versions-data.js',{cache:'no-store'}).then(r=>r.text());
@@ -115,7 +118,7 @@ async function loadReleases(){
     }catch{}
   }
   if(!releases.length){
-    $('appStatus').insertAdjacentHTML('beforeend','<div class="timeline-item"><strong>Checkpoint data</strong><div>No managed checkpoint manifest is available yet.</div></div>');
+    $('appStatus').insertAdjacentHTML('beforeend','<div class="timeline-item"><strong>Checkpoint data</strong><div>No checkpoints were returned by the release manifest.</div></div>');
     return;
   }
   renderReleases();
