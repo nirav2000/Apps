@@ -37,6 +37,8 @@ async function loadCloudReview(){
   }
 }
 function idOf(r){return r?.checkpointId||r?.version||''}
+function versionGroups(){const seen=new Map();for(const item of releases){const version=versionOf(item);if(!seen.has(version))seen.set(version,{version,latest:item,checkpoints:[]});seen.get(version).checkpoints.push(item)}return [...seen.values()]}
+function checkpointLabel(r){return (r.commit?String(r.commit).slice(0,8):idOf(r))+(dateLabel(r)?' · '+dateLabel(r):'')}
 function versionOf(r){return r?.productVersion||r?.version||r?.checkpointId||'Checkpoint'}
 function release(id){return releases.find(r=>idOf(r)===id)||releases[0]}
 function source(r){return r.sourceUrl||('https://github.com/'+selected.repository+'/tree/'+encodeURIComponent(r.commit||r.ref||'main'))}
@@ -46,7 +48,7 @@ function rawSnapshot(r){
   return new URL(snap,base).href;
 }
 function screenshotUrl(r){
-  const target=rawSnapshot(r)||(r===releases[0]?selected.liveUrl:null);
+  const target=rawSnapshot(r);
   if(!target)return '';
   const u=new URL(target);
   u.searchParams.set('version_lab_preview','1');u.searchParams.set('app_monitor_source','version-lab-preview');
@@ -131,39 +133,52 @@ async function loadReleases(){
   renderDecisions();
 }
 function renderReleases(){
-  $('releaseGrid').innerHTML=releases.map((r,i)=>{
-    const technical=[
-      dateLabel(r),
-      r.snapshotSafety?('Replay: '+r.snapshotSafety):'',
-      r.readOnlyAdapter?.version?('Read-only adapter v'+r.readOnlyAdapter.version):'',
-      r.productVersion?('App version '+r.productVersion):'',
-      r.commit?('Git '+String(r.commit).slice(0,8)):'',
-      r.checkpointId&&r.checkpointId!==r.productVersion?('Checkpoint '+r.checkpointId):''
+  const groups=versionGroups();
+  $('releaseGrid').innerHTML=groups.map((g,i)=>{
+    const r=g.latest;
+    const technical=[dateLabel(r),r.commit?'Latest Git '+String(r.commit).slice(0,8):'',
+      g.checkpoints.length>1?g.checkpoints.length+' checkpoints':'Single checkpoint',
+      r.snapshotSafety==='source-only'?'Safe replay requires source checkout':'Isolated replay available when assets load'
     ].filter(Boolean);
     const img=screenshotUrl(r);
     const areas=(r.areas||[]).map(a=>'<span>'+esc(a.title||a.id)+'</span>').join('');
-    const compare=i<releases.length-1?'<button class="primary" data-compare="'+esc(idOf(r))+'" data-with="'+esc(idOf(releases[i+1]))+'">Compare</button>':'';
+    const peer=groups.length>1?groups[(i+1)%groups.length].latest:null;
+    const compare=peer?'<button class="primary" data-compare="'+esc(idOf(r))+'" data-with="'+esc(idOf(peer))+'">Compare versions</button>':'';
+    const history=g.checkpoints.length>1?'<details class="checkpoint-history"><summary>'+g.checkpoints.length+' historical checkpoints · view commits</summary><div class="checkpoint-list">'+g.checkpoints.map((item,k)=>
+      '<div class="checkpoint-entry"><div><strong>'+esc(checkpointLabel(item))+'</strong><div class="muted small">'+esc(item.title||'Recorded checkpoint')+'</div></div><div class="release-actions"><button data-preview-left="'+esc(idOf(item))+'">Preview left</button><button data-preview-right="'+esc(idOf(item))+'">Preview right</button><a href="'+esc(source(item))+'" target="_blank" rel="noopener">Git</a></div></div>'
+    ).join('')+'</div></details>':'';
     return '<article class="release-card '+(i===0?'current':'')+'">'+
-      '<div class="release-card-body release-card-intro"><h3>'+esc(r.title||'Checkpoint')+'</h3><p class="release-summary">'+esc(r.summary||'')+'</p></div>'+
-      (img?'<div class="release-image"><img loading="lazy" src="'+esc(img)+'" alt="Snapshot preview of '+esc(r.title||versionOf(r))+'" onerror="this.closest(\'.release-image\').classList.add(\'image-failed\')"></div>':'')+
+      '<div class="release-card-body release-card-intro"><div class="version-number">v'+esc(g.version)+'</div><h3>'+esc(r.title||'Historical release')+'</h3><p class="release-summary">'+esc(r.summary||'')+'</p></div>'+
+      (img?'<div class="release-image"><img loading="lazy" src="'+esc(img)+'" alt="Snapshot preview" onerror="this.closest(\'.release-image\').classList.add(\'image-failed\')"></div>':'')+
       '<div class="release-card-body release-card-details">'+
       (areas?'<div class="area-tags">'+areas+'</div>':'')+
-      '<div class="release-actions">'+compare+'<button data-review="'+esc(idOf(r))+'">Review changes</button>'+(rawSnapshot(r)?'<a href="'+esc(rawSnapshot(r))+'" target="_blank" rel="noopener">Open snapshot</a>':'')+'<a href="'+esc(source(r))+'" target="_blank" rel="noopener">Source</a></div>'+
-      '<div class="release-technical">'+technical.map(x=>'<span>'+esc(x)+'</span>').join('')+'</div></div></article>';
+      '<div class="release-actions">'+compare+'<button data-review="'+esc(idOf(r))+'">Review changes</button><a href="'+esc(source(r))+'" target="_blank" rel="noopener">Source</a></div>'+
+      '<div class="release-technical">'+technical.map(x=>'<span>'+esc(x)+'</span>').join('')+'</div>'+
+      history+'</div></article>';
   }).join('');
   $('releaseGrid').querySelectorAll('[data-compare]').forEach(b=>b.onclick=()=>{
-    $('leftVersion').value=b.dataset.with;$('rightVersion').value=b.dataset.compare;
-    compare(true);
+    $('leftVersion').value=b.dataset.with;$('rightVersion').value=b.dataset.compare;compare(true);
   });
   $('releaseGrid').querySelectorAll('[data-review]').forEach(b=>b.onclick=()=>{
     $('decisionVersion').value=b.dataset.review;renderDecisions();
     $('decisionPanel').scrollIntoView({behavior:'smooth',block:'start'});
   });
+  for(const side of ['left','right']){
+    $('releaseGrid').querySelectorAll('[data-preview-'+side+']').forEach(b=>b.onclick=()=>{
+      const id=b.getAttribute('data-preview-'+side),r=release(id),select=$(side+'Version');
+      if(!Array.from(select.options).some(x=>x.value===id)){
+        const option=document.createElement('option');option.value=id;
+        option.textContent='v'+versionOf(r)+' · Git '+checkpointLabel(r);
+        select.appendChild(option);
+      }
+      select.value=id;compare(true);
+    });
+  }
 }
 function initComparisonControls(){
-  const opts=releases.map(r=>'<option value="'+esc(idOf(r))+'">'+esc(versionOf(r))+' · '+esc(r.title||'Checkpoint')+'</option>').join('');
+  const opts=versionGroups().map(g=>'<option value="'+esc(idOf(g.latest))+'">v'+esc(g.version)+' · '+esc(g.latest.title||'Release')+'</option>').join('');
   $('leftVersion').innerHTML=opts;$('rightVersion').innerHTML=opts;$('decisionVersion').innerHTML=opts;
-  if(releases.length>1)$('leftVersion').selectedIndex=1;
+  if(versionGroups().length>1)$('leftVersion').selectedIndex=1;
   $('rightVersion').selectedIndex=0;$('decisionVersion').selectedIndex=0;
   $('compare').onclick=()=>compare(true);
   $('swapVersions').onclick=()=>{const a=$('leftVersion').value;$('leftVersion').value=$('rightVersion').value;$('rightVersion').value=a;compare(false)};
@@ -184,23 +199,23 @@ function bridgeCode(){
 }
 async function loadFrame(side,r){
   const frame=$(side+'Frame'),title=$(side+'Title'),status=$(side+'Status'),link=$(side+'Source');
-  title.textContent=versionOf(r)+' · '+(r.title||'Checkpoint');link.href=source(r);
-  const snap=rawSnapshot(r);
-  if(!snap){
-    frame.removeAttribute('src');
-    frame.srcdoc='<div style="font-family:system-ui;padding:28px"><h2>Snapshot unavailable</h2><p>This checkpoint currently has source/history only.</p></div>';
-    status.textContent='Source only · '+(r.snapshotSafety||'unknown');return;
+  title.textContent='v'+versionOf(r)+' · '+(r.title||'Checkpoint');link.href=source(r);
+  frame.removeAttribute('src');frame.srcdoc='<p style="font:16px system-ui;padding:20px">Preparing isolated historical app…</p>';
+  if(!window.VersionLabIsolated||!r.commit){
+    status.textContent='Source only · no immutable Git source';
+    frame.srcdoc='<p style="font:16px system-ui;padding:20px">No runnable historical source was recorded for this checkpoint.</p>';
+    return;
   }
-  status.textContent='Loading '+(r.snapshotSafety||'snapshot')+'…';
+  status.textContent='Loading historical frontend · isolated from production';
   try{
-    const res=await fetch(snap,{cache:'no-store'});if(!res.ok)throw Error('Snapshot '+res.status);
-    const html=await res.text(),doc=new DOMParser().parseFromString(html,'text/html');
-    const base=doc.createElement('base');base.href=snap;doc.head.prepend(base);
-    const bridge=doc.createElement('script');bridge.textContent=bridgeCode();doc.body.appendChild(bridge);
-    frame.removeAttribute('src');frame.srcdoc='<!doctype html>'+doc.documentElement.outerHTML;
-    status.textContent=(r.snapshotSafety||'snapshot')+(r.readOnlyAdapter?.version?' · read-only adapter v'+r.readOnlyAdapter.version:'');
-  }catch{
-    frame.removeAttribute('srcdoc');frame.src=snap;status.textContent=(r.snapshotSafety||'snapshot')+' · direct snapshot';
+    const html=await window.VersionLabIsolated.build(selected,r);
+    // Keep srcdoc sandboxed WITHOUT allow-same-origin: archived scripts cannot
+    // access App Monitor credentials, live localStorage or production cookies.
+    frame.srcdoc=html;
+    status.textContent='Local UI replay · production data and writes blocked';
+  }catch(error){
+    status.textContent='Historical replay unavailable · source remains accessible';
+    frame.srcdoc='<div style="font:15px system-ui;padding:24px"><h2>Historical replay unavailable</h2><p>'+esc(error.message||error)+'</p><p>Use Source to inspect the archived code.</p></div>';
   }
 }
 async function compare(scrollToIt){
@@ -209,6 +224,15 @@ async function compare(scrollToIt){
   await Promise.all([loadFrame('left',l),loadFrame('right',r)]);
   if(scrollToIt)$('comparePanel').scrollIntoView({behavior:'smooth',block:'start'});
 }
+addEventListener('message',e=>{
+  if(!e.data?.type?.startsWith('apps-version-lab-'))return;
+  const side=e.source===$('leftFrame').contentWindow?'left':e.source===$('rightFrame').contentWindow?'right':null;
+  if(!side)return;
+  if(e.data.type==='apps-version-lab-runtime-error'){
+    $(side+'Status').textContent='Limited offline replay · '+String(e.data.detail||'script error').slice(0,130);
+  }
+  if(e.data.type==='apps-version-lab-blocked-write')$(side+'Status').textContent='Read-only replay · live network request blocked';
+});
 addEventListener('message',e=>{
   if(!$('syncScroll')?.checked||e.data?.type!=='apps-version-lab-preview-scroll'||typeof e.data.ratio!=='number')return;
   const left=$('leftFrame'),right=$('rightFrame');let target=null;
