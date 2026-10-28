@@ -10,63 +10,70 @@
       "productVersion": "2026.09.28.1053",
       "title": "Snag build 2026.09.28.1053",
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
-      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.28.1053",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/729408962a16943fc05536b2dd30bf976eaf547f",
       "snapshotSafety": "source-only",
-      "commit": "729408962a16943fc05536b2dd30bf976eaf547f"
+      "commit": "729408962a16943fc05536b2dd30bf976eaf547f",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.28.1053"
     },
     {
       "checkpointId": "legacy-2026.09.28.0743",
       "productVersion": "2026.09.28.0743",
       "title": "Snag build 2026.09.28.0743",
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
-      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.28.0743",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/574323778d3fadb8f4143a888811d4b45d93cc6c",
       "snapshotSafety": "source-only",
-      "commit": "574323778d3fadb8f4143a888811d4b45d93cc6c"
+      "commit": "574323778d3fadb8f4143a888811d4b45d93cc6c",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.28.0743"
     },
     {
       "checkpointId": "legacy-2026.09.27.2107",
       "productVersion": "2026.09.27.2107",
       "title": "Snag build 2026.09.27.2107",
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
-      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.2107",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/541d80cb9d97850aba618d9e5617e67e59fafeb0",
       "snapshotSafety": "source-only",
-      "commit": "541d80cb9d97850aba618d9e5617e67e59fafeb0"
+      "commit": "541d80cb9d97850aba618d9e5617e67e59fafeb0",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.2107"
     },
     {
       "checkpointId": "legacy-2026.09.27.1843",
       "productVersion": "2026.09.27.1843",
       "title": "Snag build 2026.09.27.1843",
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
-      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1843",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/b8b4427c2f3f42b042e7fba14a51c01139c2e61c",
       "snapshotSafety": "source-only",
-      "commit": "b8b4427c2f3f42b042e7fba14a51c01139c2e61c"
+      "commit": "b8b4427c2f3f42b042e7fba14a51c01139c2e61c",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1843"
     },
     {
       "checkpointId": "legacy-2026.09.27.1805",
       "productVersion": "2026.09.27.1805",
       "title": "Snag build 2026.09.27.1805",
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
-      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1805",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/9eb7defee79bdd611da3de7a6c7ce6c5237e091a",
       "snapshotSafety": "source-only",
-      "commit": "9eb7defee79bdd611da3de7a6c7ce6c5237e091a"
+      "commit": "9eb7defee79bdd611da3de7a6c7ce6c5237e091a",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1805"
     },
     {
       "checkpointId": "legacy-2026.09.27.1715",
       "productVersion": "2026.09.27.1715",
       "title": "Snag build 2026.09.27.1715",
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
-      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1715",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/aa629efd92b9bb3e7657e3bac0bbaaa112f25b8d",
       "snapshotSafety": "source-only",
-      "commit": "aa629efd92b9bb3e7657e3bac0bbaaa112f25b8d"
+      "commit": "aa629efd92b9bb3e7657e3bac0bbaaa112f25b8d",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1715"
     },
     {
       "checkpointId": "legacy-2026.09.27.1645",
       "productVersion": "2026.09.27.1645",
       "title": "Snag build 2026.09.27.1645",
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
-      "sourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1645",
+      "sourceUrl": "https://github.com/nirav2000/snag/tree/83896652c579e932fcbbf87badf7425d19050917",
       "snapshotSafety": "source-only",
-      "commit": "83896652c579e932fcbbf87badf7425d19050917"
+      "commit": "83896652c579e932fcbbf87badf7425d19050917",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/versions/2026.09.27.1645"
     },
     {
       "checkpointId": "legacy-2026.09.22.1615",
@@ -75,7 +82,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/075b901e912b236559dd6ce9194be0c3209a542a",
       "snapshotSafety": "source-only",
-      "commit": "075b901e912b236559dd6ce9194be0c3209a542a"
+      "commit": "075b901e912b236559dd6ce9194be0c3209a542a",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/075b901e912b236559dd6ce9194be0c3209a542a"
     },
     {
       "checkpointId": "legacy-2026.09.22.1545",
@@ -84,7 +92,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/e58621ef0df1c5e0d3584e1e9a2caf37a2476118",
       "snapshotSafety": "source-only",
-      "commit": "e58621ef0df1c5e0d3584e1e9a2caf37a2476118"
+      "commit": "e58621ef0df1c5e0d3584e1e9a2caf37a2476118",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/e58621ef0df1c5e0d3584e1e9a2caf37a2476118"
     },
     {
       "checkpointId": "legacy-2026.09.22.1510",
@@ -93,7 +102,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/d4fc666f930ba06947481005c57d17d389819f05",
       "snapshotSafety": "source-only",
-      "commit": "d4fc666f930ba06947481005c57d17d389819f05"
+      "commit": "d4fc666f930ba06947481005c57d17d389819f05",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/d4fc666f930ba06947481005c57d17d389819f05"
     },
     {
       "checkpointId": "legacy-2026.09.22.1435",
@@ -102,7 +112,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/bb9da8cd5505348eea34fb737c2f538cae9b80fa",
       "snapshotSafety": "source-only",
-      "commit": "bb9da8cd5505348eea34fb737c2f538cae9b80fa"
+      "commit": "bb9da8cd5505348eea34fb737c2f538cae9b80fa",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/bb9da8cd5505348eea34fb737c2f538cae9b80fa"
     },
     {
       "checkpointId": "legacy-2026.09.22.1410",
@@ -111,7 +122,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/1a9ad5ce7de7fbd08853a04aa18b9d45a973fd1d",
       "snapshotSafety": "source-only",
-      "commit": "1a9ad5ce7de7fbd08853a04aa18b9d45a973fd1d"
+      "commit": "1a9ad5ce7de7fbd08853a04aa18b9d45a973fd1d",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/1a9ad5ce7de7fbd08853a04aa18b9d45a973fd1d"
     },
     {
       "checkpointId": "legacy-2026.09.22.1345",
@@ -120,7 +132,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/d8d1a6e05564979777eeded2a39bb1081c0447e3",
       "snapshotSafety": "source-only",
-      "commit": "d8d1a6e05564979777eeded2a39bb1081c0447e3"
+      "commit": "d8d1a6e05564979777eeded2a39bb1081c0447e3",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/d8d1a6e05564979777eeded2a39bb1081c0447e3"
     },
     {
       "checkpointId": "legacy-2026.09.22.1325",
@@ -129,7 +142,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/47ab414ff4e1d8776ad684a9c94c0679c5dd861e",
       "snapshotSafety": "source-only",
-      "commit": "47ab414ff4e1d8776ad684a9c94c0679c5dd861e"
+      "commit": "47ab414ff4e1d8776ad684a9c94c0679c5dd861e",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/47ab414ff4e1d8776ad684a9c94c0679c5dd861e"
     },
     {
       "checkpointId": "legacy-2026.09.22.1305",
@@ -138,7 +152,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/a3905367debb869326fd7e407ac77545d13f0910",
       "snapshotSafety": "source-only",
-      "commit": "a3905367debb869326fd7e407ac77545d13f0910"
+      "commit": "a3905367debb869326fd7e407ac77545d13f0910",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/a3905367debb869326fd7e407ac77545d13f0910"
     },
     {
       "checkpointId": "legacy-2026.09.22.1235",
@@ -147,7 +162,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/484e15d004784ed99b218e3a47a7dd7f62950d53",
       "snapshotSafety": "source-only",
-      "commit": "484e15d004784ed99b218e3a47a7dd7f62950d53"
+      "commit": "484e15d004784ed99b218e3a47a7dd7f62950d53",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/484e15d004784ed99b218e3a47a7dd7f62950d53"
     },
     {
       "checkpointId": "legacy-2026.09.22.1205",
@@ -156,7 +172,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/f8eebcee5192be2efeb10073c9bb2e7907744aac",
       "snapshotSafety": "source-only",
-      "commit": "f8eebcee5192be2efeb10073c9bb2e7907744aac"
+      "commit": "f8eebcee5192be2efeb10073c9bb2e7907744aac",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/f8eebcee5192be2efeb10073c9bb2e7907744aac"
     },
     {
       "checkpointId": "legacy-2026.09.22.1145",
@@ -165,7 +182,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/f0340aa92ce61e535b9dc2fe2bbc6870975899db",
       "snapshotSafety": "source-only",
-      "commit": "f0340aa92ce61e535b9dc2fe2bbc6870975899db"
+      "commit": "f0340aa92ce61e535b9dc2fe2bbc6870975899db",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/f0340aa92ce61e535b9dc2fe2bbc6870975899db"
     },
     {
       "checkpointId": "legacy-2026.09.22.1115",
@@ -174,7 +192,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/31c45d379ae9b0c60d6631105456df160203ba72",
       "snapshotSafety": "source-only",
-      "commit": "31c45d379ae9b0c60d6631105456df160203ba72"
+      "commit": "31c45d379ae9b0c60d6631105456df160203ba72",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/31c45d379ae9b0c60d6631105456df160203ba72"
     },
     {
       "checkpointId": "legacy-2026.09.21.1930",
@@ -183,7 +202,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/0be2c35c91f62e52190625fc38a4b0ba7b1e9321",
       "snapshotSafety": "source-only",
-      "commit": "0be2c35c91f62e52190625fc38a4b0ba7b1e9321"
+      "commit": "0be2c35c91f62e52190625fc38a4b0ba7b1e9321",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/0be2c35c91f62e52190625fc38a4b0ba7b1e9321"
     },
     {
       "checkpointId": "legacy-2026.09.21.1905",
@@ -192,7 +212,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/3b31372b8bae445118c8b4bcf063a94bc6b7b542",
       "snapshotSafety": "source-only",
-      "commit": "3b31372b8bae445118c8b4bcf063a94bc6b7b542"
+      "commit": "3b31372b8bae445118c8b4bcf063a94bc6b7b542",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/3b31372b8bae445118c8b4bcf063a94bc6b7b542"
     },
     {
       "checkpointId": "legacy-2026.09.21.1835",
@@ -201,7 +222,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/b524ec9af9cf38ebb0e2410461b5dbcac30e0d0c",
       "snapshotSafety": "source-only",
-      "commit": "b524ec9af9cf38ebb0e2410461b5dbcac30e0d0c"
+      "commit": "b524ec9af9cf38ebb0e2410461b5dbcac30e0d0c",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/b524ec9af9cf38ebb0e2410461b5dbcac30e0d0c"
     },
     {
       "checkpointId": "legacy-2026.09.21.1815",
@@ -210,7 +232,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/3da8b61b8bcd5bfbd809fcd96e7ac13e6a08aa0c",
       "snapshotSafety": "source-only",
-      "commit": "3da8b61b8bcd5bfbd809fcd96e7ac13e6a08aa0c"
+      "commit": "3da8b61b8bcd5bfbd809fcd96e7ac13e6a08aa0c",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/3da8b61b8bcd5bfbd809fcd96e7ac13e6a08aa0c"
     },
     {
       "checkpointId": "legacy-2026.09.21.1755",
@@ -219,7 +242,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/50da66392b4f1c6bd8203d941b84677242b5951c",
       "snapshotSafety": "source-only",
-      "commit": "50da66392b4f1c6bd8203d941b84677242b5951c"
+      "commit": "50da66392b4f1c6bd8203d941b84677242b5951c",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/50da66392b4f1c6bd8203d941b84677242b5951c"
     },
     {
       "checkpointId": "legacy-2026.09.21.1745",
@@ -228,7 +252,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/640921c3600150b3bff62fdbf683357090fbe637",
       "snapshotSafety": "source-only",
-      "commit": "640921c3600150b3bff62fdbf683357090fbe637"
+      "commit": "640921c3600150b3bff62fdbf683357090fbe637",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/640921c3600150b3bff62fdbf683357090fbe637"
     },
     {
       "checkpointId": "legacy-2026.09.21.1735",
@@ -237,7 +262,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/218442999dfd4431f574c69ab8a0a70814405cbd",
       "snapshotSafety": "source-only",
-      "commit": "218442999dfd4431f574c69ab8a0a70814405cbd"
+      "commit": "218442999dfd4431f574c69ab8a0a70814405cbd",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/218442999dfd4431f574c69ab8a0a70814405cbd"
     },
     {
       "checkpointId": "legacy-2026.09.21.1725",
@@ -246,7 +272,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/dc169e44466d1f2c5d415fd6723800510e088217",
       "snapshotSafety": "source-only",
-      "commit": "dc169e44466d1f2c5d415fd6723800510e088217"
+      "commit": "dc169e44466d1f2c5d415fd6723800510e088217",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/dc169e44466d1f2c5d415fd6723800510e088217"
     },
     {
       "checkpointId": "legacy-2026.09.21.1715",
@@ -255,7 +282,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/4145a1f255a8da9e79159e7aeb71e74394d2fdd0",
       "snapshotSafety": "source-only",
-      "commit": "4145a1f255a8da9e79159e7aeb71e74394d2fdd0"
+      "commit": "4145a1f255a8da9e79159e7aeb71e74394d2fdd0",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/4145a1f255a8da9e79159e7aeb71e74394d2fdd0"
     },
     {
       "checkpointId": "legacy-2026.09.21.1635",
@@ -264,7 +292,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/ed5d2669d44220c4b5483d515f419f9328601bcb",
       "snapshotSafety": "source-only",
-      "commit": "ed5d2669d44220c4b5483d515f419f9328601bcb"
+      "commit": "ed5d2669d44220c4b5483d515f419f9328601bcb",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/ed5d2669d44220c4b5483d515f419f9328601bcb"
     },
     {
       "checkpointId": "legacy-2026.09.21.1605",
@@ -273,7 +302,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/5babe749c8350e834faacb6bd0d46618b2f39f8c",
       "snapshotSafety": "source-only",
-      "commit": "5babe749c8350e834faacb6bd0d46618b2f39f8c"
+      "commit": "5babe749c8350e834faacb6bd0d46618b2f39f8c",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/5babe749c8350e834faacb6bd0d46618b2f39f8c"
     },
     {
       "checkpointId": "legacy-2026.09.21.1535",
@@ -282,7 +312,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/0958627899d5464d0753a799ba0e76ce2a8b70c1",
       "snapshotSafety": "source-only",
-      "commit": "0958627899d5464d0753a799ba0e76ce2a8b70c1"
+      "commit": "0958627899d5464d0753a799ba0e76ce2a8b70c1",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/0958627899d5464d0753a799ba0e76ce2a8b70c1"
     },
     {
       "checkpointId": "legacy-2026.09.21.1500",
@@ -291,7 +322,8 @@
       "summary": "Historical Snag build from an immutable Git revision. Read-only interactive replay supported where archived assets load.",
       "sourceUrl": "https://github.com/nirav2000/snag/tree/ff8c34ecd9e3dab2cc4282108eb16800807b882c",
       "snapshotSafety": "source-only",
-      "commit": "ff8c34ecd9e3dab2cc4282108eb16800807b882c"
+      "commit": "ff8c34ecd9e3dab2cc4282108eb16800807b882c",
+      "originalSourceUrl": "https://github.com/nirav2000/snag/tree/ff8c34ecd9e3dab2cc4282108eb16800807b882c"
     }
   ]
 }
