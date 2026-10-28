@@ -1,0 +1,42 @@
+name: Version Labs interactive browser checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'version-lab/**'
+      - 'app-monitor.html'
+      - 'index.html'
+      - 'development-control.html'
+      - '.github/workflows/version-lab-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Version Labs scripts
+        run: |
+          node --check version-lab/lab.js
+          node --check version-lab/isolated-preview.js
+          node --check version-lab/tests/browser-smoke.mjs
+      - name: Install Chromium browser test dependencies
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify historical version grouping and interactive sandbox
+        run: node version-lab/tests/browser-smoke.mjs
+      - name: Upload browser verification image
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-lab-browser-verification
+          path: version-lab-browser-verification.png
+          if-no-files-found: ignore
