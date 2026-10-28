@@ -25,6 +25,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Probe public Dol Pages manifest independently
+        run: |
+          curl -fsSL --retry 3 --max-time 25 "https://nirav2000.github.io/Dol/version-lab-data/releases.json?verify=${{ github.run_id }}" -o /tmp/published-dol-releases.json
+          node - <<'NODE'
+          const manifest=require('/tmp/published-dol-releases.json');
+          const current=require('./dol/version.json').version;
+          console.log('Public Dol manifest:',manifest.releases?.length,'records; newest:',manifest.releases?.[0]?.productVersion,'expected:',current);
+          if(manifest.releases?.[0]?.productVersion!==current)process.exit(1);
+          NODE
       - name: Build release index without changing Dol repository
         working-directory: dol
         run: node ../version-lab/tooling/build-version-history.mjs
