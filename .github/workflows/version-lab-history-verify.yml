@@ -1,0 +1,46 @@
+name: Version Lab historical index verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'version-lab/tooling/build-version-history.mjs'
+      - '.github/workflows/version-lab-history-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nirav2000/Dol
+          path: dol
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build release index without changing Dol repository
+        working-directory: dol
+        run: node ../version-lab/tooling/build-version-history.mjs
+      - name: Check current release and preserved checkpoints
+        working-directory: dol
+        run: |
+          node - <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const h=JSON.parse(fs.readFileSync('version-lab-data/releases.json','utf8'));
+          const current=require('./version.json').version;
+          assert.equal(h.publishedVersion,current);
+          assert.equal(h.releases[0].productVersion,current);
+          assert(h.releases.some(r=>r.productVersion==='2.6.4'));
+          assert(h.releases.some(r=>r.productVersion==='2.5.0'));
+          assert(h.releases.length>33,'New version history must add releases');
+          assert(h.releases.every(r=>/^[0-9a-f]{40}$/i.test(r.commit)));
+          console.log('VERIFIED current:', current, 'history entries:',h.releases.length);
+          NODE
