@@ -38,10 +38,16 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verify historical version grouping and interactive sandbox
         run: node version-lab/tests/browser-smoke.mjs
+      - name: Probe three real historical application interfaces
+        continue-on-error: true
+        run: node version-lab/tests/live-replay-probe.mjs
       - name: Upload browser verification image
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: version-lab-browser-verification
-          path: version-lab-browser-verification.png
+          path: |
+            version-lab-browser-verification.png
+            version-lab-live-probe.json
+            version-lab-probe-*.png
           if-no-files-found: ignore
