@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import {fileURLToPath} from 'node:url';
-import {chromium} from 'playwright';
+import {chromium,webkit} from 'playwright';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const port=8741;
@@ -22,7 +22,7 @@ const server=http.createServer((req,res)=>{
 await new Promise(resolve=>server.listen(port,'127.0.0.1',resolve));
 let browser;
 try{
-  browser=await chromium.launch({headless:true});
+  browser=await (process.env.VERSION_LAB_BROWSER==='webkit'?webkit:chromium).launch({headless:true});
   const page=await browser.newPage({viewport:{width:1440,height:900}});
   await page.addInitScript(()=>{
     try{if(location.hostname==='127.0.0.1')localStorage.setItem('app-monitor.admin-session.v2',JSON.stringify({token:'VersionLabBrowserTest'}))}catch{}
