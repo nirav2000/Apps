@@ -9,19 +9,19 @@
 </section>
 
 <div id="lab" class="hidden">
-<section class="card lab-hero"><div><p class="eyebrow">VERSION HISTORY</p><h2>Keep the parts that work.</h2><p>Compare earlier versions as working snapshots, note what you see while both are visible, then decide which changes to keep, revert, rework or leave unsure.</p></div><div class="workflow-card"><strong>Suggested loop</strong><ol><li>Make one coherent release.</li><li>Compare it with the previous release.</li><li>Add notes while both are visible.</li><li>Decide per change area.</li><li>Copy the development brief.</li></ol></div></section>
+<section class="card lab-hero"><div><p class="eyebrow">VERSION HISTORY</p><h2>Keep the parts that work.</h2><p>Select one entry per product version, expand its Git checkpoints when needed, and operate archived interfaces in read-only isolated previews. Never use these previews to edit live data.</p></div><div class="workflow-card"><strong>Suggested loop</strong><ol><li>Make one coherent release.</li><li>Compare it with the previous release.</li><li>Add notes while both are visible.</li><li>Decide per change area.</li><li>Copy the development brief.</li></ol></div></section>
 
 <section class="card"><div class="top"><div><h2>Registered apps</h2><p class="muted small">Managed apps use the shared Version Lab. Reference/legacy apps remain available while migrations are validated.</p></div></div><div id="appGrid" class="app-grid"></div></section>
 
 <section class="card" id="appPanel"><div class="top"><div><h2 id="appTitle">Select an app</h2><p id="appMeta" class="muted small"></p></div><div class="controls"><a id="openLive" class="btn hidden" target="_blank" rel="noopener">Open live app</a><a id="openRepo" class="btn hidden" target="_blank" rel="noopener">Repository</a></div></div><div id="appStatus" class="timeline"></div></section>
 
 <section class="card hidden" id="releasePanel">
-  <div class="section-title"><div><p class="eyebrow">RELEASES</p><h2>Named checkpoints</h2></div><p>Git commits remain the technical history. These are the human-friendly checkpoints worth comparing.</p></div>
+  <div class="section-title"><div><p class="eyebrow">RELEASES</p><h2>Named checkpoints</h2></div><p>Versions are grouped; expand a version to choose a specific historical checkpoint.</p></div>
   <div id="releaseGrid" class="release-grid"></div>
 </section>
 
 <section class="card hidden compare-section" id="comparePanel">
-  <div class="section-title"><div><p class="eyebrow">SIDE BY SIDE</p><h2>Compare working versions</h2></div><p>Moving either preview scrolls the other to the same relative position while sync is enabled.</p></div>
+  <div class="section-title"><div><p class="eyebrow">SIDE BY SIDE</p><h2>Compare working versions</h2></div><p>The previews run independently in isolated, offline-style sandboxes. Controls may require production data that is deliberately unavailable.</p></div>
   <div class="compare-controls">
     <label>Left version<select id="leftVersion"></select></label>
     <button id="swapVersions" title="Swap versions">⇄</button>
@@ -30,7 +30,7 @@
     <button id="compare" class="primary">Load comparison</button>
   </div>
   <div class="preview-grid">
-    <article class="preview-panel"><header><div><strong id="leftTitle">Left</strong><div id="leftStatus" class="muted small"></div></div><a id="leftSource" target="_blank" rel="noopener">Source</a></header><iframe id="leftFrame" sandbox="allow-scripts allow-forms allow-modals"></iframe></article>
+    <article class="preview-panel"><header><div><strong id="leftTitle">Left</strong><div id="leftStatus" class="muted small"></div></div><a id="leftSource" target="_blank" rel="noopener">Source</a></header><iframe id="leftFrame" sandbox="allow-scripts allow-modals" referrerpolicy="no-referrer"></iframe></article>
     <article class="preview-panel"><header><div><strong id="rightTitle">Right</strong><div id="rightStatus" class="muted small"></div></div><a id="rightSource" target="_blank" rel="noopener">Source</a></header><iframe id="rightFrame" sandbox="allow-scripts allow-forms allow-modals"></iframe></article>
   </div>
   <section class="comparison-note-box"><h3>Notes while comparing</h3><p>Capture observations immediately while both versions are visible. Notes are included in the development brief.</p><div class="comparison-note-form"><select id="comparisonNoteFocus"></select><textarea id="comparisonNoteText" placeholder="e.g. Keep the older card spacing, but use the newer navigation…"></textarea><button id="addComparisonNote" type="button">Add note</button></div><div id="comparisonNoteList" class="comparison-note-list"></div></section>
@@ -42,4 +42,4 @@
   <div id="decisionSummary" class="decision-summary"></div><div id="decisionList" class="decision-grid"></div>
 </section>
 </div>
-</div><script src="./lab.js"></script></body></html>
+</div><script src="./isolated-preview.js"></script><script src="./lab.js"></script></body></html>
