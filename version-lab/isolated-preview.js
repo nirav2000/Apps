@@ -25,6 +25,7 @@ function runtime(){
         clear(){data.clear()}
       };
     }
+    const memory={localStorage:memoryStorage(),sessionStorage:memoryStorage()};
     // Sandboxed about:srcdoc documents have opaque origins. Their native Storage throws.
     // Isolated memory stores let ordinary UI state work without reading production data.
     for(const name of ['localStorage','sessionStorage']){
