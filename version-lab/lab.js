@@ -90,7 +90,7 @@ function badge(a){
 }
 async function loadRegistry(){
   const d=await fetch('./apps.json',{cache:'no-store'}).then(r=>r.json());registry=d.apps||[];
-  $('appGrid').innerHTML=registry.map(a=>'<article class="app-card" data-app="'+esc(a.appId)+'" role="button" tabindex="0" aria-selected="false"><div class="top"><h3>'+esc(a.name||a.appId)+'</h3>'+badge(a)+'</div><p class="muted small">'+esc(a.notes||'')+'</p><div class="mono">'+esc(a.repository||'')+'</div></article>').join('');
+  $('appGrid').innerHTML=registry.map(a=>'<article class="app-card" data-app="'+esc(a.appId)+'" role="button" tabindex="0" aria-pressed="false"><div class="top"><h3>'+esc(a.name||a.appId)+'</h3>'+badge(a)+'</div><p class="muted small">'+esc(a.notes||'')+'</p><div class="mono">'+esc(a.repository||'')+'</div></article>').join('');
   $('appGrid').querySelectorAll('[data-app]').forEach(c=>{
     c.onclick=()=>selectApp(c.dataset.app);
     c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectApp(c.dataset.app)}};
@@ -109,7 +109,7 @@ function selectApp(id){
   document.querySelectorAll('.app-card').forEach(c=>{
     const active=c.dataset.app===id;
     c.classList.toggle('selected',active);
-    c.setAttribute('aria-selected',String(active));
+    c.setAttribute('aria-pressed',String(active));
   });
   $('appTitle').textContent=app.name||app.appId;
   $('appMeta').textContent=(app.managed?'Managed shared Version Lab':'Not yet managed by full shared Version Lab')+' · '+app.repository;
