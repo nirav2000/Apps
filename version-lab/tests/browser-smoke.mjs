@@ -27,7 +27,7 @@ try{
   await page.addInitScript(()=>{
     try{if(location.hostname==='127.0.0.1')localStorage.setItem('app-monitor.admin-session.v2',JSON.stringify({token:'VersionLabBrowserTest'}))}catch{}
   });
-  await page.route('https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/**',route=>{
+  await page.route('https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/**',async route=>{
     if(route.request().url().includes('/auth/session'))
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({method:'test passkey'})});
     await new Promise(resolve=>setTimeout(resolve,1300));
