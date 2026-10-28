@@ -138,7 +138,7 @@ function renderReleases(){
     const r=g.latest;
     const technical=[dateLabel(r),r.commit?'Latest Git '+String(r.commit).slice(0,8):'',
       g.checkpoints.length>1?g.checkpoints.length+' checkpoints':'Single checkpoint',
-      r.snapshotSafety==='source-only'?'Safe replay requires source checkout':'Isolated replay available when assets load'
+      /^[a-f0-9]{40}$/i.test(r.commit||'')?'Immutable Git replay · read-only':'Source-only · no archived frontend'
     ].filter(Boolean);
     const img=screenshotUrl(r);
     const areas=(r.areas||[]).map(a=>'<span>'+esc(a.title||a.id)+'</span>').join('');
@@ -206,13 +206,13 @@ async function loadFrame(side,r){
     frame.srcdoc='<p style="font:16px system-ui;padding:20px">No runnable historical source was recorded for this checkpoint.</p>';
     return;
   }
-  status.textContent='Loading historical frontend · isolated from production';
+  status.textContent='Loading archived frontend · no production access';
   try{
     const html=await window.VersionLabIsolated.build(selected,r);
     // Keep srcdoc sandboxed WITHOUT allow-same-origin: archived scripts cannot
     // access App Monitor credentials, live localStorage or production cookies.
     frame.srcdoc=html;
-    status.textContent='Local UI replay · production data and writes blocked';
+    status.textContent='Archived frontend loaded · production access blocked';
   }catch(error){
     status.textContent='Historical replay unavailable · source remains accessible';
     frame.srcdoc='<div style="font:15px system-ui;padding:24px"><h2>Historical replay unavailable</h2><p>'+esc(error.message||error)+'</p><p>Use Source to inspect the archived code.</p></div>';
@@ -228,6 +228,7 @@ addEventListener('message',e=>{
   if(!e.data?.type?.startsWith('apps-version-lab-'))return;
   const side=e.source===$('leftFrame').contentWindow?'left':e.source===$('rightFrame').contentWindow?'right':null;
   if(!side)return;
+  if(e.data.type==='apps-version-lab-preview-ready')$(side+'Status').textContent='Isolated UI ready · no live data or writes';
   if(e.data.type==='apps-version-lab-runtime-error'){
     $(side+'Status').textContent='Limited offline replay · '+String(e.data.detail||'script error').slice(0,130);
   }
