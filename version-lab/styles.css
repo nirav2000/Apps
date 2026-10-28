@@ -8,3 +8,13 @@
 .checkpoint-entry .release-actions{margin:0}
 .checkpoint-entry .release-actions button{font-size:12px;padding:6px 9px}
 @media(max-width:900px){.checkpoint-entry{align-items:flex-start}}
+
+/* Immediate app-selection feedback and incremental version browsing */
+.app-card{cursor:pointer;transition:background .12s,border-color .12s,box-shadow .12s}
+.app-card:hover{border-color:#8ba3b8}
+.app-card:active{transform:scale(.995);background:#edf3f7}
+.app-card:focus-visible{outline:3px solid #1d6090;outline-offset:2px}
+.app-card.selected{border:2px solid #2455a0;background:#eaf2ff;box-shadow:0 0 0 3px rgba(36,85,160,.14)}
+.loading-history{border-left-color:#2455a0}
+.load-more-releases{grid-column:1/-1;min-height:52px;background:#f4f7fc;border:1px dashed #9ab0c8;font-weight:700;cursor:pointer}
+@media(prefers-reduced-motion:reduce){.app-card{transition:none}}
