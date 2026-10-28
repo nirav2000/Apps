@@ -17,7 +17,7 @@
       "liveUrl": "https://nirav2000.github.io/Openday/",
       "status": "history-imported",
       "managed": true,
-      "notes": "Historical versions imported into central Version Lab. Legacy app remains unchanged; interactive snapshots not yet safety-verified.",
+      "notes": "Immutable historical Git revisions available for isolated, read-only preview. Original production application and legacy version history unchanged.",
       "releaseManifest": "./legacy-data/openday-releases.json",
       "legacyUrl": "https://nirav2000.github.io/Openday/version-lab/"
     },
@@ -28,7 +28,7 @@
       "liveUrl": "https://nirav2000.github.io/snag/",
       "status": "history-imported",
       "managed": true,
-      "notes": "Historical versions imported into central Version Lab. Legacy app remains unchanged; interactive snapshots not yet safety-verified.",
+      "notes": "Immutable historical Git revisions available for isolated, read-only preview. Original production application and legacy version history unchanged.",
       "releaseManifest": "./legacy-data/snag-releases.json",
       "legacyUrl": "https://nirav2000.github.io/snag/version-lab.html"
     },
