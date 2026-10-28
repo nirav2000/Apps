@@ -15,18 +15,22 @@
       "name": "Openday",
       "repository": "nirav2000/Openday",
       "liveUrl": "https://nirav2000.github.io/Openday/",
-      "status": "legacy-shared-v1",
-      "managed": false,
-      "notes": "Uses the earlier thin shared Version Lab. Do not treat as the target implementation."
+      "status": "history-imported",
+      "managed": true,
+      "notes": "Historical versions imported into central Version Lab. Legacy app remains unchanged; interactive snapshots not yet safety-verified.",
+      "releaseManifest": "./legacy-data/openday-releases.json",
+      "legacyUrl": "https://nirav2000.github.io/Openday/version-lab/"
     },
     {
       "appId": "snag",
       "name": "Snag",
       "repository": "nirav2000/snag",
       "liveUrl": "https://nirav2000.github.io/snag/",
-      "status": "version-history-only",
-      "managed": false,
-      "notes": "Has version history/archive behaviour but is not yet on the full shared Version Lab."
+      "status": "history-imported",
+      "managed": true,
+      "notes": "Historical versions imported into central Version Lab. Legacy app remains unchanged; interactive snapshots not yet safety-verified.",
+      "releaseManifest": "./legacy-data/snag-releases.json",
+      "legacyUrl": "https://nirav2000.github.io/snag/version-lab.html"
     },
     {
       "appId": "inclass",
