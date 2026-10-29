@@ -29,7 +29,7 @@ export function mountRepositoryPrivacy(root) {
   let all = [], selected = '', pending = false, coverage = 'public-only';
   root.innerHTML = `
     <div class="top">
-      <div><h2>Repository privacy register</h2><p class="muted small">Private-by-default for new apps. Existing repository visibility is unchanged until you explicitly approve a migration.</p></div>
+      <div><h2>Repository privacy register</h2><p class="muted small">Private-by-default for new apps. Existing repository visibility is unchanged until you explicitly approve a migration. <a href="https://github.com/nirav2000/Apps/blob/main/docs/REPOSITORY_PRIVACY.md" target="_blank" rel="noopener noreferrer">Setup &amp; migration guide</a></p></div>
       <div class="controls">
         <button type="button" id="privacyRefresh">Refresh repositories</button>
         <button type="button" id="privacyExport" disabled>Export CSV</button>
@@ -67,13 +67,13 @@ export function mountRepositoryPrivacy(root) {
   function render() {
     const showing = filtered();
     const total = all.length, publics = all.filter(r => r.visibility === 'public').length;
-    const privates = all.filter(r => r.visibility === 'private').length;
+    const privates = coverage === 'public-only' ? '—' : all.filter(r => r.visibility === 'private').length;
     const high = all.filter(r => ['high', 'critical'].includes(r.exposureRisk) || r.secretsAudit === 'findings').length;
     const unassessed = all.filter(r => r.exposureRisk === 'unassessed').length;
     const awaiting = all.filter(r => r.secretsAudit !== 'passed').length;
     const pages = all.filter(r => r.hasPages).length;
     const metrics = [
-      [total, 'Visible repositories'], [publics, 'Public'], [privates, 'Private'],
+      [total, 'Visible repositories'], [publics, 'Public'], [privates, coverage === 'public-only' ? 'Private (not loaded)' : 'Private'],
       [pages, 'Pages enabled'], [unassessed, 'Risk unassessed'], [high, 'Flagged risk'], [awaiting, 'Audit pending / findings']
     ];
     E.privacySummary.innerHTML = metrics.map(([n, name]) => '<div class="privacy-metric"><strong>' + n + '</strong><span>' + htmlEscape(name) + '</span></div>').join('');

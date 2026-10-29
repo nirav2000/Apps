@@ -127,6 +127,6 @@ test('App Monitor UI mounts register inside the authenticated content only', () 
   const ui = readFileSync('app-monitor.html', 'utf8');
   assert.ok(ui.indexOf('id="repositoryPrivacy"') > ui.indexOf('id="protectedApp"'));
   assert.ok(ui.indexOf('id="repositoryPrivacy"') < ui.indexOf('</div>\n</div><script>'));
-  assert.ok(ui.includes('app-monitor-privacy.js?v=1'));
+  assert.ok(ui.includes('app-monitor-privacy.js?v=2'));
   assert.ok(ui.includes("app-monitor-privacy-auth"));
 });
