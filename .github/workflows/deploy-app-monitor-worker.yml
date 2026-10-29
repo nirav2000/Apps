@@ -74,6 +74,25 @@ jobs:
       - name: Smoke test
         if: steps.creds.outputs.available == 'true'
         run: |
+          # A successful Wrangler upload does not mean every Cloudflare edge
+          # is immediately serving the new Worker. Verify the expected build
+          # before asserting the freshly added routes.
+          expected_build=$(node -p "require('fs').readFileSync('app-monitor-worker.js','utf8').match(/const WORKER_BUILD='([^']+)'/)[1]")
+          deployed_build=''
+          for attempt in $(seq 1 30); do
+            health=$(curl --fail --silent --show-error \
+              -H 'Cache-Control: no-cache' \
+              "https://apps-monitor-api.nirav2000-github.workers.dev/health?release=${GITHUB_SHA}&attempt=$attempt" || true)
+            deployed_build=$(node -p 'JSON.parse(process.argv[1]).build' "$health" 2>/dev/null || true)
+            if [ "$deployed_build" = "$expected_build" ]; then
+              echo "Verified current Worker build: $deployed_build"
+              break
+            fi
+            echo "Edge still serving build ${deployed_build:-unknown}; expected $expected_build (attempt $attempt)"
+            sleep 4
+          done
+          test "$deployed_build" = "$expected_build"
+          echo
           curl --fail --silent --show-error 'https://apps-monitor-api.nirav2000-github.workers.dev/health'
           echo
           curl --fail --silent --show-error -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/security/status'
