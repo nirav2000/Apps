@@ -28,6 +28,14 @@ Sources and evidence:
 - Migration readiness: manually reviewed readiness, with automated suggested next action.
 - Missing audit evidence must remain Not started or In progress. Never label Passed based on an absence of detected incidents.
 
+## Reusing the configured GitHub credential
+
+The Repository Privacy Register now checks the Cloudflare Worker secret NOTES_GITHUB_ISSUES_TOKEN before requiring any additional setup. It uses that existing secret for read-only GitHub metadata requests, while leaving the Notes service's permissions unchanged. A separately configured REPOSITORY_PRIVACY_GITHUB_TOKEN takes priority when present.
+
+The register displays whether private repositories are visible to that credential. A successful check proves only that some private repositories are accessible, not that every private repository is covered. If the credential is restricted or unavailable, public repositories remain visible with a clear coverage warning.
+
+Only consider a separate read-only token if the existing credential lacks suitable repository access.
+
 ## Include private GitHub repositories
 
 Without a server-side token the Worker fetches PUBLIC repositories only and clearly labels the coverage incomplete.

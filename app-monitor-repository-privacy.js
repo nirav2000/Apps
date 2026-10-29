@@ -75,32 +75,90 @@ export function derivePrivacyState(repo, review) {
   else nextStep = 'Eligible for approval';
   return { ...repo, ...saved, pages, nextStep, reviewedAt: String(review?.reviewedAt || '') };
 }
-async function catalog(env, fetcher) {
-  const token = String(env.REPOSITORY_PRIVACY_GITHUB_TOKEN || '');
-  const authenticated = Boolean(token);
+// Listing public repositories separately prevents a GitHub token limited to a
+// single public repo from hiding the rest of the owner's public inventory.
+async function listGithubRepositories(fetcher, urlForPage, token = '', installation = false) {
   const entries = [];
   for (let page = 1; page <= 10; page++) {
-    const path = authenticated
-      ? 'https://api.github.com/user/repos?affiliation=owner&per_page=100&sort=updated&page=' + page
-      : 'https://api.github.com/users/' + OWNER + '/repos?type=owner&per_page=100&sort=updated&page=' + page;
-    const response = await fetcher(path, {
+    const response = await fetcher(urlForPage(page), {
       headers: {
         'Accept': 'application/vnd.github+json',
         'User-Agent': 'apps-monitor-repository-privacy',
-        ...(authenticated ? { 'Authorization': 'Bearer ' + token } : {})
+        ...(token ? { 'Authorization': 'Bearer ' + token } : {})
       },
       redirect: 'manual'
     });
-    if (!response.ok) throw Error('GitHub inventory unavailable (' + response.status + ')');
-    const rows = await response.json();
-    if (!Array.isArray(rows)) throw Error('GitHub inventory format changed');
-    for (const row of rows) {
-      const result = publicRepoMetadata(row);
-      if (result && !entries.some(old => old.fullName.toLowerCase() === result.fullName.toLowerCase())) entries.push(result);
+    if (!response.ok) throw Error('GitHub repository inventory request failed (' + response.status + ')');
+    const data = await response.json();
+    const rows = installation ? data?.repositories : data;
+    if (!Array.isArray(rows)) throw Error('GitHub repository inventory response was invalid');
+    for (const repo of rows) {
+      const metadata = publicRepoMetadata(repo);
+      if (metadata) entries.push(metadata);
     }
-    if (rows.length < 100) return { entries, coverage: authenticated ? 'token-scoped' : 'public-only' };
+    if (rows.length < 100) return entries;
   }
-  throw Error('GitHub repository pagination limit reached; inventory is incomplete');
+  throw Error('GitHub repository pagination limit reached; inventory incomplete');
+}
+
+async function catalog(env, fetcher) {
+  // Reuse the existing Notes GitHub secret ONLY when no narrower, dedicated
+  // read-only inventory secret has been configured. Neither credential is
+  // returned to the browser or written to R2.
+  const dedicatedToken = String(env.REPOSITORY_PRIVACY_GITHUB_TOKEN || '');
+  const sharedToken = String(env.NOTES_GITHUB_ISSUES_TOKEN || '');
+  const token = dedicatedToken || sharedToken;
+  const credentialSource = dedicatedToken ? 'dedicated' : sharedToken ? 'existing-notes' : 'none';
+
+  const publicRepos = await listGithubRepositories(
+    fetcher,
+    page => 'https://api.github.com/users/' + OWNER + '/repos?type=owner&per_page=100&sort=updated&page=' + page
+  );
+  const byName = new Map(publicRepos.map(repo => [repo.fullName.toLowerCase(), repo]));
+  let credentialStatus = token ? 'access-unavailable' : 'not-configured';
+
+  if (token) {
+    let accessible = null;
+    try {
+      // Works with user-bound classic and fine-grained PATs.
+      accessible = await listGithubRepositories(
+        fetcher,
+        page => 'https://api.github.com/user/repos?affiliation=owner&per_page=100&sort=updated&page=' + page,
+        token
+      );
+    } catch {
+      try {
+        // GitHub App installation tokens use a different inventory endpoint.
+        accessible = await listGithubRepositories(
+          fetcher,
+          page => 'https://api.github.com/installation/repositories?per_page=100&page=' + page,
+          token,
+          true
+        );
+      } catch {
+        // Keep the public list visible. Do not infer private access from a
+        // configured credential or expose authentication error details.
+      }
+    }
+    if (accessible) {
+      for (const repo of accessible) byName.set(repo.fullName.toLowerCase(), repo);
+      credentialStatus = accessible.some(repo => repo.visibility === 'private')
+        ? 'private-visible'
+        : 'no-private-visible';
+    }
+  }
+
+  const entries = [...byName.values()];
+  const privateVisible = entries.filter(repo => repo.visibility === 'private').length;
+  return {
+    entries,
+    // A token can be valid yet restricted to some repositories. Never call
+    // its scope complete unless the owner independently verifies it.
+    coverage: privateVisible > 0 ? 'token-scoped' : 'public-only',
+    credentialSource,
+    credentialStatus,
+    privateVisible
+  };
 }
 async function readReviews(env) {
   const object = await env.APP_MONITOR_DATA.get(KEY);
@@ -113,9 +171,9 @@ async function readReviews(env) {
 export async function handleRepositoryPrivacyRoute(request, env, headers, _url, fetcher = fetch) {
   if (request.method === 'GET') {
     try {
-      const [{ entries, coverage }, reviews] = await Promise.all([catalog(env, fetcher), readReviews(env)]);
+      const [{ entries, coverage, credentialSource, credentialStatus, privateVisible }, reviews] = await Promise.all([catalog(env, fetcher), readReviews(env)]);
       const repositories = entries.map(repo => derivePrivacyState(repo, reviews[repo.fullName]));
-      return json({ ok: true, coverage, repositories, capturedAt: new Date().toISOString(), policy: REPOSITORY_PRIVACY_POLICY, reviewStorage: 'protected-r2' }, 200, headers);
+      return json({ ok: true, coverage, credentialSource, credentialStatus, privateVisible, repositories, capturedAt: new Date().toISOString(), policy: REPOSITORY_PRIVACY_POLICY, reviewStorage: 'protected-r2' }, 200, headers);
     } catch (error) {
       return json({ ok: false, error: String(error?.message || 'Inventory unavailable').slice(0, 130) }, 502, headers);
     }

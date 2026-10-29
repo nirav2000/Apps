@@ -8,7 +8,7 @@ import {
 
 const publicRepo = { name: 'Apps', owner: { login: 'nirav2000' }, visibility: 'public', private: false, has_pages: true, default_branch: 'main' };
 const privateRepo = { name: 'Biz', owner: { login: 'nirav2000' }, visibility: 'private', private: true, has_pages: false, default_branch: 'main' };
-function harness(withToken = false) {
+function harness(mode = 'none') {
   const store = new Map();
   const requests = [];
   const env = {
@@ -16,15 +16,32 @@ function harness(withToken = false) {
       get: async key => store.has(key) ? { text: async () => store.get(key) } : null,
       put: async (key, body) => { store.set(key, body); }
     },
-    ...(withToken ? { REPOSITORY_PRIVACY_GITHUB_TOKEN: 'test-backend-token' } : {})
+    ...(mode === 'dedicated' ? { REPOSITORY_PRIVACY_GITHUB_TOKEN: 'test-dedicated-token' } : {}),
+    ...(['notes', 'installation', 'restricted', 'invalid'].includes(mode)
+      ? { NOTES_GITHUB_ISSUES_TOKEN: 'test-existing-notes-token' } : {})
   };
   async function mockFetch(url, init) {
     requests.push({ url, headers: init.headers });
-    const token = Boolean(init.headers.Authorization);
-    if (url.includes('/user/repos') && !token) throw Error('Expected token');
-    if (url.includes('/users/nirav2000/repos') && token) throw Error('Public endpoint must not receive token');
-    const data = token ? [publicRepo, privateRepo] : [publicRepo];
-    return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    const authorised = Boolean(init.headers.Authorization);
+    let data, status = 200;
+    if (url.includes('/users/nirav2000/repos')) {
+      assert.equal(authorised, false, 'public inventory must not include an authorisation token');
+      data = [publicRepo];
+    } else if (url.includes('/user/repos')) {
+      assert.equal(authorised, true, 'private repository API requires a token');
+      if (mode === 'installation' || mode === 'invalid') {
+        data = { message: 'not supported' }; status = 401;
+      } else {
+        data = mode === 'restricted' ? [publicRepo] : [publicRepo, privateRepo];
+      }
+    } else if (url.includes('/installation/repositories')) {
+      assert.equal(authorised, true);
+      if (mode === 'installation') data = { repositories: [publicRepo, privateRepo], total_count: 2 };
+      else { data = { message: 'not supported' }; status = 403; }
+    } else {
+      throw Error('Unexpected GitHub inventory URL ' + url);
+    }
+    return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
   }
   const route = (request) => handleRepositoryPrivacyRoute(
     request, env, { 'Cache-Control': 'no-store' }, new URL(request.url), mockFetch
@@ -67,15 +84,50 @@ test('public-only mode is clearly incomplete and does not invent private reposit
   assert.equal(h.requests[0].headers.Authorization, undefined);
 });
 test('private repositories remain backend-only and the token never appears in JSON responses', async () => {
-  const h = harness(true);
+  const h = harness('dedicated');
   const response = await h.get();
   const content = await response.text();
   const data = JSON.parse(content);
   assert.equal(data.coverage, 'token-scoped');
   assert.equal(data.repositories.length, 2);
   assert.ok(data.repositories.some(r => r.fullName === 'nirav2000/Biz' && r.visibility === 'private'));
-  assert.equal(h.requests[0].headers.Authorization, 'Bearer test-backend-token');
-  assert.ok(!content.includes('test-backend-token'));
+  assert.equal(h.requests.find(r => r.url.includes('/user/repos')).headers.Authorization, 'Bearer test-dedicated-token');
+  assert.ok(!content.includes('test-dedicated-token'));
+});
+test('existing Notes GitHub secret is reused without copying or exposing its value', async () => {
+  const h = harness('notes');
+  const result = await (await h.get()).json();
+  assert.equal(result.coverage, 'token-scoped');
+  assert.equal(result.credentialSource, 'existing-notes');
+  assert.equal(result.credentialStatus, 'private-visible');
+  assert.equal(result.privateVisible, 1);
+  assert.equal(result.repositories.length, 2);
+  assert.equal(h.requests.find(r => r.url.includes('/user/repos')).headers.Authorization, 'Bearer test-existing-notes-token');
+  assert.ok(!JSON.stringify(result).includes('test-existing-notes-token'));
+});
+test('GitHub App installation token can enumerate accessible private repositories', async () => {
+  const h = harness('installation');
+  const result = await (await h.get()).json();
+  assert.equal(result.credentialSource, 'existing-notes');
+  assert.equal(result.credentialStatus, 'private-visible');
+  assert.equal(result.privateVisible, 1);
+  assert.ok(h.requests.some(r => r.url.includes('/installation/repositories')));
+});
+test('existing token restricted to public repositories never claims full private access', async () => {
+  const h = harness('restricted');
+  const result = await (await h.get()).json();
+  assert.equal(result.coverage, 'public-only');
+  assert.equal(result.credentialStatus, 'no-private-visible');
+  assert.equal(result.privateVisible, 0);
+  assert.deepEqual(result.repositories.map(r => r.name), ['Apps']);
+});
+test('invalid existing token preserves public metadata and explains unavailable access', async () => {
+  const h = harness('invalid');
+  const result = await (await h.get()).json();
+  assert.equal(result.coverage, 'public-only');
+  assert.equal(result.credentialStatus, 'access-unavailable');
+  assert.equal(result.credentialSource, 'existing-notes');
+  assert.deepEqual(result.repositories.map(r => r.name), ['Apps']);
 });
 test('review annotations persist in private R2 and reappear on the next load', async () => {
   const h = harness(true);
@@ -96,7 +148,7 @@ test('review annotations persist in private R2 and reappear on the next load', a
   assert.equal(repo.sharedLibraryDetails, 'apps-auth, validation, Version Labs');
   assert.equal(repo.migrationReadiness, 'blocked');
   assert.ok(repo.reviewedAt);
-  assert.ok(!JSON.stringify(data).includes('test-backend-token'));
+  assert.ok(!JSON.stringify(data).includes('test-dedicated-token'));
 });
 test('register API does not implement visibility changes or accept unknown repositories', async () => {
   const h = harness();

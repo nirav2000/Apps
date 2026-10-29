@@ -26,7 +26,7 @@ const find = (root, id) => root.querySelector('#' + id);
 
 export function mountRepositoryPrivacy(root) {
   if (!root) return;
-  let all = [], selected = '', pending = false, coverage = 'public-only';
+  let all = [], selected = '', pending = false, coverage = 'public-only', credentialSource = 'none', credentialStatus = 'not-configured', privateVisible = 0;
   root.innerHTML = `
     <div class="top">
       <div><h2>Repository privacy register</h2><p class="muted small">Private-by-default for new apps. Existing repository visibility is unchanged until you explicitly approve a migration. <a href="https://github.com/nirav2000/Apps/blob/main/docs/REPOSITORY_PRIVACY.md" target="_blank" rel="noopener noreferrer">Setup &amp; migration guide</a></p></div>
@@ -91,11 +91,18 @@ export function mountRepositoryPrivacy(root) {
     }).join('') || '<tr><td colspan="9" class="muted">No repositories match these filters.</td></tr>';
     for (const button of E.privacyRows.querySelectorAll('[data-privacy-review]')) button.addEventListener('click', () => openReview(button.dataset.privacyReview));
     E.privacyExport.disabled = !showing.length;
-    E.privacyFootnote.textContent = showing.length + ' matching repositories. ' +
-      (coverage === 'public-only'
-        ? 'Public-only inventory: configure a read-only GitHub token on the App Monitor Worker to include private repositories. Totals are incomplete.'
-        : 'Token-scoped inventory: confirm the GitHub token is authorised for all repositories, including new private ones.') +
-      ' Risk and audit values are review statuses, not automated security-scan results.';
+    const credentialLabel = credentialSource === 'existing-notes'
+      ? 'Existing Notes GitHub secret'
+      : credentialSource === 'dedicated' ? 'Dedicated privacy inventory token' : 'No configured inventory credential';
+    const coverageMessage = credentialStatus === 'private-visible'
+      ? privateVisible + ' private repositories visible. Token scope may be partial; verify it includes all your private repositories.'
+      : credentialStatus === 'no-private-visible'
+        ? 'Token accepted, but no private repositories were visible. Verify GitHub repository permissions.'
+        : credentialStatus === 'access-unavailable'
+          ? 'GitHub access could not be confirmed with this token. Public repositories remain visible; private coverage is unavailable.'
+          : 'Only public repositories are listed; no existing compatible token was found.';
+    E.privacyFootnote.textContent = showing.length + ' matching repositories. ' + credentialLabel + '. ' +
+      coverageMessage + ' Risk and audit values are review statuses, not automated security-scan results.';
   }
   function openReview(fullName) {
     const row = all.find(r => r.fullName === fullName);
@@ -158,8 +165,13 @@ export function mountRepositoryPrivacy(root) {
       if (!isUnlocked() || !token()) return;
       all = Array.isArray(body.repositories) ? body.repositories : [];
       coverage = body.coverage;
+      credentialSource = body.credentialSource || 'none';
+      credentialStatus = body.credentialStatus || 'not-configured';
+      privateVisible = Number(body.privateVisible) || 0;
       E.privacyStatus.textContent = 'Refreshed ' + new Date().toLocaleTimeString('en-GB') + ' · ' +
-        (coverage === 'public-only' ? 'Public GitHub data only — private repositories not yet included' : 'Private and public GitHub repositories within token scope');
+        (coverage === 'public-only' ? 'Public repositories only — private access not verified'
+          : privateVisible + ' private repositories visible via ' +
+            (credentialSource === 'existing-notes' ? 'the existing Notes GitHub secret' : 'the configured inventory credential'));
       render();
     } catch (error) {
       if (isUnlocked()) E.privacyStatus.textContent = error.message;
@@ -167,7 +179,7 @@ export function mountRepositoryPrivacy(root) {
     } finally { E.privacyRefresh.disabled = false; }
   }
   function clear() {
-    all = []; selected = ''; coverage = 'public-only';
+    all = []; selected = ''; coverage = 'public-only'; credentialSource = 'none'; credentialStatus = 'not-configured'; privateVisible = 0;
     E.privacyStatus.textContent = 'Sign in with your passkey to load the protected repository register.';
     E.privacySummary.replaceChildren(); E.privacyRows.replaceChildren();
     E.privacyDetail.hidden = true; E.privacyExport.disabled = true;
