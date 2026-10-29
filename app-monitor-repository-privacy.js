@@ -101,64 +101,137 @@ async function listGithubRepositories(fetcher, urlForPage, token = '', installat
   throw Error('GitHub repository pagination limit reached; inventory incomplete');
 }
 
-async function catalog(env, fetcher) {
-  // Reuse the existing Notes GitHub secret ONLY when no narrower, dedicated
-  // read-only inventory secret has been configured. Neither credential is
-  // returned to the browser or written to R2.
+// GitHub can rate-limit public API requests from shared Cloudflare IPs.
+// Prefer an available server-side token and cache *metadata*, never credentials.
+const INVENTORY_KEY = '_app-monitor/v2/security/repository-privacy/inventory-v1.json';
+const INVENTORY_TTL_MS = 10 * 60 * 1000;
+// Only historically public names from GitHub search, checked 2026-10-29.
+// This is a degraded-mode index, NOT proof of current visibility or Pages.
+const PUBLIC_BASELINE_NAMES = Object.freeze(["Claudetrials","monkeytype","bank-spark","deep-learning-with-python-notebooks","web_scraping_tutorial","Apps","bank-kafka","bulb-test","keyzen","tamagotchi","ML-GA","dawn-exuberant-aftermath","DX-Dashboard","azureml-sdk-fashion","Versioning-SubAgent","charm-mud-seahorse","TouchType","skills-github-pages","angular-course-demo-app-v2","angular-daterangepicker","NFER","MemoryMastery","techolympics","fifth-frosted-bookcase","Feesight","gdg-angular-course","simple-vimeo-downloader-extension","Py.touchTyping","TT38","Flashcard","food-delivery-app","Kk-syllabus","ripe-wealthy-chauffer","GDocsMarkdownPreview","skimmers","3dviewer","ML","Openday","todopyramid","ExportChatGPT","beyond100","snag","nirav2000.github.io","firebase-react-lesson-3","artifacts","hackathon_june_2018","google-api-php-client","tuitioning-fcl","screeching-stitch-swordfish","MentalMaths","Phonics","InClass","AIJavascript-meetup","Memory","House-preview","firebase-react-lesson-1","emoji-trainer","MentalAbacus","UI-template","Comprehension","Next","ancient-stingy-acai","skillshare-downloader","longing-statuesque-windscreen","firebase-react-lesson-2","GlobalAIBootcamp2019","SightReading","Notation","code.angularjs.org","gan_public","coursebook","BoatRace2026","Dol","tensorflow-js-instagram","halifax-share-dealing-sdk","G5","PerodicTable","japanese-learning-app","Grammar-Tree-Coach","bank-accumulo","angular.js","asyncio-example","Horn-fir-yellowhorn","s-fractions","JavaScript30","LearnLatin","ExamQuestions","MachineLearningOps","progress-bar","Deep-Learning-with-Keras","get_iplayer","amplified-rightful-middle","QuickMath","Extraordinary"]);
+function publicBaseline() {
+  return PUBLIC_BASELINE_NAMES.map(name => ({
+    fullName: OWNER + '/' + name, name, visibility: 'public',
+    visibilityVerified: false, hasPages: false, pagesVerified: false,
+    archived: false, fork: false, defaultBranch: '', updatedAt: '',
+    url: 'https://github.com/' + OWNER + '/' + name
+  }));
+}
+async function readInventoryCache(env) {
+  try {
+    const item = await env.APP_MONITOR_DATA.get(INVENTORY_KEY);
+    if (!item) return null;
+    const data = JSON.parse(await item.text());
+    if (data?.version !== 1 || !Number.isFinite(Date.parse(data.storedAt)) ||
+        !Array.isArray(data.entries) || data.entries.length > 3000) return null;
+    // The saved entry is our normalised metadata, not the original GitHub
+    // object; check its shape without trusting unvalidated R2 objects.
+    return data.entries.every(row => row && row.fullName === OWNER + '/' + row.name &&
+      ['private', 'public'].includes(row.visibility) && typeof row.hasPages === 'boolean')
+      ? { ...data, entries: data.entries } : null;
+  } catch { return null; }
+}
+async function saveInventoryCache(env, value) {
+  try {
+    await env.APP_MONITOR_DATA.put(INVENTORY_KEY, JSON.stringify({
+      version: 1, storedAt: value.inventoryCapturedAt,
+      credentialSource: value.credentialSource,
+      entries: value.entries,
+      credentialStatus: value.credentialStatus,
+      publicStatus: value.publicStatus
+    }), { httpMetadata: { contentType: 'application/json' } });
+  } catch {
+    // Inventory still functions when caching fails; reviews remain separate.
+  }
+}
+function inventorySummary(entries, credentialSource, credentialStatus, publicStatus, inventorySource, inventoryCapturedAt) {
+  const privateVisible = entries.filter(repo => repo.visibility === 'private').length;
+  return {
+    entries, credentialSource, credentialStatus, publicStatus, inventorySource,
+    inventoryCapturedAt, privateVisible,
+    // No token scope proves complete repository coverage.
+    coverage: privateVisible ? 'token-scoped' : 'public-only'
+  };
+}
+async function catalog(env, fetcher, forceRefresh = false) {
   const dedicatedToken = String(env.REPOSITORY_PRIVACY_GITHUB_TOKEN || '');
   const sharedToken = String(env.NOTES_GITHUB_ISSUES_TOKEN || '');
   const token = dedicatedToken || sharedToken;
   const credentialSource = dedicatedToken ? 'dedicated' : sharedToken ? 'existing-notes' : 'none';
+  const cached = await readInventoryCache(env);
+  const cacheAge = cached ? Date.now() - Date.parse(cached.storedAt) : Infinity;
+  if (!forceRefresh && cached && cacheAge >= 0 && cacheAge < INVENTORY_TTL_MS &&
+      cached.credentialSource === credentialSource) {
+    return inventorySummary(cached.entries, credentialSource, cached.credentialStatus,
+      cached.publicStatus, 'cache', cached.storedAt);
+  }
 
-  const publicRepos = await listGithubRepositories(
-    fetcher,
-    page => 'https://api.github.com/users/' + OWNER + '/repos?type=owner&per_page=100&sort=updated&page=' + page
-  );
-  const byName = new Map(publicRepos.map(repo => [repo.fullName.toLowerCase(), repo]));
+  let accessible = null;
   let credentialStatus = token ? 'access-unavailable' : 'not-configured';
-
   if (token) {
-    let accessible = null;
     try {
-      // Works with user-bound classic and fine-grained PATs.
-      accessible = await listGithubRepositories(
-        fetcher,
-        page => 'https://api.github.com/user/repos?affiliation=owner&per_page=100&sort=updated&page=' + page,
-        token
-      );
+      // Personal access tokens / authenticated user installations.
+      accessible = await listGithubRepositories(fetcher,
+        page => 'https://api.github.com/user/repos?affiliation=owner&per_page=100&sort=updated&page=' + page, token);
     } catch {
       try {
-        // GitHub App installation tokens use a different inventory endpoint.
-        accessible = await listGithubRepositories(
-          fetcher,
-          page => 'https://api.github.com/installation/repositories?per_page=100&page=' + page,
-          token,
-          true
-        );
+        // GitHub App installation tokens use a distinct inventory endpoint.
+        accessible = await listGithubRepositories(fetcher,
+          page => 'https://api.github.com/installation/repositories?per_page=100&page=' + page, token, true);
       } catch {
-        // Keep the public list visible. Do not infer private access from a
-        // configured credential or expose authentication error details.
+        // Continue with public listings or trusted cached metadata.
       }
     }
     if (accessible) {
-      for (const repo of accessible) byName.set(repo.fullName.toLowerCase(), repo);
       credentialStatus = accessible.some(repo => repo.visibility === 'private')
-        ? 'private-visible'
-        : 'no-private-visible';
+        ? 'private-visible' : 'no-private-visible';
     }
   }
 
+  let publicRepos = null;
+  const publicUrl = page => 'https://api.github.com/users/' + OWNER +
+    '/repos?type=owner&per_page=100&sort=updated&page=' + page;
+  if (token) {
+    try {
+      publicRepos = await listGithubRepositories(fetcher, publicUrl, token);
+    } catch {
+      // Some narrowly scoped tokens are not accepted by this endpoint.
+    }
+  }
+  if (!publicRepos) {
+    try { publicRepos = await listGithubRepositories(fetcher, publicUrl); }
+    catch { /* degraded GitHub public API; try accessible/cached data */ }
+  }
+
+  if (!accessible && !publicRepos) {
+    if (!cached) {
+      // Fail with a clearly unverified historic public snapshot rather than
+      // an unhelpful 502 or a misleading zero-repositories response.
+      return inventorySummary(publicBaseline(), credentialSource, credentialStatus,
+        'baseline-unverified', 'baseline', new Date().toISOString());
+    }
+    // Cached private names are never served when there is no credential.
+    const entries = token ? cached.entries : cached.entries.filter(repo => repo.visibility === 'public');
+    return inventorySummary(entries, credentialSource, credentialStatus, 'cached',
+      'stale-cache', cached.storedAt);
+  }
+
+  const cachedPublic = (!publicRepos && cached)
+    ? cached.entries.filter(repo => repo.visibility === 'public') : [];
+  const historicalPublic = !publicRepos && !cachedPublic.length ? publicBaseline() : [];
+  const byName = new Map(
+    [...historicalPublic, ...cachedPublic, ...(publicRepos || []), ...(accessible || [])]
+      .map(repo => [repo.fullName.toLowerCase(), repo])
+  );
+  const publicStatus = publicRepos ? 'verified'
+    : cachedPublic.length ? 'cached' : 'baseline-unverified';
   const entries = [...byName.values()];
-  const privateVisible = entries.filter(repo => repo.visibility === 'private').length;
-  return {
-    entries,
-    // A token can be valid yet restricted to some repositories. Never call
-    // its scope complete unless the owner independently verifies it.
-    coverage: privateVisible > 0 ? 'token-scoped' : 'public-only',
-    credentialSource,
-    credentialStatus,
-    privateVisible
-  };
+  const now = new Date().toISOString();
+  const result = inventorySummary(entries, credentialSource, credentialStatus,
+    publicStatus, publicRepos ? 'live' : 'partial-cache', now);
+  // A transient public API failure must not overwrite a previously complete
+  // cached inventory with an incomplete subset.
+  if (publicRepos) await saveInventoryCache(env, result);
+  return result;
 }
 async function readReviews(env) {
   const object = await env.APP_MONITOR_DATA.get(KEY);
@@ -171,11 +244,12 @@ async function readReviews(env) {
 export async function handleRepositoryPrivacyRoute(request, env, headers, _url, fetcher = fetch) {
   if (request.method === 'GET') {
     try {
-      const [{ entries, coverage, credentialSource, credentialStatus, privateVisible }, reviews] = await Promise.all([catalog(env, fetcher), readReviews(env)]);
+      const [{ entries, coverage, credentialSource, credentialStatus, privateVisible, publicStatus, inventorySource, inventoryCapturedAt }, reviews] =
+        await Promise.all([catalog(env, fetcher, _url.searchParams.get('refresh') === '1'), readReviews(env)]);
       const repositories = entries.map(repo => derivePrivacyState(repo, reviews[repo.fullName]));
-      return json({ ok: true, coverage, credentialSource, credentialStatus, privateVisible, repositories, capturedAt: new Date().toISOString(), policy: REPOSITORY_PRIVACY_POLICY, reviewStorage: 'protected-r2' }, 200, headers);
+      return json({ ok: true, coverage, credentialSource, credentialStatus, privateVisible, publicStatus, inventorySource, inventoryCapturedAt, repositories, capturedAt: new Date().toISOString(), policy: REPOSITORY_PRIVACY_POLICY, reviewStorage: 'protected-r2' }, 200, headers);
     } catch (error) {
-      return json({ ok: false, error: String(error?.message || 'Inventory unavailable').slice(0, 130) }, 502, headers);
+      return json({ ok: false, error: 'GitHub repository inventory is unavailable and has no usable cache. Please retry.', retryable: true }, 503, headers);
     }
   }
   if (request.method === 'POST') {

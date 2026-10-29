@@ -17,7 +17,7 @@ function harness(mode = 'none') {
       put: async (key, body) => { store.set(key, body); }
     },
     ...(mode === 'dedicated' ? { REPOSITORY_PRIVACY_GITHUB_TOKEN: 'test-dedicated-token' } : {}),
-    ...(['notes', 'installation', 'restricted', 'invalid'].includes(mode)
+    ...(['notes', 'installation', 'restricted', 'invalid', 'public-rate-limited', 'all-rate-limited'].includes(mode)
       ? { NOTES_GITHUB_ISSUES_TOKEN: 'test-existing-notes-token' } : {})
   };
   async function mockFetch(url, init) {
@@ -25,11 +25,12 @@ function harness(mode = 'none') {
     const authorised = Boolean(init.headers.Authorization);
     let data, status = 200;
     if (url.includes('/users/nirav2000/repos')) {
-      assert.equal(authorised, false, 'public inventory must not include an authorisation token');
-      data = [publicRepo];
+      if (mode === 'public-rate-limited' || mode === 'all-rate-limited') {
+        data = { message: 'GitHub API rate limit exceeded' }; status = 403;
+      } else data = [publicRepo];
     } else if (url.includes('/user/repos')) {
       assert.equal(authorised, true, 'private repository API requires a token');
-      if (mode === 'installation' || mode === 'invalid') {
+      if (mode === 'installation' || mode === 'invalid' || mode === 'all-rate-limited') {
         data = { message: 'not supported' }; status = 401;
       } else {
         data = mode === 'restricted' ? [publicRepo] : [publicRepo, privateRepo];
@@ -46,7 +47,7 @@ function harness(mode = 'none') {
   const route = (request) => handleRepositoryPrivacyRoute(
     request, env, { 'Cache-Control': 'no-store' }, new URL(request.url), mockFetch
   );
-  const get = () => route(new Request('https://example.com/app-monitor/repository-privacy'));
+  const get = (refresh = false) => route(new Request('https://example.com/app-monitor/repository-privacy' + (refresh ? '?refresh=1' : '')));
   const post = (body) => route(new Request('https://example.com/app-monitor/repository-privacy', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
   }));
@@ -129,6 +130,60 @@ test('invalid existing token preserves public metadata and explains unavailable 
   assert.equal(result.credentialSource, 'existing-notes');
   assert.deepEqual(result.repositories.map(r => r.name), ['Apps']);
 });
+test('rate-limited public GitHub API does not return 502 when authenticated inventory works', async () => {
+  const h = harness('public-rate-limited');
+  const result = await h.get();
+  assert.equal(result.status, 200);
+  const body = await result.json();
+  assert.equal(body.inventorySource, 'partial-cache');
+  assert.equal(body.publicStatus, 'baseline-unverified');
+  assert.equal(body.privateVisible, 1);
+  assert.ok(body.repositories.some(r => r.fullName === 'nirav2000/Biz'));
+  assert.ok(body.repositories.length >= 94, 'last known public baseline is available');
+  assert.equal(h.requests[0].url.includes('/user/repos'), true, 'token inventory must be tried before public endpoints');
+});
+test('successful inventory is privately cached and avoids repeated GitHub API queries', async () => {
+  const h = harness('notes');
+  const first = await (await h.get()).json();
+  const queries = h.requests.length;
+  const second = await (await h.get()).json();
+  assert.equal(second.inventorySource, 'cache');
+  assert.deepEqual(first.repositories.map(r => r.fullName), second.repositories.map(r => r.fullName));
+  assert.equal(h.requests.length, queries);
+  assert.ok([...h.store.keys()].some(k => k.includes('inventory-v1.json')));
+  await h.get(true);
+  assert.ok(h.requests.length > queries, 'explicit refresh bypasses TTL');
+});
+test('outage returns saved inventory, never a 502, and marks it stale', async () => {
+  const h = harness('all-rate-limited');
+  h.store.set('_app-monitor/v2/security/repository-privacy/inventory-v1.json', JSON.stringify({
+    version: 1, storedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    credentialSource: 'existing-notes', credentialStatus: 'private-visible', publicStatus: 'verified',
+    entries: [
+      { fullName: 'nirav2000/Apps', name: 'Apps', visibility: 'public', hasPages: true },
+      { fullName: 'nirav2000/Biz', name: 'Biz', visibility: 'private', hasPages: false }
+    ]
+  }));
+  const response = await h.get();
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.inventorySource, 'stale-cache');
+  assert.equal(result.publicStatus, 'cached');
+  assert.equal(result.repositories.length, 2);
+});
+test('total GitHub outage without cache yields a labelled historical public fallback, not 502', async () => {
+  const h = harness('all-rate-limited');
+  const response = await h.get();
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.publicStatus, 'baseline-unverified');
+  assert.equal(result.inventorySource, 'baseline');
+  assert.equal(result.coverage, 'public-only');
+  assert.ok(result.repositories.length >= 90, 'preserve historical known-public listing');
+  assert.equal(result.repositories.some(r => r.visibility === 'private'), false);
+  assert.ok(result.repositories.every(r => r.pagesVerified === false && r.visibilityVerified === false));
+  assert.ok(!JSON.stringify(result).includes('test-existing-notes-token'));
+});
 test('review annotations persist in private R2 and reappear on the next load', async () => {
   const h = harness(true);
   const edit = await h.post({
@@ -141,7 +196,7 @@ test('review annotations persist in private R2 and reappear on the next load', a
     }
   });
   assert.equal(edit.status, 200);
-  assert.equal(h.store.size, 1);
+  assert.ok([...h.store.keys()].some(k => k.includes('register-v1.json')), 'private review stored in R2');
   const data = await (await h.get()).json();
   const repo = data.repositories.find(r => r.name === 'Apps');
   assert.equal(repo.pagesDependencies, 'Public Pages route and shared tracker');

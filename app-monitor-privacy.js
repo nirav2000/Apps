@@ -26,7 +26,7 @@ const find = (root, id) => root.querySelector('#' + id);
 
 export function mountRepositoryPrivacy(root) {
   if (!root) return;
-  let all = [], selected = '', pending = false, coverage = 'public-only', credentialSource = 'none', credentialStatus = 'not-configured', privateVisible = 0;
+  let all = [], selected = '', pending = false, coverage = 'public-only', credentialSource = 'none', credentialStatus = 'not-configured', privateVisible = 0, inventorySource = 'unavailable', inventoryCapturedAt = '', publicStatus = 'unavailable';
   root.innerHTML = `
     <div class="top">
       <div><h2>Repository privacy register</h2><p class="muted small">Private-by-default for new apps. Existing repository visibility is unchanged until you explicitly approve a migration. <a href="https://github.com/nirav2000/Apps/blob/main/docs/REPOSITORY_PRIVACY.md" target="_blank" rel="noopener noreferrer">Setup &amp; migration guide</a></p></div>
@@ -80,9 +80,9 @@ export function mountRepositoryPrivacy(root) {
     E.privacyRows.innerHTML = showing.map(row => {
       const risk = row.exposureRisk === 'critical' || row.exposureRisk === 'high' ? ' privacy-risk-high' : '';
       return '<tr><td><a href="' + htmlEscape(row.url) + '" target="_blank" rel="noopener noreferrer">' + htmlEscape(row.name) + '</a>' + (row.archived ? '<div class="muted">Archived</div>' : '') + '</td>' +
-        '<td>' + htmlEscape(display(row.visibility)) + '</td>' +
+        '<td>' + (row.visibilityVerified === false ? 'Historically public · not verified' : htmlEscape(display(row.visibility))) + '</td>' +
         '<td class="' + risk.trim() + '">' + htmlEscape(formatStatus(row.exposureRisk, fields.exposureRisk)) + '</td>' +
-        '<td>' + (row.hasPages ? 'Enabled' : 'Not detected') + '<div class="muted">' + htmlEscape(formatStatus(row.pagesPlan, fields.pagesPlan)) + '</div></td>' +
+        '<td>' + (row.pagesVerified === false ? 'Not verified' : row.hasPages ? 'Enabled' : 'Not detected') + '<div class="muted">' + htmlEscape(formatStatus(row.pagesPlan, fields.pagesPlan)) + '</div></td>' +
         '<td>' + htmlEscape(formatStatus(row.sharedLibraries, fields.sharedLibraries)) + '</td>' +
         '<td>' + htmlEscape(formatStatus(row.secretsAudit, fields.secretsAudit)) + '</td>' +
         '<td>' + htmlEscape(formatStatus(row.migrationReadiness, fields.migrationReadiness)) + '</td>' +
@@ -102,7 +102,9 @@ export function mountRepositoryPrivacy(root) {
           ? 'GitHub access could not be confirmed with this token. Public repositories remain visible; private coverage is unavailable.'
           : 'Only public repositories are listed; no existing compatible token was found.';
     E.privacyFootnote.textContent = showing.length + ' matching repositories. ' + credentialLabel + '. ' +
-      coverageMessage + ' Risk and audit values are review statuses, not automated security-scan results.';
+      coverageMessage + (inventorySource === 'stale-cache' ? ' Showing last saved inventory because GitHub is temporarily unavailable.' : inventorySource === 'cache' ? ' Inventory served from the protected cache.' : inventorySource === 'baseline' ? ' Live GitHub requests failed; showing the last-known public list from 29 Oct 2026 (not verified).' : inventorySource === 'partial-cache' ? ' Public metadata was unavailable; some entries may be historical.' : '') +
+      (publicStatus !== 'verified' ? ' Public GitHub coverage is not currently verified.' : '') +
+      ' Risk and audit values are review statuses, not automated security-scan results.';
   }
   function openReview(fullName) {
     const row = all.find(r => r.fullName === fullName);
@@ -150,12 +152,12 @@ export function mountRepositoryPrivacy(root) {
       button.disabled = false;
     } finally { pending = false; }
   }
-  async function refresh() {
+  async function refresh(force = false) {
     if (!isUnlocked() || !token()) return;
     E.privacyRefresh.disabled = true;
     E.privacyStatus.textContent = 'Loading authenticated GitHub repository inventory…';
     try {
-      const response = await fetch(API, { headers: { 'X-App-Monitor-Session': token() }, cache: 'no-store' });
+      const response = await fetch(API + (force ? '?refresh=1' : ''), { headers: { 'X-App-Monitor-Session': token() }, cache: 'no-store' });
       if (!response.ok) {
         if (response.status === 401) throw Error('App Monitor administrator session expired. Sign in again.');
         if (response.status === 403) throw Error('A passkey sign-in is required to view the privacy register.');
@@ -168,7 +170,10 @@ export function mountRepositoryPrivacy(root) {
       credentialSource = body.credentialSource || 'none';
       credentialStatus = body.credentialStatus || 'not-configured';
       privateVisible = Number(body.privateVisible) || 0;
-      E.privacyStatus.textContent = 'Refreshed ' + new Date().toLocaleTimeString('en-GB') + ' · ' +
+      inventorySource = body.inventorySource || 'unavailable';
+      inventoryCapturedAt = body.inventoryCapturedAt || '';
+      publicStatus = body.publicStatus || 'unavailable';
+      E.privacyStatus.textContent = (inventorySource === 'stale-cache' ? 'GitHub unavailable · saved inventory from ' + (inventoryCapturedAt ? new Date(inventoryCapturedAt).toLocaleString('en-GB') : 'earlier') : inventorySource === 'baseline' ? 'Live GitHub unavailable · historical public list (29 Oct 2026)' : 'Checked ' + new Date().toLocaleTimeString('en-GB')) + ' · ' +
         (coverage === 'public-only' ? 'Public repositories only — private access not verified'
           : privateVisible + ' private repositories visible via ' +
             (credentialSource === 'existing-notes' ? 'the existing Notes GitHub secret' : 'the configured inventory credential'));
@@ -179,12 +184,12 @@ export function mountRepositoryPrivacy(root) {
     } finally { E.privacyRefresh.disabled = false; }
   }
   function clear() {
-    all = []; selected = ''; coverage = 'public-only'; credentialSource = 'none'; credentialStatus = 'not-configured'; privateVisible = 0;
+    all = []; selected = ''; coverage = 'public-only'; credentialSource = 'none'; credentialStatus = 'not-configured'; privateVisible = 0; inventorySource = 'unavailable'; inventoryCapturedAt = ''; publicStatus = 'unavailable';
     E.privacyStatus.textContent = 'Sign in with your passkey to load the protected repository register.';
     E.privacySummary.replaceChildren(); E.privacyRows.replaceChildren();
     E.privacyDetail.hidden = true; E.privacyExport.disabled = true;
   }
-  E.privacyRefresh.onclick = refresh;
+  E.privacyRefresh.onclick = () => refresh(true);
   for (const element of [E.privacySearch, E.privacyVisibility, E.privacyRisk, E.privacyPages, E.privacyAudit, E.privacyReadiness]) element.addEventListener('input', render);
   E.privacyExport.onclick = () => {
     if (!all.length || !isUnlocked()) return;
