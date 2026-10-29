@@ -109,9 +109,13 @@ test('register API does not implement visibility changes or accept unknown repos
 });
 test('Worker authenticates before invoking the repository-privacy handler', () => {
   const worker = readFileSync('app-monitor-worker.js', 'utf8');
-  const start = worker.indexOf("if(url.pathname==='/app-monitor/repository-privacy')");
+  const bridgeStart = worker.indexOf('async function sharedNotificationBridge(');
+  const mainStart = worker.indexOf('async function appMonitorRoute(');
+  assert.ok(bridgeStart > 0 && mainStart > bridgeStart, 'main router exists after notifications bridge');
+  assert.ok(!worker.slice(bridgeStart, mainStart).includes("url.pathname==='/app-monitor/repository-privacy'"), 'privacy route must never run in the notifications bridge');
+  const start = worker.indexOf("if(url.pathname==='/app-monitor/repository-privacy')", mainStart);
   const end = worker.indexOf('  }', start);
-  assert.ok(start > 0);
+  assert.ok(start > mainStart, 'privacy route belongs to main App Monitor router');
   const route = worker.slice(start, end);
   assert.match(route, /appMonitorSession\(request,env\)/);
   assert.match(route, /status:401/);
