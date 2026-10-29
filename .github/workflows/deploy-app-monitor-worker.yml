@@ -6,6 +6,8 @@ on:
     branches: ["main"]
     paths:
       - "app-monitor-worker.js"
+      - "app-monitor-repository-privacy.js"
+      - "app-monitor-repository-privacy.test.mjs"
       - "notes/v1/server.js"
       - "notes/v1/cloud.test.mjs"
       - "app-monitor-owner-data.js"
@@ -36,6 +38,9 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Test Owner Console data layer
         run: |
+          node --experimental-default-type=module --check app-monitor-repository-privacy.js
+          node --experimental-default-type=module --check app-monitor-privacy.js
+          node --experimental-default-type=module --test app-monitor-repository-privacy.test.mjs
           node --check app-monitor-owner-data.js
           node --check app-monitor-owner-routes.js
           node --check app-monitor-owner-ui.js
@@ -78,3 +83,6 @@ jobs:
           echo
           notes_code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/notes?appId=app-monitor')
           test "$notes_code" = "401"
+          echo
+          privacy_code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/repository-privacy')
+          test "$privacy_code" = "401"

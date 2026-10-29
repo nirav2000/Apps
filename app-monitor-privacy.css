@@ -1,0 +1,27 @@
+/* Repository privacy register — operates only within the authenticated App Monitor view. */
+#repositoryPrivacy{scroll-margin-top:16px}
+#repositoryPrivacy h2{margin:0 0 4px}
+#repositoryPrivacy .privacy-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:14px 0}
+#repositoryPrivacy .privacy-metric{background:#f6f9fc;border:1px solid #e1e9ee;border-radius:13px;padding:12px 14px;min-height:78px}
+#repositoryPrivacy .privacy-metric strong{display:block;font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums}
+#repositoryPrivacy .privacy-metric span{display:block;font-size:12px;color:#59697a;margin-top:5px}
+#repositoryPrivacy .privacy-filters{display:flex;gap:9px;align-items:end;flex-wrap:wrap;margin:14px 0}
+#repositoryPrivacy label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:650;color:#536578}
+#repositoryPrivacy .privacy-filters label:first-child{flex:1;min-width:170px}
+#repositoryPrivacy .privacy-filters input{width:100%;min-width:0}
+#repositoryPrivacy .privacy-table{min-width:1090px}
+#repositoryPrivacy .privacy-table td{font-size:12px;line-height:1.45}
+#repositoryPrivacy .privacy-table td a{color:#0b61b2;font-weight:700;text-decoration:none}
+#repositoryPrivacy .privacy-table td a:hover{text-decoration:underline}
+#repositoryPrivacy .privacy-table td.privacy-risk-high{font-weight:750;color:#a42627}
+#repositoryPrivacy .privacy-table td button{white-space:nowrap}
+#repositoryPrivacy .privacy-table tr:hover td{background:#f8fafc}
+#repositoryPrivacy .privacy-detail{margin-top:18px;padding:18px;border:1px solid #cdd9e3;background:#f8fafc;border-radius:15px}
+#repositoryPrivacy .privacy-detail h3{margin:0;font-size:19px}
+#repositoryPrivacy .privacy-detail .top p{margin:4px 0 10px}
+#repositoryPrivacy .privacy-editor{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}
+#repositoryPrivacy .privacy-editor select,#repositoryPrivacy .privacy-editor textarea{width:100%;background:white;border:1px solid #c5d2dd;border-radius:9px;color:#182b3c;padding:9px 10px;font:inherit;font-weight:400}
+#repositoryPrivacy .privacy-editor textarea{resize:vertical;line-height:1.5}
+#repositoryPrivacy .privacy-editor-wide{grid-column:1/-1}
+#repositoryPrivacy button:focus-visible,#repositoryPrivacy input:focus-visible,#repositoryPrivacy select:focus-visible,#repositoryPrivacy textarea:focus-visible{outline:3px solid #90bbde;outline-offset:2px}
+@media(max-width:680px){#repositoryPrivacy .privacy-filters label{flex:1 1 140px}#repositoryPrivacy .privacy-detail{padding:12px}#repositoryPrivacy .privacy-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}

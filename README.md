@@ -14,6 +14,12 @@ A no-framework HTML/CSS/JS dashboard that aggregates GitHub Pages apps into one 
 - Direct links to each deployed app and source repository.
 - Fallback mode for other usernames/orgs using live GitHub API discovery.
 
+## Repository privacy (private-by-default)
+
+App Monitor includes a passkey-protected [Repository Privacy Register](app-monitor.html#repositoryPrivacy) with live GitHub visibility, Pages flags, exposure reviews, shared-library dependencies, secrets-audit states and migration readiness. New apps should be created **private from the first commit**; existing repositories are **not automatically made private**. Internal records are stored behind the App Monitor Worker, not in the public static website. The register's current coverage and the additional read-only GitHub credential required for private repositories are documented in [Repository Privacy](docs/REPOSITORY_PRIVACY.md).
+
+A fail-closed [private-to-public Pages workflow template](docs/templates/private-app-publish.yml) documents how validated builds can publish only approved public assets without revealing the private development repository.
+
 ## Architecture and monitoring review
 
 See [APP_REVIEW.md](APP_REVIEW.md) for the living register covering app persistence, Firebase projects/databases, authentication, Firebase usage instrumentation, App Monitor identity/device linkage, and the implementation backlog.

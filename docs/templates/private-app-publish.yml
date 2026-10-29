@@ -1,0 +1,73 @@
+# TEMPLATE — copy into a NEW PRIVATE APP at .github/workflows/publish.yml.
+# Do NOT activate until the build and browser tests are implemented, the app's
+# Pages path is reserved, and PAGES_PUBLISH_TOKEN is configured.
+name: Private source to validated public Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: private-app-publish
+  cancel-in-progress: false
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate and build
+        run: |
+          # FAIL-CLOSED. Replace this with actual unit, shared-validation and
+          # browser tests and a clean dist/ build for the particular app.
+          echo 'Configure and verify application tests before publishing.' >&2
+          exit 1
+      - name: Store approved build
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-site
+          path: dist/
+          if-no-files-found: error
+  publish:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: approved-site
+          path: approved-site
+      - name: Reject unintended source
+        run: |
+          test -f approved-site/index.html
+          if find approved-site -type f | grep -E '(^|/)(\.env|\.git|private|secrets?|tests?)(/|\.|$)|\.map$'; then
+            echo 'Unexpected private or debug files in public build' >&2
+            exit 1
+          fi
+      - name: Check out public publishing repo
+        uses: actions/checkout@v4
+        with:
+          repository: nirav2000/nirav2000.github.io
+          token: ${{ secrets.PAGES_PUBLISH_TOKEN }}
+          path: public-site
+      - name: Publish validated assets under one app path
+        working-directory: public-site
+        env:
+          APP_PATH: MY_NEW_APP
+        run: |
+          test "$APP_PATH" != MY_NEW_APP
+          test "$APP_PATH" != Apps
+          test "$APP_PATH" != .
+          test "$APP_PATH" != ..
+          mkdir -p "$APP_PATH"
+          rsync -a --delete ../approved-site/ "$APP_PATH"/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$APP_PATH"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "deploy: validated $APP_PATH from ${GITHUB_SHA}"
+          git push origin HEAD:main
