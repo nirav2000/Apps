@@ -9,6 +9,8 @@ on:
       - "app-monitor-repository-privacy.js"
       - "app-monitor-repository-privacy.test.mjs"
       - "notes/v1/server.js"
+      - "notes/v1/inclass-family-bridge.js"
+      - "notes/v1/inclass-family-bridge.test.mjs"
       - "notes/v1/cloud.test.mjs"
       - "notes/v1/text-edits.test.mjs"
       - "notes/v1/index.js"
@@ -48,6 +50,8 @@ jobs:
           node --check app-monitor-owner-routes.js
           node --check app-monitor-owner-ui.js
           node --check notes/v1/server.js
+          node --check notes/v1/inclass-family-bridge.js
+          node --experimental-default-type=module --test notes/v1/inclass-family-bridge.test.mjs
           node --check notes/v1/cloud.js
           node --check notes/v1/index.js
           node --check notes/v1/ui.js
