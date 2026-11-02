@@ -32,6 +32,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: deploy-app-monitor-worker
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -63,7 +67,7 @@ jobs:
       - name: Real Chrome editor interaction tests
         run: |
           node --experimental-default-type=module --check notes/v1/identity-picker.js
-          node --experimental-default-type=module --test notes/v1/browser-smoke.test.mjs
+          timeout 90s node --experimental-default-type=module --test notes/v1/browser-smoke.test.mjs
       - name: Check repository-local Cloudflare credentials
         id: creds
         env:
