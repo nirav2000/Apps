@@ -78,7 +78,27 @@ node Apps/pwa/v1/onboard.mjs --app-root Example --config pwa.config.json --check
 
 Run from a checkout where `Apps/` and `Example/` are sibling directories (or pass absolute paths). The generator must **never overwrite an existing non-shared service worker**. It refuses to edit and asks for a manual composition audit instead; this preserves existing push handlers. For shared workers, it retains the existing precache contents and adds missing icons, bumping the cache name when necessary.
 
-For automated deployment, consumer repositories can run the shared generator using GitHub Actions. Pin the raster package version; use least-privilege `contents: write` only for workflows that commit generated assets. Generated PNGs are committed to the consumer repo so that installation does not require a runtime image generation service.
+For automated deployment, **do not copy and maintain the generator commands in every app.** Use the centrally maintained reusable workflow at `nirav2000/Apps/.github/workflows/reusable-pwa-assets.yml@main`. A consuming repo only needs this small workflow:
+
+```yaml
+name: Build PWA assets
+on:
+  push:
+    branches: [main]
+    paths: [pwa.config.json, index.html, icon.svg, sw.js, manifest.webmanifest]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-pwa:
+    uses: nirav2000/Apps/.github/workflows/reusable-pwa-assets.yml@main
+    with:
+      app-config: pwa.config.json
+      verification: |
+        node tests/pwa-assets.test.mjs
+```
+
+InClass is the first consumer of this reusable workflow. The shared action pins the raster package version, validates every generated icon and manifest, optionally runs the app's own tests, and commits **only** the app's PWA source/assets and metadata to the consuming repository's main branch without force-pushing. GitHub requires `contents: write` for the commit. Generated PNGs are committed to the consumer repo, so installation does not need an image generation service at runtime.
 
 **App-specific design approval:** The generator defaults to the concept in `pwa.config.json`. Changing the concept is a deliberate version-controlled change. InClass initially uses `insight-book`; preview alternatives in the icon design lab before changing it.
 
