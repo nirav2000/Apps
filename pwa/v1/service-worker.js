@@ -34,13 +34,19 @@ self.addEventListener('fetch',event=>{
   if(req.method!=='GET')return;
   const url=new URL(req.url);
   if(url.origin!==self.location.origin)return;
+  // Portfolio audits must see network truth rather than a cached manifest/icon.
+  // A failed network request is deliberately reported as unavailable.
+  if(req.headers.get('X-Apps-PWA-Audit')==='1'){
+    event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>Response.error()));
+    return;
+  }
   // Version Labs must never display a stale release index from an installed
   // App Monitor PWA. This applies to the standalone Version Lab UI and
   // /Dol/, /InClass/, etc. release manifest requests made by that UI.
   // Leave all unrelated apps on their configured caching strategy.
   const freshVersionLab=url.pathname.startsWith('/Apps/version-lab/')||
     url.pathname.includes('/version-lab-data/');
-  const forceNetwork=req.mode==='navigate'||freshVersionLab||
+  const forceNetwork=req.mode==='navigate'||req.cache==='no-store'||freshVersionLab||
     matches(url.pathname,NETWORK_FIRST)||DEFAULT_STRATEGY==='network-first';
   event.respondWith(forceNetwork?networkFirst(req):cacheFirst(req));
 });
