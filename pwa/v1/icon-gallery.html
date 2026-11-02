@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PWA Icon Lab · Apps</title><meta name="theme-color" content="#102a43">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;color:#173148;background:#f3f7fa}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:1100px;margin:auto;padding:clamp(16px,4vw,38px)}
+a{color:#12657a}h1{margin-bottom:.3em}.muted{color:#5e7182}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:25px 0}
+.card{display:grid;text-align:left;gap:10px;background:#fff;border:2px solid #dbe5eb;border-radius:18px;padding:16px;cursor:pointer;color:inherit;font:inherit}
+.card[aria-pressed="true"]{border-color:#147c86;box-shadow:0 0 0 3px #147c861b}
+.card img{display:block;width:130px;height:130px;box-shadow:0 14px 20px #102a4325;border-radius:26px;justify-self:center}
+.card strong{font-size:17px}.card small{font-size:14px;color:#596e7e;line-height:1.4}
+.panel{background:white;border:1px solid #dbe5eb;border-radius:18px;padding:20px}
+pre{white-space:pre-wrap;word-break:break-all;background:#eef4f6;padding:14px;border-radius:12px}
+button.primary{border:0;border-radius:10px;padding:12px 18px;background:#102a43;color:white;font:inherit;font-weight:650;cursor:pointer}
+.selected{font-weight:700;color:#146b77}.foot{margin-top:24px;font-size:14px}
+</style></head><body><main class="wrap">
+<p><a href="./lab.html">PWA Lab</a> · <a href="./portfolio.html">Portfolio readiness</a></p>
+<h1>App icon design lab</h1><p class="muted">Six editable vector concepts. Choose one, then use the shared PWA onboarding command to generate iPhone, iPad, desktop and Android assets automatically. Selection here is a preview; it does not silently alter a production app.</p>
+<div id="gallery" class="grid" aria-label="App icon concepts"></div>
+<section class="panel"><h2>Selected concept: <span id="selectedName">Insight book</span></h2>
+<p id="description"></p><p><strong>Onboarding command</strong></p>
+<pre id="command"></pre><button class="primary" id="copy" type="button">Copy command</button>
+<p class="muted foot">For InClass, the project config lives in <code>pwa.config.json</code>. Regenerate and commit the resulting assets only after reviewing the icon design. The SVG master remains editable.</p></section>
+</main><script type="module">
+import{ICON_CONCEPTS,iconSvg}from'./icon-factory.mjs';
+let selected='insight-book';
+const gallery=document.getElementById('gallery');
+const prefix='node Apps/pwa/v1/onboard.mjs --app-root InClass --config pwa.config.json --concept ';
+function render(){
+ gallery.replaceChildren(...ICON_CONCEPTS.map(c=>{
+  const button=document.createElement('button');button.type='button';button.className='card';button.setAttribute('aria-pressed',String(selected===c.id));
+  const img=document.createElement('img');img.alt=c.label+' icon preview';img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(iconSvg({concept:c.id,background:'#102a43',accent:'#1a6674'}));
+  const title=document.createElement('strong');title.textContent=c.label;
+  const desc=document.createElement('small');desc.textContent=c.description;
+  button.append(img,title,desc);button.onclick=()=>{selected=c.id;render();};return button;
+ }));
+ const choice=ICON_CONCEPTS.find(c=>c.id===selected);
+ document.getElementById('selectedName').textContent=choice.label;
+ document.getElementById('description').textContent=choice.description;
+ document.getElementById('command').textContent=prefix+selected+' --apply';
+}
+document.getElementById('copy').onclick=async()=>{
+ const command=document.getElementById('command').textContent;
+ try{await navigator.clipboard.writeText(command);document.getElementById('copy').textContent='Copied';}
+ catch{document.getElementById('copy').textContent='Select the command above to copy';}
+};
+render();
+</script></body></html>
