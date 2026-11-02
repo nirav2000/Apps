@@ -156,6 +156,16 @@ async function appMonitorRoute(request,env,headers,url){
   if(/^\/app-monitor\/notes(?:\/sync|\/statuses)?$/.test(url.pathname)){
     const session=await appMonitorSession(request,env);
     if(!session.ok)return new Response('Unauthorized',{status:401,headers});
+    // InClass development tasks require a verified administrator passkey,
+    // including when the request originates from a different client.
+    if(url.searchParams.get('appId')==='inclass'&&session.record.method!=='passkey')
+      return new Response('Administrator passkey required',{status:403,headers});
+    if(request.method==='POST'){
+      const body=await request.clone().json().catch(()=>null);
+      const target=body?.appId||body?.note?.appId;
+      if(target==='inclass'&&session.record.method!=='passkey')
+        return new Response('Administrator passkey required',{status:403,headers});
+    }
     return notesRoute(request,env,headers,url,ownerGoogleToken);
   }
   if(url.pathname==='/app-monitor/health')return Response.json({ok:true,service:'app-monitor',build:WORKER_BUILD,sourceSha:String(env.APP_MONITOR_SOURCE_SHA||''),storage:'r2-session-snapshots',adminProtected:true},{headers});
