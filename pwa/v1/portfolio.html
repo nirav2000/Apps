@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PWA Readiness · Apps</title><meta name="theme-color" content="#102033">
+<style>:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;color:#183347;background:#f4f7f9}
+body{margin:0}.wrap{max-width:1150px;margin:auto;padding:20px}a{color:#086b82}
+.card{background:#fff;border:1px solid #dde6eb;border-radius:17px;padding:18px;margin:14px 0}
+h1{margin-bottom:6px}.muted{color:#617481;font-size:14px}
+button{background:#102033;color:white;border:0;border-radius:9px;padding:9px 14px;cursor:pointer;font:inherit}
+</style></head><body><main class="wrap">
+<p><a href="../../app-monitor.html">App Monitor</a> · <a href="./lab.html">PWA Lab</a> · <a href="./icon-gallery.html">Icon design lab</a></p>
+<h1>Portfolio PWA readiness</h1><p class="muted">Live checks of each app's public manifest and referenced icon files. An installed service worker can only be detected on the browser currently viewing this page; the screen cannot prove installation or offline reliability across devices.</p>
+<section class="card"><div data-pwa-portfolio>Checking apps…</div><p><button id="refresh" type="button">Run checks again</button></p></section>
+<section class="card"><strong>Release verification</strong><p class="muted">Also run each app's GitHub Actions validation and test install → launch → offline → update on the target iPhone/iPad. A green manifest check alone is not sufficient.</p></section>
+</main><script type="module">import{mountPWAPortfolio}from'./portfolio-monitor.js';
+document.getElementById('refresh').onclick=()=>mountPWAPortfolio(document.querySelector('[data-pwa-portfolio]'));
+</script></body></html>
