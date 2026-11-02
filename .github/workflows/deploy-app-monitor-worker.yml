@@ -10,6 +10,9 @@ on:
       - "app-monitor-repository-privacy.test.mjs"
       - "notes/v1/server.js"
       - "notes/v1/cloud.test.mjs"
+      - "notes/v1/text-edits.test.mjs"
+      - "notes/v1/index.js"
+      - "notes/v1/ui.js"
       - "app-monitor-owner-data.js"
       - "app-monitor-owner-routes.js"
       - "app-monitor-owner-data.test.mjs"
@@ -48,7 +51,7 @@ jobs:
           node --check notes/v1/cloud.js
           node --check notes/v1/index.js
           node --check notes/v1/ui.js
-          node --experimental-default-type=module --test notes/v1/cloud.test.mjs notes/v1/issue-title.test.mjs
+          node --experimental-default-type=module --test notes/v1/cloud.test.mjs notes/v1/issue-title.test.mjs notes/v1/text-edits.test.mjs
           node --test app-monitor-owner-data.test.mjs app-monitor-owner-routes.test.mjs
       - name: Check repository-local Cloudflare credentials
         id: creds
