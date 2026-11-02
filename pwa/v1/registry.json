@@ -36,7 +36,8 @@
           "purpose": "maskable"
         }
       ],
-      "id": "/Apps/app-monitor.html"
+      "id": "/Apps/app-monitor.html",
+      "manifest_url": "/Apps/pwa/v1/app-monitor.webmanifest"
     },
     "pwa-lab": {
       "name": "Apps PWA Lab",
@@ -73,7 +74,8 @@
           "purpose": "maskable"
         }
       ],
-      "id": "/Apps/pwa/v1/lab.html"
+      "id": "/Apps/pwa/v1/lab.html",
+      "manifest_url": "/Apps/pwa/v1/lab.webmanifest"
     },
     "snag": {
       "name": "Snag Recorder",
@@ -133,7 +135,32 @@
       "start_url": "/InClass/",
       "scope": "/InClass/",
       "display": "standalone",
-      "externalManaged": true
+      "externalManaged": true,
+      "manifest_url": "/InClass/manifest.webmanifest",
+      "background_color": "#f5f7fa",
+      "theme_color": "#102a43",
+      "description": "Homework-first learning with explanations and conceptual understanding.",
+      "icon_concept": "insight-book",
+      "icons": [
+        {
+          "src": "/InClass/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "any"
+        },
+        {
+          "src": "/InClass/icons/icon-512.png",
+          "sizes": "512x512",
+          "type": "image/png",
+          "purpose": "any"
+        },
+        {
+          "src": "/InClass/icons/icon-maskable-512.png",
+          "sizes": "512x512",
+          "type": "image/png",
+          "purpose": "maskable"
+        }
+      ]
     },
     "kk-syllabus": {
       "name": "Curious Path",
