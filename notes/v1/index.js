@@ -1,4 +1,4 @@
-const VERSION = '1.2.2';
+const VERSION = '1.2.3';
 const DEFAULT_TYPES = ['developer','feedback','annotation'];
 const now = () => new Date().toISOString();
 const uid = () => globalThis.crypto?.randomUUID?.() || `note-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -64,13 +64,46 @@ export function createLocalStorageTransport({storageKey='apps.notes.v1', draftKe
 }
 
 
+// Accept ChatGPT's JSON reply with or without a Markdown code fence.
+// Never run returned code or interpret prose as commands.
+export function parseTextEditPayload(input){
+  if(typeof input!=='string')return input;
+  const raw=input.trim().replace(/^\uFEFF/,'');
+  if(!raw)throw new Error('Paste the revised JSON returned by ChatGPT.');
+  if(raw.length>350000)throw new Error('The pasted reply is too large. Paste only the JSON edits.');
+  const fenced=raw.match(/(?:^|\n)```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```(?=\s|$)/i);
+  const source=fenced?fenced[1].trim():raw;
+  try{return JSON.parse(source)}
+  catch{throw new Error('Could not read the changes. Paste ChatGPT’s JSON edits (raw JSON or a ```json code block), not the original copied notes.');}
+}
+
+export function previewTextEdits(input,existing,{appId,page}={}){
+  const edits=validateTextEdits(input,existing,{appId,page});
+  const lookup=new Map(existing.filter(n=>n.appId===appId&&n.page===page).map(n=>[n.id,n]));
+  const changes=[],unchanged=[];
+  for(const edit of edits){
+    const prior=lookup.get(edit.id);
+    if(prior.text===edit.text){unchanged.push(edit.id);continue;}
+    changes.push({id:edit.id,label:prior.anchorLabel||'Note',before:prior.text,after:edit.text,updatedAt:prior.updatedAt||''});
+  }
+  return {changes,unchanged,total:edits.length};
+}
+export function isTextEditPreviewCurrent(preview,existing){
+  if(!preview||!Array.isArray(preview.changes))return false;
+  const lookup=new Map(existing.map(n=>[n.id,n]));
+  return preview.changes.every(change=>{
+    const note=lookup.get(change.id);
+    return !!note&&note.status==='open'&&note.text===change.before&&(note.updatedAt||'')===change.updatedAt;
+  });
+}
+
 /**
  * A ChatGPT handoff is always a user-mediated copy/paste. The paste can change
  * existing note text only; it cannot change scope, ownership, review flags,
  * issue links or implementation attestations.
  */
 export function validateTextEdits(input,existing,{appId,page}={}){
-  const data=typeof input==='string'?JSON.parse(input):input;
+  const data=parseTextEditPayload(input);
   if(!data||typeof data!=='object'||Array.isArray(data)||data.schema!=='apps-shared-notes-edits-v1')
     throw new Error('Expected a Shared Notes text-edits v1 JSON object.');
   if(data.appId!==appId||data.page!==page||!page)
@@ -164,6 +197,7 @@ export function createNotes(options={}){
     }
     return {status:'ready',changed};
   }
+  function reviewTextEdits(payload,scopePage){return previewTextEdits(payload,listSync(),{appId:config.appId,page:scopePage});}
   async function applyTextEdits(payload,scopePage){
     await ensure();
     const edits=validateTextEdits(payload,listSync(),{appId:config.appId,page:scopePage});
@@ -177,7 +211,7 @@ export function createNotes(options={}){
     return {updated:changed,unchanged:edits.length-changed};
   }
   function subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);}
-  const api={version:VERSION,config,load,list:(filter={})=>listSync(filter),upsert,setStatus,archive,restore,remove,reviewPack,publishReviewFeed,syncStatuses,applyTextEdits,saveDraft,getDraft,clearDraft,subscribe,get ready(){return ready}};
+  const api={version:VERSION,config,load,list:(filter={})=>listSync(filter),upsert,setStatus,archive,restore,remove,reviewPack,publishReviewFeed,syncStatuses,reviewTextEdits,applyTextEdits,saveDraft,getDraft,clearDraft,subscribe,get ready(){return ready}};
   return api;
 }
 
