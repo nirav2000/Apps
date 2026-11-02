@@ -12,6 +12,7 @@ on:
       - "platform/v1/index.js"
       - "shared-libraries.json"
       - ".github/workflows/pwa-validation.yml"
+      - ".github/workflows/reusable-pwa-assets.yml"
 
 permissions:
   contents: read
@@ -58,11 +59,13 @@ jobs:
               if(!fs.existsSync(local))throw new Error(file+' references missing icon '+local);
             }
           }
+          const reusable=fs.readFileSync('.github/workflows/reusable-pwa-assets.yml','utf8');
+          if(!reusable.includes('workflow_call:')||!reusable.includes('onboard.mjs'))throw new Error('Central reusable PWA workflow missing its contract');
           const registry=JSON.parse(fs.readFileSync('pwa/v1/registry.json','utf8'));
           if(!registry.apps?.['app-monitor']||!registry.apps?.['pwa-lab'])throw new Error('PWA registry missing first consumers');
           const inclass=registry.apps?.inclass;
           if(!inclass||inclass.manifest_url!=='/InClass/manifest.webmanifest'||(inclass.icons||[]).length<3)throw new Error('InClass icons are not registered');
-          for(const file of ['pwa/v1/portfolio.html','pwa/v1/icon-gallery.html','pwa/v1/onboard.mjs'])if(!fs.existsSync(file))throw new Error('PWA shared workflow missing '+file);
+          for(const file of ['pwa/v1/portfolio.html','pwa/v1/icon-gallery.html','pwa/v1/onboard.mjs','.github/workflows/reusable-pwa-assets.yml'])if(!fs.existsSync(file))throw new Error('PWA shared workflow missing '+file);
           NODE
 
       - name: Shared worker invariants
