@@ -1,6 +1,6 @@
 import { mountPWAStatus, pwaStyles } from './ui.js';
 
-export const VERSION='1.0.0';
+export const VERSION='1.1.0';
 
 export function isIOS(){
   return typeof navigator!=='undefined'&&/iPhone|iPad|iPod/.test(navigator.userAgent||'');
@@ -23,20 +23,31 @@ export async function pwaReadiness({scope='/Apps/'}={}){
     ios,standalone,manifest,serviceWorker,
     registration:!!registration,
     notificationPermission:typeof Notification==='undefined'?'unsupported':Notification.permission,
-    status:serviceWorker&&manifest?(ios&&!standalone?'install-required':'ready'):'setup-required'
+    status:serviceWorker&&manifest&&registration?(ios&&!standalone?'install-required':'ready'):'setup-required'
   };
 }
 export async function registerPWA({serviceWorkerUrl='/Apps/firebase-messaging-sw.js',scope='/Apps/'}={}){
   if(!('serviceWorker'in navigator))return{ok:false,reason:'service-worker-unsupported'};
   const existing=await navigator.serviceWorker.getRegistration(scope);
-  if(existing)return{ok:true,registration:existing,reused:true};
+  if(existing){
+    const expectedScope=new URL(scope,location.href).href;
+    const expectedScript=new URL(serviceWorkerUrl,location.href).href;
+    const script=existing.active?.scriptURL||existing.waiting?.scriptURL||existing.installing?.scriptURL;
+    if(existing.scope!==expectedScope||(script&&script!==expectedScript)){
+      return{ok:false,reason:'service-worker-scope-conflict',registration:existing,reused:false};
+    }
+    let updateError=null;
+    try{await existing.update()}catch(error){updateError=String(error?.message||error)}
+    return{ok:true,registration:existing,reused:true,updateError};
+  }
   const registration=await navigator.serviceWorker.register(serviceWorkerUrl,{scope});
   return{ok:true,registration,reused:false};
 }
 export async function initPWA({root=null,serviceWorkerUrl='/Apps/firebase-messaging-sw.js',scope='/Apps/',register=true}={}){
   let registration=null;
   if(register)registration=await registerPWA({serviceWorkerUrl,scope});
-  const readiness=await pwaReadiness({scope});
+  let readiness=await pwaReadiness({scope});
+  if(registration?.ok===false)readiness={...readiness,status:'setup-required',serviceWorkerConflict:registration.reason};
   if(root)await mountPWAStatus(root,{readiness});
   window.dispatchEvent(new CustomEvent('apps-pwa:ready',{detail:{version:VERSION,readiness}}));
   return{version:VERSION,readiness,registration};
