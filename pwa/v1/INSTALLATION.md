@@ -40,6 +40,56 @@ import { initPWA } from 'https://nirav2000.github.io/Apps/pwa/v1/index.js';
 await initPWA();
 ```
 
+
+## One-command onboarding and icon assets
+
+The supported shared tooling is now:
+
+- [Icon design lab](./icon-gallery.html) — six SVG concepts, designed for app identity. Select a concept without changing a running app.
+- `icon-factory.mjs` — editable vector master artwork with maskable-safe variant.
+- `onboard.mjs` — generates a consistent web manifest, SVG master/favicon, Apple PNG 180, PNG 192/512, and Android maskable PNG 512.
+- [Portfolio readiness](./portfolio.html) — checks **publicly served** manifests and referenced icons; never confuses registry membership with device install status.
+
+Each consuming repo keeps a small `pwa.config.json` describing its unique identity:
+
+```json
+{
+  "name": "Example · Learning",
+  "short_name": "Example",
+  "id": "/Example/",
+  "start_url": "./",
+  "scope": "./",
+  "background_color": "#f5f7fa",
+  "theme_color": "#102a43",
+  "concept": "insight-book",
+  "icon_background": "#102a43",
+  "icon_accent": "#1a6674",
+  "assets_dir": "icons"
+}
+```
+
+Install the raster renderer in the shared generator's directory:
+
+```sh
+npm install --no-save @resvg/resvg-js@2.6.2
+node Apps/pwa/v1/onboard.mjs --app-root Example --config pwa.config.json --apply
+node Apps/pwa/v1/onboard.mjs --app-root Example --config pwa.config.json --check
+```
+
+Run from a checkout where `Apps/` and `Example/` are sibling directories (or pass absolute paths). The generator must **never overwrite an existing non-shared service worker**. It refuses to edit and asks for a manual composition audit instead; this preserves existing push handlers. For shared workers, it retains the existing precache contents and adds missing icons, bumping the cache name when necessary.
+
+For automated deployment, consumer repositories can run the shared generator using GitHub Actions. Pin the raster package version; use least-privilege `contents: write` only for workflows that commit generated assets. Generated PNGs are committed to the consumer repo so that installation does not require a runtime image generation service.
+
+**App-specific design approval:** The generator defaults to the concept in `pwa.config.json`. Changing the concept is a deliberate version-controlled change. InClass initially uses `insight-book`; preview alternatives in the icon design lab before changing it.
+
+## Verification tiers
+
+1. **Build verification**: valid file signatures and 180/192/512 dimensions, correct manifest and iOS touch icon, shared bootstrap/worker, preserved data.
+2. **Public HTTP verification**: live manifest and icons reachable at the deployed URL (PWA portfolio checks this).
+3. **Device verification**: on an actual iPhone/iPad, add to Home Screen, launch standalone, test offline and check release updates. Browser-based diagnostics cannot claim to have performed this physical-device test.
+
+A registry entry or passing static build is not itself proof of a successful Home Screen installation.
+
 ## Notifications dependency
 
 On iPhone/iPad, browser push requires the web app to be installed to the Home Screen and launched in standalone mode. Notifications UI should use PWA readiness and must not imply push is enabled when this prerequisite is missing.
