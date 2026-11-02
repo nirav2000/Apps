@@ -96,13 +96,18 @@ async function launchChrome(){
 }
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(fn,description='browser condition'){
- for(let i=0;i<100;i++){if(await fn())return;sleep(60);await sleep(70)}
+ for(let i=0;i<100;i++){if(await fn())return;await sleep(70)}
  throw Error('Timed out waiting for '+description);
 }
 test('real Chromium: note create, save, edit, archive, restore, import and touch selection', {timeout:100000},async t=>{
  const http=server();await new Promise(r=>http.listen(0,'127.0.0.1',r));
- t.after(()=>new Promise(r=>http.close(r)));
- const browser=await launchChrome();t.after(()=>browser.close());
+ let browser=null;
+ t.after(async()=>{
+  await browser?.close();
+  http.closeAllConnections();
+  await new Promise(r=>http.close(r));
+ });
+ browser=await launchChrome();
  const {command,evaluate}=browser;
  await command('Page.enable');
  await command('Runtime.enable');
