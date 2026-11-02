@@ -27,12 +27,18 @@ jobs:
 
       - name: JavaScript syntax
         run: |
+          node --check pwa/v1/icon-factory.mjs
+          node --check pwa/v1/onboard.mjs
+          node --check pwa/v1/portfolio-monitor.js
           node --check pwa/v1/index.js
           node --check pwa/v1/ui.js
           node --check pwa/v1/service-worker.js
           node --check firebase-messaging-sw.js
           node --check app-monitor-notifications-client.js
           node --check platform/v1/index.js
+
+      - name: Shared icon factory tests
+        run: node pwa/v1/icon-factory.test.mjs
 
       - name: Manifest generation consistency
         run: node pwa/v1/generate-manifests.mjs --check
@@ -54,6 +60,9 @@ jobs:
           }
           const registry=JSON.parse(fs.readFileSync('pwa/v1/registry.json','utf8'));
           if(!registry.apps?.['app-monitor']||!registry.apps?.['pwa-lab'])throw new Error('PWA registry missing first consumers');
+          const inclass=registry.apps?.inclass;
+          if(!inclass||inclass.manifest_url!=='/InClass/manifest.webmanifest'||(inclass.icons||[]).length<3)throw new Error('InClass icons are not registered');
+          for(const file of ['pwa/v1/portfolio.html','pwa/v1/icon-gallery.html','pwa/v1/onboard.mjs'])if(!fs.existsSync(file))throw new Error('PWA shared workflow missing '+file);
           NODE
 
       - name: Shared worker invariants
@@ -80,6 +89,7 @@ jobs:
             'appMonitorPwaRoot',
             "import{initPWA,pwaStyles}from'./pwa/v1/index.js'"
           ])if(!html.includes(term))throw new Error('App Monitor PWA integration missing '+term);
+          if(!html.includes('id="pwaPortfolioSection"')||!html.includes('pwa/v1/portfolio-monitor.js'))throw new Error('App Monitor portfolio PWA status missing');
           const client=fs.readFileSync('app-monitor-notifications-client.js','utf8');
           if(!client.includes("import{pwaReadiness}from'./pwa/v1/index.js'"))throw new Error('Notifications do not consume PWA readiness');
           if(!client.includes("pwa.ios&&!pwa.standalone"))throw new Error('iOS push is not gated by PWA installation');
