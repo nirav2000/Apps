@@ -119,6 +119,8 @@ test('real Chromium: note create, save, edit, archive, restore, import and touch
  await command('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});
  await command('Page.navigate',{url:'http://127.0.0.1:'+http.address().port+'/__fixture'});
  await until(()=>evaluate('return window.__ready===true'),'Notes UI initialization');
+ assert.equal(await evaluate(`const picker=await import('/notes/v1/identity-picker.js');const dialog=picker.showNotesIdentityPicker({mode:'local',versionInfo:'Shared Notes browser test'});return dialog.open&&dialog.querySelector('.ni-version')?.textContent==='Shared Notes browser test'`),true,'Shared identity chooser must open with its version label');
+ await evaluate('document.querySelector(".apps-notes-identity [data-action=close]").click();return true');
  await evaluate('document.querySelector(".apps-notes-launcher").click();document.querySelector("[data-new]").click();return true');
  assert.equal(await evaluate('return !document.querySelector(".note-composer").hidden'),true);
  // ChatGPT import textarea exists first; the save handler must read the visible note field.
