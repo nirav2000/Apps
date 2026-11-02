@@ -42,12 +42,13 @@ export function annotationIssueTitle(note){
   const description=diagnostic?(comment?clean(comment):'UI diagnostic report'):clean(String(note.text||'').split('\n').find(line=>line.trim()));
   return '['+app+'] '+((description||'Development issue').slice(0,100));
 }
+const issueRepo=note=>note.appId==='inclass'?'nirav2000/InClass':'nirav2000/Apps';
 async function createIssue(env,note){
   if(!env.NOTES_GITHUB_ISSUES_TOKEN)return {status:'pending-configuration'};
   const marker='<!-- shared-annotation:'+note.appId+':'+note.id+' -->';
   const headers={Authorization:'Bearer '+env.NOTES_GITHUB_ISSUES_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json','User-Agent':'apps-shared-notes'};
   // Retry-safe lookup: recover issues created before a previous Firestore link update failed.
-  const search=await fetch('https://api.github.com/search/issues?q='+encodeURIComponent('repo:nirav2000/Apps is:issue in:body "shared-annotation:'+note.appId+':'+note.id+'"'),{headers:{Authorization:headers.Authorization,Accept:headers.Accept,'User-Agent':headers['User-Agent']}});
+  const search=await fetch('https://api.github.com/search/issues?q='+encodeURIComponent('repo:'+issueRepo(note)+' is:issue in:body "shared-annotation:'+note.appId+':'+note.id+'"'),{headers:{Authorization:headers.Authorization,Accept:headers.Accept,'User-Agent':headers['User-Agent']}});
   if(!search.ok)return {status:'failed',code:search.status};
   const matches=(await search.json()).items||[];
   const existing=matches.find(issue=>issue.body?.includes(marker));
@@ -55,7 +56,7 @@ async function createIssue(env,note){
   const body=[marker,'## Annotation','App: '+note.appId,'Page: '+note.page,'Element: '+note.anchorLabel+' ('+note.anchorId+')','Version: '+note.appVersion,'Note ID: '+note.id,'','## Requested change',note.text,'','## Verification','Implement, test and deploy before marking this annotation verified.'].join('\n');
   // Notes can contain full diagnostic reports. Never derive issue titles from multiline bodies.
   const title=annotationIssueTitle(note);
-  const response=await fetch('https://api.github.com/repos/nirav2000/Apps/issues',{method:'POST',headers,body:JSON.stringify({title,body})});
+  const response=await fetch('https://api.github.com/repos/'+issueRepo(note)+'/issues',{method:'POST',headers,body:JSON.stringify({title,body})});
   if(!response.ok)return {status:'failed',code:response.status};
   const issue=await response.json();return {status:'created',number:issue.number,url:issue.html_url};
 }
@@ -126,8 +127,8 @@ export async function notesRoute(request,env,headers,url,getGoogleToken){
       const issueNumber=Number(note.metadata.developmentIssue.number);
       const ghHeaders={Authorization:'Bearer '+env.NOTES_GITHUB_ISSUES_TOKEN,Accept:'application/vnd.github+json','User-Agent':'apps-shared-notes'};
       const [issueResponse,commitResponse]=await Promise.all([
-        fetch('https://api.github.com/repos/nirav2000/Apps/issues/'+issueNumber,{headers:ghHeaders}),
-        fetch('https://api.github.com/repos/nirav2000/Apps/commits/'+encodeURIComponent(commit),{headers:ghHeaders})
+        fetch('https://api.github.com/repos/'+issueRepo(note)+'/issues/'+issueNumber,{headers:ghHeaders}),
+        fetch('https://api.github.com/repos/'+issueRepo(note)+'/commits/'+encodeURIComponent(commit),{headers:ghHeaders})
       ]);
       if(!issueResponse.ok||!commitResponse.ok)return err('Cannot verify linked GitHub issue or commit',409,headers);
       const issue=await issueResponse.json(),revision=await commitResponse.json();
