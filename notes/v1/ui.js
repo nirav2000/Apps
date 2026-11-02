@@ -1,5 +1,5 @@
 const STYLE_ID='apps-shared-notes-style-v1';
-const cssUrl=new URL('./styles.css',import.meta.url).href;
+const cssUrl=new URL('./styles.css?v=1.2.4',import.meta.url).href;
 function ensureStyles(){if(document.getElementById(STYLE_ID))return;const l=document.createElement('link');l.id=STYLE_ID;l.rel='stylesheet';l.href=cssUrl;document.head.appendChild(l)}
 const q=(root,s)=>root.querySelector(s),qa=(root,s)=>[...root.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
