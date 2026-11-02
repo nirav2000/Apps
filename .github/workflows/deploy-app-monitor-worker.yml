@@ -14,6 +14,8 @@ on:
       - "notes/v1/cloud.test.mjs"
       - "notes/v1/text-edits.test.mjs"
       - "notes/v1/editor-binding.test.mjs"
+      - "notes/v1/browser-smoke.test.mjs"
+      - "notes/v1/identity-picker.js"
       - "notes/v1/index.js"
       - "notes/v1/ui.js"
       - "app-monitor-owner-data.js"
@@ -58,6 +60,10 @@ jobs:
           node --check notes/v1/ui.js
           node --experimental-default-type=module --test notes/v1/cloud.test.mjs notes/v1/issue-title.test.mjs notes/v1/text-edits.test.mjs notes/v1/editor-binding.test.mjs
           node --test app-monitor-owner-data.test.mjs app-monitor-owner-routes.test.mjs
+      - name: Real Chrome editor interaction tests
+        run: |
+          node --experimental-default-type=module --check notes/v1/identity-picker.js
+          node --experimental-default-type=module --test notes/v1/browser-smoke.test.mjs
       - name: Check repository-local Cloudflare credentials
         id: creds
         env:
