@@ -1,4 +1,4 @@
-const VERSION = '1.2.1';
+const VERSION = '1.2.2';
 const DEFAULT_TYPES = ['developer','feedback','annotation'];
 const now = () => new Date().toISOString();
 const uid = () => globalThis.crypto?.randomUUID?.() || `note-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -61,6 +61,35 @@ export function createLocalStorageTransport({storageKey='apps.notes.v1', draftKe
     async saveDraft(draft){ draft?localStorage.setItem(draftKey,JSON.stringify(draft)):localStorage.removeItem(draftKey); },
     async clearDraft(){ localStorage.removeItem(draftKey); }
   };
+}
+
+
+/**
+ * A ChatGPT handoff is always a user-mediated copy/paste. The paste can change
+ * existing note text only; it cannot change scope, ownership, review flags,
+ * issue links or implementation attestations.
+ */
+export function validateTextEdits(input,existing,{appId,page}={}){
+  const data=typeof input==='string'?JSON.parse(input):input;
+  if(!data||typeof data!=='object'||Array.isArray(data)||data.schema!=='apps-shared-notes-edits-v1')
+    throw new Error('Expected a Shared Notes text-edits v1 JSON object.');
+  if(data.appId!==appId||data.page!==page||!page)
+    throw new Error('This update belongs to another app or lesson. No notes were changed.');
+  if(!Array.isArray(data.updates)||!data.updates.length||data.updates.length>50)
+    throw new Error('Provide between 1 and 50 note text updates.');
+  const byId=new Map(existing.filter(n=>n.appId===appId&&n.page===page).map(n=>[n.id,n]));
+  const seen=new Set();
+  return data.updates.map(entry=>{
+    if(!entry||typeof entry!=='object'||typeof entry.id!=='string'||typeof entry.text!=='string')
+      throw new Error('Each update must contain an existing note ID and replacement text.');
+    if(seen.has(entry.id))throw new Error('Duplicate note ID in update: '+entry.id);
+    seen.add(entry.id);
+    const prior=byId.get(entry.id);
+    if(!prior||prior.status!=='open')throw new Error('Unknown, out-of-scope or closed note: '+entry.id);
+    const revised=entry.text.trim();
+    if(!revised||revised.length>6000)throw new Error('Note text must be between 1 and 6000 characters.');
+    return {id:entry.id,text:revised};
+  });
 }
 
 export function createNotes(options={}){
@@ -135,8 +164,20 @@ export function createNotes(options={}){
     }
     return {status:'ready',changed};
   }
+  async function applyTextEdits(payload,scopePage){
+    await ensure();
+    const edits=validateTextEdits(payload,listSync(),{appId:config.appId,page:scopePage});
+    let changed=0;
+    for(const edit of edits){
+      const previous=notes.find(n=>n.id===edit.id);
+      if(previous.text===edit.text)continue;
+      await upsert({...previous,text:edit.text,metadata:{...previous.metadata,lastTextEditSource:'chatgpt-paste',lastTextEditAt:now()}});
+      changed++;
+    }
+    return {updated:changed,unchanged:edits.length-changed};
+  }
   function subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);}
-  const api={version:VERSION,config,load,list:(filter={})=>listSync(filter),upsert,setStatus,archive,restore,remove,reviewPack,publishReviewFeed,syncStatuses,saveDraft,getDraft,clearDraft,subscribe,get ready(){return ready}};
+  const api={version:VERSION,config,load,list:(filter={})=>listSync(filter),upsert,setStatus,archive,restore,remove,reviewPack,publishReviewFeed,syncStatuses,applyTextEdits,saveDraft,getDraft,clearDraft,subscribe,get ready(){return ready}};
   return api;
 }
 
