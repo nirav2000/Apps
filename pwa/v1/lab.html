@@ -9,6 +9,7 @@
 </head><body><main class="wrap"><h1>PWA Lab</h1><p class="muted">Shared test environment for installability, standalone mode, service-worker coverage and notification prerequisites.</p>
 <section class="card"><div id="pwaStatus"></div></section>
 <section class="card"><h2>Diagnostics</h2><div id="diag" class="grid"></div><p><button id="refresh">Refresh diagnostics</button></p></section>
+<section class="card"><h2>Shared app onboarding</h2><p>Generate assets for each app using the single shared workflow; do not duplicate update and worker logic.</p><p><a href="./icon-gallery.html">Preview six icon concepts</a> · <a href="./portfolio.html">Check portfolio PWA readiness</a> · <a href="./INSTALLATION.md">Read canonical installation instructions</a></p></section>
 <section class="card"><h2>iPhone/iPad test</h2><p>Open this page in Safari, use <strong>Share → Add to Home Screen</strong>, then launch the installed icon. The status should change to <strong>Installed</strong>.</p></section>
 </main><script type="module">
 import{initPWA,pwaReadiness,pwaStyles}from'./index.js';
