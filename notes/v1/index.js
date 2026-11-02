@@ -1,4 +1,4 @@
-const VERSION = '1.2.5';
+const VERSION = '1.2.6';
 const DEFAULT_TYPES = ['developer','feedback','annotation'];
 const now = () => new Date().toISOString();
 const uid = () => globalThis.crypto?.randomUUID?.() || `note-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -219,7 +219,7 @@ let singleton=null;
 export const Notes={
   version:VERSION,
   async init(options={}){
-    const [{mountNotesUI}]=await Promise.all([import('./ui.js?v=1.2.5')]);
+    const [{mountNotesUI}]=await Promise.all([import('./ui.js?v=1.2.6')]);
     singleton=createNotes(options);await singleton.load();
     if(options.ui!==false)singleton.ui=await mountNotesUI(singleton,options.ui&&typeof options.ui==='object'?options.ui:options);
     globalThis.SharedNotes=singleton;return singleton;
