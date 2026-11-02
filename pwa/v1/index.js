@@ -3,7 +3,9 @@ import { mountPWAStatus, pwaStyles } from './ui.js';
 export const VERSION='1.1.0';
 
 export function isIOS(){
-  return typeof navigator!=='undefined'&&/iPhone|iPad|iPod/.test(navigator.userAgent||'');
+  if(typeof navigator==='undefined')return false;
+  const agent=navigator.userAgent||'';
+  return /iPhone|iPad|iPod/.test(agent)||(/Macintosh/.test(agent)&&(navigator.maxTouchPoints||0)>1);
 }
 export function isStandalone(){
   if(typeof window==='undefined')return false;
