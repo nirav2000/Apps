@@ -92,7 +92,8 @@
           "type": "image/svg+xml",
           "purpose": "any maskable"
         }
-      ]
+      ],
+      "manifest_url": "/snag/manifest.webmanifest"
     },
     "next": {
       "name": "Next Learning",
@@ -109,7 +110,8 @@
           "type": "image/svg+xml",
           "purpose": "any maskable"
         }
-      ]
+      ],
+      "manifest_url": "/Next/manifest.webmanifest"
     },
     "openday": {
       "name": "School Open Days",
@@ -126,7 +128,8 @@
           "type": "image/svg+xml",
           "purpose": "any maskable"
         }
-      ]
+      ],
+      "manifest_url": "/Openday/manifest.webmanifest"
     },
     "inclass": {
       "name": "InClass · Homework with understanding",
@@ -169,7 +172,16 @@
       "start_url": "/Kk-syllabus/",
       "scope": "/Kk-syllabus/",
       "display": "standalone",
-      "externalManaged": true
+      "externalManaged": true,
+      "manifest_url": "/Kk-syllabus/manifest.webmanifest",
+      "icons": [
+        {
+          "src": "/Kk-syllabus/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml",
+          "purpose": "any maskable"
+        }
+      ]
     },
     "learnlatin": {
       "name": "Learn Latin - Dad + Sai",
@@ -186,7 +198,8 @@
           "type": "image/svg+xml",
           "purpose": "any maskable"
         }
-      ]
+      ],
+      "manifest_url": "/LearnLatin/manifest.webmanifest"
     },
     "beyond100": {
       "name": "Beyond 100",
@@ -203,7 +216,8 @@
           "type": "image/svg+xml",
           "purpose": "any maskable"
         }
-      ]
+      ],
+      "manifest_url": "/Beyond100/manifest.webmanifest"
     },
     "comprehension": {
       "name": "Comprehension Coach",
@@ -220,7 +234,8 @@
           "type": "image/svg+xml",
           "purpose": "any maskable"
         }
-      ]
+      ],
+      "manifest_url": "/Comprehension/manifest.webmanifest"
     },
     "dol": {
       "name": "Factor Frenzy",
@@ -243,7 +258,8 @@
           "type": "image/png",
           "purpose": "any maskable"
         }
-      ]
+      ],
+      "manifest_url": "/Dol/app.webmanifest"
     }
   }
 }
