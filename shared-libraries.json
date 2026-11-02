@@ -483,7 +483,7 @@
     },
     {
       "id": "devnotes",
-      "name": "Shared Notes & Annotations v1.1",
+      "name": "Shared Notes & Annotations v1.2.6",
       "file": "notes/v1/",
       "status": "implemented",
       "created": "2026-10-07",
@@ -498,7 +498,7 @@
         "beyond100": "local",
         "Snag": "local",
         "Next": "local",
-        "InClass": "available",
+        "InClass": "compatible",
         "App Monitor": "compatible",
         "Firebase Usage Monitor": "available",
         "Notifications Lab": "available",
@@ -507,9 +507,10 @@
         "Dol": "available"
       },
       "userActivation": {
-        "App Monitor": "pending-verification"
+        "App Monitor": "pending-verification",
+        "InClass": "pending-verification"
       },
-      "notes": "App Monitor code integrated on main; NOT YET verified live. Central Firestore requires deployed Worker with service account; issue publishing requires NOTES_GITHUB_ISSUES_TOKEN. Do not mark installed until live end-to-end tests pass."
+      "notes": "Shared editor v1.2.6 and reusable account chooser are integrated with InClass. Real Chromium save/edit/archive/reopen/ChatGPT-import/touch tests passed; Pages and Worker deployment are checked separately. The pre-existing kk-syllabus service-account credential was securely restored to Cloudflare on 2026-11-02, with Firestore permission verification. Signed-in iPad/iPhone cross-device notes and approved development issue lifecycle still need live verification; do not mark installed until accepted. Older bespoke app notes remain unchanged."
     },
     {
       "id": "learning",
