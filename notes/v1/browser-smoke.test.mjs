@@ -51,7 +51,7 @@ function server(){
 }
 async function launchChrome(){
  const dir=mkdtempSync(join(tmpdir(),'apps-notes-browser-'));
- const chrome=spawn(chooseChrome(),['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--remote-allow-origins=*','--remote-debugging-port=0','--user-data-dir='+dir,'about:blank'],{stdio:['ignore','ignore','pipe']});
+ const chrome=spawn(chooseChrome(),['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check','--remote-allow-origins=*','--remote-debugging-port=0','--user-data-dir='+dir,'about:blank'],{stdio:['ignore','ignore','pipe'],detached:true});
  let wsUrl;
  try{
   wsUrl=await new Promise((resolve,reject)=>{
@@ -91,7 +91,11 @@ async function launchChrome(){
   if(output.exceptionDetails)throw Error('Browser JS exception: '+output.exceptionDetails.text+' '+(output.exceptionDetails.exception?.description||''));
   return output.result?.value;
  }
- const close=async()=>{ws.close();chrome.kill('SIGKILL');rmSync(dir,{recursive:true,force:true})};
+ const close=async()=>{
+  ws.close();
+  try{process.kill(-chrome.pid,'SIGKILL')}catch{chrome.kill('SIGKILL')}
+  try{rmSync(dir,{recursive:true,force:true})}catch{}
+ };
  return {command,evaluate,close};
 }
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
