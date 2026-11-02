@@ -6,7 +6,7 @@ async function fetchFresh(url){
  try{
   const resolved=new URL(url,location.origin);
   if(resolved.origin!==location.origin)return{ok:false,reason:'different origin'};
-  const response=await fetch(resolved.href,{cache:'no-store'});
+  const response=await fetch(resolved.href,{cache:'no-store',headers:{'X-Apps-PWA-Audit':'1'}});
   return{ok:response.ok,status:response.status,response};
  }catch(error){return{ok:false,reason:String(error?.message||error)};}
 }
@@ -21,7 +21,7 @@ async function inspect(id,app,registrations){
  const manifestUrl=urlFor(app);
  if(!manifestUrl){result.detail='No manifest URL recorded';return result;}
  const reply=await fetchFresh(manifestUrl);
- if(!reply.ok){result.manifest='missing';result.detail='Manifest not available at '+manifestUrl;return result;}
+ if(!reply.ok){result.manifest='missing';result.detail='No manifest found at the recorded/expected path '+manifestUrl+' (the app may use a different filename)';return result;}
  let manifest;
  try{manifest=await reply.response.json();}catch{result.manifest='invalid';result.detail='Manifest is not JSON';return result;}
  if(manifest.display!=='standalone'||!manifest.start_url||!manifest.scope||!Array.isArray(manifest.icons)){
