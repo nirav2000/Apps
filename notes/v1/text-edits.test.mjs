@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNotes,validateTextEdits} from './index.js';
+import {createNotes,validateTextEdits,parseTextEditPayload,previewTextEdits,isTextEditPreviewCurrent} from './index.js';
 
 function fixture(){
   const saved=[];
@@ -40,4 +40,26 @@ test('Cloud write failure is not disguised as a successful ChatGPT update',async
  await notes.load();
  await assert.rejects(notes.applyTextEdits({schema:'apps-shared-notes-edits-v1',appId:'inclass',page:'/x',updates:[{id:'a',text:'new'}]},'/x'),/cloud unavailable/);
  assert.equal(notes.list()[0].text,'old');
+});
+
+test('accepts JSON in a fenced ChatGPT reply',()=>{
+ const input='```json\n{"schema":"apps-shared-notes-edits-v1","appId":"inclass","page":"p","updates":[{"id":"a","text":"improved"}]}\n```';
+ assert.equal(parseTextEditPayload(input).updates[0].text,'improved');
+});
+test('review highlights proposed text before modifying the note',async()=>{
+ const {notes}=fixture();await notes.load();
+ const n=await notes.upsert({text:'Original note'});
+ const update={schema:'apps-shared-notes-edits-v1',appId:'inclass',page:n.page,updates:[{id:n.id,text:'Revised note'}]};
+ const before=notes.list();
+ const preview=previewTextEdits(update,before,{appId:'inclass',page:n.page});
+ assert.equal(preview.changes[0].before,'Original note');
+ assert.equal(preview.changes[0].after,'Revised note');
+ assert.equal(notes.list()[0].text,'Original note');
+ assert.equal(isTextEditPreviewCurrent(preview,notes.list()),true);
+ await notes.upsert({...n,text:'Changed elsewhere'});
+ assert.equal(isTextEditPreviewCurrent(preview,notes.list()),false);
+});
+test('rejects original export in import with useful message',()=>{
+ const input=JSON.stringify({schema:'apps-shared-notes-edit-request-v1',appId:'inclass',page:'p',notes:[]});
+ assert.throws(()=>previewTextEdits(input,[],{appId:'inclass',page:'p'}),/Expected a Shared Notes/);
 });
