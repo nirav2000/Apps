@@ -64,7 +64,7 @@ function pngDimensions(filename){
 function checkHTML(){
  const htmlPath=path.join(appRoot,'index.html');requireFile(htmlPath);
  const html=fs.readFileSync(htmlPath,'utf8');
- for(const token of ['rel="manifest"','manifest.webmanifest','rel="apple-touch-icon"',rel('icon-180.png'),'Apps/pwa/v1/index.js','serviceWorkerUrl'])if(!html.includes(token))fail('index.html missing '+token);
+ for(const token of ['rel="manifest"','manifest.webmanifest','rel="apple-touch-icon"',rel('icon-180.png'),'apple-mobile-web-app-title','Apps/pwa/v1/index.js','serviceWorkerUrl'])if(!html.includes(token))fail('index.html missing '+token);
  const sw=fs.readFileSync(path.join(appRoot,'sw.js'),'utf8');
  if(!sw.includes('Apps/pwa/v1/service-worker.js'))fail('Missing shared worker import');
 }
@@ -115,6 +115,13 @@ if(/<link\b[^>]*rel=["']apple-touch-icon["'][^>]*>/i.test(html))html=html.replac
 else html=html.replace('</head>',`  ${appleTag}\n</head>`);
 if(!html.includes('rel="manifest"'))html=html.replace('</head>',`  <link rel="manifest" href="manifest.webmanifest" />\n</head>`);
 if(!html.includes('rel="icon"'))html=html.replace('</head>',`  <link rel="icon" type="image/svg+xml" href="${rel('favicon.svg')}" />\n</head>`);
+if(!/name=["']apple-mobile-web-app-title["']/.test(html)){
+ const title=String(c.short_name).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ html=html.replace('</head>',`  <meta name="apple-mobile-web-app-title" content="${title}" />\n</head>`);
+}
+if(!/name=["']apple-mobile-web-app-capable["']/.test(html))html=html.replace('</head>',`  <meta name="apple-mobile-web-app-capable" content="yes" />\n</head>`);
+if(!/name=["']apple-mobile-web-app-status-bar-style["']/.test(html))html=html.replace('</head>',`  <meta name="apple-mobile-web-app-status-bar-style" content="default" />\n</head>`);
+
 if(!html.includes('Apps/pwa/v1/index.js')){
  html=html.replace('</body>',`<script type="module">import{initPWA}from'https://nirav2000.github.io/Apps/pwa/v1/index.js';initPWA({serviceWorkerUrl:'./sw.js',scope:'./'}).catch(console.warn);</script>\n</body>`);
 }
