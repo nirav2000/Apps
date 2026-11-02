@@ -1,0 +1,67 @@
+name: Shared PWA asset build and validation
+
+on:
+  workflow_call:
+    inputs:
+      app-config:
+        description: "App-local PWA identity configuration"
+        required: false
+        default: pwa.config.json
+        type: string
+      verification:
+        description: "Optional consumer-owned test commands (trusted workflow input)"
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Retrieve canonical PWA generator
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/apps-pwa-generator"
+          curl --fail --location --silent --show-error --retry 3 "https://raw.githubusercontent.com/nirav2000/Apps/main/pwa/v1/onboard.mjs" --output "$RUNNER_TEMP/apps-pwa-generator/onboard.mjs"
+          curl --fail --location --silent --show-error --retry 3 "https://raw.githubusercontent.com/nirav2000/Apps/main/pwa/v1/icon-factory.mjs" --output "$RUNNER_TEMP/apps-pwa-generator/icon-factory.mjs"
+          npm install --prefix "$RUNNER_TEMP/apps-pwa-generator" --no-save --no-package-lock @resvg/resvg-js@2.6.2
+          node --check "$RUNNER_TEMP/apps-pwa-generator/onboard.mjs"
+          node --check "$RUNNER_TEMP/apps-pwa-generator/icon-factory.mjs"
+      - name: Generate app icon and installation files
+        env:
+          APP_CONFIG: ${{ inputs.app-config }}
+        shell: bash
+        run: node "$RUNNER_TEMP/apps-pwa-generator/onboard.mjs" --app-root "$GITHUB_WORKSPACE" --config "$APP_CONFIG" --apply
+      - name: Validate shared icon, manifest and service worker contract
+        env:
+          APP_CONFIG: ${{ inputs.app-config }}
+        shell: bash
+        run: node "$RUNNER_TEMP/apps-pwa-generator/onboard.mjs" --app-root "$GITHUB_WORKSPACE" --config "$APP_CONFIG" --check
+      - name: Run consumer-owned regression and homework tests
+        if: ${{ inputs.verification != '' }}
+        env:
+          CONSUMER_VERIFICATION: ${{ inputs.verification }}
+        shell: bash
+        run: bash -e -o pipefail -c "$CONSUMER_VERIFICATION"
+      - name: Commit only the generated app PWA files
+        env:
+          APP_CONFIG: ${{ inputs.app-config }}
+        shell: bash
+        run: |
+          ASSET_DIR="$(node -e 'const c=require("./"+process.argv[1]);process.stdout.write(c.assets_dir||"icons")' "$APP_CONFIG")"
+          git add -- index.html icon.svg manifest.webmanifest sw.js "$APP_CONFIG" "$ASSET_DIR/"
+          if git diff --cached --quiet; then
+            echo "PWA assets already match shared generator."
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'build(pwa): regenerate shared PWA assets'
+          git push origin HEAD:main
