@@ -25,12 +25,12 @@ export async function mountNotesUI(notes,options={}){
   let annotating=false,editingId=null,context=null,filter='open';
   const launcher=document.createElement('button');launcher.type='button';launcher.className='apps-notes-launcher';launcher.textContent=cfg.launcherLabel;launcher.setAttribute('aria-label','Open notes and annotations');if(cfg.launcher!==false)document.body.appendChild(launcher);
   const banner=document.createElement('div');banner.className='apps-notes-annotation-banner';banner.hidden=true;banner.innerHTML='<span>Tap a highlighted area to attach a note.</span><button type="button">Done</button>';document.body.appendChild(banner);
-  const dialog=document.createElement('dialog');dialog.className='apps-notes-dialog';dialog.innerHTML=`<div class="apps-notes-shell"><header><div><p class="eyebrow">NOTES & ANNOTATIONS</p><h2>${esc(cfg.title||'Notes for review')}</h2></div><button class="icon-close" data-close aria-label="Close">×</button></header><div class="toolbar"><button class="primary" data-new>＋ General note</button>${cfg.annotation!==false?'<button data-select>⌖ Select an element</button>':''}<button data-copy hidden>Copy for ChatGPT</button><button data-import hidden>Apply ChatGPT edits</button><button data-publish hidden>Retry issue sync</button></div><section class="chatgpt-import composer" hidden><strong>Apply revised note text</strong><p>Paste the JSON returned by ChatGPT. Only existing open notes in this lesson can be changed. Status, development links and other notes are protected.</p><textarea data-import-json rows="7" placeholder="Paste the apps-shared-notes-edits-v1 JSON here"></textarea><div class="composer-actions"><button type="button" data-import-cancel>Cancel</button><button type="button" class="primary" data-import-apply>Review and apply</button></div></section><section class="composer" hidden><div class="context"><strong data-context-label>General note</strong><span data-context-id>page:general</span></div><blockquote data-quote hidden></blockquote><textarea rows="5" maxlength="6000" placeholder="What should change, what was confusing, or what should be remembered?"></textarea><div class="composer-options">${cfg.showTypes!==false?'<label>Type <select data-type><option value="developer">Developer note</option><option value="feedback">Feedback</option><option value="annotation">Annotation</option></select></label>':''}<label><input type="checkbox" data-review checked> ${esc(cfg.reviewLabel||'Create development task')}</label></div><div class="composer-actions"><button data-cancel>Cancel</button><button class="primary" data-save>Save note</button></div></section><details open><summary>Notes history</summary><div class="filters"><button data-filter="open" class="active">Open</button><button data-filter="review">For review</button><button data-filter="implemented">Implemented</button><button data-filter="all">All</button></div><div class="list"></div></details><footer><span data-status></span>${cfg.notice?`<p class="apps-notes-notice">${esc(cfg.notice)}</p>`:''}</footer></div>`;document.body.appendChild(dialog);
+  const dialog=document.createElement('dialog');dialog.className='apps-notes-dialog';dialog.innerHTML=`<div class="apps-notes-shell"><header><div><p class="eyebrow">NOTES & ANNOTATIONS</p><h2>${esc(cfg.title||'Notes for review')}</h2></div><button class="icon-close" data-close aria-label="Close">×</button></header><div class="toolbar"><button class="primary" data-new>＋ General note</button>${cfg.annotation!==false?'<button data-select>⌖ Select an element</button>':''}<button data-copy hidden>Copy for ChatGPT</button><button data-import hidden>Apply ChatGPT edits</button><button data-publish hidden>Retry issue sync</button></div><section class="chatgpt-import composer" hidden><strong>Apply revised note text</strong><p>Paste the JSON returned by ChatGPT. Only existing open notes in this lesson can be changed. Status, development links and other notes are protected.</p><textarea data-import-json rows="7" placeholder="Paste the apps-shared-notes-edits-v1 JSON here"></textarea><p data-import-message role="status" aria-live="polite"></p><div data-import-preview hidden><strong data-import-heading></strong><div data-import-changes></div><p data-import-warning></p></div><div class="composer-actions"><button type="button" data-import-cancel>Cancel</button><button type="button" class="primary" data-import-apply>Review changes</button><button type="button" class="primary" data-import-confirm hidden>Save reviewed changes</button></div></section><section class="composer note-composer" hidden><div class="context"><strong data-context-label>General note</strong><span data-context-id>page:general</span></div><blockquote data-quote hidden></blockquote><textarea rows="5" maxlength="6000" placeholder="What should change, what was confusing, or what should be remembered?"></textarea><div class="composer-options">${cfg.showTypes!==false?'<label>Type <select data-type><option value="developer">Developer note</option><option value="feedback">Feedback</option><option value="annotation">Annotation</option></select></label>':''}<label><input type="checkbox" data-review checked> ${esc(cfg.reviewLabel||'Create development task')}</label></div><div class="composer-actions"><button data-cancel>Cancel</button><button class="primary" data-save>Save note</button></div></section><details open><summary>Notes history</summary><div class="filters"><button data-filter="open" class="active">Open</button><button data-filter="review">For review</button><button data-filter="implemented">Implemented</button><button data-filter="all">All</button></div><div class="list"></div></details><footer><span data-status></span>${cfg.notice?`<p class="apps-notes-notice">${esc(cfg.notice)}</p>`:''}</footer></div>`;document.body.appendChild(dialog);
   if(typeof notes.config.transport.publishReviewFeed==='function')q(dialog,'[data-publish]').hidden=false;
   if(cfg.chatGPTHandoff===true){q(dialog,'[data-copy]').hidden=false;q(dialog,'[data-import]').hidden=false;}
   function ctxFrom(el){const anchorId=pathFor(el);return{anchorId,anchorLabel:labelFor(el),selector:el?.id?`#${CSS.escape(el.id)}`:anchorId.startsWith('css:')?anchorId.slice(4):'',selectedText:selectedText(),elementText:el?.textContent?.trim()?.replace(/\s+/g,' ').slice(0,1000)||''}}
-  function openComposer(ctx={anchorId:'page:general',anchorLabel:'General page note'},note=null){context=ctx;editingId=note?.id||null;q(dialog,'.composer').hidden=false;q(dialog,'[data-context-label]').textContent=ctx.anchorLabel||'General note';q(dialog,'[data-context-id]').textContent=ctx.anchorId||'page:general';const quote=q(dialog,'[data-quote]');quote.hidden=!ctx.selectedText;quote.textContent=ctx.selectedText?`“${ctx.selectedText}”`:'';q(dialog,'textarea').value=note?.text||'';q(dialog,'[data-review]').checked=note?note.reviewRequired!==false:cfg.defaultReviewRequired!==false;const type=q(dialog,'[data-type]');if(type)type.value=note?.type||notes.config.defaultType||'developer';q(dialog,'[data-save]').textContent=note?'Save changes':'Save note';notes.saveDraft({noteId:editingId,text:q(dialog,'textarea').value,context,type:type?.value||notes.config.defaultType}).catch(()=>{});setTimeout(()=>q(dialog,'textarea').focus(),10)}
-  function closeComposer(){editingId=null;context=null;q(dialog,'.composer').hidden=true;q(dialog,'textarea').value='';notes.clearDraft().catch(()=>{})}
+  function openComposer(ctx={anchorId:'page:general',anchorLabel:'General page note'},note=null){context=ctx;editingId=note?.id||null;q(dialog,'.note-composer').hidden=false;q(dialog,'[data-context-label]').textContent=ctx.anchorLabel||'General note';q(dialog,'[data-context-id]').textContent=ctx.anchorId||'page:general';const quote=q(dialog,'[data-quote]');quote.hidden=!ctx.selectedText;quote.textContent=ctx.selectedText?`“${ctx.selectedText}”`:'';q(dialog,'.note-composer textarea').value=note?.text||'';q(dialog,'[data-review]').checked=note?note.reviewRequired!==false:cfg.defaultReviewRequired!==false;const type=q(dialog,'[data-type]');if(type)type.value=note?.type||notes.config.defaultType||'developer';q(dialog,'[data-save]').textContent=note?'Save changes':'Save note';notes.saveDraft({noteId:editingId,text:q(dialog,'textarea').value,context,type:type?.value||notes.config.defaultType}).catch(()=>{});setTimeout(()=>q(dialog,'textarea').focus(),10)}
+  function closeComposer(){editingId=null;context=null;q(dialog,'.note-composer').hidden=true;q(dialog,'textarea').value='';notes.clearDraft().catch(()=>{})}
   function listForFilter(){if(filter==='open')return notes.list({open:true}).filter(inScope);if(filter==='review')return notes.list({review:true}).filter(inScope);if(filter==='implemented')return notes.list({status:'implemented'}).filter(inScope);return notes.list().filter(inScope)}
   function render(){const host=q(dialog,'.list'),list=listForFilter();host.innerHTML=list.length?list.map(n=>`<article data-id="${esc(n.id)}" class="${n.status==='implemented'?'implemented':''}"><div class="note-head"><strong>${esc(n.anchorLabel||'General note')}</strong><span class="type">${esc(n.type)}</span></div><p>${esc(n.text)}</p>${n.selectedText?`<blockquote>“${esc(n.selectedText)}”</blockquote>`:''}<small>${esc(n.appVersion||'')} · ${new Date(n.updatedAt).toLocaleString('en-GB')} · ${esc(n.status)}</small>${n.metadata?.developmentIssue?.url?`<p class="issue-link"><a href="${esc(n.metadata.developmentIssue.url)}" target="_blank" rel="noopener">Development issue #${esc(n.metadata.developmentIssue.number)}</a></p>`:''}${n.status==='implemented'&&n.implementationVersion?`<p class="implemented-note">✓ Implemented in ${esc(n.implementationVersion)}${n.implementationMessage?' — '+esc(n.implementationMessage):''}</p>`:''}<div class="actions"><button data-action="goto">Go to</button><button data-action="edit">Edit</button>${n.status==='open'&&n.metadata?.developmentIssue?.number&&typeof notes.config.transport.verify==='function'?'<button data-action="verify">Verify fix</button>':''}${n.status==='implemented'?'<button data-action="restore">Reopen</button>':`<button data-action="review">${n.reviewRequired?'Exclude from development':'Send to development'}</button><button data-action="archive">Archive</button>`}</div></article>`).join(''):'<div class="empty">No notes in this view yet.</div>';renderPins()}
   function renderPins(){document.querySelectorAll('.apps-note-pin').forEach(x=>x.remove());document.querySelectorAll('.apps-has-notes').forEach(x=>x.classList.remove('apps-has-notes'));const counts=new Map();notes.list({open:true}).filter(inScope).forEach(n=>counts.set(n.anchorId,(counts.get(n.anchorId)||0)+1));document.querySelectorAll('[data-note-anchor],[id]').forEach(el=>{const id=pathFor(el),count=counts.get(id)||0;if(!count||['BUTTON','INPUT','SELECT','TEXTAREA','DIALOG'].includes(el.tagName)||el.closest('.apps-notes-dialog'))return;el.classList.add('apps-has-notes');const pin=document.createElement('button');pin.type='button';pin.className='apps-note-pin';pin.textContent=count;pin.title=`${count} open note${count===1?'':'s'}`;pin.onclick=e=>{e.preventDefault();e.stopPropagation();open();filter='all';updateFilters();render()};el.appendChild(pin)})}
@@ -48,21 +48,79 @@ export async function mountNotesUI(notes,options={}){
     try{await navigator.clipboard.writeText(JSON.stringify(pack,null,2));q(dialog,'[data-status]').textContent='Copied '+selected.length+' note(s). Paste into ChatGPT; nothing has been uploaded by this app.';}
     catch(error){q(dialog,'[data-status]').textContent='Clipboard failed: '+String(error.message||error);}
   };
-  q(dialog,'[data-import]').onclick=()=>{q(dialog,'.chatgpt-import').hidden=false;q(dialog,'[data-import-json]').focus()};
-  q(dialog,'[data-import-cancel]').onclick=()=>{q(dialog,'.chatgpt-import').hidden=true};
-  q(dialog,'[data-import-apply]').onclick=async()=>{
-    const pasted=q(dialog,'[data-import-json]').value.trim();
-    if(!pasted)return;
+  const importPanel=q(dialog,'.chatgpt-import');
+  const importInput=q(dialog,'[data-import-json]');
+  const importMessage=q(dialog,'[data-import-message]');
+  const importPreview=q(dialog,'[data-import-preview]');
+  const importReviewButton=q(dialog,'[data-import-apply]');
+  const importConfirmButton=q(dialog,'[data-import-confirm]');
+  let pendingImport=null;
+  function importFeedback(message,isError=false){
+    importMessage.textContent=message;
+    importMessage.setAttribute('data-error',String(isError));
+    q(dialog,'[data-status]').textContent=message;
+  }
+  function clearImportReview(){
+    pendingImport=null;
+    importPreview.hidden=true;importConfirmButton.hidden=true;importReviewButton.hidden=false;
+  }
+  q(dialog,'[data-import]').onclick=()=>{
+    importPanel.hidden=false;
+    clearImportReview();
+    importFeedback('Paste ChatGPT’s revised JSON, then review the changes.');
+    importInput.focus();
+  };
+  q(dialog,'[data-import-cancel]').onclick=()=>{
+    clearImportReview();importPanel.hidden=true;
+  };
+  importInput.addEventListener('input',()=>{
+    clearImportReview();importFeedback('');
+  });
+  importReviewButton.onclick=()=>{
+    clearImportReview();
     try{
-      const changes=JSON.parse(pasted);
-      const candidates=notes.list({open:true}).filter(inScope);
-      const updates=changes?.updates;
-      if(!Array.isArray(updates)||!updates.length)throw Error('No text updates found.');
-      if(!confirm('Apply up to '+updates.length+' revised note texts in this lesson? Only note text can change.'))return;
-      const outcome=await notes.applyTextEdits(changes,currentPage());
-      q(dialog,'[data-import-json]').value='';q(dialog,'.chatgpt-import').hidden=true;
-      render();q(dialog,'[data-status]').textContent=outcome.updated+' note(s) updated, '+outcome.unchanged+' unchanged.';
-    }catch(error){q(dialog,'[data-status]').textContent='No edits applied: '+String(error.message||error);}
+      const review=notes.reviewTextEdits(importInput.value,currentPage());
+      if(review.changes.length===0){
+        importFeedback('No text changes found. All '+review.total+' note(s) already match.',false);
+        return;
+      }
+      pendingImport={raw:importInput.value,page:currentPage(),review};
+      q(dialog,'[data-import-heading]').textContent=review.changes.length+' note(s) will change; '+review.unchanged.length+' unchanged.';
+      const changes=q(dialog,'[data-import-changes]');
+      changes.replaceChildren();
+      for(const change of review.changes){
+        const item=document.createElement('div');item.className='import-change';
+        const heading=document.createElement('strong');heading.textContent=change.label;
+        const before=document.createElement('p');before.textContent='Before: '+change.before;
+        const after=document.createElement('p');after.textContent='After: '+change.after;
+        item.append(heading,before,after);changes.append(item);
+      }
+      q(dialog,'[data-import-warning]').textContent='Only the displayed note text will be updated. Private notes will not be sent to GitHub.';
+      importPreview.hidden=false;importReviewButton.hidden=true;importConfirmButton.hidden=false;
+      importFeedback('Review each change below, then select Save reviewed changes.');
+      importPreview.scrollIntoView({block:'nearest'});
+    }catch(error){
+      importFeedback('Cannot review changes: '+String(error.message||error),true);
+    }
+  };
+  importConfirmButton.onclick=async()=>{
+    if(!pendingImport)return importFeedback('Review the changes before saving.',true);
+    const {raw,page,review}=pendingImport;
+    try{
+      if(page!==currentPage()||!notes.reviewTextEdits||!review.changes.length)
+        throw Error('The lesson changed. Review the edits again.');
+      const fresh=notes.reviewTextEdits(raw,page);
+      const identical=JSON.stringify(fresh)===JSON.stringify(review);
+      if(!identical)throw Error('A note changed since review. Review again before saving.');
+      importConfirmButton.disabled=true;
+      importFeedback('Saving '+review.changes.length+' note(s)…');
+      const outcome=await notes.applyTextEdits(raw,page);
+      importInput.value='';clearImportReview();importPanel.hidden=true;
+      render();importFeedback(outcome.updated+' note(s) updated, '+outcome.unchanged+' unchanged.');
+    }catch(error){
+      importFeedback('Save failed: '+String(error.message||error),true);
+      clearImportReview();
+    }finally{importConfirmButton.disabled=false;}
   };
   q(dialog,'[data-publish]').onclick=async()=>{try{const r=await notes.publishReviewFeed(true);await notes.load();q(dialog,'[data-status]').textContent=r?.status==='processed'?'Issue sync complete.':r?.status==='partial'?'Some issues failed to sync.':'Issue sync: '+(r?.status||'unavailable')}catch(error){q(dialog,'[data-status]').textContent='Issue sync failed: '+String(error?.message||error)}};
   q(dialog,'.filters').onclick=e=>{const b=e.target.closest('[data-filter]');if(!b)return;filter=b.dataset.filter;updateFilters();render()};
