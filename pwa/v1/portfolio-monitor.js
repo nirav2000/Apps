@@ -24,20 +24,20 @@ async function inspect(id,app,registrations){
  if(!reply.ok){result.manifest='missing';result.detail='No manifest found at the recorded/expected path '+manifestUrl+' (the app may use a different filename)';return result;}
  let manifest;
  try{manifest=await reply.response.json();}catch{result.manifest='invalid';result.detail='Manifest is not JSON';return result;}
- if(manifest.display!=='standalone'||!manifest.start_url||!manifest.scope||!Array.isArray(manifest.icons)){
-  result.manifest='invalid';result.detail='Missing standalone, start URL, scope or icons';return result;
+ if(manifest.display!=='standalone'||!manifest.start_url||!Array.isArray(manifest.icons)){
+  result.manifest='invalid';result.detail='Missing standalone, start URL or icons';return result;
  }
  result.manifest='valid';
  const available=manifest.icons.filter(i=>i.src);
  const installSizes=['192x192','512x512'];
  const hasSizes=installSizes.every(s=>available.some(i=>i.sizes?.split(/\s+/).includes(s)));
- if(!hasSizes){result.icons='incomplete';result.detail='192px/512px icon declarations are missing';}
+ if(!hasSizes){result.icons='incomplete';result.detail='192px/512px raster icon declarations are missing (SVG-only app)';}
  else {
   const checks=await Promise.all(available.map(i=>resolveIcon(i,new URL(manifestUrl,location.origin).href)).filter(Boolean).map(fetchFresh));
   result.icons=checks.length&&checks.every(x=>x.ok)?'valid':'missing';
   if(result.icons==='missing')result.detail='At least one icon asset could not be fetched';
  }
- const scope=new URL(manifest.scope,new URL(manifestUrl,location.origin)).href;
+ const scope=new URL(manifest.scope||'./',new URL(manifestUrl,location.origin)).href;
  result.worker=registrations.some(r=>r.scope===scope)?'registered on this device':'not registered on this device';
  if(!result.detail)result.detail='Static asset checks only; device install and offline behaviour need on-device testing';
  return result;
