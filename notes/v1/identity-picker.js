@@ -31,19 +31,21 @@ const css=`
 .apps-notes-identity label{display:block;margin:8px 0;font-weight:600}
 .apps-notes-identity [hidden]{display:none!important}
 .apps-notes-identity [aria-busy=true]{opacity:.75}
+.apps-notes-identity .ni-version{font-size:11px;display:block;text-align:center;color:#6b8291;margin-top:10px}
 @media(max-width:460px){.apps-notes-identity{padding:17px;border-radius:19px}}
 `;
 function ensureStyle(){
  if(document.getElementById('apps-notes-identity-style'))return;
  const style=document.createElement('style');style.id='apps-notes-identity-style';style.textContent=css;document.head.append(style);
 }
-export function showNotesIdentityPicker({title='Keep your notes in sync',mode='local',error='',onFirebase,onPasskey,onEmail,onLocal}={}){
+export function showNotesIdentityPicker({title='Keep your notes in sync',mode='local',error='',onFirebase,onPasskey,onEmail,onLocal,versionInfo=''}={}){
  ensureStyle();
  const dialog=document.createElement('dialog');dialog.className='apps-notes-identity';
  const status=error?'error':mode==='local'?'local':'synced';
  const label=mode==='firebase'?'Connected with Firebase':mode==='app-monitor'?'Connected with App Monitor passkey':'Notes saved on this device';
  dialog.innerHTML=`<div class="ni-heading"><span class="ni-icon" aria-hidden="true">☁</span><div><p class="ni-eyebrow">PRIVATE LEARNING NOTES</p><h2></h2></div></div><p class="ni-caption">Use the same notes on your iPad, iPhone and other devices. Local notes are preserved.</p><div class="ni-status" data-state="${status}"><span class="ni-dot"></span><div><strong data-identity></strong><p data-details></p></div></div><div class="ni-options"><button type="button" class="ni-choice" data-action="firebase"><span class="ni-choice-icon">✓</span><span class="ni-choice-copy"><strong>Existing Firebase account</strong><small>Reuse the parent session in this browser</small></span><span aria-hidden="true">›</span></button><button type="button" class="ni-choice" data-action="passkey"><span class="ni-choice-icon">⌁</span><span class="ni-choice-copy"><strong>App Monitor passkey</strong><small>Secure account without another password</small></span><span aria-hidden="true">›</span></button><button type="button" class="ni-choice" data-action="email"><span class="ni-choice-icon">@</span><span class="ni-choice-copy"><strong>Firebase email and password</strong><small>Alternative account sign-in</small></span><span aria-hidden="true">›</span></button></div><form data-email-form hidden><label>Email<input name="email" type="email" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button type="submit" class="ni-choice">Sign in and sync</button></form><p class="ni-error" role="status" aria-live="polite" data-message></p><div class="ni-actions"><button type="button" data-action="local">Keep notes on this device</button><button class="ni-done" type="button" data-action="close">Done</button></div>`;
  dialog.querySelector('h2').textContent=title;
+ dialog.querySelector('.ni-version').textContent=versionInfo;
  dialog.querySelector('[data-identity]').textContent=label;
  dialog.querySelector('[data-details]').textContent=error|| (mode==='local'?'Select a sign-in method to enable cross-device sync.':'Account recognised. Note storage is checked separately.');
  const message=dialog.querySelector('[data-message]');
