@@ -5,7 +5,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {iconSvg,ICON_CONCEPTS} from './icon-factory.mjs';
-import {pathToFileURL} from 'node:url';
 
 const flags=process.argv.slice(2);
 const get=(name,fallback)=>{const i=flags.indexOf(name);return i<0?fallback:flags[i+1];};
@@ -84,7 +83,10 @@ function verify(){
 }
 if(check){verify();process.exit(0);}
 if(!fs.existsSync(path.join(appRoot,'index.html')))fail('index.html is required: no application shell will be created');
-const hasWorker=validateWorker(); // inspect BEFORE edits
+const hasWorker=validateWorker(); // inspect BEFORE edits, and do not write on a conflicting worker
+let renderer;
+try{({Resvg:renderer}=await import('@resvg/resvg-js'));}
+catch{fail('Raster renderer missing. Run npm install --no-save @resvg/resvg-js@2.6.2 in the shared PWA generator environment.');}
 if(!hasWorker){
  const serviceWorker=`self.APPS_PWA_CONFIG = {
  cacheName: '${c.short_name.toLowerCase().replace(/[^a-z0-9]+/g,'-')}-pwa-v1',
@@ -99,9 +101,6 @@ importScripts('https://nirav2000.github.io/Apps/pwa/v1/service-worker.js');
 }
 fs.mkdirSync(path.dirname(asset('x')), {recursive:true});
 for(const [file,content] of checks){const filename=path.join(appRoot,file);fs.mkdirSync(path.dirname(filename),{recursive:true});fs.writeFileSync(filename,content);}
-let renderer;
-try{({Resvg:renderer}=await import('@resvg/resvg-js'));}
-catch{fail('Raster renderer missing. Run npm install --no-save @resvg/resvg-js@2.6.2 in the shared PWA generator environment.');}
 for(const [filename,source,size] of [
  ['icon-180.png',svg,180],['icon-192.png',svg,192],
  ['icon-512.png',svg,512],['icon-maskable-512.png',mask,512]
@@ -120,5 +119,22 @@ if(!html.includes('Apps/pwa/v1/index.js')){
  html=html.replace('</body>',`<script type="module">import{initPWA}from'https://nirav2000.github.io/Apps/pwa/v1/index.js';initPWA({serviceWorkerUrl:'./sw.js',scope:'./'}).catch(console.warn);</script>\n</body>`);
 }
 fs.writeFileSync(htmlPath,html);
+// Preserve every existing precached lesson; add only PWA graphics and refresh the
+// cache version once, avoiding stale Home Screen graphics after a new release.
+const workerPath=path.join(appRoot,'sw.js');
+let worker=fs.readFileSync(workerPath,'utf8');
+const pending=['./icon.svg','./'+rel('icon-180.png'),'./'+rel('icon-192.png'),'./'+rel('icon-512.png'),'./'+rel('icon-maskable-512.png')]
+ .filter(file=>!worker.includes("'"+file+"'")&&!worker.includes('"'+file+'"'));
+if(pending.length){
+ const marker=/precache\s*:\s*\[/;
+ if(!marker.test(worker))fail('Existing worker has no readable precache array; update manually');
+ worker=worker.replace(marker,match=>match+pending.map(x=>JSON.stringify(x)).join(',')+',');
+ worker=worker.replace(/(cacheName\s*:\s*['"][^'"]*?v)(\d+)(['"])/,(_,a,n,b)=>a+(Number(n)+1)+b);
+ fs.writeFileSync(workerPath,worker);
+}
+if(flags.includes('--concept')&&c.concept!==concept){
+ c.concept=concept;
+ fs.writeFileSync(configPath,JSON.stringify(c,null,2)+'\n');
+}
 verify();
 console.log('[Apps PWA] Assets generated and shared integration retained. Inspect UI and publish the changes.');
