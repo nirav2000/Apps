@@ -92,3 +92,26 @@ export async function inclassFamilyNotesRoute(request,env,headers,url,{getGoogle
  const updated=await reply.json().catch(()=>({}));
  return Response.json({ok:true,notes:payload.notes,revision:updated.updateTime||null},{headers});
 }
+
+
+// A private, non-destructive health check. The Worker must verify an App Monitor
+// administrator passkey session BEFORE invoking this handler. Never return
+// Firestore document contents, bearer tokens, service account data, or UIDs.
+export async function inclassFamilyNotesHealth(env,{getGoogleToken,fetchImpl=fetch}={}){
+ const headers={'Cache-Control':'no-store'};
+ const status=(code,stage,detail)=>Response.json(
+   {ok:code===200,service:'inclass-family-notes',stage,...(detail?{detail}:{})},
+   {status:code,headers}
+ );
+ if(!env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON)return status(503,'firebase-credential-missing');
+ let token;
+ try{token=await getGoogleToken(env)}
+ catch{return status(503,'firebase-google-auth-failed')}
+ const check=docUrl('sai','backend-healthcheck');
+ let response;
+ try{response=await fetchImpl(check,{headers:{Authorization:'Bearer '+token},cache:'no-store'})}
+ catch{return status(502,'firestore-unreachable')}
+ if(response.status===200||response.status===404)return status(200,'ready');
+ if(response.status===401||response.status===403)return status(502,'firestore-permission-denied');
+ return status(502,'firestore-read-failed',String(response.status));
+}
