@@ -31,3 +31,13 @@ jobs:
           set -euo pipefail
           status=$(curl --fail --silent --show-error -H 'Origin: https://nirav2000.github.io' https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/security/status)
           node -e 'const x=JSON.parse(process.argv[1]);if(!x.ok||x.bootstrapNeeded||x.passkeyCount<1)throw Error("App Monitor administrator passkey not provisioned");console.log("App Monitor passkey service provisioned")' "$status"
+
+      - name: Verify InClass notes endpoint is deployed and access protected
+        run: |
+          set -euo pipefail
+          code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/inclass/family-notes/status')
+          if [ "$code" != "401" ]; then
+            echo "::error::InClass notes endpoint requires unauthenticated HTTP 401, received $code"
+            exit 1
+          fi
+          echo "Verified private health endpoint is deployed and rejects unauthenticated requests"
