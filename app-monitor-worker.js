@@ -1,7 +1,7 @@
 import { ownerDataRoute } from './app-monitor-owner-routes.js';
 import { handleRepositoryPrivacyRoute } from './app-monitor-repository-privacy.js';
 import { notesRoute } from './notes/v1/server.js';
-import { inclassFamilyNotesRoute } from './notes/v1/inclass-family-bridge.js';
+import { inclassFamilyNotesRoute, inclassFamilyNotesHealth } from './notes/v1/inclass-family-bridge.js';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
 import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
@@ -148,6 +148,13 @@ async function ownerGoogleToken(env){
 async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
+  if(url.pathname==='/app-monitor/inclass/family-notes/status'){
+    const session=await appMonitorSession(request,env);
+    if(!session.ok)return new Response('Unauthorized',{status:401,headers});
+    if(session.record.method!=='passkey')return new Response('Administrator passkey required',{status:403,headers});
+    if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers});
+    return inclassFamilyNotesHealth(env,{getGoogleToken:ownerGoogleToken});
+  }
   if(url.pathname==='/app-monitor/inclass/family-notes'){
     const session=await appMonitorSession(request,env);
     if(!session.ok)return new Response('Unauthorized',{status:401,headers});
