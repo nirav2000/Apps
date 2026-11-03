@@ -120,7 +120,8 @@ jobs:
           echo
           curl --fail --silent --show-error 'https://apps-monitor-api.nirav2000-github.workers.dev/health'
           echo
-          curl --fail --silent --show-error -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/security/status'
+          security_status=$(curl --fail --silent --show-error -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/security/status')
+          node -e 'const x=JSON.parse(process.argv[1]);if(!x.ok||x.bootstrapNeeded||x.passkeyCount<1)throw Error("App Monitor passkey backend is not provisioned");console.log("Verified passkey backend is provisioned")' "$security_status"
           echo
           code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/owner/data/dashboard')
           test "$code" = "401"
