@@ -26,18 +26,19 @@ jobs:
           node --check nvr-private-data.js
           node --test tests/nvr-private-data.test.mjs
           node --test tests/app-monitor-app-catalog.test.mjs
-      - name: Upload exact tested Worker version and promote it to 100%
+      - name: Promote existing tested NVR Worker version to 100%
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          npx wrangler versions upload -c wrangler-app-monitor.jsonc --message "Apps NVR private access from $GITHUB_SHA" | tee /tmp/nvr-upload.log
+          # A previous wrangler deploy uploaded the tested NVR code, but the edge still serves an old build.
+          # Re-promote the latest ALREADY-UPLOADED version. Versions upload cannot inherit the
+          # existing Firebase secret and must not be used without a carefully scoped secret file.
           npx wrangler versions list --name apps-monitor-api --json > /tmp/nvr-versions.json
-          # The last entry is the latest version in Wrangler's ascending list.
-          version=$(node -e 'const a=require("/tmp/nvr-versions.json");const s=a.at(-1);if(!s||! /^[0-9a-f-]{36}$/.test(s.id))process.exit(1);console.log(s.id)')
-          echo "Promoting freshly uploaded Worker version $version"
+          version=$(node -e 'const a=require("/tmp/nvr-versions.json");const s=a.at(-1);if(!s||! /^[0-9a-f-]{36}$/.test(s.id)||!s.metadata?.created_on?.startsWith("2026-11-09"))process.exit(1);console.log(s.id)')
+          echo "Re-promoting latest existing NVR Worker version $version"
           npx wrangler versions deploy "$version@100%" --name apps-monitor-api --yes -c wrangler-app-monitor.jsonc
           echo "NVR Worker version promoted to 100%; verify the /health release build below."
       - name: Confirm live protected NVR endpoint
