@@ -1,0 +1,42 @@
+name: Check NVR Worker preview versions
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-nvr-worker-versions.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Inspect Worker versions and public health without credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '== Test known working and newer version URLs =='
+          for prefix in 1c10d485 0bb46ca0 d5fa0def; do
+            url="https://$prefix-apps-monitor-api.nirav2000-github.workers.dev/health?probe=$GITHUB_SHA"
+            code=$(curl --silent --show-error --max-time 15 -o /tmp/nvr-probe.json -w '%{http_code}' "$url" || true)
+            echo "$prefix version preview status $code"
+            head -c 220 /tmp/nvr-probe.json || true
+            echo
+          done
+          echo '== Production health =='
+          curl -sS --max-time 15 \
+            "https://apps-monitor-api.nirav2000-github.workers.dev/health?probe=$GITHUB_SHA" || true
+          echo
+          echo '== Version binding-name counts (no secret values) =='
+          for version in 1c10d485-225b-47b5-a24b-929bad2f9ffd 0bb46ca0-65bc-4b45-b8e8-1ab55f31352d d5fa0def-7974-44d7-be30-4cf321733e8b; do
+            npx wrangler versions view "$version" --name apps-monitor-api --json > /tmp/nvr-version.json || continue
+            node -e 'const x=require("/tmp/nvr-version.json");const s=JSON.stringify(x);console.log(JSON.stringify({id:process.argv[1].slice(0,8),hasFirebaseName:s.includes("FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON"),hasBizGithubBindingName:s.includes("BIZ_CATALOG_GITHUB_TOKEN"),availableTopLevelFields:Object.keys(x)}))' "$version"
+          done
