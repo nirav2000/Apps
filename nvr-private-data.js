@@ -186,7 +186,40 @@ export function validateNvrNotes(value) {
       !note || typeof note !== 'object' || Array.isArray(note) ||
       typeof note.bookmarked !== 'boolean' ||
       typeof note.text !== 'string' || note.text.length > 5000) return null;
-    result[id] = {bookmarked:note.bookmarked,text:note.text};
+
+    // Optional observations are user-entered; never infer a child's thinking from scores.
+    const saved = {bookmarked:note.bookmarked,text:note.text};
+    if (note.reasoning !== undefined) {
+      if (typeof note.reasoning !== 'string' || note.reasoning.length > 2000) return null;
+      saved.reasoning = note.reasoning;
+    }
+    const allowed = {
+      confidence:['','sure','unsure','guess','cannot_recall'],
+      barrier:['','rotation','position','shading','counting','multiple_rules','spatial_3d','rushed','other','unknown'],
+      support:['','independent','hint','guided','cannot_explain'],
+      outcome:['','explained','needed_help','not_yet']
+    };
+    for (const [key, choices] of Object.entries(allowed)) {
+      if (note[key] === undefined) continue;
+      if (typeof note[key] !== 'string' || !choices.includes(note[key])) return null;
+      saved[key] = note[key];
+    }
+    if (note.reviewedAt !== undefined) {
+      if (typeof note.reviewedAt !== 'string' ||
+        (note.reviewedAt && (note.reviewedAt.length > 40 ||
+          !note.reviewedAt.startsWith('20') ||
+          !Number.isFinite(Date.parse(note.reviewedAt))))) return null;
+      saved.reviewedAt = note.reviewedAt;
+    }
+    if (note.attempts !== undefined || note.successes !== undefined) {
+      if (!id.startsWith('practice::') ||
+        !Number.isSafeInteger(note.attempts) || note.attempts < 0 || note.attempts > 10000 ||
+        !Number.isSafeInteger(note.successes) || note.successes < 0 ||
+        note.successes > note.attempts) return null;
+      saved.attempts = note.attempts;
+      saved.successes = note.successes;
+    }
+    result[id] = saved;
   }
   return result;
 }

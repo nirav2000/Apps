@@ -64,3 +64,25 @@ test('rejects malformed notes and script-bearing SVG data',async()=>{
   const result=await handleNvrDataRoute(new Request(endpoint+'assets/asset-0001.svg'),env,{});
   assert.equal(result.status,415);
 });
+
+test('optional coaching observations survive the authenticated notes round trip',async()=>{
+  const env=makeEnv();
+  const entry={bookmarked:false,text:'Parent comment',reasoning:'I counted cubes but forgot the rear face.',
+    confidence:'unsure',barrier:'spatial_3d',support:'hint',outcome:'needed_help',reviewedAt:'2026-11-09T22:00:00.000Z'};
+  const practice={bookmarked:false,text:'',attempts:2,successes:1};
+  const notes={'session::4':entry,'practice::cube-net-opposites':practice};
+  const put=await handleNvrDataRoute(new Request(endpoint+'notes',{method:'PUT',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({notes})}),env,{});
+  assert.equal(put.status,200);
+  const get=await handleNvrDataRoute(new Request(endpoint+'notes'),env,{});
+  assert.deepEqual((await get.json()).notes,notes);
+});
+test('rejects invalid review codes and corrupted drill counts',()=>{
+  const base={bookmarked:false,text:''};
+  assert.equal(validateNvrNotes({'a::1':{...base,confidence:'mind-reader'}}),null);
+  assert.equal(validateNvrNotes({'a::1':{...base,reasoning:'x'.repeat(2001)}}),null);
+  assert.equal(validateNvrNotes({'a::1':{...base,attempts:3,successes:4}}),null);
+  assert.equal(validateNvrNotes({'practice::a':{...base,attempts:3,successes:4}}),null);
+  assert.equal(validateNvrNotes({'practice::a':{...base,attempts:2,successes:1}})['practice::a'].successes,1);
+  assert.deepEqual(validateNvrNotes({'old::1':{...base}})['old::1'],base);
+});
