@@ -7,6 +7,8 @@ on:
     paths:
       - "app-monitor-worker.js"
       - "app-monitor-repository-privacy.js"
+      - "app-monitor-app-catalog.js"
+      - "tests/app-monitor-app-catalog.test.mjs"
       - "app-monitor-repository-privacy.test.mjs"
       - "notes/v1/server.js"
       - "notes/v1/inclass-family-bridge.js"
@@ -51,6 +53,8 @@ jobs:
       - name: Test Owner Console data layer
         run: |
           node --experimental-default-type=module --check app-monitor-repository-privacy.js
+          node --experimental-default-type=module --check app-monitor-app-catalog.js
+          node --experimental-default-type=module --test tests/app-monitor-app-catalog.test.mjs
           node --experimental-default-type=module --check app-monitor-privacy.js
           node --experimental-default-type=module --test app-monitor-repository-privacy.test.mjs
           node --check app-monitor-owner-data.js
@@ -131,3 +135,5 @@ jobs:
           echo
           privacy_code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/repository-privacy')
           test "$privacy_code" = "401"
+          catalogue_code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/apps-catalog')
+          test "$catalogue_code" = "401"
