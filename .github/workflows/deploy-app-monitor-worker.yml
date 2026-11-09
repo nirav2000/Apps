@@ -92,6 +92,7 @@ jobs:
         run: |
           npx wrangler secret list --name apps-monitor-api --format json > "$RUNNER_TEMP/app-monitor-secret-names.json"
           node -e 'const fs=require("node:fs");const items=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/app-monitor-secret-names.json","utf8"));if(!Array.isArray(items)||!items.some(x=>x.name==="FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON")){console.error("App Monitor Firebase administrator credential is missing");process.exit(1)}console.log("Verified Firebase secret binding is present (value not accessed)")'
+          node -e 'const fs=require("node:fs");const a=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/app-monitor-secret-names.json","utf8"));const names=new Set(a.map(x=>x.name));const available=["BIZ_CATALOG_GITHUB_TOKEN","REPOSITORY_PRIVACY_GITHUB_TOKEN","NOTES_GITHUB_ISSUES_TOKEN"].filter(x=>names.has(x));if(available.length)console.log("Biz private catalogue: candidate GitHub read token exists ("+available.join(", ")+"); access to private Biz repository is not verified");else console.log("::warning title=Biz catalogue credential missing::Set a BIZ_CATALOG_GITHUB_TOKEN Worker secret with Contents Read-only access to nirav2000/Biz to enable the passkey portfolio")'
       - name: Deploy dedicated worker
         if: steps.creds.outputs.available == 'true'
         env:
