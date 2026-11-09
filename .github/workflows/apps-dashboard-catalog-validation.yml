@@ -1,0 +1,50 @@
+name: Validate Apps catalogue and Biz portfolio
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "apps-data.json"
+      - "apps-passkey-auth.js"
+      - "biz-portfolio.css"
+      - "js/app.js"
+      - "js/data.js"
+      - "js/biz-portfolio.js"
+      - "js/site-folders.js"
+      - "js/catalog-merge.js"
+      - "app-monitor-app-catalog.js"
+      - "app-monitor-worker.js"
+      - "tests/dashboard-catalog.contract.test.mjs"
+      - "tests/catalog-merge.test.mjs"
+      - "tests/site-folder-discovery.test.mjs"
+      - "tests/app-monitor-app-catalog.test.mjs"
+      - ".github/workflows/apps-dashboard-catalog-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: |
+          node --check js/app.js
+          node --check js/data.js
+          node --check js/site-folders.js
+          node --check js/catalog-merge.js
+          node --check js/biz-portfolio.js
+          node --check apps-passkey-auth.js
+          node --check app-monitor-app-catalog.js
+      - name: Verify catalogue and privacy contracts
+        run: |
+          node --experimental-default-type=module --test \
+            tests/dashboard-catalog.contract.test.mjs \
+            tests/catalog-merge.test.mjs \
+            tests/site-folder-discovery.test.mjs \
+            tests/app-monitor-app-catalog.test.mjs
