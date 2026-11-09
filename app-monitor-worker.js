@@ -1,12 +1,13 @@
 import { ownerDataRoute } from './app-monitor-owner-routes.js';
 import { handleRepositoryPrivacyRoute } from './app-monitor-repository-privacy.js';
 import { handleBizAppsCatalog } from './app-monitor-app-catalog.js';
+import { handleNvrDataRoute } from './nvr-private-data.js';
 import { notesRoute } from './notes/v1/server.js';
 import { inclassFamilyNotesRoute, inclassFamilyNotesHealth } from './notes/v1/inclass-family-bridge.js';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
 import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
-const WORKER_BUILD='2026.11.09.biz-catalog-v1';
+const WORKER_BUILD='2026.11.09.nvr-private-v1';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -161,6 +162,12 @@ async function appMonitorRoute(request,env,headers,url){
     if(!session.ok)return new Response('Unauthorized',{status:401,headers});
     if(session.record.method!=='passkey')return new Response('Administrator passkey required',{status:403,headers});
     return inclassFamilyNotesRoute(request,env,headers,url,{getGoogleToken:ownerGoogleToken});
+  }
+  if(url.pathname.startsWith('/app-monitor/nvr/')){
+    const session=await appMonitorSession(request,env);
+    if(!session.ok)return new Response('Unauthorized',{status:401,headers:{...headers,'Cache-Control':'no-store'}});
+    if(session.record.method!=='passkey')return new Response('Administrator passkey required',{status:403,headers:{...headers,'Cache-Control':'no-store'}});
+    return handleNvrDataRoute(request,env,headers,url);
   }
   if(url.pathname==='/app-monitor/apps-catalog'){
     const session=await appMonitorSession(request,env);

@@ -8,6 +8,8 @@ on:
       - "app-monitor-worker.js"
       - "app-monitor-repository-privacy.js"
       - "app-monitor-app-catalog.js"
+      - "nvr-private-data.js"
+      - "tests/nvr-private-data.test.mjs"
       - "tests/app-monitor-app-catalog.test.mjs"
       - "app-monitor-repository-privacy.test.mjs"
       - "notes/v1/server.js"
@@ -55,6 +57,8 @@ jobs:
           node --experimental-default-type=module --check app-monitor-repository-privacy.js
           node --experimental-default-type=module --check app-monitor-app-catalog.js
           node --experimental-default-type=module --test tests/app-monitor-app-catalog.test.mjs
+          node --experimental-default-type=module --check nvr-private-data.js
+          node --experimental-default-type=module --test tests/nvr-private-data.test.mjs
           node --experimental-default-type=module --check app-monitor-privacy.js
           node --experimental-default-type=module --test app-monitor-repository-privacy.test.mjs
           node --check app-monitor-owner-data.js
@@ -146,3 +150,6 @@ jobs:
             sleep 3
           done
           test "$catalogue_code" = "401"
+          nvr_code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/nvr/activities')
+          echo "Private NVR endpoint unauthenticated HTTP: $nvr_code"
+          test "$nvr_code" = "401"
