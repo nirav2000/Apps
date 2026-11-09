@@ -26,19 +26,22 @@ jobs:
           node --check nvr-private-data.js
           node --test tests/nvr-private-data.test.mjs
           node --test tests/app-monitor-app-catalog.test.mjs
-      - name: Promote existing tested NVR Worker version to 100%
+      - name: Promote verified and complete NVR Worker version to 100%
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          # A previous wrangler deploy uploaded the tested NVR code, but the edge still serves an old build.
-          # Re-promote the latest ALREADY-UPLOADED version. Versions upload cannot inherit the
-          # existing Firebase secret and must not be used without a carefully scoped secret file.
-          npx wrangler versions list --name apps-monitor-api --json > /tmp/nvr-versions.json
-          version=$(node -e 'const a=require("/tmp/nvr-versions.json");const s=a.at(-1);if(!s||! /^[0-9a-f-]{36}$/.test(s.id)||!s.metadata?.created_on?.startsWith("2026-11-09"))process.exit(1);console.log(s.id)')
-          echo "Re-promoting latest existing NVR Worker version $version"
+          # This version was uploaded by the regular Worker workflow and verified using
+          # the version-specific preview URL. It contains NVR and all required bindings.
+          version='0bb46ca0-65bc-4b45-b8e8-1ab55f31352d'
+          npx wrangler versions view "$version" --name apps-monitor-api --json > /tmp/nvr-verified-version.json
+          node -e 'const v=require("/tmp/nvr-verified-version.json");const s=JSON.stringify(v.resources);for(const n of ["FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON","APP_MONITOR_DATA","BIZ_CATALOG_GITHUB_TOKEN"]){if(!s.includes(n))throw Error("Verified Worker version missing required binding: "+n)}console.log("Verified three required binding names; values not inspected")'
+          preview=$(curl --silent --show-error --fail \
+            'https://0bb46ca0-apps-monitor-api.nirav2000-github.workers.dev/health')
+          node -e 'const d=JSON.parse(process.argv[1]);if(d.build!=="2026.11.09.nvr-private-v1"||!d.r2Bound)throw Error("NVR preview version is not healthy");console.log("Verified NVR preview build and R2 binding")' "$preview"
+          echo "Promoting validated NVR Worker version $version to 100% of traffic"
           npx wrangler versions deploy "$version@100%" --name apps-monitor-api --yes -c wrangler-app-monitor.jsonc
           echo "NVR Worker version promoted to 100%; verify the /health release build below."
       - name: Confirm live protected NVR endpoint
