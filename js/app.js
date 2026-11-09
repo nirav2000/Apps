@@ -1,6 +1,7 @@
 import { OWNER_WITH_CURATED_DATA } from './constants.js';
 import { fetchAllRepos, fetchCuratedAppsData, toGenericCard } from './data.js';
 import { applyView, renderTiles, setStatus } from './render.js';
+import { mergeCuratedAndDiscovered } from './catalog-merge.js';
 
 const grid = document.getElementById('grid');
 const statusEl = document.getElementById('status');
@@ -56,19 +57,17 @@ async function loadDashboard() {
       applyCurrentView();
       try {
         const repos = await fetchAllRepos(username);
-        const curated = new Map(cachedPagesRepos.map(card => [card.repoUrl.toLowerCase().replace(/\/$/, ''), card]));
-        for (const repo of repos.filter(repo => repo.has_pages)) {
-          const live = toGenericCard(repo);
-          const key = live.repoUrl.toLowerCase().replace(/\/$/, '');
-          curated.set(key, { ...live, ...(curated.get(key) || {}), updatedAt: live.updatedAt });
-        }
-        cachedPagesRepos = [...curated.values()];
+        cachedPagesRepos = mergeCuratedAndDiscovered(cachedPagesRepos, repos, toGenericCard);
         localStorage.setItem('apps-discovered-v1', JSON.stringify(cachedPagesRepos));
       } catch (error) {
         try {
           const cached = JSON.parse(localStorage.getItem('apps-discovered-v1') || '[]');
-          const cards = new Map(cachedPagesRepos.map(card => [card.repoUrl, card]));
-          cached.forEach(card => { if (!cards.has(card.repoUrl)) cards.set(card.repoUrl, card); });
+          const urlKey = card => String(card.appUrl || '').trim().toLowerCase().replace(/\/$/, '');
+          const cards = new Map(cachedPagesRepos.map(card => [urlKey(card), card]));
+          cached.forEach(card => {
+            if (card && /^https:\/\/nirav2000\.github\.io\//i.test(card.appUrl || '') &&
+              !cards.has(urlKey(card))) cards.set(urlKey(card), card);
+          });
           cachedPagesRepos = [...cards.values()];
         } catch { /* Curated catalogue remains usable. */ }
         applyCurrentView();

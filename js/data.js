@@ -74,7 +74,10 @@ export async function fetchAllRepos(username, endpointType = 'users') {
 }
 
 export function toGenericCard(repo) {
-  const appUrl = repo.homepage && repo.homepage.trim() ? repo.homepage.trim() : `https://${repo.owner.login}.github.io/${repo.name}/`;
+  const defaultUrl = repo.name.toLowerCase() === (repo.owner.login + '.github.io').toLowerCase()
+    ? `https://${repo.owner.login}.github.io/`
+    : `https://${repo.owner.login}.github.io/${repo.name}/`;
+  const appUrl = repo.homepage && repo.homepage.trim() ? repo.homepage.trim() : defaultUrl;
   const fallbackImage = screenshotFromUrl(appUrl);
   const curatedPreview = APP_SPECIFIC_PREVIEWS[repo.name] || null;
   return {

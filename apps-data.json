@@ -173,7 +173,7 @@
   {
     "name": "nirav2000.github.io",
     "repoUrl": "https://github.com/nirav2000/nirav2000.github.io",
-    "appUrl": "https://nirav2000.github.io/nirav2000.github.io/",
+    "appUrl": "https://nirav2000.github.io/",
     "title": "nirav2000.github.io",
     "blurb": "Interactive learning app published with GitHub Pages for quick practice sessions.",
     "updatedAt": "2026-02-04T19:57:26Z",
@@ -360,5 +360,21 @@
     "repoUrl": "https://github.com/nirav2000/Grammar-Tree-Coach",
     "appUrl": "https://nirav2000.github.io/Grammar-Tree-Coach/",
     "updatedAt": "2026-09-11T00:00:00Z"
+  },
+  {
+    "name": "GPSites",
+    "title": "GP Website Intelligence",
+    "blurb": "Explore UK GP practice website suppliers, technology signals and public research coverage.",
+    "repoUrl": "https://github.com/nirav2000/Biz",
+    "appUrl": "https://nirav2000.github.io/GPSites/",
+    "updatedAt": "2026-10-29T13:12:36Z"
+  },
+  {
+    "name": "SightReadStudio",
+    "title": "SightRead Studio",
+    "blurb": "Piano sight-reading practice and MIDI assessment, from fundamentals towards Grade 3.",
+    "repoUrl": "https://github.com/nirav2000/nirav2000.github.io",
+    "appUrl": "https://nirav2000.github.io/SightReadStudio/",
+    "updatedAt": "2026-11-02T22:31:35Z"
   }
 ]
