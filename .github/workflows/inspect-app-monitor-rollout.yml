@@ -1,0 +1,38 @@
+name: Inspect App Monitor Worker rollout
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-app-monitor-rollout.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Wrangler
+        run: npm install --no-audit --no-fund
+      - name: Inspect active deployment and uploaded versions
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          echo "== Remote deployed versions =="
+          npx wrangler deployments list --name apps-monitor-api --json > /tmp/worker-deployments.json
+          node -e 'const x=require("/tmp/worker-deployments.json");console.log(JSON.stringify((Array.isArray(x)?x:[]).slice(0,5),null,2))'
+          echo "== Most recent uploaded versions =="
+          npx wrangler versions list --name apps-monitor-api --json > /tmp/worker-versions.json
+          node -e 'const x=require("/tmp/worker-versions.json");console.log(JSON.stringify((Array.isArray(x)?x:[]).slice(0,5),null,2))'
+          echo "== Live health and unauthed NVR status =="
+          curl --fail --silent --show-error --location \
+            "https://apps-monitor-api.nirav2000-github.workers.dev/health?probe=$GITHUB_SHA"
+          echo
+          curl --silent --show-error --output /dev/null --write-out 'NVR endpoint HTTP %{http_code}\n' \
+            -H 'Origin: https://nirav2000.github.io' \
+            "https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/nvr/activities?probe=$GITHUB_SHA"
