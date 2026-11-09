@@ -12,8 +12,9 @@ test('public catalogue has unique live URL cards for both hosted folders', () =>
     assert.ok(card, 'Missing public app ' + id);
     assert.match(card.appUrl, /^https:\/\/nirav2000\.github\.io\//);
   }
-  assert.equal(cards.some(card => /nvr/i.test(card.name)), false,
-    'Never expose child assessment prototype in public catalogue');
+  const nvr = cards.find(card => card.name === 'NVR');
+  assert.equal(nvr?.appUrl, 'https://nirav2000.github.io/NVR/');
+  assert.match(nvr?.title || '', /Passkey Required/);
 });
 
 test('dashboard loads passkey client before private catalogue module', () => {
