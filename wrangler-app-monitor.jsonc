@@ -4,6 +4,7 @@
   "main": "app-monitor-worker.js",
   "compatibility_date": "2026-09-24",
   "workers_dev": true,
+  "keep_vars": true,
   "secrets": {"required": ["FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON"]},
   "observability": {
     "enabled": true
