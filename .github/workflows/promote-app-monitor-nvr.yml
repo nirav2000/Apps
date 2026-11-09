@@ -1,0 +1,63 @@
+name: Promote verified App Monitor NVR API version
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/promote-app-monitor-nvr.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-app-monitor-worker
+  cancel-in-progress: false
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate private NVR routes before promotion
+        run: |
+          npm install --no-audit --no-fund
+          node --check app-monitor-worker.js
+          node --check nvr-private-data.js
+          node --test tests/nvr-private-data.test.mjs
+          node --test tests/app-monitor-app-catalog.test.mjs
+      - name: Upload exact tested Worker version and promote it to 100%
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler versions upload -c wrangler-app-monitor.jsonc --message "Apps NVR private access from $GITHUB_SHA" | tee /tmp/nvr-upload.log
+          npx wrangler versions list --name apps-monitor-api --json > /tmp/nvr-versions.json
+          # The last entry is the latest version in Wrangler's ascending list.
+          version=$(node -e 'const a=require("/tmp/nvr-versions.json");const s=a.at(-1);if(!s||! /^[0-9a-f-]{36}$/.test(s.id))process.exit(1);console.log(s.id)')
+          echo "Promoting freshly uploaded Worker version $version"
+          npx wrangler versions deploy "$version@100%" --name apps-monitor-api --yes -c wrangler-app-monitor.jsonc
+          echo "NVR Worker version promoted to 100%; verify the /health release build below."
+      - name: Confirm live protected NVR endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='2026.11.09.nvr-private-v1'
+          for attempt in $(seq 1 30); do
+            json=$(curl --silent --show-error --fail \
+              "https://apps-monitor-api.nirav2000-github.workers.dev/health?release=$GITHUB_SHA&attempt=$attempt" || true)
+            build=$(node -p 'JSON.parse(process.argv[1]).build' "$json" 2>/dev/null || true)
+            if [ "$build" = "$expected" ]; then
+              code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' \
+                "https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/nvr/activities?attempt=$attempt")
+              echo "Live Worker version $build; unauthenticated NVR status $code"
+              test "$code" = '401'
+              exit 0
+            fi
+            echo "Live Worker build is $build; awaiting $expected (attempt $attempt)"
+            sleep 3
+          done
+          echo "::error::Worker still serves the previous build after promotion; inspect Cloudflare Workers deployments."
+          exit 1
