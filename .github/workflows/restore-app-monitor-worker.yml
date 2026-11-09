@@ -1,0 +1,53 @@
+name: Restore last verified App Monitor Worker
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/restore-app-monitor-worker.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-app-monitor-worker
+  cancel-in-progress: false
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Restore previously verified passkey/Apps Worker version
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          # Version 1c10 was deployed successfully at 12:09:53 UTC and served
+          # build 2026.11.09.biz-catalog-v1 with working passkey endpoints.
+          npx wrangler versions deploy '1c10d485-225b-47b5-a24b-929bad2f9ffd@100%' \
+            --name apps-monitor-api --yes -c wrangler-app-monitor.jsonc
+          echo 'Restored previously verified passkey service; private NVR extension is not in this version.'
+      - name: Verify previously working authenticated API is serving
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 24); do
+            code=$(curl --silent --show-error -o /tmp/app-monitor-restore-health.json -w '%{http_code}' \
+              "https://apps-monitor-api.nirav2000-github.workers.dev/health?restore=$GITHUB_SHA&attempt=$attempt" || true)
+            if [ "$code" = '200' ]; then
+              build=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/app-monitor-restore-health.json","utf8")).build' 2>/dev/null || true)
+              if [ "$build" = '2026.11.09.biz-catalog-v1' ]; then
+                auth=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
+                  -H 'Origin: https://nirav2000.github.io' \
+                  'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/security/status')
+                test "$auth" = '200'
+                echo "Verified App Monitor restored: $build with passkey status HTTP 200"
+                exit 0
+              fi
+            fi
+            sleep 3
+          done
+          echo "::error::Previous App Monitor Worker version not yet serving on workers.dev"
+          exit 1
