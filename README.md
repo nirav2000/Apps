@@ -78,3 +78,17 @@ It provides:
 Consuming apps should keep only their own `validation.config.json` and domain-specific scenario fixtures. OpenDay is the reference consumer.
 
 See `validation/README.md` and `shared-libraries.html`.
+
+## Biz business applications in the dashboard
+
+The public [Apps dashboard](https://nirav2000.github.io/Apps/) now explicitly lists the public `GPSites/` and `SightReadStudio/` folders, even though they share deployment repositories with other apps. The catalogue merge uses each app's **live URL** as its identity, not the source repository URL.
+
+The **My Biz applications** section uses the existing App Monitor administrator passkey. It shares the `app-monitor.admin-session.v2` browser session and verifies that a session was created using a real passkey, not a recovery token. Unauthenticated visitors cannot read the private Biz manifest or private app cards. Signing out also ends that shared App Monitor session.
+
+The private source of truth is `nirav2000/Biz/apps-manifest.json` (owner-only). The App Monitor Worker route `GET /app-monitor/apps-catalog` verifies the passkey session on the server, reads the manifest through a server-side GitHub read credential and emits only validated titles, descriptions, status and links. It does **not** expose raw data, private source code, diagrams, tokens or a student's assessment records. Private prototypes get a source link but no false live-app link. New Biz ideas should register in that manifest as part of their creation.
+
+### One-time backend token configuration
+
+Use a GitHub fine-grained token granting **Contents: Read-only** to **`nirav2000/Biz` only**, saved directly as a **Cloudflare Worker secret** named `BIZ_CATALOG_GITHUB_TOKEN` for `apps-monitor-api`. Do not add the token to Git, the public site, or a chat message. The Worker can reuse an already configured `REPOSITORY_PRIVACY_GITHUB_TOKEN` or `NOTES_GITHUB_ISSUES_TOKEN` **only if** that credential has read access to the private Biz repository. Without a suitably authorised Worker secret, the private section fails closed with an explicit configuration message.
+
+Publishing an app requires a separate reviewed public-only GitHub Actions workflow. A private source folder and its protected data are not made public just by appearing in the passkey catalogue. In particular, NVR assessment data stays entirely outside GitHub Pages.

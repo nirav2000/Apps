@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GitHub Pages Super Dashboard</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="biz-portfolio.css" />
   </head>
   <body>
     <header class="header">
@@ -41,6 +42,31 @@
     </section>
 
     <main>
+      <section class="biz-portfolio" aria-labelledby="bizPortfolioTitle">
+        <div class="biz-portfolio-top">
+          <div>
+            <p class="biz-eyebrow">BUSINESS PORTFOLIO</p>
+            <h2 id="bizPortfolioTitle">My Biz applications</h2>
+            <p>Apps developed in the private Biz repository, including projects that are not yet published.</p>
+          </div>
+          <span class="biz-auth-indicator" id="bizAuthState">Passkey required</span>
+        </div>
+        <div class="biz-login" id="bizLogin">
+          <button type="button" id="bizPasskeyBtn">Unlock with Apps passkey</button>
+          <a href="app-monitor.html">Manage passkeys in App Monitor</a>
+          <span id="bizLoginMessage" role="status" aria-live="polite">Private app details are hidden until you sign in.</span>
+        </div>
+        <div class="biz-unlocked" id="bizUnlocked" hidden>
+          <div class="biz-actions">
+            <p id="bizSourceStatus" role="status" aria-live="polite">Loading private app catalogue…</p>
+            <div>
+              <button id="bizRefresh" type="button">Refresh list</button>
+              <button id="bizLogout" type="button">Sign out</button>
+            </div>
+          </div>
+          <div id="bizCards" class="biz-cards" aria-live="polite"></div>
+        </div>
+      </section>
       <p id="status" role="status" aria-live="polite"></p>
       <section id="grid" class="tile-grid" aria-label="GitHub Pages apps"></section>
     </main>
@@ -62,6 +88,8 @@
       </article>
     </template>
 
+    <script src="apps-passkey-auth.js"></script>
+    <script src="js/biz-portfolio.js" type="module"></script>
     <script src="js/app.js" type="module"></script>
       <script>window.APP_MONITOR_APP="Apps";</script>\n    <script src="./app-monitor.js?v=2"></script>\n  </body>
 </html>

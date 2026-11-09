@@ -1,0 +1,122 @@
+/* The Biz project catalogue is private until the existing App Monitor passkey is verified. */
+.biz-portfolio {
+  max-width: 1200px;
+  margin: 1.45rem auto 1.7rem;
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  background: linear-gradient(145deg, #182644, #0d1a32);
+  border: 1px solid #385273;
+  border-radius: 1.25rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, .14);
+}
+.biz-portfolio-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.biz-portfolio-top h2 {
+  font-size: 1.4rem;
+  margin: 0.35rem 0;
+}
+.biz-portfolio-top p {
+  font-size: .94rem;
+  line-height: 1.5;
+}
+.biz-portfolio-top .biz-eyebrow {
+  color: #9bbfff;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+.biz-auth-indicator {
+  display: inline-flex;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-items: center;
+  padding: .37rem .75rem;
+  border-radius: 999px;
+  background: #28374f;
+  border: 1px solid #52617a;
+  color: #d7e2f7;
+  font-size: .8rem;
+  font-weight: 600;
+}
+.biz-auth-indicator.authenticated {
+  background: #103f36;
+  border-color: #2a8b71;
+  color: #bfffea;
+}
+.biz-login {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .85rem;
+  margin-top: 1.1rem;
+}
+.biz-login button,
+.biz-actions button {
+  width: auto;
+  min-height: 2.7rem;
+}
+.biz-login a,
+.biz-actions a,
+.biz-card a {
+  color: #a9caff;
+}
+.biz-login #bizLoginMessage {
+  flex-basis: 100%;
+  color: #b8c8e0;
+  font-size: .84rem;
+}
+.biz-login[hidden], .biz-unlocked[hidden] { display: none !important; }
+.biz-unlocked { margin-top: 1.15rem; }
+.biz-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: .8rem;
+  margin-bottom: .9rem;
+}
+.biz-actions p {
+  color: #c0cce2;
+  font-size: .85rem;
+  line-height: 1.5;
+  flex: 1 1 260px;
+}
+.biz-actions > div { display: flex; gap: .6rem; }
+.biz-actions #bizRefresh, .biz-actions #bizLogout {
+  background: #233954;
+  border-color: #4a6689;
+}
+.biz-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 275px), 1fr));
+  gap: .85rem;
+}
+.biz-card {
+  background: #0b182d;
+  border: 1px solid #354865;
+  padding: 1rem;
+  border-radius: .92rem;
+  min-width: 0;
+}
+.biz-card h3 { font-size: 1.08rem; margin: .4rem 0 .55rem; }
+.biz-card p { font-size: .91rem; line-height: 1.48; color: #bccbe0; }
+.biz-card-status {
+  display: inline-flex;
+  font-size: .75rem;
+  padding: .23rem .54rem;
+  border-radius: 999px;
+  color: #d5ddef;
+  border: 1px solid #66748c;
+}
+.biz-card-status.published { border-color: #398977; color: #b8ffe9; }
+.biz-card-status.development { border-color: #b18c49; color: #ffdc97; }
+.biz-card-links { margin-top: .9rem; display: flex; flex-wrap: wrap; gap: .9rem; }
+.biz-card-links a { font-size: .87rem; font-weight: 650; }
+@media (max-width: 600px) {
+  .biz-portfolio-top { flex-direction: column; }
+  .biz-actions { align-items: flex-start; }
+  .biz-actions > div { flex-wrap: wrap; }
+}
