@@ -104,7 +104,20 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npx wrangler whoami
-          npx wrangler deploy -c wrangler-app-monitor.jsonc
+          # Cloudflare may intermittently return an HTTP 504 when uploading a Worker version.
+          # Retain dashboard-managed private GitHub credentials (keep_vars) on every attempt.
+          for attempt in 1 2 3; do
+            if npx wrangler deploy -c wrangler-app-monitor.jsonc; then
+              echo "Worker deployed on attempt $attempt"
+              exit 0
+            fi
+            if [ "$attempt" = "3" ]; then
+              echo "::error::Cloudflare Worker deployment failed after three attempts."
+              exit 1
+            fi
+            echo "::warning::Cloudflare deploy attempt $attempt failed; retrying after a short delay."
+            sleep 8
+          done
       - name: Smoke test
         if: steps.creds.outputs.available == 'true'
         run: |
