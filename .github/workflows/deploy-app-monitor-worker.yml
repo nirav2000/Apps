@@ -134,6 +134,14 @@ jobs:
           test "$notes_code" = "401"
           echo
           privacy_code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/repository-privacy')
+          echo "Repository privacy unauthed HTTP: $privacy_code"
           test "$privacy_code" = "401"
-          catalogue_code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/apps-catalog')
+          # The new route can propagate to Cloudflare edges slightly after /health.
+          catalogue_code=''
+          for attempt in $(seq 1 12); do
+            catalogue_code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' "https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/apps-catalog?release=$GITHUB_SHA&attempt=$attempt")
+            echo "Private catalogue unauthenticated HTTP: $catalogue_code (attempt $attempt)"
+            if [ "$catalogue_code" = "401" ]; then break; fi
+            sleep 3
+          done
           test "$catalogue_code" = "401"

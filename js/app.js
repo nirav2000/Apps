@@ -1,5 +1,5 @@
 import { OWNER_WITH_CURATED_DATA } from './constants.js';
-import { fetchAllRepos, fetchCuratedAppsData, toGenericCard } from './data.js';
+import { fetchAllRepos, fetchCuratedAppsData, fetchHostedPageFolders, toGenericCard } from './data.js';
 import { applyView, renderTiles, setStatus } from './render.js';
 import { mergeCuratedAndDiscovered } from './catalog-merge.js';
 
@@ -58,6 +58,19 @@ async function loadDashboard() {
       try {
         const repos = await fetchAllRepos(username);
         cachedPagesRepos = mergeCuratedAndDiscovered(cachedPagesRepos, repos, toGenericCard);
+        // Independent public apps can live in folders of the same Pages repository.
+        // A failed GitHub tree lookup does not hide the curated catalogue.
+        try {
+          const pageRepo = repos.find(repo => repo.name === username + '.github.io');
+          const folders = await fetchHostedPageFolders(pageRepo?.pushed_at);
+          const known = new Set(cachedPagesRepos.map(card => card.appUrl.toLowerCase().replace(/\/$/, '')));
+          folders.forEach(card => {
+            const key = card.appUrl.toLowerCase().replace(/\/$/, '');
+            if (!known.has(key)) { known.add(key); cachedPagesRepos.push(card); }
+          });
+        } catch (error) {
+          console.warn('Shared Pages folder discovery unavailable; curated apps are preserved.', error);
+        }
         localStorage.setItem('apps-discovered-v1', JSON.stringify(cachedPagesRepos));
       } catch (error) {
         try {

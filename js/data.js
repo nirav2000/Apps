@@ -1,4 +1,5 @@
 import { APP_SPECIFIC_PREVIEWS, OWNER_WITH_CURATED_DATA } from './constants.js';
+import { rootPublishedAppFolders } from './site-folders.js';
 
 const repoUrl = (owner, repo) => `https://github.com/${owner}/${repo}`;
 const previewTarget = (url) => {
@@ -90,4 +91,23 @@ export function toGenericCard(repo) {
     repoUrl: repoUrl(repo.owner.login, repo.name),
     updatedAt: repo.pushed_at
   };
+}
+
+export async function fetchHostedPageFolders(updatedAt = '') {
+  // One GitHub API request discovers newly published folders even when they share a repository.
+  const response = await fetch('https://api.github.com/repos/nirav2000/nirav2000.github.io/git/trees/main?recursive=1', {
+    headers: { Accept: 'application/vnd.github+json' }
+  });
+  if (!response.ok) throw Error('Hosted folder discovery unavailable (' + response.status + ')');
+  const folders = rootPublishedAppFolders(await response.json());
+  const source = 'https://github.com/nirav2000/nirav2000.github.io';
+  return folders.map(name => {
+    const appUrl = 'https://nirav2000.github.io/' + name + '/';
+    const preview = screenshotFromUrl(appUrl);
+    return {
+      name, title: name, blurb: 'Published web app hosted in the shared GitHub Pages repository.',
+      image: preview, fallbackImage: preview, appUrl, repoUrl: source,
+      updatedAt: updatedAt || '1970-01-01T00:00:00Z'
+    };
+  });
 }

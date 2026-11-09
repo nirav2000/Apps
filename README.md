@@ -92,3 +92,7 @@ The private source of truth is `nirav2000/Biz/apps-manifest.json` (owner-only). 
 Use a GitHub fine-grained token granting **Contents: Read-only** to **`nirav2000/Biz` only**, saved directly as a **Cloudflare Worker secret** named `BIZ_CATALOG_GITHUB_TOKEN` for `apps-monitor-api`. Do not add the token to Git, the public site, or a chat message. The Worker can reuse an already configured `REPOSITORY_PRIVACY_GITHUB_TOKEN` or `NOTES_GITHUB_ISSUES_TOKEN` **only if** that credential has read access to the private Biz repository. Without a suitably authorised Worker secret, the private section fails closed with an explicit configuration message.
 
 Publishing an app requires a separate reviewed public-only GitHub Actions workflow. A private source folder and its protected data are not made public just by appearing in the passkey catalogue. In particular, NVR assessment data stays entirely outside GitHub Pages.
+
+### Automatic public folder discovery
+
+The public dashboard also reads the public Git tree of `nirav2000/nirav2000.github.io` and finds each **root-level folder with its own `index.html`**. This discovers future independent hosted apps without confusing them with the Pages repository root. Existing curated blurbs/previews win over generic discovered entries, and discovery failure does not remove saved entries. Private directories are **never** crawled or auto-published. The Biz passkey catalogue is a separate, authenticated server-side lookup.
