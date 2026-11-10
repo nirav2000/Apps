@@ -88,6 +88,24 @@ The example does not provide known OFF intervals. All missing periods remain unk
 4. **Gas:** cost and kWh are unavailable until real gas usage measurements or suitable boiler telemetry exist.
 5. **Provider-reported energyToday:** can be logged separately as a manufacturer-derived daily energy figure, but it does not reveal exact switching times. Do not claim it is independent measured electricity unless verified.
 
+## Working private read-only history exporter
+
+A Python standard-library exporter is included at [bridge/export_ha_history.py](./bridge/export_ha_history.py), alongside [sample mapping](./bridge/config.example.json) and [unit tests](./bridge/test_export_ha_history.py).
+
+It reads Home Assistant's authenticated REST history API **from the private network**, never writes credentials into the export, and writes a local schemaVersion 1 JSON file for this dashboard. No physical thermostat commands are sent. The available ON/OFF events are preserved; missing signals become unknown intervals.
+
+    cd home-automation/bridge
+    cp config.example.json config.local.json
+    # Edit only your private local copy: replace the example entity names with real HA entities.
+    export HA_TOKEN="token-from-your-private-Home-Assistant-account"
+    python3 export_ha_history.py --config config.local.json --out /private/path/heating.private.json --days 8
+
+The token above is only a shell placeholder: keep the real token in a protected environment or local secret store, never in GitHub or on a web page. The script refuses insecure HTTP connections to non-private hosts; use HTTPS or a trusted LAN endpoint. Import the resulting file using **Import history JSON** on the dashboard. Do not commit or publish that export: heating schedules can disclose when people may be at home.
+
+In config.local.json, choose a Wiser binary circuit sensor or appropriately validated Wiser heat-demand sensor for each Wiser heating zone. If instead using a Home Assistant climate attribute such as hvac_action, configure signal_attribute and on_values/off_values to match the observed values; history attribute changes are timestamped by last_updated rather than the state-only last_changed value. A Home Assistant entity from Warmup is **not automatically available** just because an openHAB Warmup binding exists. Where no verified Warmup relay/power signal is mapped, leave signal_entity out and the exporter will report unknown heating state.
+
+This exporter is a **one-shot file generator**, not a continuously hosted live-service API. It requires an already configured local Home Assistant instance and the actual entity mappings. It has not been tested on the user's equipment.
+
 ## Installation steps
 
 1. Confirm the actual Wiser HubR v2 zone list and which Warmup Element circuits are **electric**. Record their installed heater ratings.
