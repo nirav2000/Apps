@@ -21,6 +21,8 @@ jobs:
           node-version: '22'
       - name: Run heating analytics tests
         run: node --test home-automation/tests/heating-analytics.test.mjs
+      - name: Run private exporter unit tests
+        run: python3 -m unittest discover -s home-automation/bridge -p 'test_*.py' -v
       - name: Run existing Home Automation Studio unit tests
         run: node --test home-automation/tests/static.test.mjs home-automation/tests/control-lab.test.mjs
       - name: Check heating JavaScript syntax
