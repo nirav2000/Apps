@@ -6,6 +6,8 @@
 
 ## Wiser + Warmup Heating Intelligence (new preview)
 
+The [private, read-only Home Assistant exporter](./bridge/export_ha_history.py) is also included. It builds validated interval history from explicitly mapped Home Assistant sensor states without placing API credentials in the public UI; a [configuration example](./bridge/config.example.json) and Python tests accompany it. Actual home entities are still unverified and must be mapped locally.
+
 The [Heating Intelligence dashboard](./heating.html) is a dedicated, responsive interface for exploring heating requests and underfloor heater ON history together. It includes combined zone cards, demo-only temperature steppers, today/yesterday/seven-day exact-time timelines, an ON-event log, local JSON history import and CSV export, estimated electric UFH usage and tariff settings, plus explicit uncertainty for unknown state periods. The application deliberately makes **no** claims of live connectivity or actual electricity/gas measurements. Read the [integration and evidence guide](./heating-integration.md) before connecting any real controllers. The example thermostat names and heater wattage are fictional.
 
 ## Eight interactive control styles — compare on one page
