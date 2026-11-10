@@ -18,7 +18,7 @@ function save(){try{localStorage.setItem(key,JSON.stringify(settings));}catch{}}
 function range(){
   const now=new Date(),today=midnight(0);
   if(period==="yesterday")return {from:midnight(-1).toISOString(),until:today.toISOString()};
-  if(period==="7d")return {from:midnight(-7).toISOString(),until:now.toISOString()};
+  if(period==="7d")return {from:midnight(-6).toISOString(),until:now.toISOString()};
   return {from:today.toISOString(),until:now.toISOString()};
 }
 function createDemo(){
@@ -124,7 +124,7 @@ function renderZones(s){
     return '<article class="zone-card '+(state==="on"?"active":"")+'">'+header+
       '<div class="zone-temp"><div><small>Temperature</small><strong>'+temp+'</strong></div><div class="target"><small>Target · demo only</small><strong>'+target+'</strong></div>'+controls+'</div>'+
       '<div class="zone-bottom"><span>Demand / ON time</span><strong>'+times+energy+'</strong></div>'+
-      '<div class="zone-evidence">'+esc(z.description)+' · '+(r.unknownMinutes>10?"Data gaps: "+duration(r.unknownMinutes):"Coverage complete")+'</div></article>';
+      '<div class="zone-evidence">'+esc(z.description)+' · '+("Known state "+Math.round(100*r.coverage)+"%"+(r.unknownMinutes>0.1?" · gaps "+duration(r.unknownMinutes):""))+'</div></article>';
   }).join("");
 }
 function renderSettings(){
@@ -136,7 +136,7 @@ function renderSettings(){
 }
 function renderTimeline(){
   const bounds=range(),a=ms(bounds.from),b=ms(bounds.until),length=b-a;
-  const ticks=[0,.25,.5,.75,1].map(f=>'<span>'+fmtTime(a+length*f)+'</span>').join("");
+  const ticks=[0,.25,.5,.75,1].map(f=>'<span>'+(period==="7d"?new Date(a+length*f).toLocaleDateString("en-GB",{weekday:"short",day:"numeric"}):fmtTime(a+length*f))+'</span>').join("");
   const rows=data.zones.map(z=>{
     const parts=clipIntervals(data.intervals,bounds.from,bounds.until,z.id);
     const segments=parts.map(p=>{
