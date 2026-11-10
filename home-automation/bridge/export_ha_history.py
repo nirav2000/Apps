@@ -84,7 +84,7 @@ def states_to_intervals(zone_id: str, records: list, start: datetime, end: datet
     for record in records or []:
         if not isinstance(record, dict):
             continue
-        when = record.get("last_changed") or record.get("last_updated")
+        when = (record.get("last_updated") or record.get("last_changed")) if item.get("signal_attribute") else (record.get("last_changed") or record.get("last_updated"))
         if not when:
             continue
         try:
