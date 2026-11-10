@@ -41,6 +41,16 @@ class HistoryTests(unittest.TestCase):
                                  {"signal_attribute":"hvac_action","on_values":["heating"],"off_values":["idle","off"]})
         self.assertEqual(out[-1]["state"],"unknown")
 
+    def test_attribute_changes_use_last_updated_not_unchanged_state_timestamp(self):
+        idle={"state":"heat","last_changed":"2026-11-10T00:00:00Z",
+              "last_updated":"2026-11-10T00:00:00Z","attributes":{"hvac_action":"idle"}}
+        heating={"state":"heat","last_changed":"2026-11-10T00:00:00Z",
+                 "last_updated":"2026-11-10T01:00:00Z","attributes":{"hvac_action":"heating"}}
+        config={"signal_attribute":"hvac_action","on_values":["heating"],"off_values":["idle","off"]}
+        out=m.states_to_intervals("zone",[idle,heating],START,END,config)
+        self.assertEqual([(x["state"],x["end"]) for x in out],
+            [("off","2026-11-10T01:00:00Z"),("on","2026-11-10T03:00:00Z")])
+
     def test_on_off_values_can_be_configured(self):
         out=m.states_to_intervals("zone",[signal("00:00","heating"),signal("01:00","idle")],
                                  START,END,{"on_values":["heating"],"off_values":["idle"]})
