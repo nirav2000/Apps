@@ -1,0 +1,31 @@
+{
+  "_note": "COPY TO config.local.json AND REPLACE ENTITY IDS. Do not commit private config or export output.",
+  "home_assistant_url": "http://homeassistant.local:8123",
+  "zones": [
+    {
+      "id": "wiser-zone-1",
+      "name": "Wiser heating zone 1",
+      "provider": "wiser",
+      "energyType": "gas",
+      "kind": "heating",
+      "signal_entity": "binary_sensor.replace_with_real_wiser_heating_circuit",
+      "on_values": ["on"],
+      "off_values": ["off"],
+      "current_entity": "climate.replace_with_real_wiser_room",
+      "current_attribute": "current_temperature",
+      "target_entity": "climate.replace_with_real_wiser_room",
+      "target_attribute": "temperature",
+      "evidence": "Wiser heating circuit ON/OFF; not measured boiler gas"
+    },
+    {
+      "id": "warmup-bathroom",
+      "name": "Warmup bathroom electric UFH",
+      "provider": "warmup",
+      "energyType": "electric",
+      "kind": "heating",
+      "powerW": null,
+      "_note": "No signal_entity: state remains unknown until a verified relay or circuit meter entity exists.",
+      "evidence": "No confirmed heater relay / actual draw signal; do not infer ON from schedule"
+    }
+  ]
+}
