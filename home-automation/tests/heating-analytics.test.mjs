@@ -20,7 +20,7 @@ test("zone activity, kWh and pence only use known warmup ON intervals",()=>{
     from:a,until:b,pricePence:23.10});
   assert.equal(result.rows[1].onMinutes,120);
   assert.equal(result.rows[1].kwh,3);
-  assert.equal(result.rows[1].costPounds,0.693);
+  assert(Math.abs(result.rows[1].costPounds-0.693)<1e-10);
   assert.equal(result.estimateKwh,3);
   assert.equal(result.boilerDemandMinutes,180);
   assert.equal(result.rows[0].kwh,null);
