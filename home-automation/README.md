@@ -4,6 +4,10 @@
 
 **IMPORTANT:** This is an intentionally **offline-from-hardware demonstration**. Temperatures, room layout, scenes, electricity usage, costs, switches, thermostat setpoints, device "states" and the example floor plan are **synthetic**. No home appliances, backend, cloud accounts or local servers have been connected or scanned. Public GitHub Pages is **not** a safe place to store heating credentials, Home Assistant access tokens, LAN IPs or API keys.
 
+## Wiser + Warmup Heating Intelligence (new preview)
+
+The [Heating Intelligence dashboard](./heating.html) is a dedicated, responsive interface for exploring heating requests and underfloor heater ON history together. It includes combined zone cards, demo-only temperature steppers, today/yesterday/seven-day exact-time timelines, an ON-event log, local JSON history import and CSV export, estimated electric UFH usage and tariff settings, plus explicit uncertainty for unknown state periods. The application deliberately makes **no** claims of live connectivity or actual electricity/gas measurements. Read the [integration and evidence guide](./heating-integration.md) before connecting any real controllers. The example thermostat names and heater wattage are fictional.
+
 ## Eight interactive control styles — compare on one page
 
 The **Control Playground** appears above the four dashboard concepts and presents eight live, side-by-side ways to adjust the *same sample room target*: (1) horizontal slider with separate ± stepper buttons, (2) Nest-inspired **rotary dial** with real touch/pointer dragging and keyboard support, (3) draggable/tappable temperature ruler, (4) vertical slider/fader, (5) one-tap comfort presets, (6) precise numeric input with range validation, (7) oversized accessibility-oriented ± buttons and (8) native temperature picker. You can change the example room in one selector and watch all eight controls, the main home overview and the Room by Room inspector synchronise. No home hardware is contacted.
