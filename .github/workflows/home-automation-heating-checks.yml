@@ -1,0 +1,29 @@
+name: Heating Intelligence checks
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'home-automation/**'
+      - '.github/workflows/home-automation-heating-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run heating analytics tests
+        run: node --test home-automation/tests/heating-analytics.test.mjs
+      - name: Run existing Home Automation Studio unit tests
+        run: node --test home-automation/tests/static.test.mjs home-automation/tests/control-lab.test.mjs
+      - name: Check heating JavaScript syntax
+        run: |
+          node --check home-automation/heating.js
+          node --check home-automation/heating-analytics.mjs
