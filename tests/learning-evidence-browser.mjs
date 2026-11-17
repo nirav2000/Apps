@@ -1,0 +1,48 @@
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+const url='http://127.0.0.1:8898/tests/learning-evidence-harness.html';
+const browser=await chromium.launch({headless:true});
+try{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(url,{waitUntil:'networkidle'});
+  await page.waitForFunction(()=>!!window.learningEvidence?.store);
+  const summary=()=>page.evaluate(()=>window.learningEvidence.store.summary());
+  for(const measure of ['accuracy','independence','retention','transfer'])
+    assert.equal((await summary())[measure].percent,null,'No invented evidence for '+measure);
+  await page.locator('[name=concept]').fill('maths:compensation');
+  await page.getByRole('button',{name:'Mark taught today'}).click();
+  assert.equal((await summary()).accuracy.percent,null,'Teaching markers must not be scored');
+  assert.equal((await page.evaluate(()=>window.learningEvidence.store.due())).length,1);
+  await page.locator('[name=correctCount]').fill('5');
+  await page.locator('[name=total]').fill('5');
+  await page.locator('[name=support]').selectOption('small-prompt');
+  await page.getByRole('button',{name:'Save check'}).click();
+  let value=await summary();
+  assert.equal(value.accuracy.percent,100);
+  assert.equal(value.independence.percent,0,'Helped success is not independent mastery');
+  assert.equal(value.retention.percent,null);
+  assert.equal(value.transfer.percent,null);
+  await page.locator('[name=phase]').selectOption('retrieval');
+  const old=await page.evaluate(()=>new Date(Date.now()-9*86400000).toISOString().slice(0,10));
+  await page.locator('[name=taughtDate]').fill(old);
+  await page.locator('[name=correctCount]').fill('3');
+  await page.locator('[name=total]').fill('5');
+  await page.locator('[name=support]').selectOption('none');
+  await page.getByRole('button',{name:'Save check'}).click();
+  value=await summary();
+  assert.equal(value.retention.percent,60,'Delayed independent test establishes retention');
+  await page.locator('[name=phase]').selectOption('transfer');
+  await page.locator('[name=novel]').check();
+  await page.locator('[name=correctCount]').fill('4');
+  await page.locator('[name=total]').fill('5');
+  await page.getByRole('button',{name:'Save check'}).click();
+  assert.equal((await summary()).transfer.percent,80);
+  await page.reload({waitUntil:'networkidle'});
+  await page.waitForFunction(()=>!!window.learningEvidence?.store);
+  assert.equal((await summary()).retention.percent,60,'Reload must preserve evidence');
+  const noOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2);
+  assert.ok(noOverflow,'Panel should fit a narrow phone viewport');
+  assert.deepEqual(errors,[],'No browser JS errors');
+  console.log('Learning Evidence browser QA passed: unknown -> helped -> delayed -> transfer -> reload -> mobile');
+}finally{await browser.close();}
