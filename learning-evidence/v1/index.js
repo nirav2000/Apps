@@ -129,10 +129,25 @@ export function createEvidenceStore({appId,learnerId='local',accountId='guest',
     return item;
   };
   return {key,scope,record:write,
-    ingest:items=>{let changed=0;for(const row of (items||[])){
-      const current=entries.find(x=>x.id===clean(row.id));
-      if(!current||(stamp(row.updatedAt)||0)>current.updatedAt){write(row);changed++;}
-    }return changed;},
+    // Batch once: importing a full learning history must not rewrite localStorage per event.
+    ingest:items=>{
+      const next=entries.slice(),lookup=new Map(next.map((x,i)=>[x.id,i]));
+      let changed=0;
+      for(const raw of items||[]){
+        const row=normalizeEvidence(raw,scope),i=lookup.get(row.id);
+        if(i!==undefined && next[i].updatedAt>=row.updatedAt)continue;
+        if(i===undefined){lookup.set(row.id,next.length);next.push(row);}
+        else next[i]=row;
+        changed++;
+      }
+      if(changed){
+        if(!storage)throw Error('Local evidence storage unavailable');
+        storage.setItem(key,JSON.stringify({schema:1,entries:next}));
+        entries=next;
+        for(const cb of listeners)cb();
+      }
+      return changed;
+    },
     getEntries:()=>copy(entries),
     summary:(at=Date.now())=>summariseEvidence(entries,at),
     due:(at=Date.now())=>dueReviews(entries,at),
