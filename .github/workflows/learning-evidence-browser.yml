@@ -1,0 +1,29 @@
+name: Learning Evidence browser verification
+on:
+  pull_request:
+    paths:
+      - 'learning-evidence/**'
+      - 'tests/learning-evidence-*'
+      - '.github/workflows/learning-evidence-browser.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'learning-evidence/**'
+      - 'tests/learning-evidence-*'
+      - '.github/workflows/learning-evidence-browser.yml'
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          python3 -m http.server 8898 --bind 127.0.0.1 > /tmp/evidence-qa-server.log 2>&1 &
+          server=$!
+          trap 'kill $server 2>/dev/null || true' EXIT
+          sleep 2
+          node tests/learning-evidence-browser.mjs
