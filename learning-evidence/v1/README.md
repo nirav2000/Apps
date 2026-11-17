@@ -40,7 +40,7 @@ Every record includes `appId/accountId/learnerId/concept`, a stable ID, source r
 3. Keep existing app progress and Firebase rules unchanged by default. Never silently import legacy or guest records into a signed-in account.
 4. For cloud sharing use an **explicit, authenticated adapter** supplied by each app, matching Firebase Auth UID, learner identity and owner-scoped Firestore rules. The initial module is **local-first with JSON export**, not a claim of secure cloud deployment.
 5. Any parent/teacher evaluation must separately confirm that the task is genuinely novel. No auto-inferred mastery from single successes or immediate practice.
-6. `toLearningEvent` can bridge *one deliberately selected evidence record* to the current shared SDK, but must not be applied to an event already captured there; that would double count. Never treat a summary estimate as a diagnosis.
+6. Keep parent-entered evidence **separate** from the old Shared Learning SDK mastery algorithm. The optional `toLearningEvent()` converter is a compatibility helper, **not** a recommended cloud transport: calling `store.record(toLearningEvent(...))` would update legacy heuristic mastery (and can double-count attempts). The current app integrations deliberately do not do this. New evidence is local-first until an independently secured evidence-specific Firestore adapter is deployed. Never treat a summary estimate as a diagnosis.
 
 ## QA
 `node --test tests/learning-evidence.test.mjs`
