@@ -38,11 +38,12 @@ export function normalizeEvidence(raw, scope={}) {
   // Canonical UTC calendar day keeps a teaching marker and subsequent dated checks in one cycle.
   const taughtStamp = stamp(raw.taughtAt);
   const taughtAt = taughtStamp ? Math.floor(taughtStamp/DAY)*DAY : null;
-  const hasScore = raw.correctCount != null || typeof raw.correct === 'boolean';
-  const total = hasScore ? num(raw.total ?? 1) : 0;
-  const correct = raw.correctCount == null ? (raw.correct === true ? total : 0) : Math.min(total,num(raw.correctCount));
+  const scoredCount = raw.correctCount ?? raw.score?.correct;
+  const hasScore = scoredCount != null || typeof raw.correct === 'boolean';
+  const total = hasScore ? num(raw.total ?? raw.score?.total ?? 1) : 0;
+  const correct = scoredCount == null ? (raw.correct === true ? total : 0) : Math.min(total,num(scoredCount));
   if (hasScore && total < 1) throw Error('A scored check must contain questions');
-  if (hasScore && raw.correctCount != null && num(raw.correctCount)>total) throw Error('Correct count exceeds total');
+  if (hasScore && scoredCount != null && num(scoredCount)>total) throw Error('Correct count exceeds total');
   const phase = PHASES.has(raw.phase) ? raw.phase : 'practice';
   const support = SUPPORT.has(raw.support) ? raw.support : 'unknown';
   const source = raw.source && typeof raw.source === 'object'
