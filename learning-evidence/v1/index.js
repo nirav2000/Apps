@@ -35,7 +35,9 @@ export function normalizeEvidence(raw, scope={}) {
   const concept = String(raw.concept || raw.conceptId || '').trim().slice(0,160);
   if (!appId || !accountId || !learnerId || !concept) throw Error('App/account/learner/concept required');
   const at = stamp(raw.at ?? raw.timestamp ?? raw.createdAt) || Date.now();
-  const taughtAt = stamp(raw.taughtAt);
+  // Canonical UTC calendar day keeps a teaching marker and subsequent dated checks in one cycle.
+  const taughtStamp = stamp(raw.taughtAt);
+  const taughtAt = taughtStamp ? Math.floor(taughtStamp/DAY)*DAY : null;
   const hasScore = raw.correctCount != null || typeof raw.correct === 'boolean';
   const total = hasScore ? num(raw.total ?? 1) : 0;
   const correct = raw.correctCount == null ? (raw.correct === true ? total : 0) : Math.min(total,num(raw.correctCount));
