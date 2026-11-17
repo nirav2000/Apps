@@ -79,6 +79,11 @@ test('legacy event conversion keeps explicit help and metadata',()=>{
    support:'small-prompt',taughtAt:epoch,at:epoch+7*DAY,novel:false});
  assert.equal(event.correct,false);assert.equal(event.hints,1);
  assert.equal(event.context.learningEvidenceV1.phase,'retrieval');
+ assert.equal(event.context.learningEvidenceV1.total,1);
+ const saved=store().record({concept:'div:3',correctCount:4,total:5,support:'none',at:epoch});
+ const mirror=toLearningEvent(saved);
+ assert.equal(mirror.context.learningEvidenceV1.correct,4);
+ assert.equal(mirror.context.learningEvidenceV1.total,5);
 });
 test('invalid totals must be rejected',()=>{
  assert.throws(()=>normalizeEvidence({appId:'dol',learnerId:'sai',concept:'x',correctCount:6,total:5}),/exceeds/);
