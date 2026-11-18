@@ -1,0 +1,61 @@
+name: Recover App Monitor passkey service (verified Worker version)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/recover-app-monitor-passkey.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-app-monitor-worker
+  cancel-in-progress: false
+jobs:
+  restore:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Verify known-good NVR and passkey version, including bindings and R2-backed passkeys
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='0bb46ca0-65bc-4b45-b8e8-1ab55f31352d'
+          npx wrangler versions view "$version" --name apps-monitor-api --json > "$RUNNER_TEMP/app-monitor-recovery-version.json"
+          node -e 'const x=require(process.argv[1]);const s=JSON.stringify(x.resources);for(const k of ["APP_MONITOR_DATA","FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON","BIZ_CATALOG_GITHUB_TOKEN"])if(!s.includes(k))throw Error("Known-good version missing binding "+k);console.log("Verified R2, Firebase and private Biz binding names without reading any values")' "$RUNNER_TEMP/app-monitor-recovery-version.json"
+          base='https://0bb46ca0-apps-monitor-api.nirav2000-github.workers.dev'
+          curl --fail --silent --show-error --max-time 20 "$base/health" > "$RUNNER_TEMP/health.json"
+          node -e 'const x=require(process.argv[1]);if(x.build!=="2026.11.09.nvr-private-v1"||!x.r2Bound)throw Error("Known-good version is not serving healthy Worker + R2");console.log("Known-good preview healthy")' "$RUNNER_TEMP/health.json"
+          curl --fail --silent --show-error --max-time 20 -H 'Origin: https://nirav2000.github.io' "$base/app-monitor/security/status" > "$RUNNER_TEMP/auth-status.json"
+          node -e 'const x=require(process.argv[1]);if(!x.ok||x.bootstrapNeeded||x.passkeyCount<1)throw Error("Known-good preview has no provisioned passkey");console.log("Verified provisioned passkey state in R2")' "$RUNNER_TEMP/auth-status.json"
+          curl --silent --show-error --max-time 20 --output "$RUNNER_TEMP/passkey-options.json" --write-out '%{http_code}' --request POST -H 'Origin: https://nirav2000.github.io' "$base/app-monitor/auth/passkey/options" > "$RUNNER_TEMP/passkey-http.txt"
+          node -e 'const fs=require("node:fs");const code=fs.readFileSync(process.argv[1],"utf8").trim();if(code!=="200")throw Error("Known-good preview passkey options HTTP "+code);const x=require(process.argv[2]);if(!x.challengeId||!x.options?.challenge)throw Error("Known-good preview does not issue passkey challenges");console.log("Known-good preview can issue WebAuthn challenges")' "$RUNNER_TEMP/passkey-http.txt" "$RUNNER_TEMP/passkey-options.json"
+      - name: Restore verified version without uploading or altering secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler versions deploy '0bb46ca0-65bc-4b45-b8e8-1ab55f31352d@100%' --name apps-monitor-api --yes -c wrangler-app-monitor.jsonc
+      - name: Prove production WebAuthn and downstream access protection
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            if node tests/app-monitor-auth-live.mjs; then
+              echo "Production passkey service restored and verified"
+              exit 0
+            fi
+            echo "Production version not healthy yet; verification attempt $attempt"
+            sleep 6
+          done
+          echo "::error::Production WebAuthn restoration could not be verified"
+          exit 1
