@@ -11,6 +11,14 @@ NO existing repository visibility, Pages publication or shared runtime has been 
 - Publish only a precisely tested revision, and abort publishing on failed validation.
 - Do not privatise the Apps shared infrastructure before its public scripts and reusable workflows have working replacements.
 
+## Shared-origin exposure is separate from GitHub repository privacy (18 November 2026)
+
+**Open risk: Warranty Ease** is published under `https://nirav2000.github.io/WarrantyEase/`. Although its development source is private and approved public build outputs are allowlisted, that Pages URL shares a **browser origin** with every unrelated application under `https://nirav2000.github.io/`. Browser IndexedDB, CacheStorage and localStorage are origin-scoped; a new folder, service worker scope, or private source repository is not a security boundary. Another co-hosted page compromised through XSS could read plaintext Warranty Ease documents in local browser storage and encrypted vault blobs.
+
+Treat this as an active privacy architecture limitation rather than a demonstrated breach. A migration must assign Warranty Ease its own **hostname/origin**, migrate existing user records using encrypted export/import, preserve independent recoverable backups, and revalidate WebAuthn/account mapping, API CORS, offline PWA, and locally hosted OCR. Do not reclassify the app as origin-isolated until the move has passed real-device testing.
+
+Record this risk in the App Monitor **Repository Privacy Register** once the shared admin passkey has been restored; the GitHub issue and this document do not themselves alter the R2-backed manual register. Follow [shared passkey outage issue #29](https://github.com/nirav2000/Apps/issues/29) and the restricted [Biz remediation issue](https://github.com/nirav2000/Biz/issues/1).
+
 ## Using the register
 
 Open the existing App Monitor dashboard, authenticate with a passkey, and open Repository privacy register.
