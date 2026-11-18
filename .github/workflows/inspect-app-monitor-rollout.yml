@@ -25,10 +25,15 @@ jobs:
           set -euo pipefail
           echo "== Remote deployed versions =="
           npx wrangler deployments list --name apps-monitor-api --json > /tmp/worker-deployments.json
-          node -e 'const x=require("/tmp/worker-deployments.json");console.log(JSON.stringify((Array.isArray(x)?x:[]).slice(-8),null,2))'
+          node -e 'const x=require("/tmp/worker-deployments.json");console.log(JSON.stringify((Array.isArray(x)?x:[]).slice(-14),null,2))'
+          echo "== Examine ACTIVE deployment and binding names =="
+          node -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync("/tmp/worker-deployments.json","utf8"));const last=a.at(-1);console.log("Latest deployment",JSON.stringify({id:last?.id,created_on:last?.created_on,author_email:last?.author_email,annotations:last?.annotations,versions:last?.versions}));const v=last?.versions?.find(v=>v.percentage>0);if(!v)throw Error("No active version");fs.writeFileSync("/tmp/current-version-id.txt",v.version_id)' 
+          active=$(cat /tmp/current-version-id.txt)
+          npx wrangler versions view "$active" --name apps-monitor-api --json > /tmp/current-version.json
+          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync("/tmp/current-version.json","utf8"));const s=JSON.stringify(x.resources||{});console.log("Active version",process.argv[1],"binding names",JSON.stringify({R2:s.includes("APP_MONITOR_DATA"),Firebase:s.includes("FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON"),Biz:s.includes("BIZ_CATALOG_GITHUB_TOKEN")}))' "$active"
           echo "== Most recent uploaded versions =="
           npx wrangler versions list --name apps-monitor-api --json > /tmp/worker-versions.json
-          node -e 'const x=require("/tmp/worker-versions.json");console.log(JSON.stringify((Array.isArray(x)?x:[]).slice(-8),null,2))'
+          node -e 'const x=require("/tmp/worker-versions.json");console.log(JSON.stringify((Array.isArray(x)?x:[]).slice(-14),null,2))'
           echo "== Live health and unauthed NVR status =="
           curl --fail --silent --show-error --location \
             "https://apps-monitor-api.nirav2000-github.workers.dev/health?probe=$GITHUB_SHA"
