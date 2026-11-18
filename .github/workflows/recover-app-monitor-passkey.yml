@@ -1,3 +1,4 @@
+# Re-run after disabling three competing Snag deployment workflows (incident #29).
 name: Recover App Monitor passkey service (verified Worker version)
 on:
   push:
