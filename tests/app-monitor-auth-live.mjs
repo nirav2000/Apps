@@ -1,7 +1,7 @@
 // Live, unauthenticated contract check. Never uses an administrator passkey or token.
 // A challenge is created and then deliberately consumed with an invalid assertion;
 // successful denial proves issuance/replay storage works without granting access.
-const root='https://apps-monitor-api.nirav2000-github.workers.dev';
+const root=(process.env.APP_MONITOR_API_BASE||'https://apps-monitor-api.nirav2000-github.workers.dev').replace(/\/$/,'');
 const origin='https://nirav2000.github.io';
 const common={'Origin':origin,'Cache-Control':'no-cache'};
 const outcomes=[];
