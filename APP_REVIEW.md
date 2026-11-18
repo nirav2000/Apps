@@ -17,6 +17,16 @@ Current review scope, in repository order:
 
 The `Apps` repository provides the shared dashboard/platform components used by these apps.
 
+## Warranty Ease — cross-app security register addendum (18 November 2026)
+
+- **App:** Warranty Ease, private source `nirav2000/Biz/ideas/warranty-ease/`, public app files under `https://nirav2000.github.io/WarrantyEase/`.
+- **Storage:** local IndexedDB for appliances, full original receipt/photo blobs, locally AES-GCM-encrypted website-login vault; owner-only `kk-syllabus` Firebase Firestore metadata for encrypted snapshots; Cloudflare private R2 stores only client-encrypted archive bytes.
+- **OCR:** same-origin Tesseract.js v7, locally vendored WebAssembly and English data, image recognition in a dedicated worker. Values are suggested for explicit user review, not automatically accepted.
+- **OPEN SECURITY RISK — SHARED ORIGIN:** separate `/WarrantyEase/` hosting path and service-worker scope DO NOT isolate localStorage/IndexedDB from JavaScript in other `https://nirav2000.github.io` apps. An unrelated app XSS or malicious dependency on the shared origin could expose unencrypted receipts and photos, or encrypted vault ciphertext. Existing vault passphrase still protects plaintext passwords. This is a potential vulnerability, not a confirmed breach.
+- **Required:** move Warranty Ease to a dedicated hostname/origin, encrypt local documents at rest, test encrypted export/import migration before switching URL; retain standalone offline recovery copies. Update the App Monitor Repository Privacy Register (manual backend annotation) once the existing administrator passkey is working.
+- **Passkey blocker:** the shared passkey is under independent investigation at [Apps issue #29](https://github.com/nirav2000/Apps/issues/29). Warranty Ease currently uses existing Firebase email/password for optional cloud backup; it MUST NOT treat the App Monitor session token as a Firebase ID token. A server-side owner-scoped token broker should be added only after WebAuthn production recovery is verified.
+- **Tracking:** [private Biz issue #1](https://github.com/nirav2000/Biz/issues/1).
+
 ## Executive summary
 
 | App | Primary persistence | Firebase project / DB | App authentication | Firebase usage log | App Monitor | Shared identity |
