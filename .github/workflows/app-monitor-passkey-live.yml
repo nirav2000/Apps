@@ -26,15 +26,41 @@ jobs:
       - name: Check live passkey issuance, single-use challenges, CORS and access controls
         run: node tests/app-monitor-auth-live.mjs
   cloud-bindings:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
-      - name: Verify secret names independently of passkey service health
+      - name: Validate every active Worker version's required bindings (names only)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.86.0 secret list --name apps-monitor-api --format json > "$RUNNER_TEMP/app-monitor-secret-names.json"
-          node -e 'const fs=require("node:fs");const a=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/app-monitor-secret-names.json","utf8"));const names=new Set(a.map(x=>x.name));console.log(JSON.stringify({firebaseServiceAccountBinding:names.has("FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON"),privateBizBinding:names.has("BIZ_CATALOG_GITHUB_TOKEN")}));if(!names.has("FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON"))throw Error("Missing production Firebase administrator secret binding")'
+          npx --yes wrangler@4.159.0 deployments list --name apps-monitor-api --json > "$RUNNER_TEMP/app-monitor-deployments.json"
+          node -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const d=a.at(-1);if(!d?.versions?.length)throw Error("No active Worker deployment");const live=d.versions.filter(x=>x.percentage>0);if(live.length===0)throw Error("No Worker versions have traffic");fs.writeFileSync(process.argv[2],live.map(x=>x.version_id).join("\n")+"\n");console.log("Inspected "+live.length+" active version(s)")' "$RUNNER_TEMP/app-monitor-deployments.json" "$RUNNER_TEMP/app-monitor-active-ids.txt"
+          while IFS= read -r version; do
+            npx --yes wrangler@4.159.0 versions view "$version" --name apps-monitor-api --json > "$RUNNER_TEMP/app-monitor-version.json"
+            node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const names=JSON.stringify(x.resources||{});for(const n of ["APP_MONITOR_DATA","FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON","BIZ_CATALOG_GITHUB_TOKEN"])if(!names.includes(n))throw Error("Active Worker version missing required binding: "+n);console.log("Active version "+process.argv[2].slice(0,8)+" has R2, Firebase and private Biz binding names (no values inspected)")' "$RUNNER_TEMP/app-monitor-version.json" "$version"
+          done < "$RUNNER_TEMP/app-monitor-active-ids.txt"
+  raise-incident:
+    needs: [passkey-service, cloud-bindings]
+    if: ${{ always() && (needs.passkey-service.result != 'success' || needs.cloud-bindings.result != 'success') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Raise a single GitHub incident until investigated
+        env:
+          GH_TOKEN: GH${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title='[Incident] App Monitor passkey production health failure'
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title --jq '.[] | select(.title == "[Incident] App Monitor passkey production health failure") | .number' | head -1)
+          if [ -n "$existing" ]; then
+            echo "Open issue #$existing already records this incident; avoiding duplicate"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "The independently monitored App Monitor authentication API or required active Worker bindings have failed. Production auth must be investigated before any rollout. Check the failed run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID. Do not reset registered passkeys; examine Worker deployment/route state and restore a verified version."
+          fi
