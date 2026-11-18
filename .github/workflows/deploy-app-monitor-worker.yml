@@ -31,18 +31,17 @@ on:
       - "app-monitor-notifications.js"
       - "wrangler-app-monitor.jsonc"
       - "package.json"
-      - ".github/workflows/deploy-app-monitor-worker.yml"
 
 permissions:
   contents: read
 
 concurrency:
   group: deploy-app-monitor-worker
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -89,38 +88,62 @@ jobs:
             echo "::error::Cloudflare deployment credentials are missing. Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to repository Actions secrets."
             exit 1
           fi
-      - name: Confirm mandatory Worker secrets by name only
+      # Never use wrangler deploy here: that would switch 100% of traffic before tests.
+      - name: Confirm production passkey health and capture rollback version
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
         run: |
-          npx wrangler secret list --name apps-monitor-api --format json > "$RUNNER_TEMP/app-monitor-secret-names.json"
-          node -e 'const fs=require("node:fs");const items=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/app-monitor-secret-names.json","utf8"));if(!Array.isArray(items)||!items.some(x=>x.name==="FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON")){console.error("App Monitor Firebase administrator credential is missing");process.exit(1)}console.log("Verified Firebase secret binding is present (value not accessed)")'
-          node -e 'const fs=require("node:fs");const a=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/app-monitor-secret-names.json","utf8"));const names=new Set(a.map(x=>x.name));const available=["BIZ_CATALOG_GITHUB_TOKEN","REPOSITORY_PRIVACY_GITHUB_TOKEN","NOTES_GITHUB_ISSUES_TOKEN"].filter(x=>names.has(x));if(available.length)console.log("Biz private catalogue: candidate GitHub read token exists ("+available.join(", ")+"); access to private Biz repository is not verified");else console.log("::warning title=Biz catalogue credential missing::Set a BIZ_CATALOG_GITHUB_TOKEN Worker secret with Contents Read-only access to nirav2000/Biz to enable the passkey portfolio")'
-      - name: Deploy dedicated worker
-        if: steps.creds.outputs.available == 'true'
+          set -euo pipefail
+          node tests/app-monitor-auth-live.mjs
+          npx wrangler deployments list --name apps-monitor-api --json > "$RUNNER_TEMP/deployments-before.json"
+          node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8")).at(-1);const active=d?.versions?.filter(x=>x.percentage>0)||[];if(active.length!==1||active[0].percentage!==100)throw Error("Refusing to deploy: existing production version is not at 100%");const v=active[0].version_id;if(!/^[a-f0-9-]{36}$/.test(v))throw Error("Unexpected previous version ID");fs.appendFileSync(process.env.GITHUB_ENV,"PREVIOUS_VERSION="+v+"\n");console.log("Verified existing production: "+v.slice(0,8))' "$RUNNER_TEMP/deployments-before.json"
+      - name: Upload isolated candidate without promoting
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
         run: |
-          npx wrangler whoami
-          # Cloudflare may intermittently return an HTTP 504 when uploading a Worker version.
-          # Retain dashboard-managed private GitHub credentials (keep_vars) on every attempt.
-          for attempt in 1 2 3; do
-            if npx wrangler deploy -c wrangler-app-monitor.jsonc; then
-              echo "Worker deployed on attempt $attempt"
-              exit 0
-            fi
-            if [ "$attempt" = "3" ]; then
-              echo "::error::Cloudflare Worker deployment failed after three attempts."
-              exit 1
-            fi
-            echo "::warning::Cloudflare deploy attempt $attempt failed; retrying after a short delay."
-            sleep 8
+          set -euo pipefail
+          tag="authgate-$(printf '%.16s' "$GITHUB_SHA")"
+          npx wrangler versions upload -c wrangler-app-monitor.jsonc --tag "$tag" --message "Staged auth-gated release $GITHUB_SHA"
+          npx wrangler versions list --name apps-monitor-api --json > "$RUNNER_TEMP/versions-after-upload.json"
+          node -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const xs=a.filter(x=>x.annotations?.["workers/tag"]===process.argv[2]);if(xs.length!==1||!xs[0].metadata?.has_preview)throw Error("Cannot find a unique preview-enabled staged version by tag");fs.appendFileSync(process.env.GITHUB_ENV,"STAGED_VERSION="+xs[0].id+"\n");console.log("Uploaded but NOT deployed: "+xs[0].id.slice(0,8))' "$RUNNER_TEMP/versions-after-upload.json" "$tag"
+      - name: Gate candidate on R2, secrets, RP ID, challenges and protected routes
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler versions view "$STAGED_VERSION" --name apps-monitor-api --json > "$RUNNER_TEMP/staged-worker-version.json"
+          node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const names=JSON.stringify(x.resources||{});for(const n of ["APP_MONITOR_DATA","FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON","BIZ_CATALOG_GITHUB_TOKEN"])if(!names.includes(n))throw Error("BLOCKED: candidate missing required binding "+n);console.log("Candidate retains R2, Firebase and private Biz bindings (values not read)")' "$RUNNER_TEMP/staged-worker-version.json"
+          prefix=$(printf '%.8s' "$STAGED_VERSION")
+          export APP_MONITOR_API_BASE="https://$prefix-apps-monitor-api.nirav2000-github.workers.dev"
+          expected=$(node -p "require('fs').readFileSync('app-monitor-worker.js','utf8').match(/const WORKER_BUILD='([^']+)'/)[1]")
+          healthy=''
+          for attempt in $(seq 1 12); do
+            build=$(curl --silent --show-error --max-time 15 "$APP_MONITOR_API_BASE/health?attempt=$attempt" | node -e 'let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{try{console.log(JSON.parse(s).build||"")}catch{}})' || true)
+            if [ "$build" = "$expected" ]; then healthy='yes'; break; fi
+            sleep 3
           done
+          test "$healthy" = 'yes'
+          node tests/app-monitor-auth-live.mjs
+      - name: Promote only the verified candidate
+        id: promote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler versions deploy "$STAGED_VERSION@100%" --name apps-monitor-api --yes -c wrangler-app-monitor.jsonc
+          echo "Promoted verified candidate; rollback target $PREVIOUS_VERSION"
       - name: Smoke test
         if: steps.creds.outputs.available == 'true'
         run: |
+          node tests/app-monitor-auth-live.mjs
           # A successful Wrangler upload does not mean every Cloudflare edge
           # is immediately serving the new Worker. Verify the expected build
           # before asserting the freshly added routes.
@@ -166,3 +189,23 @@ jobs:
           nvr_code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://nirav2000.github.io' 'https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/nvr/activities')
           echo "Private NVR endpoint unauthenticated HTTP: $nvr_code"
           test "$nvr_code" = "401"
+      - name: Automatically restore previous version when production verification fails
+        if: ${{ failure() && steps.promote.conclusion == 'success' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PREVIOUS_VERSION"
+          echo "::error::Post-deployment verification failed; rolling back to previously verified version"
+          npx wrangler versions deploy "$PREVIOUS_VERSION@100%" --name apps-monitor-api --yes -c wrangler-app-monitor.jsonc
+          for attempt in $(seq 1 15); do
+            if node tests/app-monitor-auth-live.mjs; then
+              echo "Previous production authentication successfully restored"
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error::Rollback submitted but live authentication could not be verified"
+          exit 1
