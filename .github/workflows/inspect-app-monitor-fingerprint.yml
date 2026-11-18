@@ -1,0 +1,45 @@
+name: Inspect overwritten App Monitor Worker code fingerprint
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-app-monitor-fingerprint.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fingerprint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Identify live script without showing source or credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          code=$(curl -sS --max-time 25 -o "$RUNNER_TEMP/current-worker-code" -w '%{http_code}' \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "$base/workers/scripts/apps-monitor-api")
+          if [ "$code" != 200 ]; then
+            echo "::warning::Source inspection unavailable HTTP $code; token may not have Workers Scripts Read."
+            exit 0
+          fi
+          node - "$RUNNER_TEMP/current-worker-code" <<'NODE'
+          const fs=require('node:fs'),crypto=require('node:crypto');
+          const code=fs.readFileSync(process.argv[2]);
+          const s=code.toString('utf8');
+          const hits={
+            appMonitorPasskey:s.includes('appMonitorPasskeys')||s.includes('/app-monitor/auth/passkey/options'),
+            appMonitorWorkerBuild:s.includes('WORKER_BUILD')||s.includes('nvr-private-v1'),
+            r2AppMonitorBinding:s.includes('APP_MONITOR_DATA'),
+            warrantyEase:s.includes('warranty-ease')||s.includes('Warranty Ease')||s.includes('WARRANTY_STORE'),
+            snag:s.includes('snag-media')||s.includes('SNAG_MEDIA'),
+            helloWorld:s.includes('Hello World!')||s.includes('Hello world!'),
+            cloudflareDefault:s.includes('No route matched')||s.includes('Not Found')
+          };
+          console.log(JSON.stringify({bytes:code.length,sha256Prefix:crypto.createHash('sha256').update(code).digest('hex').slice(0,20),markerPresence:hits}));
+          if(!hits.appMonitorPasskey) console.log('INCIDENT: active service is NOT recognizable as the expected App Monitor WebAuthn Worker.');
+          NODE
