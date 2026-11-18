@@ -22,9 +22,9 @@ jobs:
           base="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
           code=$(curl -sS --max-time 25 -o "$RUNNER_TEMP/current-worker-code" -w '%{http_code}' \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "$base/workers/scripts/apps-monitor-api")
+            "$base/workers/scripts/apps-monitor-api/content/v2")
           if [ "$code" != 200 ]; then
-            echo "::warning::Source inspection unavailable HTTP $code; token may not have Workers Scripts Read."
+            echo "::warning::Content-v2 API returned HTTP $code; module script source unavailable to this credential."
             exit 0
           fi
           node - "$RUNNER_TEMP/current-worker-code" <<'NODE'
