@@ -1,0 +1,40 @@
+name: App Monitor passkey live contract
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/app-monitor-passkey-live.yml'
+      - 'tests/app-monitor-auth-live.mjs'
+      - 'app-monitor-worker.js'
+      - 'apps-passkey-auth.js'
+      - 'app-monitor.html'
+      - 'wrangler-app-monitor.jsonc'
+  workflow_dispatch:
+  schedule:
+    - cron: '29 */4 * * *'
+permissions:
+  contents: read
+jobs:
+  passkey-service:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check live passkey issuance, single-use challenges, CORS and access controls
+        run: node tests/app-monitor-auth-live.mjs
+  cloud-bindings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify secret names independently of passkey service health
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.86.0 secret list --name apps-monitor-api --format json > "$RUNNER_TEMP/app-monitor-secret-names.json"
+          node -e 'const fs=require("node:fs");const a=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/app-monitor-secret-names.json","utf8"));const names=new Set(a.map(x=>x.name));console.log(JSON.stringify({firebaseServiceAccountBinding:names.has("FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON"),privateBizBinding:names.has("BIZ_CATALOG_GITHUB_TOKEN")}));if(!names.has("FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON"))throw Error("Missing production Firebase administrator secret binding")'
