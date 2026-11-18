@@ -1,0 +1,39 @@
+name: Inspect Cloudflare App Monitor automatic builds (read-only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-app-monitor-builds.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  read-build-config:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Read Worker identity and build integration without exposing credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          code=$(curl --silent --show-error -o "$RUNNER_TEMP/workers.json" -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/workers/scripts")
+          if [ "$code" != 200 ]; then
+            echo "::warning::Workers script listing returned HTTP $code. Cannot resolve build configuration with this token."
+            exit 0
+          fi
+          tag=$(node -e 'const x=require(process.argv[1]);const r=(x.result||[]).find(x=>x.id==="apps-monitor-api");if(r?.tag)process.stdout.write(r.tag)' "$RUNNER_TEMP/workers.json")
+          if [ -z "$tag" ]; then
+            echo "::warning::Could not find apps-monitor-api script tag in account response"
+            exit 0
+          fi
+          code=$(curl --silent --show-error -o "$RUNNER_TEMP/builds.json" -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/builds/workers/$tag")
+          if [ "$code" != 200 ]; then
+            echo "::warning::Build settings API returned HTTP $code. Workers Builds API requires a user-scoped token; this CI credential may not be authorized."
+            node -e 'const x=require(process.argv[1]);console.log("Cloudflare error codes:",(x.errors||[]).map(e=>e.code).join(","))' "$RUNNER_TEMP/builds.json"
+            exit 0
+          fi
+          node -e 'const x=require(process.argv[1]);const r=x.result||{};console.log(JSON.stringify({connected:!!r.git_repository,repository:r.git_repository?.repository,branch:r.git_repository?.branch,deploy_command:r.production_settings?.deploy_command,root_directory:r.production_settings?.root_directory,path_includes:r.production_settings?.path_includes,previews_enabled:r.previews_enabled},null,2))' "$RUNNER_TEMP/builds.json"
