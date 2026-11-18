@@ -53,12 +53,12 @@ jobs:
     steps:
       - name: Raise a single GitHub incident until investigated
         env:
-          GH_TOKEN: GH${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          title='[Incident] App Monitor passkey production health failure'
-          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title --jq '.[] | select(.title == "[Incident] App Monitor passkey production health failure") | .number' | head -1)
+          title='P0 · Shared App Monitor passkey outage — competing Cloudflare Worker deployments'
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title --jq '.[] | select( .title == "P0 · Shared App Monitor passkey outage — competing Cloudflare Worker deployments") | .number' | head -1)
           if [ -n "$existing" ]; then
             echo "Open issue #$existing already records this incident; avoiding duplicate"
           else
