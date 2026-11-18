@@ -1,0 +1,15 @@
+// FAIL-CLOSED DEFAULT: do not deploy the shared App Monitor authentication Worker
+// with bare "wrangler deploy" or a connected Cloudflare build's default command.
+// The intentional nonexistent entrypoint prevents accidental production replacement.
+// Approved production releases MUST use:
+//   nirav2000/Apps/.github/workflows/deploy-app-monitor-worker.yml
+// which selects -c wrangler-app-monitor.jsonc, tests an isolated version and
+// promotes it only after verifying passkeys, R2 and required secret bindings.
+// This guard is deliberately invalid as an entrypoint; DO NOT "fix" the path.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "apps-monitor-api",
+  "main": "__UNSAFE_DEFAULT_DEPLOY_DISABLED__/DO_NOT_CREATE_THIS_FILE.js",
+  "compatibility_date": "2026-09-24",
+  "workers_dev": true
+}
