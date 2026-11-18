@@ -72,6 +72,15 @@
       "releaseManifest": "https://nirav2000.github.io/Comprehension/version-lab-data/releases.json",
       "gatewayUrl": "https://nirav2000.github.io/Comprehension/versionlabs/",
       "notes": "Backfilled 60 historical commits plus adoption baseline. Current historical snapshots are visual-only; Git links are canonical source."
+    },
+    {
+      "appId": "warranty-ease",
+      "name": "Warranty Ease",
+      "repository": "nirav2000/Biz",
+      "liveUrl": "https://nirav2000.github.io/WarrantyEase/",
+      "status": "integration-pending",
+      "managed": false,
+      "notes": "Private monorepo source: ideas/warranty-ease. Developer-only Version Lab is registered, but history backfill and immutable snapshots require sourcePath-scoped installer. Do not run root Biz backfill or expose development UI in the warranty app."
     }
   ]
 }
