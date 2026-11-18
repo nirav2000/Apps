@@ -38,6 +38,11 @@ jobs:
             head -c 110 /tmp/path-probe.json || true
             echo
           done
+          echo "== Shared browser push config for OpenDay (no private data) =="
+          curl --fail --silent --show-error --max-time 18 \
+            -H 'Origin: https://nirav2000.github.io' \
+            'https://apps-monitor-api.nirav2000-github.workers.dev/notifications/public-config?app=openday' > /tmp/openday-push-config.json
+          node -e 'const x=require("/tmp/openday-push-config.json");console.log(JSON.stringify({ok:x.ok,consumerRegistration:x.consumerRegistration,webPushConfigured:x.webPush?.configured,provider:x.webPush?.provider}))'
           echo "== Most recent uploaded versions =="
           npx wrangler versions list --name apps-monitor-api --json > /tmp/worker-versions.json
           node -e 'const x=require("/tmp/worker-versions.json");console.log(JSON.stringify((Array.isArray(x)?x:[]).slice(-14),null,2))'
