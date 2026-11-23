@@ -1,4 +1,6 @@
 import {ALPHABET,CUDDLES,PASSAGE,PATTERNS,DRILLS,SENTENCE_WORKSHOP,assembleWorkshop,markAnswer} from './data.js';
+import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,soundById} from './phonics.js';
+import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
 
@@ -33,10 +35,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   const state={page:'home',profile:'adult',context:null,store:null,cloud:null,cloudStatus:'Checking Firebase…',
     cloudAt:null,loading:true,lessonIndex:0,hideEnglish:false,question:0,queue:DRILLS.slice(),
     alphabetQuiz:[],alphabetQuestion:0,attempted:false,failed:false,hint:'none',feedback:'',
-    completed:false,pronunciationIndex:0,coach:null,lastInput:'',busy:false,authNotice:'',builder:{mode:0,left:0,right:0,showFrench:true}};
+    completed:false,pronunciationIndex:0,coach:null,lastInput:'',busy:false,authNotice:'',letterGrouped:false,soundGroup:'vowel-contrasts',soundQueue:[],soundQuestion:0,soundAnswered:false,soundFeedback:'',soundCorrect:0,soundLastResult:null,builder:{mode:0,left:0,right:0,showFrench:true}};
   try{const p=localStorage.getItem('next-french:profile');if(p==='adult'||p==='sai')state.profile=p;}catch{}
   const el=()=>target;
-  let syncTimer=0,destroyed=false,syncTask=null,pendingAgain=false;
+  let syncTimer=0,destroyed=false,syncTask=null,pendingAgain=false,wordDialog=null;
   function record(raw){
     if(!state.store)throw Error('Sign in to record progress');
     const row=state.store.record({...raw,id:id(),source:{kind:'french-course',ref:raw.sourceRef||'session'}});
@@ -45,14 +47,14 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function teach(kind){
     if(!state.store)return;
-    const ref=kind==='alphabet'?'intro-alphabet':'intro-connectives';
+    const ref=kind==='alphabet'?'intro-alphabet':kind==='sounds'?'intro-sounds':'intro-connectives';
     if(state.store.getEntries().some(x=>x.source?.ref===ref&&x.score.total===0))return;
     const at=stamp();
-    record({concept:kind==='alphabet'?'french:alphabet:letters':'french:course:connectives',
+    record({concept:kind==='alphabet'?'french:alphabet:letters':kind==='sounds'?'french:phonics:introduction':'french:course:connectives',
       phase:'practice',support:'none',taughtAt:at,sourceRef:ref,at});
   }
   function taughtAt(kind){
-    const ref=kind==='alphabet'?'intro-alphabet':'intro-connectives';
+    const ref=kind==='alphabet'?'intro-alphabet':kind==='sounds'?'intro-sounds':'intro-connectives';
     const entry=state.store?.getEntries().find(x=>x.source?.ref===ref&&x.score.total===0);
     return entry?.taughtAt||entry?.at||null;
   }
@@ -103,6 +105,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const {auth,db,firestore,ownerUid}=state.context;
     if(auth.currentUser.uid!==ownerUid){state.cloudStatus='Wrong account; no evidence will be mixed';return;}
     state.profile=profile;
+    state.soundLastResult=null;state.soundQueue=[];state.soundQuestion=0;
     state.store=createEvidenceStore({appId:APP_ID,learnerId:profile,accountId:ownerUid});
     state.cloud=createFirestoreEvidenceCloud({store:state.store,db,auth,firestore,ownerUid,learnerId:profile,appId:APP_ID});
     state.cloudStatus='Pending cloud check';
@@ -111,8 +114,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     await syncNow();
   }
   function nav(){
-    const tabs=[['home','Overview'],['alphabet','Alphabet'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],['practice','Sentence practice'],['review','Review'],['pronunciation','Speak']];
-    return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p?'active':'')+'">'+t+'</button>').join('')+'</nav>';
+    const tabs=[['home','Overview'],['alphabet','Alphabet'],['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],['practice','Sentence practice'],['review','Review'],['pronunciation','Speak']];
+    return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p||(p==='sounds'&&state.page==='sound-quiz')?'active':'')+'">'+t+'</button>').join('')+'</nav>';
   }
   function top(){
     return '<div class="ft-top"><div><p class="ft-eyebrow">NEXT LEARNING · FRENCH</p><h1>French, built to be useful.</h1>'+
@@ -146,7 +149,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     ]:[];
     return '<section class="ft-hero ft-card"><p class="ft-eyebrow">Your next step</p><h2>Speak in full sentences, not isolated word lists.</h2>'+
       '<p>Start with the French alphabet, then a bilingual passage full of reusable connectives. Later, create unseen combinations without prompts.</p>'+
-      '<div class="ft-actions"><button data-page="alphabet" class="ft-primary">Learn the alphabet</button>'+
+      '<div class="ft-actions"><button data-page="alphabet" class="ft-primary">Learn the alphabet</button><button data-page="sounds">Hear French sounds</button>'+
       '<button data-page="knowledge">Explore the knowledge grid</button><button data-page="practice">Practise sentences</button></div></section>'+
       '<section class="ft-card"><h2>Learning evidence</h2><p class="ft-small">Accuracy, independence, delayed recall and novel transfer are separate measures. An immediate correct answer is not proof of retention.</p>'+
       '<div class="ft-metrics">'+metrics.map(([name,m])=>'<div><strong>'+fmt(m.percent)+'</strong><span>'+name+'</span><small>'+(m.total||0)+' checked'+(m.unknownSupport?' · '+m.unknownSupport+' unknown help':'')+'</small></div>').join('')+'</div>'+
@@ -158,36 +161,107 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<section class="ft-card"><h2>How the course works</h2><p>Real French audio → bilingual understanding → CUDDLES noticing → guided translation → controlled substitution → independent unseen sentences → review on days 1, 3 and 7.</p>'+
       '<p class="ft-small">PROFS: Past, Reasons, Opinions, Future, Subjunctive. This pilot introduces useful past, reason, opinion and future structures, plus a supported subjunctive example.</p></section>';
   }
+  function interactiveFrench(value){
+    return tokenizeFrench(value).map(part=>part.info
+      ?'<button type="button" class="ft-word" lang="fr" data-word="'+esc(part.text)+'" title="Explore this word" aria-label="Explore '+esc(part.text)+'">'+esc(part.text)+'</button>'
+      :esc(part.text)).join('');
+  }
   function alphabet(){
     const x=ALPHABET[state.lessonIndex];
-    return '<section class="ft-card"><div class="ft-row"><div><p class="ft-eyebrow">LETTER NAMES · '+(state.lessonIndex+1)+'/26</p><h2>Learn the French alphabet</h2></div><button data-act="alpha-quiz" class="ft-primary">Test all 26</button></div>'+
-      '<p>Listen to each <strong>letter name</strong> first. Letter names are not the same as sounds inside words. Practise spelling aloud afterwards.</p>'+
-      '<div class="ft-alphabet-grid">'+ALPHABET.map((a,i)=>'<button type="button" data-letter="'+i+'" class="'+(i===state.lessonIndex?'active':'')+'">'+a.letter+'</button>').join('')+'</div>'+
-      '<div class="ft-letter"><div class="ft-letter-large">'+x.letter+'</div><p>French letter name: <strong>'+esc(x.name)+'</strong></p>'+
+    const letterButton=(a,i)=>'<button type="button" data-letter="'+i+'" aria-label="Hear '+a.letter+', '+esc(a.name)+'" aria-pressed="'+(i===state.lessonIndex?'true':'false')+'" class="'+(i===state.lessonIndex?'active':'')+'">'+a.letter+'</button>';
+    const grouped=LETTER_NAME_GROUPS.map(g=>'<div class="ft-name-family"><h3>'+esc(g.title)+'</h3><p>'+esc(g.note)+'</p>'+
+      '<div class="ft-family-letters">'+g.letters.map(letter=>{const i=ALPHABET.findIndex(x=>x.letter===letter);return letterButton(ALPHABET[i],i);}).join('')+'</div></div>').join('');
+    return '<section class="ft-card"><div class="ft-row"><div><p class="ft-eyebrow">LETTER NAMES · '+(state.lessonIndex+1)+'/26</p><h2>Learn the French alphabet</h2></div>'+
+      '<button data-act="alpha-quiz" class="ft-primary">Test all 26</button></div>'+
+      '<p><b>Tap any letter to hear its French name immediately.</b> The card also shows an example word. Letter names are not necessarily their sounds within words.</p>'+
+      '<div class="ft-actions"><button data-act="toggle-letter-groups" aria-pressed="'+state.letterGrouped+'">'+(state.letterGrouped?'Show A–Z order':'Group similar letter names')+'</button></div>'+
+      (state.letterGrouped?'<div class="ft-name-families">'+grouped+'</div>':
+      '<div class="ft-alphabet-grid">'+ALPHABET.map(letterButton).join('')+'</div>')+
+      '<div class="ft-letter"><div class="ft-letter-large" aria-live="polite">'+x.letter+'</div>'+
+      '<p>French letter name: <strong lang="fr">'+esc(x.name)+'</strong> <small class="ft-pronunciation-hint">'+esc(LETTER_IPA[x.letter]||'')+'</small></p>'+
       '<p>Example word: <strong lang="fr">'+esc(x.example)+'</strong></p>'+
-      '<div class="ft-actions"><button data-act="hear-letter" class="ft-primary">▶ Hear letter name</button><button data-act="hear-example">▶ Hear example</button></div></div>'+
+      '<div class="ft-actions"><button data-act="hear-letter" class="ft-primary">▶ Repeat letter</button><button data-act="hear-example">▶ Hear example</button></div></div>'+
       '<div class="ft-actions ft-spread"><button data-act="alpha-prev"'+(state.lessonIndex===0?' disabled':'')+'>Previous</button>'+
       '<button data-act="alpha-next"'+(state.lessonIndex===25?' disabled':'')+'>Next letter</button></div>'+
-      '<details><summary>Letter names, accents and word sounds</summary><p>French keeps the same 26 basic letters as English. Accents such as é, è, ê and à are marks added to letters, not additional alphabet letters. A letter’s name can differ from its sound in a word. Listen, then practise recognising and spelling.</p></details></section>';
+      '<div class="ft-actions"><button data-page="sounds">Next: recognise French sounds →</button></div>'+
+      '<details><summary>Names, accents and word sounds</summary><p>French uses 26 basic letters. Accents such as é, è, ê and à affect spelling and often pronunciation; they are not extra alphabet letters. Recognise letter names first, then compare the sounds of whole words.</p></details></section>';
+  }
+  function sounds(){
+    const selected=SOUND_FAMILIES.find(x=>x.id===state.soundGroup)||SOUND_FAMILIES[0];
+    return '<section class="ft-card"><div class="ft-row"><div><p class="ft-eyebrow">PHONICS FROM REAL WORDS</p><h2>Notice French sounds</h2></div>'+
+      '<button type="button" data-act="start-sound-quiz" class="ft-primary">Test your ear</button></div>'+
+      '<p>Start with the <strong>whole sentence</strong>, then notice how letters combine into sounds. Hear examples, compare similar sounds, and return to your knowledge grid. These are curated common patterns, not universal spelling rules.</p>'+
+      '<div class="ft-sound-groups" role="group" aria-label="Sound families">'+SOUND_FAMILIES.map(g=>
+        '<button type="button" data-sound-group="'+esc(g.id)+'" aria-pressed="'+(g.id===selected.id)+'" class="'+(g.id===selected.id?'active':'')+'">'+esc(g.title)+'</button>').join('')+'</div>'+
+      (state.soundLastResult?'<p role="status" class="ft-feedback">Listening check: '+esc(state.soundLastResult)+'. Your answers were recorded in the phonics section of Learning Evidence.</p>':'')+
+      '<p class="ft-sound-intro">'+esc(selected.intro)+'</p>'+
+      '<div class="ft-sound-cards">'+selected.sounds.map((pattern)=>{
+        return '<article class="ft-sound-card"><div class="ft-row"><div><h3>'+esc(pattern.spell)+'</h3><small>'+esc(pattern.ipa)+'</small></div>'+
+          '<button type="button" data-sound-play="'+esc(pattern.id)+'" data-example="0" aria-label="Hear '+esc(pattern.examples[0])+'">▶ Hear</button></div>'+
+          '<p>'+esc(pattern.clue)+'</p>'+
+          '<div class="ft-sound-words">'+pattern.examples.map((word,i)=>
+            '<button type="button" data-sound-play="'+esc(pattern.id)+'" data-example="'+i+'" aria-label="Hear '+esc(word)+'" lang="fr">'+esc(word)+' <span aria-hidden="true">▶</span></button>').join('')+'</div>'+
+          '<details><summary>Hear it in a full sentence</summary><p lang="fr">'+interactiveFrench(pattern.sentence)+'</p>'+
+            '<button type="button" data-sound-sentence="'+esc(pattern.id)+'">▶ Hear sentence</button></details>'+
+          (pattern.compare?'<div class="ft-sound-contrast"><span>Compare</span>'+
+            pattern.compare.map((w,i)=>'<button type="button" lang="fr" data-sound-compare="'+esc(pattern.id)+'" data-compare-index="'+i+'">▶ '+esc(w)+'</button>').join('')+'</div>':'')+
+          '</article>';
+      }).join('')+'</div>'+
+      '<p class="ft-small">Audio is synthesised by your device in French. Listening choices test recognition, not your spoken accent. Some pronunciations vary by region and context.</p>'+
+      '<div class="ft-actions"><button type="button" data-act="start-sound-quiz" class="ft-primary">Try a listening check</button><button type="button" data-page="knowledge">Back to whole sentences</button></div></section>';
+  }
+  function soundQuiz(){
+    const item=state.soundQueue[state.soundQuestion];
+    if(!item)return '<section class="ft-card"><h2>Listening check</h2><p>No questions available.</p><button data-page="sounds">Explore sounds</button></section>';
+    return '<section class="ft-card"><p class="ft-eyebrow">LISTENING RECOGNITION · '+(state.soundQuestion+1)+'/'+state.soundQueue.length+'</p>'+
+      '<h2>Which French word did you hear?</h2><p>Listen first, then choose its spelling. The answer is hidden until you decide.</p>'+
+      '<div class="ft-actions"><button type="button" data-act="hear-sound-question" class="ft-primary">▶ Play the word</button></div>'+
+      '<div class="ft-choices" role="group" aria-label="Choose what you heard">'+item.options.map(option=>
+        '<button type="button" data-sound-answer="'+esc(option)+'"'+(state.soundAnswered?' disabled':'')+' lang="fr">'+esc(option)+'</button>').join('')+'</div>'+
+      (state.soundFeedback?'<div class="ft-feedback" role="status">'+esc(state.soundFeedback)+'</div>':'')+
+      (state.soundAnswered?'<div class="ft-model"><strong lang="fr">'+esc(item.correct)+'</strong> — '+esc(item.why)+'</div>'+
+        '<button type="button" data-act="next-sound-question" class="ft-primary">'+(state.soundQuestion===state.soundQueue.length-1?'Finish listening check':'Next word')+'</button>':'')+
+      '<p class="ft-small">Recognition results are saved as phonics evidence, not as a speech pronunciation score.</p></section>';
+  }
+  function startSoundQuiz(){
+    teach('sounds');
+    state.soundLastResult=null;
+    state.soundQueue=shuffle(SOUND_QUIZ).slice(0,8).map(q=>({...q,options:shuffle(q.options)}));
+    state.soundQuestion=0;state.soundCorrect=0;state.soundAnswered=false;state.soundFeedback='';
+    state.page='sound-quiz';render();
+  }
+  function answerSoundQuiz(value){
+    if(state.page!=='sound-quiz'||state.soundAnswered||!state.soundQueue[state.soundQuestion])return;
+    const item=state.soundQueue[state.soundQuestion],correct=value===item.correct;
+    if(correct)state.soundCorrect++;
+    record({concept:item.concept,phase:phaseFor('sounds'),correctCount:correct?1:0,total:1,
+      support:'none',taughtAt:taughtAt('sounds')||stamp(),sourceRef:'sound-'+item.id});
+    state.soundAnswered=true;
+    state.soundFeedback=correct?'Correct — you distinguished the spelling.':'Not quite. Listen again and compare the two sounds.';
+    render();
   }
   function knowledge(){
-    const rows=PASSAGE.map((l,i)=>'<div class="ft-grid-row"><div><span class="ft-number">'+(i+1)+'</span> <strong lang="fr">'+esc(l.fr)+'</strong>'+
+    const rows=PASSAGE.map((l,i)=>'<div class="ft-grid-row"><div><span class="ft-number">'+(i+1)+'</span> <strong lang="fr" class="ft-inline-french">'+interactiveFrench(l.fr)+'</strong>'+
       '<button data-say="'+i+'" aria-label="Hear French sentence '+(i+1)+'">▶</button></div>'+
       '<div class="'+(state.hideEnglish?'ft-covered':'')+'">'+(state.hideEnglish?'English hidden':esc(l.en))+'</div>'+
       '<details><summary>Literal translation · grammar · phonics</summary><p><b>Literal:</b> '+esc(l.literal)+'</p>'+
       '<p><b>Reusable:</b> '+esc(l.focus)+'</p><p><b>Notice:</b> '+esc(l.sound)+'</p></details></div>').join('');
     return '<section class="ft-card"><div class="ft-row"><div><p class="ft-eyebrow">RICH BILINGUAL KNOWLEDGE ORGANISER</p><h2>Live, learn and explain</h2></div>'+
       '<button data-act="toggle-english">'+(state.hideEnglish?'Show English':'Cover English')+'</button></div>'+
-      '<p>First understand all 14 complete sentences. Speak them aloud. Find repeated connectives. Only then remove the support.</p>'+
+      '<p>First understand all 14 complete sentences. Speak them aloud. Find repeated connectives. Only then remove the support. Tap an underlined word to explore its grammar if curious.</p>'+
       '<div class="ft-knowledge"><div class="ft-grid-head"><span>French · read and speak</span><span>Natural English</span></div>'+rows+'</div>'+
       '<div class="ft-actions"><button data-page="practice" class="ft-primary">Start guided practice</button></div></section>'+
       '<section class="ft-card"><h2>CUDDLES · notice the written and spoken language</h2>'+
       '<div class="ft-cuddles">'+CUDDLES.map(x=>'<div><b>'+x[0]+'</b><span><strong>'+esc(x[1])+'</strong><small>'+esc(x[2])+'</small></span></div>').join('')+'</div>'+
-      '<p class="ft-small">e.g. appartement: 11 letters, pp and mm doubled; petit: final t usually silent; les‿amis: liaison. Apply annotations thoughtfully rather than assuming all final letters are silent.</p></section>';
+      '<div class="ft-cuddle-examples"><h3>CUDDLES in action</h3>'+
+      CUDDLES_DEMOS.map(d=>'<div class="ft-cuddle-example"><button type="button" data-cuddle-word="'+esc(d.id)+'" aria-label="Hear '+esc(d.word)+'">▶</button>'+
+        '<span lang="fr" class="ft-cuddle-annotated">'+d.pieces.map(([piece,kind])=>'<span class="ft-mark-'+esc(kind)+'">'+esc(piece)+'</span>').join('')+'</span>'+
+        '<small>'+esc(d.description)+'</small></div>').join('')+'</div>'+
+      '<p class="ft-small">These marks are worked examples, not automatic guesses: vowel combinations, silent letters and liaison depend on the whole word and sentence.</p></section>';
   }
   function patterns(){
     return '<section class="ft-card"><h2>Reusable building blocks</h2><p>The same connectives work across hundreds of sentences. Change just one part, then combine two ideas.</p>'+
-      '<div class="ft-patterns">'+PATTERNS.map(p=>'<div><b>'+esc(p.word)+'</b><span>'+esc(p.name)+'</span><p lang="fr">'+esc(p.frame)+'</p><small>'+esc(p.english)+'</small></div>').join('')+'</div></section>';
+      '<div class="ft-patterns">'+PATTERNS.map(p=>'<div><b>'+esc(p.word)+'</b><span>'+esc(p.name)+'</span><p lang="fr">'+interactiveFrench(p.frame)+'</p><small>'+esc(p.english)+'</small></div>').join('')+'</div></section>';
   }
   function workshop(){
     const b=state.builder,group=SENTENCE_WORKSHOP[b.mode],line=assembleWorkshop(b.mode,b.left,b.right);
@@ -198,7 +272,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<label>First part<select data-workshop-key="left">'+options(group.left,b.left)+'</select></label>'+
       '<label>Second part<select data-workshop-key="right">'+options(group.right,b.right)+'</select></label></div>'+
       '<div class="ft-build-preview"><p class="ft-eyebrow">Build from English</p><p class="ft-workshop-english">'+esc(line.en)+'</p>'+
-      '<p class="ft-eyebrow">French model</p><p class="ft-workshop-french" lang="fr">'+(b.showFrench?esc(line.fr):'French covered — say it from memory')+'</p>'+
+      '<p class="ft-eyebrow">French model</p><p class="ft-workshop-french" lang="fr">'+(b.showFrench?interactiveFrench(line.fr):'French covered — say it from memory')+'</p>'+
       '<div class="ft-actions"><button data-act="say-workshop">▶ Hear the French</button><button data-act="toggle-workshop">'+(b.showFrench?'Cover French':'Reveal French')+'</button>'+
       '<button data-act="try-workshop" class="ft-primary">Type from English</button></div></div>'+
       '<p class="ft-small">Workshop repetitions count as guided practice, not as genuinely unseen transfer. Separate unseen tests are part of Sentence practice.</p></section>'+patterns();
@@ -213,13 +287,13 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<h2>'+({find:'Find the French',toFrench:'Translate into French',toEnglish:'Translate into English'}[x.kind]||'Translate')+'</h2></div>'+
       '<button data-act="restart">Restart</button></div>'+
       (x.novel?'<p class="ft-tag">New combination · transfer check</p>':'')+
-      (isFind?'<blockquote lang="fr">'+esc(PASSAGE[x.line].fr)+'</blockquote>':'')+
+      (isFind?'<blockquote lang="fr">'+interactiveFrench(PASSAGE[x.line].fr)+'</blockquote>':'')+
       '<p class="ft-question">'+esc(x.prompt)+'</p>'+
       '<form id="ft-answer"><label for="ft-answer-text">Your answer</label><input id="ft-answer-text" name="answer" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" value="'+esc(state.lastInput)+'" '+(state.completed?'disabled':'required')+'></input>'+
       (state.completed?'':'<div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button><button type="button" data-act="hint">Give me a hint</button><button type="button" data-act="model">Show model</button><button type="button" data-act="dictate">🎤 Dictate</button></div>')+'</form>'+
       (state.hint!=='none'?'<p class="ft-hint">Hint: '+esc(x.hint)+'</p>':'')+
       (state.feedback?'<div class="ft-feedback" role="status">'+esc(state.feedback)+'</div>':'')+
-      (state.completed?'<div class="ft-model"><b>Model:</b> <span lang="'+(x.kind==='toEnglish'?'en':'fr')+'">'+esc(x.answer)+'</span></div>'+
+      (state.completed?'<div class="ft-model"><b>Model:</b> <span lang="'+(x.kind==='toEnglish'?'en':'fr')+'">'+(x.kind==='toEnglish'?esc(x.answer):interactiveFrench(x.answer))+'</span></div>'+
       '<div class="ft-actions"><button class="ft-primary" data-act="next-question">'+(state.question===state.queue.length-1?'See results':'Next question')+'</button></div>':'')+
       '<p class="ft-small">Exact model answers are checked for words and spelling; valid alternative wording may need a teacher to review. Speech recognition is not a pronunciation score.</p></section>'+
       (state.page==='practice'?patterns():'');
@@ -235,6 +309,69 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       (state.completed?'<div class="ft-actions"><button class="ft-primary" data-act="next-letter-question">'+(state.alphabetQuestion===25?'Finish quiz':'Next letter')+'</button></div>':'')+
       '<p class="ft-small">The audio comes from your device’s French voice and should be checked against a proficient speaker if anything sounds unclear.</p></section>';
   }
+  function openWordInfo(surface,origin){
+    const info=lookupFrenchWord(surface);
+    if(!info)return;
+    if(wordDialog){try{wordDialog.close();}catch{}wordDialog.remove();}
+    const dialog=document.createElement('dialog');
+    dialog.className='ft-word-dialog';
+    dialog.setAttribute('aria-label','Explore French word '+surface);
+    const isVerb=info.type==='verb',verb=info.entry;
+    const header='<div class="ft-word-dialog-top"><div><p class="ft-eyebrow">OPTIONAL LANGUAGE EXPLORER</p><h2 lang="fr">'+esc(info.surface)+'</h2></div>'+
+      '<button type="button" data-close-word aria-label="Close word explanation">×</button></div>';
+    let content='';
+    if(isVerb){
+      const person=info.formKind==='present'&&info.personIndex!==null
+        ?SUBJECTS[info.personIndex]+' · present tense'
+        :info.formKind==='infinitive'?'Infinitive':info.formKind;
+      const table=verb.forms.length?'<details open><summary>See the present-tense endings</summary>'+
+        '<table class="ft-verb-table"><thead><tr><th scope="col">Subject</th><th scope="col">Verb form</th></tr></thead><tbody>'+
+        verb.forms.map((form,i)=>{
+          const hint=verb.endingHints?.[i];
+          const suffix=hint?hint.replace(/^-/, ''):'';
+          const bits=suffix&&form.endsWith(suffix)
+            ?esc(form.slice(0,-suffix.length))+'<strong class="ft-ending">'+esc(suffix)+'</strong>'
+            :esc(form);
+          const active=info.formKind==='present'&&form===info.matched?' class="ft-current-form"':'';
+          return '<tr'+active+'><th scope="row">'+esc(SUBJECTS[i])+'</th><td lang="fr">'+bits+'</td></tr>';
+        }).join('')+'</tbody></table>'+
+        (verb.endingHints?'<p class="ft-small">Regular -er present endings: <b>-e, -es, -e, -ons, -ez, -ent</b>. The last -ent is normally silent. Watch the stem-changing notes below.</p>':'<p class="ft-small">Irregular verbs need their own patterns: do not attach the standard -er endings.</p>')+
+        '</details>':
+        '<p><strong>Impersonal verb:</strong> il faut (present), il fallait (imperfect), il faudra (future), il faudrait (conditional).</p>';
+      content='<p class="ft-word-form">'+esc(person||'French verb')+'</p>'+
+        '<div class="ft-word-facts"><div><small>Infinitive</small><strong lang="fr">'+esc(verb.lemma)+'</strong></div>'+
+        '<div><small>Meaning</small><strong>'+esc(verb.meaning)+'</strong></div>'+
+        '<div><small>Pattern</small><strong>'+esc(verb.group)+'</strong></div></div>'+
+        (info.explain?'<p class="ft-word-tip">'+esc(info.explain)+'</p>':'')+table+
+        '<h3>How to use it</h3><p>'+esc(verb.note)+'</p>'+
+        '<p lang="fr" class="ft-word-example">'+esc(verb.example)+'</p>'+
+        '<div class="ft-actions"><button type="button" data-dialog-speak="'+esc(verb.lemma)+'">▶ Infinitive</button>'+
+        '<button type="button" data-dialog-speak="'+esc(verb.example)+'">▶ Example</button></div>';
+    }else{
+      content='<p class="ft-word-form">'+esc(info.kind)+'</p>'+
+        '<div class="ft-word-facts"><div><small>Meaning</small><strong>'+esc(info.meaning)+'</strong></div></div>'+
+        '<h3>Notice</h3><p>'+esc(info.tip)+'</p>'+
+        '<p lang="fr" class="ft-word-example">'+esc(info.example)+'</p>'+
+        '<div class="ft-actions"><button type="button" data-dialog-speak="'+esc(info.surface)+'">▶ Word</button>'+
+        '<button type="button" data-dialog-speak="'+esc(info.example)+'">▶ Example</button></div>';
+    }
+    dialog.innerHTML=header+content+'<p class="ft-small">Exploration is optional. You do not need to memorise this table before continuing the lesson.</p>';
+    wordDialog=dialog;el().append(dialog);
+    const close=()=>{if(dialog.open)dialog.close();else dialog.remove();};
+    dialog.querySelector('[data-close-word]').addEventListener('click',close);
+    dialog.addEventListener('click',event=>{
+      const button=event.target.closest('[data-dialog-speak]');
+      if(button){speak(button.dataset.dialogSpeak);return;}
+      if(event.target===dialog)close();
+    });
+    dialog.addEventListener('close',()=>{
+      if(wordDialog===dialog)wordDialog=null;
+      dialog.remove();
+      if(origin?.isConnected)origin.focus();
+    },{once:true});
+    if(typeof dialog.showModal==='function')dialog.showModal();
+    else dialog.setAttribute('open','');
+  }
   function pronounce(){
     return '<section class="ft-card"><p class="ft-eyebrow">OPTIONAL PRONUNCIATION COACH</p><h2>Listen and repeat aloud</h2>'+
       '<p>This reuses your existing shared Apps pronunciation lab. Its transcript, rhythm and pitch estimates are <b>provisional coaching cues</b>, not proof of phoneme accuracy.</p>'+
@@ -243,11 +380,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function render(){
     if(destroyed)return;
+    if(wordDialog){const old=wordDialog;wordDialog=null;try{old.close();}catch{}old.remove();}
     if(state.coach){const old=state.coach;state.coach=null;Promise.resolve(old.destroy()).catch(()=>{});}
     const ready=!!state.store;
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
       (!ready?login():nav()+
-      (state.page==='home'?overview():state.page==='alphabet'?alphabet():state.page==='knowledge'?knowledge():
+      (state.page==='home'?overview():state.page==='alphabet'?alphabet():state.page==='sounds'?sounds():state.page==='sound-quiz'?soundQuiz():state.page==='knowledge'?knowledge():
        state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())))+
       '<p class="ft-foot">Inspired by Barry Smith and published Michaela French teaching descriptions; independently created course content, not an official Michaela product. <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES source</a> · <a href="https://jlmfl.wordpress.com/2017/04/23/michaela-french-how-we-use-knowledge-organisers/">Knowledge organisers</a></p>';
     if(ready&&state.page==='pronunciation')mountPronunciation();
@@ -317,6 +455,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   function setPage(page){
     if(!state.store){render();return;}
     if(page==='alphabet'){teach('alphabet');state.page=page;}
+    else if(page==='sounds'){teach('sounds');state.page=page;}
     else if(page==='knowledge'||page==='workshop'){teach('connectives');state.page=page;}
     else if(page==='practice'){teach('connectives');state.page=page;state.queue=DRILLS.slice();state.question=0;resetQuestion();}
     else if(page==='review'){
@@ -349,11 +488,41 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     return String(error?.message||error);
   }
   async function onClick(e){
-    const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say]');
+    const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say],[data-word],[data-sound-group],[data-sound-play],[data-sound-compare],[data-sound-sentence],[data-sound-answer],[data-cuddle-word]');
     if(!b)return;
     if(b.dataset.page){setPage(b.dataset.page);return;}
-    if(b.dataset.letter!==undefined){state.lessonIndex=Number(b.dataset.letter);render();return;}
+    if(b.dataset.letter!==undefined){
+      const i=Number(b.dataset.letter);
+      if(!Number.isInteger(i)||i<0||i>=ALPHABET.length)return;
+      state.lessonIndex=i;render();
+      speak(ALPHABET[i].name); // same user tap plays the letter and shows its card
+      return;
+    }
     if(b.dataset.say!==undefined){speak(PASSAGE[Number(b.dataset.say)].fr);return;}
+    if(b.dataset.word!==undefined){openWordInfo(b.dataset.word,b);return;}
+    if(b.dataset.cuddleWord!==undefined){
+      const example=CUDDLES_DEMOS.find(d=>d.id===b.dataset.cuddleWord);
+      if(example)speak(example.word);return;
+    }
+    if(b.dataset.soundGroup!==undefined){
+      if(SOUND_FAMILIES.some(g=>g.id===b.dataset.soundGroup)){
+        state.soundGroup=b.dataset.soundGroup;render();
+      }
+      return;
+    }
+    if(b.dataset.soundPlay!==undefined){
+      const sound=soundById(b.dataset.soundPlay),index=Number(b.dataset.example);
+      if(sound?.examples[index])speak(sound.examples[index]);return;
+    }
+    if(b.dataset.soundCompare!==undefined){
+      const sound=soundById(b.dataset.soundCompare),index=Number(b.dataset.compareIndex);
+      if(sound?.compare?.[index])speak(sound.compare[index]);return;
+    }
+    if(b.dataset.soundSentence!==undefined){
+      const sound=soundById(b.dataset.soundSentence);
+      if(sound)speak(sound.sentence);return;
+    }
+    if(b.dataset.soundAnswer!==undefined){answerSoundQuiz(b.dataset.soundAnswer);return;}
     switch(b.dataset.act){
       case 'google-signin':{
         try{
@@ -385,11 +554,19 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         const a=document.createElement('a');a.href=u;a.download='next-french-evidence-'+state.profile+'.json';a.click();
         setTimeout(()=>URL.revokeObjectURL(u),3000);break;
       }
-      case 'alpha-prev':state.lessonIndex=Math.max(0,state.lessonIndex-1);render();break;
-      case 'alpha-next':state.lessonIndex=Math.min(25,state.lessonIndex+1);render();break;
-      case 'hear-letter':speak('la lettre '+ALPHABET[state.lessonIndex].name);break;
+      case 'alpha-prev':state.lessonIndex=Math.max(0,state.lessonIndex-1);render();speak(ALPHABET[state.lessonIndex].name);break;
+      case 'alpha-next':state.lessonIndex=Math.min(25,state.lessonIndex+1);render();speak(ALPHABET[state.lessonIndex].name);break;
+      case 'toggle-letter-groups':state.letterGrouped=!state.letterGrouped;render();break;
+      case 'hear-letter':speak(ALPHABET[state.lessonIndex].name);break;
       case 'hear-example':speak(ALPHABET[state.lessonIndex].example);break;
       case 'alpha-quiz':startQuiz();break;
+      case 'start-sound-quiz':startSoundQuiz();break;
+      case 'hear-sound-question':{const q=state.soundQueue[state.soundQuestion];if(q)speak(q.target);break;}
+      case 'next-sound-question':{
+        if(state.soundQuestion+1<state.soundQueue.length){state.soundQuestion++;state.soundAnswered=false;state.soundFeedback='';}
+        else{state.soundLastResult=state.soundCorrect+'/'+state.soundQueue.length+' correct';state.page='sounds';state.soundAnswered=false;}
+        render();break;
+      }
       case 'quiz-hear':speak('la lettre '+state.alphabetQuiz[state.alphabetQuestion].name);break;
       case 'next-letter-question':{
         if(state.alphabetQuestion<25){state.alphabetQuestion++;resetQuestion();render();}
@@ -461,6 +638,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     window.removeEventListener('online',onOnline);
     document.removeEventListener('visibilitychange',onVisible);
     el().removeEventListener('click',onClick);el().removeEventListener('submit',onSubmit);el().removeEventListener('change',onChange);
+    if(wordDialog){try{wordDialog.close();}catch{}wordDialog.remove();wordDialog=null;}
+    if('speechSynthesis' in window)window.speechSynthesis.cancel();
     if(state.coach)Promise.resolve(state.coach.destroy()).catch(()=>{});
   }};
 }

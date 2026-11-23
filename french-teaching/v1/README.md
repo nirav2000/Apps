@@ -69,3 +69,23 @@ Google sign-in **works only if the Google account is linked to that same existin
 App Monitor passkey **does not yet** issue an app Firebase owner session for French; the existing passkey Worker supports other scoped workflows such as private InClass notes, and granting broad Firebase owner access by reusing an App Monitor token without a verified server bridge is prohibited. The shared Auth v1 migration guide recommends leaving legacy authority intact until a dedicated, thoroughly tested broker produces app-UID-preserving scoped credentials. The French course does not change the App Monitor Worker or passkey library.
 
 Automated browser test tests/french-auth-browser.mjs exercises Google sign-in handoff, linking to the existing UID and wrong-identity denial via a safe mock transport. Real Firebase provider permissions, Google pop-up and cross-device session sharing are separate manual acceptance checks.
+
+
+## French sound and grammar expansion — November 2026
+
+New additive modules under french-teaching/v1:
+- phonics.js: 26 letter-name IPA cues, four letter-name groupings, 21 grouped written/sound correspondences, examples heard in words and full sentences, contrasts, and 12 listening-recognition prompts. Sounds is a separate, voluntary step after letter names or during knowledge-grid work. A letter NAME is not necessarily its sound IN A WORD; the course explicitly separates them.
+- lexicon.js: curated accessible word notes and 25 common verbs (regular -er, stem/spelling changes and irregulars), subject labels, present-tense conjugations, forms including veux -> vouloir, voudrais as conditional, soit as subjunctive and the impersonal il faut. Multiword connectives and French elisions remain tappable. Non-curated words are rendered as ordinary text, **never sent to an unreliable morphology-guessing service**.
+- index.js: tap an alphabet letter to show its card **and play its French name in the same interaction**. Group alphabet names, explore Sounds, hear contrasting words, take listening checks, inspect an underlined word in a modal without navigating away from the lesson; clickable words appear in the knowledge grid, sentence workshop and selected practise models. Expanded conjugation is *optional*, not required for a beginner to continue.
+
+CUDDLES now includes visual, curated marks for five actual French words (double-letter, vowel group, silent letter, accent, liaison). We deliberately do not infer all phonetics from spelling. Corrected former misinformation: *appartement* has pp, not mm. The new work keeps the existing 14-sentence organiser and original evidence IDs/paths unchanged. Sound recognition attempts record independent accuracy under fresh french:phonics:* concepts and existing adult/Sai scoped Firebase events; **no acoustic pronunciation scoring**.
+
+Audio uses the existing fr-FR SpeechSynthesis device API. It can vary by operating system/voice and should not be presented as a phonetic gold standard. A credible accent test still requires a human teacher or specialist calibrated audio. Some distinctions (e.g. /œ̃/ vs /ɛ̃/) vary by regional French accent. IPA labels are support for curious learners, not mandatory lesson content.
+
+Testing: tests/french-extensions.test.mjs covers sounds, spellings, curated words/verbs, elisions, preserving original text and correct conjugation. tests/french-extensions-browser.mjs covers mobile tap-to-speak, grouping, sound quiz Firebase evidence, optional 'veux' morphology dialog and preserved mobile width. Existing auth and Firebase tests continue to run. InClass and App Monitor Worker remain untouched; no credential, rules or existing learner-progress migration is needed.
+
+Sources for the approach:
+- Barry Smith / Michaela CUDDLES: https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/
+- Knowledge organisers: https://jlmfl.wordpress.com/2017/04/23/michaela-french-how-we-use-knowledge-organisers/
+
+Future curriculum additions should distinguish formal syllable phonics instruction from optional exploration and review content; do not represent a fixed phonics dataset as a comprehensive Michaela curriculum or as official school material.

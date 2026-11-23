@@ -7,6 +7,7 @@ on:
       - 'learning-evidence/**'
       - 'french-teaching/**'
       - 'tests/french-course.test.mjs'
+      - 'tests/french-extensions.test.mjs'
       - 'learning-sync/**'
       - 'tests/learning.test.mjs'
       - 'tests/learning-evidence.test.mjs'
@@ -18,6 +19,7 @@ on:
       - 'learning-evidence/**'
       - 'french-teaching/**'
       - 'tests/french-course.test.mjs'
+      - 'tests/french-extensions.test.mjs'
       - 'tests/learning-evidence.test.mjs'
       - '.github/workflows/learning-tests.yml'
   workflow_dispatch:
@@ -35,5 +37,7 @@ jobs:
       - run: node --check learning-evidence/v1/panel.js
       - run: node --check learning-evidence/v1/firestore-cloud.js
       - run: node --check french-teaching/v1/data.js
+      - run: node --check french-teaching/v1/phonics.js
+      - run: node --check french-teaching/v1/lexicon.js
       - run: node --check french-teaching/v1/index.js
-      - run: node --test tests/learning.test.mjs tests/learning-sync.test.mjs tests/learning-evidence.test.mjs tests/french-course.test.mjs
+      - run: node --test tests/learning.test.mjs tests/learning-sync.test.mjs tests/learning-evidence.test.mjs tests/french-course.test.mjs tests/french-extensions.test.mjs

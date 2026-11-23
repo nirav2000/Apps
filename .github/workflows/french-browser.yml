@@ -6,6 +6,7 @@ on:
       - 'french-teaching/**'
       - 'learning-evidence/v1/firestore-cloud.js'
       - 'tests/french-browser*'
+      - 'tests/french-extensions-browser.mjs'
       - '.github/workflows/french-browser.yml'
   pull_request:
     paths:
@@ -33,3 +34,4 @@ jobs:
           sleep 2
           node tests/french-browser.mjs
           node tests/french-auth-browser.mjs
+          node tests/french-extensions-browser.mjs

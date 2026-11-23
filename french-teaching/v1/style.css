@@ -17,3 +17,81 @@
 .ft-app .ft-password-option form{display:grid;gap:13px;margin-top:20px}
 .ft-app .ft-password-option form label{display:grid;gap:6px}
 .ft-app .ft-identity button{margin-top:8px}
+
+
+/* Version 1.1: sound-family lessons and optional grammar exploration.
+   This only affects .ft-app; Next and InClass styles remain untouched. */
+.ft-app .ft-pronunciation-hint{display:inline-block;padding-left:8px;color:var(--ft-muted);font-weight:600;font-size:13px}
+.ft-app .ft-name-families{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0 24px}
+.ft-app .ft-name-family{border:1px solid var(--ft-line);background:#f8faf7;padding:15px;border-radius:15px}
+.ft-app .ft-name-family h3{margin:0;font-size:15px}
+.ft-app .ft-name-family p{font-size:12px;color:var(--ft-muted);margin:7px 0 12px}
+.ft-app .ft-family-letters{display:flex;flex-wrap:wrap;gap:5px}
+.ft-app .ft-family-letters button{min-width:40px;height:42px;min-height:42px;padding:3px 6px;font-size:15px}
+.ft-app .ft-family-letters button.active{background:var(--ft-accent);color:white}
+.ft-app .ft-alphabet-grid button.active{background:var(--ft-accent);color:white}
+.ft-app .ft-sound-groups{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}
+.ft-app .ft-sound-groups button{font-size:13px}
+.ft-app .ft-sound-groups button.active{background:#e2efe5;color:#214838;border-color:#a9cab3}
+.ft-app .ft-sound-intro{font-size:14px;color:var(--ft-muted)}
+.ft-app .ft-sound-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.ft-app .ft-sound-card{border:1px solid #dfebe0;background:#f9fbf7;border-radius:16px;padding:18px;min-width:0}
+.ft-app .ft-sound-card h3{font-size:23px;margin:0;line-height:1.25;letter-spacing:-.02em}
+.ft-app .ft-sound-card small{color:#587263}
+.ft-app .ft-sound-card>p{font-size:14px;color:#455e50;line-height:1.55}
+.ft-app .ft-sound-card .ft-row button{flex:none;font-size:12px}
+.ft-app .ft-sound-words,.ft-app .ft-sound-contrast{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.ft-app .ft-sound-words button,.ft-app .ft-sound-contrast button{padding:8px 10px;min-height:38px;font-size:14px}
+.ft-app .ft-sound-contrast{margin-top:10px;border-top:1px dashed #cdded0;padding-top:12px}
+.ft-app .ft-sound-contrast span{font-size:12px;color:#587263;font-weight:750;margin-right:3px}
+.ft-app .ft-sound-card details{font-size:13px;color:#415d4c}
+.ft-app .ft-sound-card details p{margin:10px 0 4px;font-size:15px;line-height:1.5}
+.ft-app .ft-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:25px 0}
+.ft-app .ft-choices button{font-size:18px;padding:18px 12px;min-width:0}
+.ft-app .ft-cuddle-examples{border:1px solid var(--ft-line);border-radius:15px;margin-top:20px;padding:16px;background:#f9faf7}
+.ft-app .ft-cuddle-examples h3{margin:0 0 12px;font-size:16px}
+.ft-app .ft-cuddle-example{display:grid;grid-template-columns:40px minmax(90px,1fr) minmax(0,1.7fr);align-items:center;gap:12px;padding:10px 0;border-top:1px solid #e4ece3}
+.ft-app .ft-cuddle-example:first-of-type{border-top:0}
+.ft-app .ft-cuddle-example button{padding:7px;min-height:36px}
+.ft-app .ft-cuddle-annotated{font-size:19px;font-weight:650;letter-spacing:.015em;white-space:normal;overflow-wrap:anywhere}
+.ft-app .ft-cuddle-example small{font-size:12px;line-height:1.45;color:#586d5f}
+.ft-app .ft-mark-vowel{border-bottom:2px solid #477a65}
+.ft-app .ft-mark-double{border-bottom:4px double #477a65}
+.ft-app .ft-mark-silent{text-decoration:underline dotted #ba7660;text-decoration-thickness:3px;text-underline-offset:4px}
+.ft-app .ft-mark-accent{border-bottom:2px solid #856396}
+.ft-app .ft-mark-liaison{color:#856396;font-weight:800}
+.ft-app .ft-word{font:inherit;display:inline;border:0!important;min-height:0!important;min-width:0!important;padding:0!important;margin:0;background:transparent!important;color:inherit!important;border-radius:0!important;line-height:inherit;font-weight:inherit;text-decoration:underline dotted #8eac98;text-underline-offset:.19em;text-decoration-thickness:1px;cursor:help}
+.ft-app .ft-word:hover{color:#1e704b!important;text-decoration:underline solid #5e997c}
+.ft-app .ft-word:focus-visible{border-radius:2px!important;outline:2px solid #396b96;outline-offset:3px}
+.ft-app .ft-inline-french{font-weight:690}
+.ft-app .ft-word-dialog{box-sizing:border-box;width:min(600px,calc(100vw - 20px));max-height:min(88dvh,830px);overflow-y:auto;border:1px solid #cfdcd2;border-radius:20px;padding:clamp(18px,3vw,26px);box-shadow:0 24px 65px #152c2350;background:#fff;color:#193a33;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overscroll-behavior:contain}
+.ft-app .ft-word-dialog::backdrop{background:#15282085;backdrop-filter:blur(2px)}
+.ft-app .ft-word-dialog h2{margin:0;font-size:35px}
+.ft-app .ft-word-dialog h3{margin:17px 0 5px;font-size:16px}
+.ft-app .ft-word-dialog p{margin:10px 0}
+.ft-app .ft-word-dialog-top{display:flex;justify-content:space-between;gap:10px;align-items:start}
+.ft-app .ft-word-dialog-top button{font-size:24px;min-height:42px;min-width:42px;padding:4px;border:0}
+.ft-app .ft-word-form{font-size:13px;font-weight:740;color:#637d6c}
+.ft-app .ft-word-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:7px;margin:14px 0}
+.ft-app .ft-word-facts>div{background:#f4f7f2;padding:13px;border-radius:12px}
+.ft-app .ft-word-facts small{display:block;color:#607467;font-size:11px}
+.ft-app .ft-word-facts strong{display:block;font-size:15px;overflow-wrap:anywhere}
+.ft-app .ft-word-dialog details{border-top:1px solid #dae4da;margin-top:12px;padding-top:10px}
+.ft-app .ft-verb-table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0;table-layout:fixed}
+.ft-app .ft-verb-table th,.ft-app .ft-verb-table td{padding:8px 10px;border-bottom:1px solid #ebefea;text-align:left;overflow-wrap:anywhere}
+.ft-app .ft-verb-table th{font-weight:600}
+.ft-app .ft-verb-table thead th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#688273}
+.ft-app .ft-current-form{background:#e9f2e9}
+.ft-app .ft-ending{color:#1f7565;font-weight:800}
+.ft-app .ft-word-tip{background:#f6f7ed;border-radius:10px;padding:12px}
+.ft-app .ft-word-example{background:#eef5ef;border-radius:10px;padding:12px;font-size:17px!important;font-weight:650}
+.ft-app .ft-word-dialog .ft-actions{margin:14px 0}
+@media(max-width:760px){
+ .ft-app .ft-name-families,.ft-app .ft-sound-cards{grid-template-columns:1fr}
+ .ft-app .ft-sound-groups{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding-bottom:5px}
+ .ft-app .ft-sound-groups button{flex:0 0 auto}
+ .ft-app .ft-choices{grid-template-columns:1fr 1fr}
+ .ft-app .ft-cuddle-example{grid-template-columns:40px minmax(0,1fr);gap:8px}
+ .ft-app .ft-cuddle-example small{grid-column:2}
+ .ft-app .ft-word-dialog{padding:18px;border-radius:17px}
+}
