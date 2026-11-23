@@ -56,3 +56,5 @@ The shared evidence engine's built-in due planner uses 1, 7 and 28 days; the Fre
 - Built-in progress data is additive and scoped; never clear Safari local site data as a troubleshooting shortcut.
 
 Run: node --test tests/french-course.test.mjs tests/learning-evidence.test.mjs and the existing shared tests. Deploy to main as per docs/GITHUB-WRITE-RUNBOOK.md. Cloud and auth behaviour still requires a signed-in browser acceptance test.
+
+**Evidence guardrail:** typing after an immediately visible French model is recorded with worked-example support (not independent), even when the answer matches. Covering the model before attempting permits an independent-practice observation, but still never counts as novel transfer or delayed retention.

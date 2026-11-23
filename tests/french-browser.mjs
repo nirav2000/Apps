@@ -35,6 +35,14 @@ try{
   await page.waitForFunction(()=>window.__testEvidence.size>=2,null,{timeout:8000});
   const adultRows=await page.evaluate(()=>[...window.__testEvidence.keys()].filter(k=>k.includes('/learners/adult/')).length);
   assert.ok(adultRows>=2);
+  await page.getByRole('button',{name:'Sentence workshop'}).click();
+  // A model-visible answer is correct with support, not independent.
+  await page.getByRole('button',{name:'Reveal French'}).click();
+  await page.getByRole('button',{name:'Type from English'}).click();
+  await page.locator('#ft-answer-text').fill("J'aime le français, mais je fais parfois des erreurs.");
+  await page.getByRole('button',{name:'Check answer'}).click();
+  assert.match(await page.locator('.ft-feedback').innerText(),/Correct with support/);
+  await page.waitForFunction(()=>[...window.__testEvidence.values()].some(x=>x.event?.support==='worked-example'),null,{timeout:8000});
 
   await page.locator('[data-profile]').selectOption('sai');
   await page.locator('[data-cloud-status]').filter({hasText:'Firebase'}).waitFor({timeout:16000});

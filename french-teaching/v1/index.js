@@ -268,7 +268,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
       const seen=state.store.getEntries().some(e=>e.source?.ref===x.id&&e.phase==='transfer');
       if(seen)phase='practice';
     }
-    const support=forced?'worked-example':state.hint!=='none'?'small-prompt':state.failed?'small-prompt':'none';
+    const support=forced||x.guided?'worked-example':state.hint!=='none'?'small-prompt':state.failed?'small-prompt':'none';
     record({concept:x.concept,phase,novel:phase==='transfer'&&x.novel,
       correctCount:isCorrect?1:0,total:1,support,taughtAt:first,sourceRef:x.id});
   }
@@ -278,7 +278,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
     const correct=markAnswer(input,x.answer);
     noteAnswer(correct,x);
     state.attempted=true;
-    if(correct){state.feedback=state.failed||state.hint!=='none'?'Correct after support. We will check independent recall later.':'Correct independently. Well done.';state.completed=true;}
+    if(correct){state.feedback=state.failed||state.hint!=='none'||x.guided?'Correct with support. We will check independent recall later.':'Correct independently. Well done.';state.completed=true;}
     else{state.failed=true;state.feedback='Not quite. Check word order, articles, accents and conjugations. Try again, or request a hint.';}
     render();
   }
@@ -355,7 +355,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
       case 'say-workshop':speak(assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);break;
       case 'try-workshop':{
         const q=assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right);
-        state.queue=[{id:q.id,kind:'toFrench',prompt:q.en,answer:q.fr,concept:q.concept,phase:'practice',novel:false,
+        state.queue=[{id:q.id,kind:'toFrench',prompt:q.en,answer:q.fr,concept:q.concept,phase:'practice',novel:false,guided:state.builder.showFrench,
           hint:'Use the connector and the two clauses from the workshop.'}];
         state.question=0;resetQuestion();state.page='practice';render();break;
       }
