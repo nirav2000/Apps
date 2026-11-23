@@ -317,7 +317,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     dialog.className='ft-word-dialog';
     dialog.setAttribute('aria-label','Explore French word '+surface);
     const isVerb=info?.type==='verb',verb=info?.entry;
-    const header='<div class="ft-word-dialog-top"><div><p class="ft-eyebrow">OPTIONAL LANGUAGE EXPLORER</p><h2 lang="fr">'+esc(info.surface)+'</h2></div>'+
+    const header='<div class="ft-word-dialog-top"><div><p class="ft-eyebrow">OPTIONAL LANGUAGE EXPLORER</p><h2 lang="fr">'+esc(surface)+'</h2></div>'+
       '<button type="button" data-close-word aria-label="Close word explanation">×</button></div>';
     let content='';
     if(isVerb){
