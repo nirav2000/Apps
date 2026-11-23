@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:,"><title>French teaching browser test</title>
+<link rel="stylesheet" href="../french-teaching/v1/style.css"></head><body>
+<main id="target" class="ft-app"></main>
+<script type="module">
+import {mountFrenchCourse} from '../french-teaching/v1/index.js';
+const db={};const docs=new Map();
+const auth={currentUser:{uid:'test-owner'}};
+const firestore={
+  collection(_db,...parts){return parts.join('/');},
+  doc(col,id){return col+'/'+id;},
+  documentId(){return '__name__';},
+  where(k,op,val){return {k,op,val};},
+  query(col,...filters){return {col,filters};},
+  getDocsFromServer:async query=>{
+    const matches=[...docs].filter(([path])=>path.startsWith(query.col+'/')&&query.filters.every(f=>
+      f.op==='>='?path.split('/').pop()>=f.val:path.split('/').pop()<f.val));
+    return{forEach(cb){for(const [path,data] of matches)cb({id:path.split('/').pop(),data:()=>data});}};
+  },
+  serverTimestamp(){return 'server-time';},
+  async runTransaction(_db,fn){
+    const writes=[];
+    await fn({get:async k=>({exists:()=>docs.has(k),data:()=>docs.get(k)}),
+      set:(k,v)=>writes.push([k,v])});
+    for(const [k,v]of writes)docs.set(k,v);
+  }
+};
+window.__testEvidence=docs;
+mountFrenchCourse({target:document.querySelector('#target'),
+  connect:async()=>({db,auth,firestore,ownerUid:'test-owner'}),
+  signIn:async()=>{},signOut:async()=>{}});
+</script></body></html>

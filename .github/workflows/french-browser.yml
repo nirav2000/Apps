@@ -1,0 +1,34 @@
+name: French course browser smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'french-teaching/**'
+      - 'learning-evidence/v1/firestore-cloud.js'
+      - 'tests/french-browser*'
+      - '.github/workflows/french-browser.yml'
+  pull_request:
+    paths:
+      - 'french-teaching/**'
+      - 'tests/french-browser*'
+      - '.github/workflows/french-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          python3 -m http.server 8898 --bind 127.0.0.1 > /tmp/french-qa-server.log 2>&1 &
+          server=$!
+          trap 'kill $server 2>/dev/null || true' EXIT
+          sleep 2
+          node tests/french-browser.mjs

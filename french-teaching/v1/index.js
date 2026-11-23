@@ -36,7 +36,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
     completed:false,pronunciationIndex:0,coach:null,lastInput:'',busy:false,builder:{mode:0,left:0,right:0,showFrench:true}};
   try{const p=localStorage.getItem('next-french:profile');if(p==='adult'||p==='sai')state.profile=p;}catch{}
   const el=()=>target;
-  let syncTimer=0,destroyed=false;
+  let syncTimer=0,destroyed=false,syncTask=null,pendingAgain=false;
   function record(raw){
     if(!state.store)throw Error('Sign in to record progress');
     const row=state.store.record({...raw,id:id(),source:{kind:'french-course',ref:raw.sourceRef||'session'}});
@@ -60,25 +60,40 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
   function queueSync(){
     if(!state.cloud)return;
     state.cloudStatus='Pending cloud upload';
+    if(syncTask){pendingAgain=true;updateStatus();return;}
     if(syncTimer)clearTimeout(syncTimer);
     syncTimer=setTimeout(()=>syncNow(),1800);
     updateStatus();
   }
-  async function syncNow(){
-    if(!state.cloud||state.busy)return;
+  function syncNow(){
+    if(!state.cloud)return Promise.resolve();
     if(syncTimer){clearTimeout(syncTimer);syncTimer=0;}
-    state.busy=true;state.cloudStatus='Syncing…';updateStatus();
-    try{
-      const result=await state.cloud.sync();
-      if(destroyed)return;
-      state.cloudAt=result.at;
-      state.cloudStatus='Saved to Firebase';
-      if(state.page==='home')render();else updateStatus();
-    }catch(e){
-      if(destroyed)return;
-      state.cloudStatus='Saved locally; cloud needs attention: '+String(e.message||e);
-      updateStatus();
-    }finally{state.busy=false;}
+    if(syncTask){pendingAgain=true;return syncTask;}
+    const cloud=state.cloud;
+    syncTask=(async()=>{
+      state.busy=true;
+      try{
+        do{
+          pendingAgain=false;
+          state.cloudStatus='Syncing…';updateStatus();
+          const result=await cloud.sync();
+          if(destroyed||state.cloud!==cloud)return;
+          state.cloudAt=result.at;
+          state.cloudStatus='Saved to Firebase';
+          if(state.page==='home')render();else updateStatus();
+        }while(pendingAgain&&state.cloud===cloud);
+      }catch(e){
+        if(destroyed)return;
+        state.cloudStatus='Saved locally; cloud needs attention: '+String(e.message||e);
+        updateStatus();
+      }finally{
+        state.busy=false;
+      }
+    })().finally(()=>{
+      syncTask=null;
+      if(pendingAgain&&!destroyed&&state.cloud===cloud){pendingAgain=false;queueSync();}
+    });
+    return syncTask;
   }
   function updateStatus(){
     const s=el().querySelector('[data-cloud-status]');if(s)s.textContent=state.cloudStatus;
