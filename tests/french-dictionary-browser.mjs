@@ -42,6 +42,7 @@ try{
   await dialog.waitFor();
   assert.match(await dialog.innerText(),/vouloir/);
   assert.equal(networkWords.length,0);
+  await dialog.locator('.ft-dictionary-panel summary').click();
   await dialog.locator('[data-fetch-dictionary]').click();
   await dialog.locator('.ft-dictionary-result').getByText(/to want, to wish/).waitFor();
   assert.deepEqual(networkWords,['vouloir']);
