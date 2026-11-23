@@ -28,6 +28,7 @@ try{
   assert.match(await page.locator('.ft-card').first().innerText(),/80 distinct sentences/);
   await page.locator('[data-workshop-key="mode"]').selectOption('1');
   assert.match(await page.locator('.ft-workshop-french').innerText(),/mais/);
+  await page.getByRole('button',{name:'Cover French'}).click();
   await page.getByRole('button',{name:'Type from English'}).click();
   await page.locator('#ft-answer-text').fill("J'aime le français, mais je fais parfois des erreurs.");
   await page.getByRole('button',{name:'Check answer'}).click();
