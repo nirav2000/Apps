@@ -96,3 +96,8 @@ Publishing an app requires a separate reviewed public-only GitHub Actions workfl
 ### Automatic public folder discovery
 
 The public dashboard also reads the public Git tree of `nirav2000/nirav2000.github.io` and finds each **root-level folder with its own `index.html`**. This discovers future independent hosted apps without confusing them with the Pages repository root. Existing curated blurbs/previews win over generic discovered entries, and discovery failure does not remove saved entries. Private directories are **never** crawled or auto-published. The Biz passkey catalogue is a separate, authenticated server-side lookup.
+
+### French course / cloud evidence pilot (23 November 2026)
+
+- `french-teaching/v1/` is a versioned **additive** French teaching module for Next French: French alphabet, rich bilingual grid, CUDDLES, PROFS examples, high-frequency connectives, controlled translations, speech coaching, 1/3/7-day review and learner evidence. See `french-teaching/v1/README.md`.
+- `learning-evidence/v1/firestore-cloud.js` is an **opt-in** immutable Firestore evidence transport (one event/document, owner-only path), tested for two-device merges and account isolation. It does not change existing consumers or Firestore rules. See `learning-evidence/v1/README.md`.

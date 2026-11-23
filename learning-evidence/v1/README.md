@@ -48,3 +48,9 @@ Every record includes `appId/accountId/learnerId/concept`, a stable ID, source r
 `node --check learning-evidence/v1/panel.js`
 
 Pilot: Beyond100 Maths Thinking Lab and assessment evidence, Dol progress panel, Comprehension parent view. Compare observed outcomes after real practice before considering 80% thresholds or auto-adaptation.
+
+## Firebase cloud transport (new optional adapter)
+
+The versioned optional adapter `learning-evidence/v1/firestore-cloud.js` uploads **immutable, individually keyed evidence events**, not a shared replaceable JSON array. It uses the app-supplied `auth`, `db` and Firebase modular `firestore` SDK and requires the exact signed-in Firebase UID to equal the explicitly provided `ownerUid`. Events are stored in existing owner-scoped Firestore paths `families/{ownerUid}/learners/{learnerId}/progress/evidence-{appId}-v1-{eventId}`. Each sync first reads server data, rejects mismatched scopes and conflicting event IDs, ingests new remote records locally, and creates missing records in Firestore transactions. No recordings, answer texts, private credentials or passwords are transmitted. This adapter changes no Firestore rule and does nothing until a consumer explicitly mounts it with an authorised authenticated app session and rules tested for that path.
+
+Consumer example in `french-teaching/v1/index.js`; regression checks in `tests/french-course.test.mjs`. Do not interpret client-only pending rows as cloud-saved evidence. The initial pilot uses the existing `kk-syllabus` parent-owner rules and separate adult and Sai learner IDs. This adapter is not automatically installed into Dol, Beyond100, Comprehension, or InClass; those integrations need their own authenticated adoption and migration tests.
