@@ -89,3 +89,14 @@ Sources for the approach:
 - Knowledge organisers: https://jlmfl.wordpress.com/2017/04/23/michaela-french-how-we-use-knowledge-organisers/
 
 Future curriculum additions should distinguish formal syllable phonics instruction from optional exploration and review content; do not represent a fixed phonics dataset as a comprehensive Michaela curriculum or as official school material.
+
+
+## Word Explorer dictionary enrichment — 23 November 2026
+
+The French course's optional word explorer now supports **any ordinary single French word** appearing in a knowledge grid or workshop, not only the curated vocabulary. The original curated notes/conjugation tables remain the first and fastest layer for learners. A separately expandable "More from the free dictionary" panel retrieves English meanings, IPA and a short list of inflected forms from the English-edition Wiktionary via the public Wiktapi JSON endpoint, filtered to French (GET /v1/en/word/{word}?lang=fr). For curated verbs, the optional lookup prefers the infinitive (veux looks up vouloir).
+
+Source, licence and attribution: displayed extracts come from community-written Wiktionary entries, accessed through the Wiktapi service. Link to the exact **English Wiktionary French-language entry**, and the corresponding French Wiktionary page. Data is provided under relevant Wiktionary CC BY-SA and/or GFDL licence terms; preserve source links. See https://wiktapi.dev/quickstart, https://en.wiktionary.org/wiki/Wiktionary:Copyrights, and source entries. This is not a paid/proprietary dictionary API and is not official Barry Smith material.
+
+Privacy/security: this client-only GET sends **only the clicked French word or infinitive** to the dictionary provider. Never transmit learning evidence, user identity, private sentences, recordings or Firebase credentials. Fetch requests omit cookies, enforce 7-second timeout and plain-JSON parsing, and render all returned text with HTML escaping. Data is read-only; none of it affects mastery scores. A small expiring local (3-day) cache avoids repeat requests. No new Firebase collections, Cloudflare Workers or secrets are needed. If the service is unavailable, slow, blocked by CORS or missing an entry, learners retain the curated explanation and two direct Wiktionary links. The API may not support every entry, and CORS/uptime remain outside our control; the live provider must be checked on a real Safari/iOS device.
+
+Tests: tests/french-dictionary.test.mjs verifies input validation, language filtering, limits, injection-safe content and cache/error handling; tests/french-dictionary-browser.mjs mocks the external API in Chromium to verify an uncurated word lookup, online enrichment of vouloir, text escaping, cache behaviour and no learning-evidence changes. Both run alongside the existing language, auth and PWA regression checks.

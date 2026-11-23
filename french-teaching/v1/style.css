@@ -95,3 +95,16 @@
  .ft-app .ft-cuddle-example small{grid-column:2}
  .ft-app .ft-word-dialog{padding:18px;border-radius:17px}
 }
+
+
+/* Optional online dictionary: native disclosure, safe read-only text, small source links. */
+.ft-app .ft-word-dialog .ft-dictionary-panel{background:#f8faf7;border:1px solid #dfe8df;border-radius:13px;padding:15px;margin-top:18px}
+.ft-app .ft-word-dialog .ft-dictionary-panel summary{font-weight:740;font-size:14px}
+.ft-app .ft-word-dialog .ft-dictionary-panel button[data-fetch-dictionary]{margin:8px 0 10px;min-height:39px;font-size:13px}
+.ft-app .ft-dictionary-result{overflow-wrap:anywhere;font-size:14px}
+.ft-app .ft-dictionary-result ul{padding-left:20px;margin:8px 0 14px}
+.ft-app .ft-dictionary-result li{margin:6px 0}
+.ft-app .ft-dictionary-result details{margin-top:10px}
+.ft-app .ft-dictionary-links{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0 4px}
+.ft-app .ft-dictionary-links a{font-size:12px;font-weight:700;color:#285b4d;text-decoration:underline;text-underline-offset:3px}
+.ft-app .ft-dictionary-result strong{font-weight:730}

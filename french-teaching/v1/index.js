@@ -1,6 +1,7 @@
 import {ALPHABET,CUDDLES,PASSAGE,PATTERNS,DRILLS,SENTENCE_WORKSHOP,assembleWorkshop,markAnswer} from './data.js';
 import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,soundById} from './phonics.js';
 import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
+import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
 
@@ -162,7 +163,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<p class="ft-small">PROFS: Past, Reasons, Opinions, Future, Subjunctive. This pilot introduces useful past, reason, opinion and future structures, plus a supported subjunctive example.</p></section>';
   }
   function interactiveFrench(value){
-    return tokenizeFrench(value).map(part=>part.info
+    return tokenizeFrench(value).map(part=>(part.info||/^[\p{L}\p{M}]+(?:['’ -][\p{L}\p{M}]+){0,2}$/u.test(part.text))
       ?'<button type="button" class="ft-word" lang="fr" data-word="'+esc(part.text)+'" title="Explore this word" aria-label="Explore '+esc(part.text)+'">'+esc(part.text)+'</button>'
       :esc(part.text)).join('');
   }
@@ -311,12 +312,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function openWordInfo(surface,origin){
     const info=lookupFrenchWord(surface);
-    if(!info)return;
     if(wordDialog){try{wordDialog.close();}catch{}wordDialog.remove();}
     const dialog=document.createElement('dialog');
     dialog.className='ft-word-dialog';
     dialog.setAttribute('aria-label','Explore French word '+surface);
-    const isVerb=info.type==='verb',verb=info.entry;
+    const isVerb=info?.type==='verb',verb=info?.entry;
     const header='<div class="ft-word-dialog-top"><div><p class="ft-eyebrow">OPTIONAL LANGUAGE EXPLORER</p><h2 lang="fr">'+esc(info.surface)+'</h2></div>'+
       '<button type="button" data-close-word aria-label="Close word explanation">×</button></div>';
     let content='';
@@ -347,21 +347,61 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         '<p lang="fr" class="ft-word-example">'+esc(verb.example)+'</p>'+
         '<div class="ft-actions"><button type="button" data-dialog-speak="'+esc(verb.lemma)+'">▶ Infinitive</button>'+
         '<button type="button" data-dialog-speak="'+esc(verb.example)+'">▶ Example</button></div>';
-    }else{
+    }else if(info){
       content='<p class="ft-word-form">'+esc(info.kind)+'</p>'+
         '<div class="ft-word-facts"><div><small>Meaning</small><strong>'+esc(info.meaning)+'</strong></div></div>'+
         '<h3>Notice</h3><p>'+esc(info.tip)+'</p>'+
         '<p lang="fr" class="ft-word-example">'+esc(info.example)+'</p>'+
         '<div class="ft-actions"><button type="button" data-dialog-speak="'+esc(info.surface)+'">▶ Word</button>'+
         '<button type="button" data-dialog-speak="'+esc(info.example)+'">▶ Example</button></div>';
+    }else{
+      content='<p class="ft-word-form">Additional vocabulary</p><p>This word is not yet in our teaching notes. The free dictionary can provide its meanings and pronunciation without interrupting the lesson.</p>';
     }
-    dialog.innerHTML=header+content+'<p class="ft-small">Exploration is optional. You do not need to memorise this table before continuing the lesson.</p>';
+    let lookup=null;
+    try{lookup=dictionaryWord(isVerb?verb.lemma:surface);}catch{}
+    const sourceLinks=lookup?
+      '<div class="ft-dictionary-links"><a href="'+esc(dictionaryURL(lookup))+'" target="_blank" rel="noopener noreferrer">English Wiktionary ↗</a>'+
+      '<a href="'+esc(frenchWiktionaryURL(lookup))+'" target="_blank" rel="noopener noreferrer">French Wiktionary ↗</a></div>':'';
+    const extra=lookup?
+      '<details class="ft-dictionary-panel"'+(!info?' open':'')+'><summary>More from the free dictionary</summary>'+
+        '<p class="ft-small">English meanings, IPA and selected forms from community-edited Wiktionary. Source: Wiktapi. No learning records are shared.</p>'+
+        '<button type="button" data-fetch-dictionary="'+esc(lookup)+'">'+(info?'Load extra definitions':'Look up this word')+'</button>'+
+        '<div class="ft-dictionary-result" role="status" aria-live="polite"></div>'+sourceLinks+
+        '<p class="ft-small">Dictionary content © Wiktionary contributors, CC BY-SA / GFDL; see linked entry for attribution and revisions.</p></details>'
+      :'<p class="ft-small">Look up individual words or short expressions rather than full sentences.</p>';
+    dialog.innerHTML=header+content+extra+
+      '<p class="ft-small">Exploration is optional. You do not need to memorise this table before continuing the lesson.</p>';
     wordDialog=dialog;el().append(dialog);
+    const loadDictionary=async()=>{
+      if(!lookup)return;
+      const host=dialog.querySelector('.ft-dictionary-result');
+      const button=dialog.querySelector('[data-fetch-dictionary]');
+      if(!host||!button)return;
+      button.disabled=true;
+      host.textContent='Looking up the French word…';
+      try{
+        const data=await fetchDictionary(lookup);
+        if(!dialog.isConnected)return;
+        const sections=[];
+        if(data.parts.length)sections.push('<p><strong>Word class:</strong> '+data.parts.map(esc).join(', ')+'</p>');
+        if(data.ipa.length)sections.push('<p><strong>IPA:</strong> '+data.ipa.map(esc).join(' · ')+'</p>');
+        if(data.senses.length)sections.push('<p><strong>English meanings:</strong></p><ul>'+
+          data.senses.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul>');
+        if(data.forms.length)sections.push('<details><summary>Selected word forms</summary><ul>'+
+          data.forms.map(f=>'<li><span lang="fr">'+esc(f.word)+'</span>'+ (f.label?' — '+esc(f.label):'')+'</li>').join('')+'</ul></details>');
+        host.innerHTML=data.found?sections.join('')||'<p>No definition was available in this edition.</p>':
+          '<p>No matching French definition was found. Try either source link below.</p>';
+      }catch(error){
+        if(dialog.isConnected)host.textContent='Online dictionary unavailable: '+String(error?.message||error)+
+          ' The Wiktionary links below still work.';
+      }finally{if(dialog.isConnected)button.disabled=false;}
+    };
     const close=()=>{if(dialog.open)dialog.close();else dialog.remove();};
     dialog.querySelector('[data-close-word]').addEventListener('click',close);
     dialog.addEventListener('click',event=>{
       const button=event.target.closest('[data-dialog-speak]');
       if(button){speak(button.dataset.dialogSpeak);return;}
+      if(event.target.closest('[data-fetch-dictionary]')){loadDictionary();return;}
       if(event.target===dialog)close();
     });
     dialog.addEventListener('close',()=>{
@@ -371,6 +411,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     },{once:true});
     if(typeof dialog.showModal==='function')dialog.showModal();
     else dialog.setAttribute('open','');
+    if(!info&&lookup)loadDictionary();
   }
   function pronounce(){
     return '<section class="ft-card"><p class="ft-eyebrow">OPTIONAL PRONUNCIATION COACH</p><h2>Listen and repeat aloud</h2>'+
