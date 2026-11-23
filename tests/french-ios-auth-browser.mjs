@@ -20,7 +20,7 @@ try{
   assert.match(await pwa.locator('.ft-ios-login-note').innerText(),/Google popup can become unresponsive/);
   assert.equal(await pwa.evaluate(()=>window.__testAuth.calls.google),0);
   await pwa.getByRole('button',{name:'Copy link for Safari'}).click();
-  assert.match(await pwa.locator('[data-cloud-status]').innerText(),/Safari|Course link copied/);
+  await pwa.locator('[data-cloud-status]').filter({hasText:/Safari|Course link copied/}).waitFor();
 
   // Real user action can request a password-reset email without invoking Google.
   await pwa.locator('#ft-login input[name="email"]').fill('parent@example.test');
