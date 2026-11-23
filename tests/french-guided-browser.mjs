@@ -46,6 +46,8 @@ try{
   await page.getByRole('button',{name:'Start guided lesson'}).click();
   await page.locator('.ft-guided-task').waitFor();
   assert.match(await page.locator('.ft-guided-head').innerText(),/Speak and listen/);
+  await page.locator('[data-gact="focus-word"]').first().click();
+  await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='écouter');
   const lesson=guidedLesson('speak-and-listen');
   const models=lesson.steps.filter(s=>s.kind==='model');
   assert.equal(models.length,19);

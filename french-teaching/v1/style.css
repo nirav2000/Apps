@@ -183,3 +183,8 @@
  .ft-app .ft-word-timeline small,.ft-app .ft-word-timeline strong,.ft-app .ft-word-timeline span{grid-column:1}
  .ft-app .ft-word-timeline button{grid-column:2;grid-row:1/4}
 }
+
+.ft-app .ft-guided-sound{margin:20px 0 12px;padding:14px 17px;background:#f3f7fb;border:1px solid #dfebf2;border-radius:13px}
+.ft-app .ft-guided-sound>strong{font-size:13px;line-height:1.45;color:#34576a}
+.ft-app .ft-guided-sound p{font-size:13px;line-height:1.55;margin:7px 0 10px;color:#586e7d}
+.ft-app .ft-guided-sound button{min-height:36px;font-size:12px}

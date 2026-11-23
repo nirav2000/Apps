@@ -9,6 +9,7 @@ const LESSONS=Object.freeze([
   {id:'speak-and-listen',name:'Speak and listen',label:'Lesson 1',verbs:['parler','écouter'],
     structures:['infinitive','like','want','present'],
     goal:'Say what you do, enjoy and want to do, using French in useful sentences.',
+    soundFocus:{word:'écouter',spelling:'ou',note:'In écouter, ou sounds /u/; the written é sounds /e/. Listen and repeat.'},
     bridge:{fr:"J'aime le français parce que c'est utile.",en:'I like French because it is useful.',point:'parce que joins a claim to a reason.'},
     transfer:[
       ["Je veux parler français parce que j'aime écouter la radio.",
@@ -23,6 +24,7 @@ const LESSONS=Object.freeze([
   {id:'make-a-choice',name:'Choose what to do',label:'Lesson 2',verbs:['étudier','travailler'],
     structures:['present','negative','can','must'],
     goal:'Explain what you do, do not do, can do and must do.',
+    soundFocus:{word:'travailler',spelling:'ill',note:'In travailler, the -ill- combination produces a y-like sound; compare étudier with é.'},
     bridge:{fr:"Je travaille le soir, mais j'étudie aussi le français.",
       en:'I work in the evening, but I also study French.',point:'mais gives a contrast; aussi adds information.'},
     transfer:[
@@ -38,6 +40,7 @@ const LESSONS=Object.freeze([
   {id:'plans-and-memories',name:'Plans and memories',label:'Lesson 3',verbs:['habiter','regarder'],
     structures:['present','want','near-future','past'],
     goal:'Tell somebody where you live, what you did and what you plan to do.',
+    soundFocus:{word:'habiter',spelling:'h',note:'The h at the start of habiter is silent; je becomes j’ before its vowel sound.'},
     bridge:{fr:"Hier, j'ai regardé la télévision. Demain, je vais regarder une vidéo.",
       en:'Yesterday I watched television. Tomorrow I am going to watch a video.',
       point:'Hier commonly goes with the past; demain introduces the future.'},
@@ -54,6 +57,7 @@ const LESSONS=Object.freeze([
   {id:'express-an-opinion',name:'Explain and reflect',label:'Lesson 4',verbs:['lire','pratiquer'],
     structures:['present','past','near-future','polite'],
     goal:'Compare past and future, and express a polite wish.',
+    soundFocus:{word:'pratiquer',spelling:'qu',note:'The letters qu make the /k/ sound in pratiquer. Repeat and notice the spelling.'},
     bridge:{fr:"Je voudrais parler français parce que c'est utile.",
       en:'I would like to speak French because it is useful.',
       point:'je voudrais is a polite wish, not a past or future tense.'},

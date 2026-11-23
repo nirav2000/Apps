@@ -58,6 +58,7 @@ test('four lesson units give heavy repetition and diverse practice without reusi
     assert.ok(steps.filter(x=>x.stage==='independent').length>=8);
     assert.equal(steps.filter(x=>x.stage==='transfer').length,4);
     assert.ok(steps.every(x=>x.fr&&x.en&&x.concept&&x.unitId===unit.id));
+    assert.ok(unit.soundFocus?.word&&unit.soundFocus.spelling&&unit.soundFocus.note);
     for(const step of steps){
       assert.ok(!ids.has(step.id));ids.add(step.id);
       if(step.kind==='choice'||step.kind==='listen'){

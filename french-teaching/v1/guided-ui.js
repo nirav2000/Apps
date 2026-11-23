@@ -163,6 +163,14 @@ export function createGuidedInterface({getEntries,record,speak,refresh,navigate}
       if(state.done)
         body+='<button type="button" data-gact="next" class="ft-primary">Next phrase →</button>';
     }
+    // An active CUDDLES/phonics cue appears alongside repeated phrases,
+    // not as a detached once-only alphabet lesson. Do not expose this
+    // spelling cue before independent or delayed assessment.
+    const focus=unit.soundFocus;
+    const teachSound=focus&&((step.stage==='recap'||step.stage==='present')&&
+      (step.id.endsWith(':0')||step.id.endsWith(':3')));
+    if(teachSound)body+='<aside class="ft-guided-sound"><strong>Sound &amp; spelling to notice: '+html(focus.spelling)+'</strong>'+
+      '<p>'+html(focus.note)+'</p><button type="button" data-gact="focus-word">▶ Hear '+html(focus.word)+'</button></aside>';
     if(state.feedback)body+='<p class="ft-guided-feedback" role="status">'+html(state.feedback)+'</p>';
     body+='</div>';
     const why=step.stage==='guided'?'These repetitions are guided practice, not independent transfer.':
@@ -261,6 +269,11 @@ export function createGuidedInterface({getEntries,record,speak,refresh,navigate}
       case 'next-unit':start(recommendedGuidedUnit(evidence()).unit.id);break;
       case 'pause':resetStep();announce();break;
       case 'speak':if(current)speak(current.fr);break;
+      case 'focus-word':{
+        const item=GUIDED_UNITS.find(x=>x.id===context().id)?.soundFocus;
+        if(item)speak(item.word);
+        break;
+      }
       case 'hint':if(current&&!state.done){state.hint=true;announce();}break;
       case 'reveal':
         if(current&&!state.done){
