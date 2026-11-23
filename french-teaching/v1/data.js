@@ -27,7 +27,7 @@ export const PASSAGE=[
  {fr:"Demain, je vais regarder une vidéo en français.",en:"Tomorrow I'm going to watch a video in French.",literal:"Tomorrow I go to watch a video in French.",focus:"je vais · future",sound:"ain in demain makes a nasal vowel."},
  {fr:"À mon avis, c'est difficile, cependant c'est intéressant.",en:"In my opinion it is difficult, however it is interesting.",literal:"To my opinion, it is difficult, however it is interesting.",focus:"à mon avis / cependant · opinion and contrast",sound:"The final t in intéressant is normally silent."},
  {fr:"Je voudrais parler français plus souvent.",en:"I would like to speak French more often.",literal:"I would-want to speak French more often.",focus:"je voudrais · polite wish",sound:"ou in voudrais is the /u/ sound, different from French u."},
- {fr:"Pour apprendre, il faut pratiquer régulièrement.",en:"To learn, you have to practise regularly.",literal:"For learning, it is necessary to practise regularly.",focus:"il faut · necessity",sound:"The accent and double l in régulièrement help you spell it accurately."},
+ {fr:"Pour apprendre, il faut pratiquer régulièrement.",en:"To learn, you have to practise regularly.",literal:"For learning, it is necessary to practise regularly.",focus:"il faut · necessity",sound:"The è accent and single l in régulièrement help you spell it accurately."},
  {fr:"Bien que ce soit difficile, je veux continuer.",en:"Although it is difficult, I want to carry on.",literal:"Although this be difficult, I want to continue.",focus:"bien que ... soit · subjunctive",sound:"oi in soit has the /wa/ sound; final t is silent."}
 ];
 export const PATTERNS=[
@@ -36,7 +36,7 @@ export const PATTERNS=[
  {name:'Contrast ideas',word:'mais / cependant',frame:"J'aime le français, mais c'est difficile.",english:"I like French, but it is difficult."},
  {name:'State a consequence',word:'donc',frame:"Je veux progresser, donc je pratique.",english:"I want to improve, so I practise."},
  {name:'Add a condition',word:'si',frame:"Si j'ai le temps, je lis.",english:"If I have time, I read."},
- {name:'Say what comes next',word:'d'abord / puis',frame:"D'abord, j'écoute, puis je répète.",english:"First I listen, then I repeat."},
+ {name:'Say what comes next',word:"d'abord / puis",frame:"D'abord, j'écoute, puis je répète.",english:"First I listen, then I repeat."},
  {name:'Use the past',word:"j'ai + past participle",frame:"Hier, j'ai parlé français.",english:"Yesterday I spoke French."},
  {name:'Use the future',word:'je vais + infinitive',frame:"Demain, je vais parler français.",english:"Tomorrow I am going to speak French."}
 ];

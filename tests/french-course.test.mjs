@@ -48,8 +48,10 @@ test('bilingual grid and reusable patterns preserve valid French and original ex
   assert.ok(PASSAGE.every(x=>x.fr&&x.en&&x.literal&&x.focus&&x.sound));
   assert.ok(PASSAGE[0].fr.includes('appartement'));
   assert.ok(!JSON.stringify(PASSAGE).includes('double p and double m'));
+  assert.ok(!JSON.stringify(PASSAGE).includes('double l in régulièrement'));
+  assert.ok(PASSAGE[0].fr.includes('un petit appartement'));
   assert.ok(PATTERNS.some(x=>x.word==='parce que'));
-  assert.ok(PATTERNS.some(x=>x.word==='d’abord / puis')===false);
+  assert.ok(PATTERNS.some(x=>x.word==="d'abord / puis"));
 });
 test('CUDDLES includes all seven explicit elements',()=>{
   assert.equal(CUDDLES.map(x=>x[0]).join(''),'CUDDLES');

@@ -2,7 +2,8 @@
 // Uses the existing kk-syllabus owner-only /families/.../progress rule.
 export const EVIDENCE_CLOUD_VERSION = '1.0.0';
 const valid=x=>/^[a-zA-Z0-9._:-]{1,100}$/.test(String(x||''));
-const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const canonical=x=>Array.isArray(x)?'['+x.map(canonical).join(',')+']':x&&typeof x==='object'?'{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}':JSON.stringify(x);
+const same=(a,b)=>canonical(a)===canonical(b);
 
 export function createFirestoreEvidenceCloud({store,db,auth,firestore,ownerUid,learnerId,appId}) {
   if(!store||!db||!auth||!firestore)throw Error('Evidence store, Firestore and Auth are required');
