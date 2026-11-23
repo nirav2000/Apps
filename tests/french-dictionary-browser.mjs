@@ -11,7 +11,7 @@ await page.route('https://api.wiktapi.dev/**',async route=>{
   networkWords.push(url.pathname.split('/').at(-1));
   const word=decodeURIComponent(url.pathname.split('/').at(-1));
   if(word==='jour'){
-    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+    return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({
       word:'jour',edition:'en',entries:[{
         word:'jour',lang:'French',lang_code:'fr',pos:'noun',
         senses:[{glosses:['day','daytime',"<img src=x onerror=alert('unsafe')>"]}],
@@ -35,7 +35,7 @@ await page.route('https://api.wiktapi.dev/**',async route=>{
 try{
   await page.goto('http://127.0.0.1:8898/tests/french-browser-harness.html',{waitUntil:'domcontentloaded'});
   await page.locator('.ft-tabs').waitFor();
-  await page.getByRole('button',{name:'Knowledge grid'}).click();
+  await page.getByRole('button',{name:'Knowledge grid',exact:true}).click();
   // Curated verb explanation stays available without a network request.
   await page.locator('.ft-grid-row [data-word="veux"]').first().click();
   const dialog=page.locator('.ft-word-dialog');
