@@ -126,7 +126,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     await syncNow();
   }
   function nav(){
-    const tabs=[['home','Overview'],['lesson','Today's lesson'],['magic','Magic 10'],['alphabet','Alphabet'],
+    const tabs=[['home','Overview'],['lesson',"Today's lesson"],['magic','Magic 10'],['alphabet','Alphabet'],
       ['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],
       ['practice','Sentence practice'],['review','Review'],['pronunciation','Speak']];
     return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p||(p==='sounds'&&state.page==='sound-quiz')?'active':'')+'">'+t+'</button>').join('')+'</nav>';
