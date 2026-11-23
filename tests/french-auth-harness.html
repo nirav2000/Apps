@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:,"><title>French auth browser test</title>
+<link rel="stylesheet" href="../french-teaching/v1/style.css"></head><body><main id="target" class="ft-app"></main>
+<script type="module">
+import {mountFrenchCourse} from '../french-teaching/v1/index.js';
+const state={calls:{google:0,link:0,email:0},auth:{currentUser:null},uid:'test-owner',docs:new Map()};
+const firestore={
+  collection(_db,...parts){return parts.join('/');},doc(col,id){return col+'/'+id;},
+  documentId(){return '__name__';},where(k,op,v){return{k,op,v};},query(col,...filters){return{col,filters};},
+  async getDocsFromServer(q){return{forEach(cb){
+    for(const [k,row] of state.docs){
+      const leaf=k.split('/').pop();
+      if(k.startsWith(q.col+'/')&&q.filters.every(f=>f.op==='>='?leaf>=f.v:leaf<f.v))
+        cb({id:leaf,data:()=>row});
+    }
+  }};},serverTimestamp(){return'date'},
+  async runTransaction(_db,callback){
+    const puts=[];
+    await callback({get:async k=>({exists:()=>state.docs.has(k),data:()=>state.docs.get(k)}),set:(k,v)=>puts.push([k,v])});
+    puts.forEach(([k,v])=>state.docs.set(k,v));
+  }
+};
+const context={auth:state.auth,db:{},firestore,ownerUid:state.uid};
+const user=(providerData=[])=>({uid:state.uid,email:'parent@example.test',providerData});
+window.__testAuth=state;
+mountFrenchCourse({
+  target:document.querySelector('#target'),
+  connect:async()=>context,
+  signIn:async()=>{state.calls.email++;state.auth.currentUser=user();},
+  signInGoogle(){
+    state.calls.google++;
+    if(new URLSearchParams(location.search).has('wrong'))
+      return Promise.reject(Error('Google account is not linked to your parent Firebase account.'));
+    state.auth.currentUser=user();
+    return Promise.resolve(state.auth.currentUser);
+  },
+  linkGoogle(){
+    state.calls.link++;
+    if(state.auth.currentUser?.uid!==state.uid)
+      return Promise.reject(Error('Wrong account'));
+    state.auth.currentUser.providerData=[{providerId:'google.com'}];
+    return Promise.resolve(state.auth.currentUser);
+  }
+});
+</script></body></html>

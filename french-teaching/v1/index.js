@@ -28,12 +28,12 @@ export function reviewPlan(entries,now=Date.now()){
   }
   return {taughtAt:base,next,days:elapsed};
 }
-export function mountFrenchCourse({target,connect,signIn,signOut}){
+export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,linkGoogle}){
   if(!target||typeof connect!=='function')throw Error('French course target and Firebase adapter required');
   const state={page:'home',profile:'adult',context:null,store:null,cloud:null,cloudStatus:'Checking Firebase…',
     cloudAt:null,loading:true,lessonIndex:0,hideEnglish:false,question:0,queue:DRILLS.slice(),
     alphabetQuiz:[],alphabetQuestion:0,attempted:false,failed:false,hint:'none',feedback:'',
-    completed:false,pronunciationIndex:0,coach:null,lastInput:'',busy:false,builder:{mode:0,left:0,right:0,showFrench:true}};
+    completed:false,pronunciationIndex:0,coach:null,lastInput:'',busy:false,authNotice:'',builder:{mode:0,left:0,right:0,showFrench:true}};
   try{const p=localStorage.getItem('next-french:profile');if(p==='adult'||p==='sai')state.profile=p;}catch{}
   const el=()=>target;
   let syncTimer=0,destroyed=false,syncTask=null,pendingAgain=false;
@@ -123,14 +123,23 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
       '<small data-cloud-status role="status" aria-live="polite">'+esc(state.cloudStatus)+'</small></div></div>';
   }
   function login(){
-    return '<section class="ft-card ft-signin"><h2>Connect your family Firebase account</h2><p>Lessons can be previewed, but tracked practice needs your existing authorised account. Your evidence is kept separately from Sai’s original Next progress.</p>'+
-      '<form id="ft-login"><label>Email<input name="email" type="email" autocomplete="username" required></label>'+
-      '<label>Password<input name="password" type="password" autocomplete="current-password" required></label>'+
-      '<button type="submit" class="ft-primary">Sign in & sync</button></form></section>';
+    return '<section class="ft-card ft-signin"><h2>Sign in to sync your French</h2>'+
+      '<p>Use your existing <strong>kk-syllabus parent Firebase account</strong>. There is no new French account. Your progress remains separate from Sai’s.</p>'+
+      (typeof signInGoogle==='function'
+       ?'<button type="button" class="ft-primary ft-google-signin" data-act="google-signin">Continue with Google</button>'+
+        '<p class="ft-small">Google must already be linked to your parent Firebase account. If it is not linked yet, sign in below first.</p>'
+       :'')+
+      '<details class="ft-password-option"><summary>Use existing Firebase email and password</summary>'+
+      '<form id="ft-login"><label>Parent Firebase email<input name="email" type="email" autocomplete="username" required></label>'+
+      '<label>Firebase password (not necessarily your Google password)<input name="password" type="password" autocomplete="current-password" required></label>'+
+      '<button type="submit" class="ft-primary">Sign in &amp; sync</button></form></details>'+
+      '<p class="ft-small">Already signed in on this device? Your session should be reused automatically. The App Monitor passkey is separate and cannot yet sign in to these Firebase records.</p></section>';
   }
   function overview(){
     const summary=state.store?.summary();
     const plan=reviewPlan(state.store?.getEntries()||[]);
+    const active=state.context?.auth?.currentUser;
+    const googleLinked=active?.providerData?.some(provider=>provider.providerId==='google.com')===true;
     const metrics=summary?[
       ['Accuracy',summary.accuracy],['Independence',summary.independence],
       ['7-day retention',summary.retention],['Unseen transfer',summary.transfer]
@@ -143,6 +152,9 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
       '<div class="ft-metrics">'+metrics.map(([name,m])=>'<div><strong>'+fmt(m.percent)+'</strong><span>'+name+'</span><small>'+(m.total||0)+' checked'+(m.unknownSupport?' · '+m.unknownSupport+' unknown help':'')+'</small></div>').join('')+'</div>'+
       '<p class="ft-small">'+(plan.next?'Next review: '+new Date(plan.next).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'Open the knowledge grid to start a revision cycle.')+'</p>'+
       '<div class="ft-actions"><button data-act="sync">Sync with Firebase</button><button data-act="export">Export evidence</button><button data-page="review">Review from memory</button></div></section>'+
+      '<section class="ft-card ft-identity"><h2>Your learning account</h2><p class="ft-small">'+(active?.email?'Signed in as <strong>'+esc(active.email)+'</strong>. ':'Signed in with your existing parent account. ')+(googleLinked?'Google sign-in linked to this Firebase account.':'Linking Google lets you use the same account without entering the Firebase password on other devices.')+'</p>'+
+      (state.authNotice?'<p role="status">'+esc(state.authNotice)+'</p>':'')+
+      (!googleLinked&&typeof linkGoogle==='function'?'<button data-act="link-google" type="button">Link Google to this account</button>':'')+'</section>'+
       '<section class="ft-card"><h2>How the course works</h2><p>Real French audio → bilingual understanding → CUDDLES noticing → guided translation → controlled substitution → independent unseen sentences → review on days 1, 3 and 7.</p>'+
       '<p class="ft-small">PROFS: Past, Reasons, Opinions, Future, Subjunctive. This pilot introduces useful past, reason, opinion and future structures, plus a supported subjunctive example.</p></section>';
   }
@@ -326,6 +338,16 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
     r.onerror=()=>{state.feedback='Microphone recognition unavailable. Type instead.';render();};
     try{r.start();}catch{state.feedback='Microphone could not start.';render();}
   }
+  function authError(error){
+    const code=error?.code||'';
+    if(code==='auth/operation-not-allowed')return 'Google sign-in is not enabled for kk-syllabus. Enable it in Firebase Authentication first; email sign-in still works.';
+    if(code==='auth/unauthorized-domain')return 'This site is not yet authorised in Firebase Authentication for Google sign-in.';
+    if(code==='auth/popup-blocked'||code==='auth/operation-not-supported-in-this-environment')return 'Google popup was blocked or unavailable. Try opening the page in Safari or use the existing Firebase password.';
+    if(code==='auth/account-exists-with-different-credential')return 'The account has another provider. Sign in with the existing Firebase password first and link Google.';
+    if(code==='auth/credential-already-in-use')return 'This Google account is associated with another Firebase identity. No accounts were merged; review account linking.';
+    if(code==='auth/requires-recent-login')return 'For security, sign in again with your Firebase password before linking Google.';
+    return String(error?.message||error);
+  }
   async function onClick(e){
     const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say]');
     if(!b)return;
@@ -333,6 +355,29 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
     if(b.dataset.letter!==undefined){state.lessonIndex=Number(b.dataset.letter);render();return;}
     if(b.dataset.say!==undefined){speak(PASSAGE[Number(b.dataset.say)].fr);return;}
     switch(b.dataset.act){
+      case 'google-signin':{
+        try{
+          if(typeof signInGoogle!=='function')throw Error('Google sign-in is not configured.');
+          state.cloudStatus='Opening Google sign-in…';updateStatus();
+          // Invoked before the first await to retain iOS/Safari user activation for the popup.
+          const attempt=signInGoogle();
+          await attempt;
+          state.context=await connect();await attach(state.profile);
+          state.authNotice='Google sign-in succeeded with your existing parent account.';
+        }catch(error){state.cloudStatus='Google sign-in: '+authError(error);}
+        state.loading=false;render();break;
+      }
+      case 'link-google':{
+        try{
+          if(!state.context?.auth?.currentUser||typeof linkGoogle!=='function')throw Error('Parent account sign-in required.');
+          state.authNotice='Opening Google account linking…';updateStatus();
+          // Pop-up starts synchronously in the user gesture.
+          const attempt=linkGoogle();
+          await attempt;
+          state.authNotice='Google is now linked to this same Firebase parent account.';
+        }catch(error){state.authNotice='Google linking: '+authError(error);}
+        render();break;
+      }
       case 'sync':await syncNow();break;
       case 'export':{
         const out=state.store?.exportJSON();if(!out)return;

@@ -58,3 +58,14 @@ The shared evidence engine's built-in due planner uses 1, 7 and 28 days; the Fre
 Run: node --test tests/french-course.test.mjs tests/learning-evidence.test.mjs and the existing shared tests. Deploy to main as per docs/GITHUB-WRITE-RUNBOOK.md. Cloud and auth behaviour still requires a signed-in browser acceptance test.
 
 **Evidence guardrail:** typing after an immediately visible French model is recorded with worked-example support (not independent), even when the answer matches. Covering the model before attempting permits an independent-practice observation, but still never counts as novel transfer or delayed retention.
+
+
+## Authentication (Google + legacy session reuse, 23 November 2026)
+
+Next/French uses the **existing** kk-syllabus Firebase parent UID, not a separate French account. The Next entry point checks both the legacy named Firebase instance (next-learning) and the default Firebase instance used by other family learning apps; it chooses only a session whose UID matches the protected existing parent UID. It never migrates data or changes Firestore rules. If there is no existing owner session, the sign-in page offers Google sign-in plus a collapsed Firebase email/password fallback.
+
+Google sign-in **works only if the Google account is linked to that same existing Firebase UID**. A parent who signs in with their current Firebase password can select "Link Google to this account", which uses Firebase linkWithPopup and refuses UID changes. Google's provider must be enabled on the kk-syllabus Firebase Authentication project and the hosting domain allowed. An unlinked Google login is explicitly rejected and signed out, rather than being treated as an authorised learner account. Google/Firebase popup flows need an on-device Safari test and may fail if popup blocking or provider configuration is wrong.
+
+App Monitor passkey **does not yet** issue an app Firebase owner session for French; the existing passkey Worker supports other scoped workflows such as private InClass notes, and granting broad Firebase owner access by reusing an App Monitor token without a verified server bridge is prohibited. The shared Auth v1 migration guide recommends leaving legacy authority intact until a dedicated, thoroughly tested broker produces app-UID-preserving scoped credentials. The French course does not change the App Monitor Worker or passkey library.
+
+Automated browser test tests/french-auth-browser.mjs exercises Google sign-in handoff, linking to the existing UID and wrong-identity denial via a safe mock transport. Real Firebase provider permissions, Google pop-up and cross-device session sharing are separate manual acceptance checks.
