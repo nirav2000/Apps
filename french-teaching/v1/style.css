@@ -122,3 +122,64 @@
 .ft-app .ft-passkey-entry{margin:17px 0;padding:14px 0 13px;border-bottom:1px solid var(--ft-line)}
 .ft-app .ft-passkey-entry button{display:flex;align-items:center;justify-content:center;width:100%;font-size:15px;min-height:46px}
 .ft-app .ft-passkey-entry p{margin:8px 0 0;font-size:12px;color:#526e60;line-height:1.5}
+
+
+/* Guided French v2: one clear next action, repeated oral and written practice.
+ * Scoped to .ft-app; preserves existing Next, InClass, Firebase and PWA styles. */
+.ft-app .ft-todays-lesson{background:linear-gradient(130deg,#eaf2e9,#f9f9f1)}
+.ft-app .ft-guided-unit-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:22px}
+.ft-app .ft-guided-unit-summary>div{background:#fff;border:1px solid var(--ft-line);padding:12px;border-radius:12px;display:flex;flex-direction:column;gap:6px}
+.ft-app .ft-guided-unit-summary strong{font-size:12px}
+.ft-app .ft-guided-unit-summary span{font-size:13px;font-weight:700}
+.ft-app .ft-guided-unit-summary small{font-size:11px;color:#637567}
+.ft-app .ft-guided-shell{max-width:930px}
+.ft-app .ft-guided-head{display:flex;justify-content:space-between;gap:20px;align-items:start}
+.ft-app .ft-guided-head>div{flex:1}
+.ft-app .ft-guided-head>label{display:grid;gap:7px;max-width:270px;width:100%;font-size:12px;font-weight:700}
+.ft-app .ft-guided-head>label select{min-height:43px;font-size:13px}
+.ft-app .ft-guided-progress{height:9px;border-radius:9px;overflow:hidden;background:#dce8de;margin-top:21px}
+.ft-app .ft-guided-progress span{display:block;height:100%;background:#2a6850;transition:width .2s ease;border-radius:9px}
+.ft-app .ft-guided-task{border-top:1px solid var(--ft-line);padding-top:25px;margin-top:23px;min-height:240px}
+.ft-app .ft-guided-task h3{font-size:21px;line-height:1.4;margin:2px 0 21px;font-weight:730}
+.ft-app .ft-guided-english{font-size:clamp(18px,3vw,24px);font-weight:690;line-height:1.5;margin:12px 0 23px}
+.ft-app .ft-guided-french{font-size:clamp(22px,4vw,31px);font-weight:720;line-height:1.4;color:#1c5a43;margin:16px 0}
+.ft-app .ft-guided-covered{padding:20px;background:#edf2ee;border-radius:14px;color:#526a5b;font-size:14px;font-style:italic;margin:15px 0}
+.ft-app .ft-guided-options{display:grid;gap:10px;margin-top:20px}
+.ft-app .ft-guided-options button{min-height:50px;text-align:left;padding:12px 16px;font-size:16px;line-height:1.5}
+.ft-app .ft-guided-options button.selected{border-color:#7a9d8b;background:#f0f6ef}
+.ft-app .ft-guided-task form{margin-top:17px}
+.ft-app .ft-guided-task form label{display:block}
+.ft-app .ft-guided-task form input{font-size:17px;max-width:700px}
+.ft-app .ft-guided-model{background:#f1f6ed;border:1px solid #d7e5d6;border-radius:15px;padding:16px 20px;margin:21px 0}
+.ft-app .ft-guided-model p[lang=fr]{font-size:22px;font-weight:690;margin:6px 0 12px}
+.ft-app .ft-guided-feedback,.ft-app .ft-guided-hint{border-radius:12px;background:#f2f5e9;padding:13px 15px;font-size:14px;margin:18px 0;line-height:1.55}
+.ft-app .ft-guided-hint{background:#f4f6f8}
+.ft-app .ft-guided-congrats{margin-top:22px;padding:19px;background:#f0f7f0;border-radius:14px}
+.ft-app .ft-guided-congrats h3{margin:0;font-size:20px}
+.ft-app .ft-guided-congrats p{line-height:1.6}
+.ft-app .ft-magic-rows{margin:18px 0;display:grid;gap:8px}
+.ft-app .ft-magic-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.6fr) minmax(0,1.3fr) auto;gap:11px;align-items:center;border:1px solid var(--ft-line);border-radius:12px;padding:12px 14px;min-width:0}
+.ft-app .ft-magic-row small{font-size:12px;color:#65776d}
+.ft-app .ft-magic-row strong{font-size:16px;line-height:1.35;color:#214d3b}
+.ft-app .ft-magic-row span{font-size:13px;color:#607267}
+.ft-app .ft-magic-row button{min-height:38px;padding:5px 9px}
+.ft-app .ft-guided-grammar{margin-top:18px;border-top:1px solid var(--ft-line)}
+.ft-app .ft-word-timeline{display:grid;gap:8px;margin:14px 0 17px}
+.ft-app .ft-word-timeline>div{display:grid;grid-template-columns:110px minmax(0,1fr) minmax(0,1.1fr) 35px;gap:9px;align-items:center;background:#f3f7f3;border-radius:10px;padding:10px 12px;min-width:0}
+.ft-app .ft-word-timeline small{font-size:11px;color:#587065}
+.ft-app .ft-word-timeline strong{font-size:14px;color:#22513e}
+.ft-app .ft-word-timeline span{font-size:12px;line-height:1.4;color:#57695f}
+.ft-app .ft-word-timeline button{min-height:32px;padding:3px 5px}
+@media(max-width:760px){
+ .ft-app .ft-guided-unit-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ft-app .ft-guided-head{flex-direction:column}
+ .ft-app .ft-guided-head>label{max-width:none}
+ .ft-app .ft-magic-row{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px}
+ .ft-app .ft-magic-row small,.ft-app .ft-magic-row span{grid-column:1}
+ .ft-app .ft-magic-row strong{grid-column:1;grid-row:2}
+ .ft-app .ft-magic-row span{grid-row:3}
+ .ft-app .ft-magic-row button{grid-column:2;grid-row:1/4}
+ .ft-app .ft-word-timeline>div{grid-template-columns:minmax(0,1fr) auto}
+ .ft-app .ft-word-timeline small,.ft-app .ft-word-timeline strong,.ft-app .ft-word-timeline span{grid-column:1}
+ .ft-app .ft-word-timeline button{grid-column:2;grid-row:1/4}
+}

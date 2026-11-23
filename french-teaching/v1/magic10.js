@@ -94,3 +94,46 @@ export function magicTenUnitHints(){
     {id:'polite',note:'Je voudrais + infinitive is a polite wish, not a simple future.'}
   ];
 }
+
+
+// The optional explorer shows irregular verbs only from explicit, reviewed
+// examples. Never infer a verb's future, past or auxiliary from spelling.
+export const CURATED_IRREGULAR_TIMELINES=Object.freeze({
+  vouloir:[
+    {kind:'Present',fr:'je veux apprendre',en:'I want to learn'},
+    {kind:'Imperfect past',fr:'je voulais apprendre',en:'I wanted to learn / used to want to learn'},
+    {kind:'Completed past',fr:"j'ai voulu apprendre",en:'I wanted to learn (completed action)'},
+    {kind:'Simple future',fr:'je voudrai apprendre',en:'I will want to learn'},
+    {kind:'Polite conditional',fr:'je voudrais apprendre',en:'I would like to learn'}
+  ],
+  aller:[
+    {kind:'Present',fr:'je vais à Londres',en:'I go / am going to London'},
+    {kind:'Completed past',fr:'je suis allé à Londres',en:'I went to London (masculine speaker; feminine allée)'},
+    {kind:'Near future',fr:'je vais aller à Londres',en:'I am going to go to London'},
+    {kind:'Simple future',fr:"j'irai à Londres",en:'I will go to London'}
+  ],
+  avoir:[
+    {kind:'Present',fr:"j'ai le temps",en:'I have time'},
+    {kind:'Completed past',fr:"j'ai eu le temps",en:'I had time'},
+    {kind:'Simple future',fr:"j'aurai le temps",en:'I will have time'},
+    {kind:'Conditional',fr:"j'aurais le temps",en:'I would have time'}
+  ],
+  être:[
+    {kind:'Present',fr:'je suis prêt',en:'I am ready (masculine speaker; feminine prête)'},
+    {kind:'Completed past',fr:"j'ai été prêt",en:'I was ready (masculine speaker; feminine prête)'},
+    {kind:'Simple future',fr:'je serai prêt',en:'I will be ready (masculine speaker; feminine prête)'},
+    {kind:'Conditional',fr:'je serais prêt',en:'I would be ready (masculine speaker; feminine prête)'}
+  ],
+  faire:[
+    {kind:'Present',fr:'je fais une erreur',en:'I make a mistake'},
+    {kind:'Completed past',fr:"j'ai fait une erreur",en:'I made a mistake'},
+    {kind:'Near future',fr:'je vais faire un effort',en:'I am going to make an effort'},
+    {kind:'Simple future',fr:'je ferai un effort',en:'I will make an effort'}
+  ]
+});
+export function optionalVerbTimeline(lemma){
+  return CURATED_IRREGULAR_TIMELINES[lemma]||(
+    Object.hasOwn(MAGIC10_VERBS,lemma)?magicTenFor(lemma).map(x=>({
+      kind:x.kind,fr:x.fr,en:x.en
+    })):null);
+}

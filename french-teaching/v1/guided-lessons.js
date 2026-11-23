@@ -121,6 +121,13 @@ function construct(unit){
     });
   }
   for(let i=0;i<rows.length;i++){
+    const r=rows[(i+7)%rows.length];
+    add('guided','transcribe',r,'dictation-'+i,{
+      prompt:'Hear the French. Type exactly what you heard, including accents.',
+      support:'small-prompt',audioOnly:true
+    });
+  }
+  for(let i=0;i<rows.length;i++){
     const r=rows[(i+5)%rows.length],words=r.fr.split(/\s+/);
     add('guided','write',r,'build-'+i,{
       prompt:'Rebuild the French from the English. Use the starter if you need it.',
@@ -166,8 +173,8 @@ export function guidedCompletionRefs(stepId){
 function entriesFor(rows){return(Array.isArray(rows)?rows:[]).filter(e=>e&&typeof e==='object');}
 function refSet(rows){return new Set(entriesFor(rows).map(e=>e.source?.ref).filter(Boolean));}
 export function guidedCompleted(unitId,entries){
-  const done=refSet(entries);
-  return guidedLesson(unitId).steps.every(x=>done.has(guidedRefs(x.id).complete));
+  const status=guidedStatus(unitId,entries);
+  return status.mode==='complete'||status.mode==='review';
 }
 function firstTaught(entries,unitId){
   const taught=entriesFor(entries).filter(e=>e.source?.ref===markerOf(unitId));
@@ -191,21 +198,27 @@ export function guidedStatus(unitId,entries,now=Date.now()){
   const taughtAt=firstTaught(rows,unitId);
   const main=lesson.steps.map(step=>({...step,completed:refs.has(guidedRefs(step.id).complete)}));
   const unfinished=main.filter(x=>!x.completed);
-  if(unfinished.length){
-    const firstWrong=rows.filter(e=>e.source?.ref?.endsWith(':first')&&
-      e.source.ref.startsWith(GUIDED_PREFIX+unitId+':')&&e.score?.total>0&&
-      e.score.correct===0);
-    const repairBase=lesson.steps.filter(x=>firstWrong.some(e=>e.source.ref===guidedRefs(x.id).first)&&
-      refs.has(guidedRefs(x.id).complete));
-    const repairs=repairBase.map(x=>({
-      ...x,id:idOf(unitId,'repair',x.id.slice(GUIDED_PREFIX.length)),kind:'write',
-      stage:'repair',prompt:'One more try at a phrase that needed correction.',
+  // Repairs must run even after the last primary question. They never masquerade
+  // as independent or unseen assessment and are never permitted to vanish.
+  const firstWrong=rows.filter(e=>e.source?.ref?.endsWith(':first')&&
+    e.source.ref.startsWith(GUIDED_PREFIX+unitId+':')&&e.score?.total>0&&
+    e.score.correct===0);
+  const repairBase=lesson.steps.filter(x=>firstWrong.some(e=>e.source.ref===guidedRefs(x.id).first)&&
+    refs.has(guidedRefs(x.id).complete));
+  const repairs=repairBase.map(x=>{
+    const repairId=idOf(unitId,'repair',x.id.slice(GUIDED_PREFIX.length));
+    return {...x,id:repairId,kind:'write',stage:'repair',
+      prompt:'One more try at a phrase that needed correction.',
       support:'small-prompt',cue:'Remember the structure: '+x.structure,novel:false,
-      completed:refs.has(guidedRefs(idOf(unitId,'repair',x.id.slice(GUIDED_PREFIX.length))).complete)
-    }));
+      completed:refs.has(guidedRefs(repairId).complete)};
+  });
+  const repairPending=repairs.filter(x=>!x.completed);
+  if(unfinished.length||repairPending.length){
     return {unit:lesson.unit,mode:taughtAt?'resume':'new',taughtAt,
-      steps:[...main,...repairs],next:unfinished[0],remaining:unfinished.length+repairs.filter(x=>!x.completed).length,
-      completed:main.filter(x=>x.completed).length,total:main.length,reviewDay:null};
+      steps:[...main,...repairs],next:unfinished[0]||repairPending[0],
+      remaining:unfinished.length+repairPending.length,
+      completed:main.filter(x=>x.completed).length+repairs.length-repairPending.length,
+      total:main.length+repairs.length,reviewDay:null};
   }
   if(taughtAt!=null){
     const elapsed=Math.floor((now-taughtAt)/DAY);

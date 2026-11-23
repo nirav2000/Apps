@@ -1,7 +1,8 @@
 import test from 'node:test';
+import {answerFeedback} from '../french-teaching/v1/guided-ui.js';
 import assert from 'node:assert/strict';
 import {
-  MAGIC10_VERSION,MAGIC10_VERBS,MAGIC10_STRUCTURES,magicTenFor,magicTenPhrase
+  MAGIC10_VERSION,MAGIC10_VERBS,MAGIC10_STRUCTURES,magicTenFor,magicTenPhrase,optionalVerbTimeline
 } from '../french-teaching/v1/magic10.js';
 import {
   GUIDED_VERSION,GUIDED_UNITS,guidedLesson,guidedTeachingRef,guidedCompletionRefs,
@@ -52,7 +53,8 @@ test('four lesson units give heavy repetition and diverse practice without reusi
     assert.ok(steps.length>=50,unit.id);
     assert.equal(steps.filter(x=>x.stage==='recap').length,10);
     assert.ok(steps.filter(x=>x.stage==='present').length>=9);
-    assert.ok(steps.filter(x=>x.stage==='guided').length>=24);
+    assert.ok(steps.filter(x=>x.stage==='guided').length>=32);
+    assert.equal(steps.filter(x=>x.kind==='transcribe').length,8);
     assert.ok(steps.filter(x=>x.stage==='independent').length>=8);
     assert.equal(steps.filter(x=>x.stage==='transfer').length,4);
     assert.ok(steps.every(x=>x.fr&&x.en&&x.concept&&x.unitId===unit.id));
@@ -127,4 +129,24 @@ test('recommended lesson prioritises due review then the earliest unfinished les
   assert.equal(recommendedGuidedUnit(done,t).unit.id,'make-a-choice');
   assert.equal(recommendedGuidedUnit(done,t+8*DAY).unit.id,'speak-and-listen');
   assert.equal(recommendedGuidedUnit(done,t+8*DAY).mode,'review');
+});
+
+
+test('optional explorer shows real tenses, not an invented universal conjugator',()=>{
+ const irregular=optionalVerbTimeline('vouloir');
+ assert.deepEqual(irregular.map(x=>x.fr),[
+   'je veux apprendre','je voulais apprendre',"j'ai voulu apprendre",
+   'je voudrai apprendre','je voudrais apprendre'
+ ]);
+ assert.equal(optionalVerbTimeline('parler').length,10);
+ assert.equal(optionalVerbTimeline('not-curated'),null);
+ assert.ok(optionalVerbTimeline('aller').some(x=>/suis allé/.test(x.fr)));
+ assert.ok(optionalVerbTimeline('être').some(x=>/serai/.test(x.fr)));
+});
+test('guided correction flags tense, negation and accents without leaking model',()=>{
+ assert.match(answerFeedback('je parle français','je ne parle pas français'),/negative/);
+ assert.match(answerFeedback("j'ai parler français",'je vais parler français'),/future plan/);
+ assert.match(answerFeedback('je vais parlé français',"j'ai parlé français"),/completed past/);
+ assert.match(answerFeedback("j'ecoute la radio","j'écoute la radio"),/accents/);
+ assert.match(answerFeedback('je parle français','je parle français parce que je pratique'),/parce que/);
 });
