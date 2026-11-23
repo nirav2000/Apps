@@ -48,7 +48,14 @@ export function createFirestoreEvidenceCloud({store,db,auth,firestore,ownerUid,l
       if(localBefore.has(row.id)&&!same(localBefore.get(row.id),row))
         throw Error('Evidence collision. Both original records were preserved.');
     }
-    if(incoming.length)store.ingest(incoming);
+    // The shared evidence normalizer treats a re-imported canonical 0/0 marker
+    // as a scored attempt; remove only its redundant score before ingestion.
+    // The resulting normalised marker remains identical (score: 0/0) to the
+    // immutable server event, without changing the shared SDK's behaviour.
+    if(incoming.length)store.ingest(incoming.map(row=>
+      row.score?.total===0&&row.score?.correct===0
+        ? {...row,score:null}
+        :row));
     let uploaded=0;
     for(const row of store.getEntries()){
       if(seen.has(row.id)){

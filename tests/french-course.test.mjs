@@ -134,3 +134,45 @@ test('high-frequency sentence workshop creates 80 distinct grammatically compose
   assert.ok(assembleWorkshop(4,0,0).fr.includes(', puis '));
   assert.throws(()=>assembleWorkshop(10,0,0),/Invalid/);
 });
+
+
+test('a remote unscored teaching marker round-trips without blocking later graded attempts',async()=>{
+  const api=firestoreMock(),auth={currentUser:{uid:OWNER}},db={};
+  const make=store=>createFirestoreEvidenceCloud({store,auth,db,firestore:api,
+    ownerUid:OWNER,learnerId:'adult',appId:APP});
+  const first=scope(),second=scope();
+  first.record({
+    id:'intro-alphabet',concept:'french:alphabet:letters',phase:'practice',
+    taughtAt:'2026-11-23T10:00:00.000Z',source:{kind:'french-course',ref:'intro-alphabet'},
+    support:'none'
+  });
+  assert.deepEqual(first.getEntries()[0].score,{correct:0,total:0});
+  await make(first).sync();
+  record(second,'graded-second-device');
+  const result=await make(second).sync();
+  assert.equal(result.uploaded,1);
+  assert.equal(second.getEntries().length,2);
+  assert.equal(second.getEntries().find(x=>x.id==='intro-alphabet').score.total,0);
+  assert.equal(api.docs.size,2);
+  await make(first).sync();
+  assert.equal(first.getEntries().length,2);
+  assert.equal((await make(second).sync()).uploaded,0);
+});
+
+test('a new supported attempt still uploads after cloud re-imports a lesson marker',async()=>{
+  const api=firestoreMock(),auth={currentUser:{uid:OWNER}},db={};
+  const make=store=>createFirestoreEvidenceCloud({store,auth,db,firestore:api,
+    ownerUid:OWNER,learnerId:'adult',appId:APP});
+  const store=scope();
+  store.record({id:'intro-connectives',concept:'french:course:connectives',
+    source:{kind:'french-course',ref:'intro-connectives'},taughtAt:'2026-11-23'});
+  await make(store).sync();
+  record(store,'unassisted');
+  await make(store).sync();
+  store.record({id:'model-shown',concept:'french:connectives:contrast',
+    score:{correct:1,total:1},support:'worked-example',phase:'practice',
+    source:{kind:'french-course',ref:'workshop-contrast-0-0'}});
+  await make(store).sync();
+  assert.equal(api.docs.size,3);
+  assert.equal([...api.docs.values()].filter(x=>x.event?.support==='worked-example').length,1);
+});
