@@ -1,4 +1,4 @@
-import {ALPHABET,CUDDLES,PASSAGE,PATTERNS,DRILLS,markAnswer} from './data.js';
+import {ALPHABET,CUDDLES,PASSAGE,PATTERNS,DRILLS,SENTENCE_WORKSHOP,assembleWorkshop,markAnswer} from './data.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
 
@@ -33,7 +33,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
   const state={page:'home',profile:'adult',context:null,store:null,cloud:null,cloudStatus:'Checking Firebase…',
     cloudAt:null,loading:true,lessonIndex:0,hideEnglish:false,question:0,queue:DRILLS.slice(),
     alphabetQuiz:[],alphabetQuestion:0,attempted:false,failed:false,hint:'none',feedback:'',
-    completed:false,pronunciationIndex:0,coach:null,lastInput:'',busy:false};
+    completed:false,pronunciationIndex:0,coach:null,lastInput:'',busy:false,builder:{mode:0,left:0,right:0,showFrench:true}};
   try{const p=localStorage.getItem('next-french:profile');if(p==='adult'||p==='sai')state.profile=p;}catch{}
   const el=()=>target;
   let syncTimer=0,destroyed=false;
@@ -96,7 +96,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
     await syncNow();
   }
   function nav(){
-    const tabs=[['home','Overview'],['alphabet','Alphabet'],['knowledge','Knowledge grid'],['practice','Sentence practice'],['review','Review'],['pronunciation','Speak']];
+    const tabs=[['home','Overview'],['alphabet','Alphabet'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],['practice','Sentence practice'],['review','Review'],['pronunciation','Speak']];
     return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p?'active':'')+'">'+t+'</button>').join('')+'</nav>';
   }
   function top(){
@@ -162,6 +162,20 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
     return '<section class="ft-card"><h2>Reusable building blocks</h2><p>The same connectives work across hundreds of sentences. Change just one part, then combine two ideas.</p>'+
       '<div class="ft-patterns">'+PATTERNS.map(p=>'<div><b>'+esc(p.word)+'</b><span>'+esc(p.name)+'</span><p lang="fr">'+esc(p.frame)+'</p><small>'+esc(p.english)+'</small></div>').join('')+'</div></section>';
   }
+  function workshop(){
+    const b=state.builder,group=SENTENCE_WORKSHOP[b.mode],line=assembleWorkshop(b.mode,b.left,b.right);
+    const options=(items,current)=>items.map((item,i)=>'<option value="'+i+'"'+(i===current?' selected':'')+'>'+esc(item.en)+'</option>').join('');
+    return '<section class="ft-card"><p class="ft-eyebrow">CONTROLLED SENTENCE MANIPULATION</p><h2>Make the language your own</h2>'+
+      '<p>Combine reusable, correct French clauses. These five structures offer <b>80 distinct sentences</b>. Listen, cover the French and reconstruct the sentence without looking.</p>'+
+      '<div class="ft-workshop-controls"><label>Connecting idea<select data-workshop-key="mode">'+SENTENCE_WORKSHOP.map((p,i)=>'<option value="'+i+'"'+(i===b.mode?' selected':'')+'>'+esc(p.title)+'</option>').join('')+'</select></label>'+
+      '<label>First part<select data-workshop-key="left">'+options(group.left,b.left)+'</select></label>'+
+      '<label>Second part<select data-workshop-key="right">'+options(group.right,b.right)+'</select></label></div>'+
+      '<div class="ft-build-preview"><p class="ft-eyebrow">Build from English</p><p class="ft-workshop-english">'+esc(line.en)+'</p>'+
+      '<p class="ft-eyebrow">French model</p><p class="ft-workshop-french" lang="fr">'+(b.showFrench?esc(line.fr):'French covered — say it from memory')+'</p>'+
+      '<div class="ft-actions"><button data-act="say-workshop">▶ Hear the French</button><button data-act="toggle-workshop">'+(b.showFrench?'Cover French':'Reveal French')+'</button>'+
+      '<button data-act="try-workshop" class="ft-primary">Type from English</button></div></div>'+
+      '<p class="ft-small">Workshop repetitions count as guided practice, not as genuinely unseen transfer. Separate unseen tests are part of Sentence practice.</p></section>'+patterns();
+  }
   function resetQuestion(){state.attempted=false;state.failed=false;state.hint='none';state.feedback='';state.completed=false;state.lastInput='';}
   function practice(){
     if(!state.queue.length)state.queue=DRILLS.slice();
@@ -207,7 +221,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
       (!ready?login():nav()+
       (state.page==='home'?overview():state.page==='alphabet'?alphabet():state.page==='knowledge'?knowledge():
-       state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())))+
+       state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())))+
       '<p class="ft-foot">Inspired by Barry Smith and published Michaela French teaching descriptions; independently created course content, not an official Michaela product. <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES source</a> · <a href="https://jlmfl.wordpress.com/2017/04/23/michaela-french-how-we-use-knowledge-organisers/">Knowledge organisers</a></p>';
     if(ready&&state.page==='pronunciation')mountPronunciation();
   }
@@ -276,7 +290,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
   function setPage(page){
     if(!state.store){render();return;}
     if(page==='alphabet'){teach('alphabet');state.page=page;}
-    else if(page==='knowledge'){teach('connectives');state.page=page;}
+    else if(page==='knowledge'||page==='workshop'){teach('connectives');state.page=page;}
     else if(page==='practice'){teach('connectives');state.page=page;state.queue=DRILLS.slice();state.question=0;resetQuestion();}
     else if(page==='review'){
       teach('connectives');
@@ -322,6 +336,14 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
         else{state.page='home';resetQuestion();render();}break;
       }
       case 'toggle-english':state.hideEnglish=!state.hideEnglish;render();break;
+      case 'toggle-workshop':state.builder.showFrench=!state.builder.showFrench;render();break;
+      case 'say-workshop':speak(assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);break;
+      case 'try-workshop':{
+        const q=assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right);
+        state.queue=[{id:q.id,kind:'toFrench',prompt:q.en,answer:q.fr,concept:q.concept,phase:'practice',novel:false,
+          hint:'Use the connector and the two clauses from the workshop.'}];
+        state.question=0;resetQuestion();state.page='practice';render();break;
+      }
       case 'hint':state.hint='small-prompt';state.feedback='Use the hint to reconstruct the sentence, then try again.';render();break;
       case 'model':{
         const x=state.queue[state.question];
@@ -345,6 +367,13 @@ export function mountFrenchCourse({target,connect,signIn,signOut}){
     }
   }
   async function onChange(e){
+    if(e.target.matches('[data-workshop-key]')){
+      const key=e.target.dataset.workshopKey,v=Number(e.target.value);
+      if(!['mode','left','right'].includes(key)||!Number.isInteger(v)||v<0)return;
+      state.builder[key]=v;
+      if(key==='mode'){state.builder.left=0;state.builder.right=0;}
+      state.builder.showFrench=true;render();return;
+    }
     if(e.target.matches('[data-profile]')){
       const p=e.target.value;if(!['adult','sai'].includes(p)||p===state.profile)return;
       // All previous profile events stay in their original, uniquely scoped store.

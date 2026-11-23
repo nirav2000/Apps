@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ALPHABET,PASSAGE,PATTERNS,DRILLS,CUDDLES,normaliseAnswer,markAnswer} from '../french-teaching/v1/data.js';
+import {ALPHABET,PASSAGE,PATTERNS,DRILLS,CUDDLES,SENTENCE_WORKSHOP,assembleWorkshop,normaliseAnswer,markAnswer} from '../french-teaching/v1/data.js';
 import {reviewPlan} from '../french-teaching/v1/index.js';
 import {createEvidenceStore} from '../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../learning-evidence/v1/firestore-cloud.js';
@@ -113,4 +113,24 @@ test('conflicting event IDs fail closed rather than deleting or overwriting hist
   await make(first).sync();
   await assert.rejects(make(second).sync(),/collision|Conflicting|different|scope mismatch/i);
   assert.equal(api.docs.size,1);
+});
+
+
+test('high-frequency sentence workshop creates 80 distinct grammatically composed sentences',()=>{
+  assert.equal(SENTENCE_WORKSHOP.length,5);
+  const set=new Set();
+  for(let i=0;i<SENTENCE_WORKSHOP.length;i++)for(let j=0;j<4;j++)for(let k=0;k<4;k++){
+    const s=assembleWorkshop(i,j,k);
+    assert.ok(s.fr.endsWith('.')&&s.en.endsWith('.'));
+    assert.ok(s.fr.length>20&&s.en.length>20);
+    assert.ok(s.concept.includes('french:connectives:'));
+    set.add(s.fr);
+  }
+  assert.equal(set.size,80);
+  assert.ok(assembleWorkshop(0,0,0).fr.includes('parce que'));
+  assert.ok(assembleWorkshop(1,0,0).fr.includes(', mais '));
+  assert.ok(assembleWorkshop(2,0,0).fr.includes(', donc '));
+  assert.ok(assembleWorkshop(3,0,0).fr.includes(', '));
+  assert.ok(assembleWorkshop(4,0,0).fr.includes(', puis '));
+  assert.throws(()=>assembleWorkshop(10,0,0),/Invalid/);
 });

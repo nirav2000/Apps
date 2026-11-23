@@ -11,6 +11,7 @@ A focused French course inspired by Barry Smith, Fadila Bettahar and Michaela's 
 - **PROFS:** Past, Reasons, Opinions, Future, Subjunctive. This pilot introduces authentic examples and practices selected forms; it is not a complete five-strand syllabus.
 - **Alphabet:** 26 French letter names with device TTS, example words and a listening/letter identification check. Accented vowels and word phonics are introduced as separate from letter names. French TTS is an approximation, and a parent/teacher must verify unclear model sounds.
 - **High-utility sentence manipulation:** mais, parce que, donc, si, et, aussi, d'abord, puis, quand, cependant, à mon avis, je voudrais, il faut, plus model sentences for past and future.
+- **Sentence workshop:** five connecting structures with four compatible first clauses and four compatible second clauses each: 80 grammatical combinations. Listening, covering French and typed reconstruction are guided practice, not falsely labelled novel transfer.
 - **Guided progression:** find the French, translate to/from English, request hints, check exact model, attempt unseen recombinations, later retrieve. The **first presentation** of a new transfer prompt is counted as novel; repeats become practice.
 - **Pronunciation:** uses shared Apps pronunciation module and existing reference Worker; optional microphone and browser speech recognition. Prototype acoustic feedback must never become a phoneme exam or mastery marker.
 - **Original and independently authored learner text:** do not copy proprietary Michaela resources.

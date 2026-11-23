@@ -64,3 +64,65 @@ export const DRILLS=[
 ];
 export function normaliseAnswer(s){return String(s||'').normalize('NFC').trim().toLocaleLowerCase('fr').replace(/[’‘]/g,"'").replace(/\s+/g,' ').replace(/[.!?;,]+$/g,'').trim();}
 export function markAnswer(input,answer){return normaliseAnswer(input)===normaliseAnswer(answer);}
+
+
+// A controlled language workshop: five grammatical structures × four beginnings × four endings.
+// Every combination is original course content; practising an already revealed version is not novel transfer.
+export const SENTENCE_WORKSHOP=[
+ {id:'reason',title:'Explain why',frJoin:' parce que ',enJoin:' because ',left:[
+  {fr:"J'apprends le français",en:'I learn French'},
+  {fr:'Je pratique chaque jour',en:'I practise every day'},
+  {fr:'Je lis en français',en:'I read in French'},
+  {fr:"J'écoute la radio",en:'I listen to the radio'}],
+  right:[
+  {fr:'je veux progresser',en:'I want to improve'},
+  {fr:"c'est utile",en:'it is useful'},
+  {fr:"j'aime apprendre",en:'I like learning'},
+  {fr:"j'ai le temps",en:'I have time'}]},
+ {id:'contrast',title:'Contrast two ideas',frJoin:', mais ',enJoin:', but ',left:[
+  {fr:"J'aime le français",en:'I like French'},
+  {fr:'Je comprends les mots',en:'I understand the words'},
+  {fr:'Je veux parler français',en:'I want to speak French'},
+  {fr:'Je travaille beaucoup',en:'I work a lot'}],
+  right:[
+  {fr:'je fais parfois des erreurs',en:'I sometimes make mistakes'},
+  {fr:'je parle lentement',en:'I speak slowly'},
+  {fr:'je trouve la grammaire difficile',en:'I find the grammar difficult'},
+  {fr:"j'ai besoin de pratiquer",en:'I need to practise'}]},
+ {id:'result',title:'Explain the result',frJoin:', donc ',enJoin:', so ',left:[
+  {fr:'Je veux progresser',en:'I want to improve'},
+  {fr:"J'ai un examen demain",en:'I have a test tomorrow'},
+  {fr:'Je veux comprendre',en:'I want to understand'},
+  {fr:'Je dois apprendre',en:'I have to learn'}],
+  right:[
+  {fr:'je pratique chaque jour',en:'I practise every day'},
+  {fr:"je demande de l'aide",en:'I ask for help'},
+  {fr:"j'écoute attentivement",en:'I listen carefully'},
+  {fr:'je révise les phrases',en:'I revise the sentences'}]},
+ {id:'condition',title:'State a condition',frJoin:', ',enJoin:', ',left:[
+  {fr:"Si j'ai le temps",en:'If I have time'},
+  {fr:'Si je fais une erreur',en:'If I make a mistake'},
+  {fr:'Si je ne comprends pas',en:"If I don't understand"},
+  {fr:"Si j'ai besoin d'aide",en:'If I need help'}],
+  right:[
+  {fr:"je demande de l'aide",en:'I ask for help'},
+  {fr:'je recommence',en:'I try again'},
+  {fr:'je lis en français',en:'I read in French'},
+  {fr:'je vérifie mon travail',en:'I check my work'}]},
+ {id:'sequence',title:'Sequence actions',frJoin:', puis ',enJoin:', then ',left:[
+  {fr:"D'abord, j'écoute",en:'First, I listen'},
+  {fr:"D'abord, je lis",en:'First, I read'},
+  {fr:"D'abord, j'écris",en:'First, I write'},
+  {fr:'D’abord, je réfléchis',en:'First, I think'}],
+  right:[
+  {fr:'je répète',en:'I repeat'},
+  {fr:'je parle',en:'I speak'},
+  {fr:'je vérifie',en:'I check'},
+  {fr:'je recommence',en:'I try again'}]}
+];
+export function assembleWorkshop(mode,left,right){
+  const p=SENTENCE_WORKSHOP[mode],a=p?.left[left],b=p?.right[right];
+  if(!p||!a||!b)throw Error('Invalid French workshop selection');
+  return {id:'workshop-'+p.id+'-'+left+'-'+right,concept:'french:connectives:'+p.id,
+    fr:a.fr+p.frJoin+b.fr+'.',en:a.en+p.enJoin+b.en+'.',mode:p};
+}
