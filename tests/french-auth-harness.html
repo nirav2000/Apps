@@ -2,7 +2,7 @@
 <link rel="stylesheet" href="../french-teaching/v1/style.css"></head><body><main id="target" class="ft-app"></main>
 <script type="module">
 import {mountFrenchCourse} from '../french-teaching/v1/index.js';
-const state={calls:{google:0,link:0,email:0},auth:{currentUser:null},uid:'test-owner',docs:new Map()};
+const state={calls:{google:0,link:0,email:0,reset:0},auth:{currentUser:null},uid:'test-owner',docs:new Map(),resetEmail:null};
 const firestore={
   collection(_db,...parts){return parts.join('/');},doc(col,id){return col+'/'+id;},
   documentId(){return '__name__';},where(k,op,v){return{k,op,v};},query(col,...filters){return{col,filters};},
@@ -26,6 +26,7 @@ mountFrenchCourse({
   target:document.querySelector('#target'),
   connect:async()=>context,
   signIn:async()=>{state.calls.email++;state.auth.currentUser=user();},
+  resetPassword:async email=>{state.calls.reset++;state.resetEmail=email;},
   signInGoogle(){
     state.calls.google++;
     if(new URLSearchParams(location.search).has('wrong'))

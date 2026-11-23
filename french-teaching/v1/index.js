@@ -2,6 +2,7 @@ import {ALPHABET,CUDDLES,PASSAGE,PATTERNS,DRILLS,SENTENCE_WORKSHOP,assembleWorks
 import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,soundById} from './phonics.js';
 import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
+import {browserAuthContext} from './auth-context.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
 
@@ -31,8 +32,9 @@ export function reviewPlan(entries,now=Date.now()){
   }
   return {taughtAt:base,next,days:elapsed};
 }
-export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,linkGoogle}){
+export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,linkGoogle,resetPassword}){
   if(!target||typeof connect!=='function')throw Error('French course target and Firebase adapter required');
+  const authCapabilities=browserAuthContext(window);
   const state={page:'home',profile:'adult',context:null,store:null,cloud:null,cloudStatus:'Checking Firebase…',
     cloudAt:null,loading:true,lessonIndex:0,hideEnglish:false,question:0,queue:DRILLS.slice(),
     alphabetQuiz:[],alphabetQuestion:0,attempted:false,failed:false,hint:'none',feedback:'',
@@ -127,17 +129,29 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<small data-cloud-status role="status" aria-live="polite">'+esc(state.cloudStatus)+'</small></div></div>';
   }
   function login(){
+    const iphonePwa=authCapabilities.iosStandalone;
+    const google=typeof signInGoogle==='function'&&!iphonePwa
+      ?'<button type="button" class="ft-primary ft-google-signin" data-act="google-signin">Continue with Google</button>'+
+        '<p class="ft-small">Your Google account must already be linked to this parent Firebase account.</p>'
+      :iphonePwa?
+        '<div class="ft-ios-login-note" role="note"><strong>Safe sign-in for iPhone Home Screen</strong>'+
+        '<p>The Google popup can become unresponsive after iOS offers a saved passkey or password. To avoid trapping you in that screen, it is disabled in the installed app.</p>'+
+        '<p>Use your existing parent Firebase email and password below. To use Google instead, open this course directly in Safari. Safari and the Home Screen app may not share their sign-in sessions.</p>'+
+        '<button type="button" data-act="copy-course-link">Copy link for Safari</button></div>'
+      :'';
     return '<section class="ft-card ft-signin"><h2>Sign in to sync your French</h2>'+
       '<p>Use your existing <strong>kk-syllabus parent Firebase account</strong>. There is no new French account. Your progress remains separate from Sai’s.</p>'+
-      (typeof signInGoogle==='function'
-       ?'<button type="button" class="ft-primary ft-google-signin" data-act="google-signin">Continue with Google</button>'+
-        '<p class="ft-small">Google must already be linked to your parent Firebase account. If it is not linked yet, sign in below first.</p>'
-       :'')+
-      '<details class="ft-password-option"><summary>Use existing Firebase email and password</summary>'+
+      google+
+      '<details class="ft-password-option"'+(iphonePwa||typeof signInGoogle!=='function'?' open':'')+'>'+
+      '<summary>Use existing Firebase email and password</summary>'+
       '<form id="ft-login"><label>Parent Firebase email<input name="email" type="email" autocomplete="username" required></label>'+
       '<label>Firebase password (not necessarily your Google password)<input name="password" type="password" autocomplete="current-password" required></label>'+
-      '<button type="submit" class="ft-primary">Sign in &amp; sync</button></form></details>'+
-      '<p class="ft-small">Already signed in on this device? Your session should be reused automatically. The App Monitor passkey is separate and cannot yet sign in to these Firebase records.</p></section>';
+      '<button type="submit" class="ft-primary">Sign in &amp; sync</button></form>'+
+      (typeof resetPassword==='function'
+        ?'<div class="ft-reset-password"><button type="button" data-act="reset-password">Forgot Firebase password?</button>'+
+         '<p role="status" aria-live="polite" data-reset-status></p></div>':'')+
+      '</details>'+
+      '<p class="ft-small">Already signed in? Your session is reused automatically. Your App Monitor passkey is not yet connected to these Firebase records.</p></section>';
   }
   function overview(){
     const summary=state.store?.summary();
@@ -158,7 +172,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<div class="ft-actions"><button data-act="sync">Sync with Firebase</button><button data-act="export">Export evidence</button><button data-page="review">Review from memory</button></div></section>'+
       '<section class="ft-card ft-identity"><h2>Your learning account</h2><p class="ft-small">'+(active?.email?'Signed in as <strong>'+esc(active.email)+'</strong>. ':'Signed in with your existing parent account. ')+(googleLinked?'Google sign-in linked to this Firebase account.':'Linking Google lets you use the same account without entering the Firebase password on other devices.')+'</p>'+
       (state.authNotice?'<p role="status">'+esc(state.authNotice)+'</p>':'')+
-      (!googleLinked&&typeof linkGoogle==='function'?'<button data-act="link-google" type="button">Link Google to this account</button>':'')+'</section>'+
+      (!googleLinked&&typeof linkGoogle==='function'&&authCapabilities.allowGooglePopup
+  ?'<button data-act="link-google" type="button">Link Google to this account</button>'
+  :(!googleLinked&&authCapabilities.iosStandalone
+    ?'<p class="ft-small">Google account linking is available when you open the course in Safari, not from the installed iPhone app.</p>':''))+'</section>'+
       '<section class="ft-card"><h2>How the course works</h2><p>Real French audio → bilingual understanding → CUDDLES noticing → guided translation → controlled substitution → independent unseen sentences → review on days 1, 3 and 7.</p>'+
       '<p class="ft-small">PROFS: Past, Reasons, Opinions, Future, Subjunctive. This pilot introduces useful past, reason, opinion and future structures, plus a supported subjunctive example.</p></section>';
   }
@@ -520,6 +537,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function authError(error){
     const code=error?.code||'';
+    if(code==='auth/unsupported-standalone')return 'Google sign-in is disabled inside the installed iPhone app to prevent the stuck Google login screen. Use the existing Firebase email/password form or open the course in Safari.';
     if(code==='auth/operation-not-allowed')return 'Google sign-in is not enabled for kk-syllabus. Enable it in Firebase Authentication first; email sign-in still works.';
     if(code==='auth/unauthorized-domain')return 'This site is not yet authorised in Firebase Authentication for Google sign-in.';
     if(code==='auth/popup-blocked'||code==='auth/operation-not-supported-in-this-environment')return 'Google popup was blocked or unavailable. Try opening the page in Safari or use the existing Firebase password.';
@@ -567,6 +585,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     switch(b.dataset.act){
       case 'google-signin':{
         try{
+          if(!authCapabilities.allowGooglePopup)throw Object.assign(Error('Google sign-in is not available inside the installed iPhone app.'),{code:'auth/unsupported-standalone'});
           if(typeof signInGoogle!=='function')throw Error('Google sign-in is not configured.');
           state.cloudStatus='Opening Google sign-in…';updateStatus();
           // Invoked before the first await to retain iOS/Safari user activation for the popup.
@@ -579,6 +598,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       }
       case 'link-google':{
         try{
+          if(!authCapabilities.allowGooglePopup)throw Object.assign(Error('Google account linking is not available inside the installed iPhone app.'),{code:'auth/unsupported-standalone'});
           if(!state.context?.auth?.currentUser||typeof linkGoogle!=='function')throw Error('Parent account sign-in required.');
           state.authNotice='Opening Google account linking…';updateStatus();
           // Pop-up starts synchronously in the user gesture.
@@ -587,6 +607,32 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
           state.authNotice='Google is now linked to this same Firebase parent account.';
         }catch(error){state.authNotice='Google linking: '+authError(error);}
         render();break;
+      }
+      case 'copy-course-link':{
+        const url='https://nirav2000.github.io/Next/french.html';
+        try{
+          if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
+          await navigator.clipboard.writeText(url);
+          state.cloudStatus='Course link copied — paste it into Safari';
+        }catch{
+          state.cloudStatus='Open Safari and enter: nirav2000.github.io/Next/french.html';
+        }
+        updateStatus();break;
+      }
+      case 'reset-password':{
+        const emailField=el().querySelector('#ft-login input[name="email"]');
+        const status=el().querySelector('[data-reset-status]');
+        if(!emailField?.checkValidity()){emailField?.reportValidity();return;}
+        if(typeof resetPassword!=='function'){if(status)status.textContent='Password reset is unavailable.';return;}
+        b.disabled=true;
+        if(status)status.textContent='Requesting password-reset email…';
+        try{
+          await resetPassword(emailField.value.trim());
+          if(status)status.textContent='If this email has an eligible Firebase account, check its inbox for a password-reset message.';
+        }catch(error){
+          if(status)status.textContent='Password reset unavailable: '+authError(error);
+        }finally{if(b.isConnected)b.disabled=false;}
+        break;
       }
       case 'sync':await syncNow();break;
       case 'export':{

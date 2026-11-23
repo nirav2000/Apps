@@ -8,6 +8,7 @@ on:
       - 'tests/french-browser*'
       - 'tests/french-extensions-browser.mjs'
       - 'tests/french-dictionary-browser.mjs'
+      - 'tests/french-ios-auth-browser.mjs'
       - '.github/workflows/french-browser.yml'
   pull_request:
     paths:
@@ -35,5 +36,6 @@ jobs:
           sleep 2
           node tests/french-browser.mjs
           node tests/french-auth-browser.mjs
+          node tests/french-ios-auth-browser.mjs
           node tests/french-extensions-browser.mjs
           node tests/french-dictionary-browser.mjs

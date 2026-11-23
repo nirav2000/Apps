@@ -9,6 +9,7 @@ on:
       - 'tests/french-course.test.mjs'
       - 'tests/french-extensions.test.mjs'
       - 'tests/french-dictionary.test.mjs'
+      - 'tests/french-auth-context.test.mjs'
       - 'learning-sync/**'
       - 'tests/learning.test.mjs'
       - 'tests/learning-evidence.test.mjs'
@@ -22,6 +23,7 @@ on:
       - 'tests/french-course.test.mjs'
       - 'tests/french-extensions.test.mjs'
       - 'tests/french-dictionary.test.mjs'
+      - 'tests/french-auth-context.test.mjs'
       - 'tests/learning-evidence.test.mjs'
       - '.github/workflows/learning-tests.yml'
   workflow_dispatch:
@@ -43,4 +45,5 @@ jobs:
       - run: node --check french-teaching/v1/lexicon.js
       - run: node --check french-teaching/v1/dictionary.js
       - run: node --check french-teaching/v1/index.js
-      - run: node --test tests/learning.test.mjs tests/learning-sync.test.mjs tests/learning-evidence.test.mjs tests/french-course.test.mjs tests/french-extensions.test.mjs tests/french-dictionary.test.mjs
+      - run: node --check french-teaching/v1/auth-context.js
+      - run: node --test tests/learning.test.mjs tests/learning-sync.test.mjs tests/learning-evidence.test.mjs tests/french-course.test.mjs tests/french-extensions.test.mjs tests/french-dictionary.test.mjs tests/french-auth-context.test.mjs

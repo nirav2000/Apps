@@ -108,3 +108,12 @@
 .ft-app .ft-dictionary-links{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0 4px}
 .ft-app .ft-dictionary-links a{font-size:12px;font-weight:700;color:#285b4d;text-decoration:underline;text-underline-offset:3px}
 .ft-app .ft-dictionary-result strong{font-weight:730}
+
+/* Prevent the iOS Home Screen OAuth popup freeze: provide a direct, safe fallback. */
+.ft-app .ft-ios-login-note{background:#f1f5f8;border:1px solid #dae5eb;border-radius:15px;padding:14px 16px;margin:19px 0;color:#284457}
+.ft-app .ft-ios-login-note>strong{font-size:15px}
+.ft-app .ft-ios-login-note p{font-size:13px;line-height:1.5;margin:8px 0;color:#435d6e}
+.ft-app .ft-ios-login-note button{font-size:13px;min-height:39px;margin-top:6px}
+.ft-app .ft-reset-password{margin:15px 0 0;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.ft-app .ft-reset-password button{font-size:13px;padding:7px 11px;min-height:38px}
+.ft-app .ft-reset-password p{margin:0;color:#4d6659;font-size:12px;line-height:1.5}
