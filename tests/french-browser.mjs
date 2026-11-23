@@ -43,7 +43,17 @@ try{
   await page.locator('#ft-answer-text').fill("J'aime le français, mais je fais parfois des erreurs.");
   await page.getByRole('button',{name:'Check answer'}).click();
   assert.match(await page.locator('.ft-feedback').innerText(),/Correct with support/);
-  await page.waitForFunction(()=>[...window.__testEvidence.values()].some(x=>x.event?.support==='worked-example'),null,{timeout:8000});
+  try{
+    await page.waitForFunction(()=>[...window.__testEvidence.values()].some(x=>x.event?.support==='worked-example'),null,{timeout:8000});
+  }catch(error){
+    const diagnosis=await page.evaluate(()=>({
+      cloud:document.querySelector('[data-cloud-status]')?.textContent,
+      remote:[...window.__testEvidence.entries()].map(([key,row])=>({key,support:row.event?.support,phase:row.event?.phase})),
+      local:JSON.parse(localStorage.getItem('apps-learning-evidence-v1:next-french:test-owner:adult')||'{}').entries?.map(x=>({id:x.id,support:x.support,phase:x.phase}))
+    }));
+    console.error('French evidence browser diagnosis: '+JSON.stringify(diagnosis));
+    throw error;
+  }
 
   await page.locator('[data-profile]').selectOption('sai');
   await page.locator('[data-cloud-status]').filter({hasText:'Firebase'}).waitFor({timeout:16000});
