@@ -50,7 +50,7 @@ try{
   assert.ok(await page.locator('.ft-sound-card').count()>=5);
   await page.locator('[data-sound-group="nasal-vowels"]').click();
   assert.equal(await page.locator('.ft-sound-card').count(),4);
-  await page.locator('[data-sound-play="in-ain-ein"][data-example="0"]').click();
+  await page.locator('.ft-sound-words [data-sound-play="in-ain-ein"][data-example="0"]').click();
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='vin',null,{timeout:2500});
   await page.getByRole('button',{name:'Test your ear'}).click();
   await page.getByRole('button',{name:'Play the word'}).click();
