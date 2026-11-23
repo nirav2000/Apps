@@ -68,6 +68,8 @@ try{
   await page.locator('.ft-word-dialog').waitFor();
   const modal=page.locator('.ft-word-dialog');
   assert.match(await modal.innerText(),/vouloir/);
+  assert.match(await modal.innerText(),/je voulais apprendre/);
+  await modal.locator('details').filter({hasText:'Explore all present-tense endings'}).locator('summary').click();
   assert.match(await modal.innerText(),/voulons/);
   assert.match(await modal.innerText(),/voulez/);
   assert.match(await modal.innerText(),/Irregular/);

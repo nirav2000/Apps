@@ -3,6 +3,8 @@ import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,so
 import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
 import {browserAuthContext} from './auth-context.js';
+import {createGuidedInterface} from './guided-ui.js';
+import {optionalVerbTimeline} from './magic10.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
 
@@ -48,6 +50,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     queueSync();
     return row;
   }
+  // The new lesson engine writes only additional evidence events to the
+  // established Firebase parent/learner scope. Existing lesson records stay as-is.
+  const guidedUI=createGuidedInterface({
+    getEntries:()=>state.store?.getEntries()||[],record,speak,refresh:render,
+    navigate:page=>{state.page=page;render();}
+  });
   function teach(kind){
     if(!state.store)return;
     const ref=kind==='alphabet'?'intro-alphabet':kind==='sounds'?'intro-sounds':'intro-connectives';
@@ -110,6 +118,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     state.profile=profile;
     state.soundLastResult=null;state.soundQueue=[];state.soundQuestion=0;
     state.store=createEvidenceStore({appId:APP_ID,learnerId:profile,accountId:ownerUid});
+    guidedUI.reset();
     state.cloud=createFirestoreEvidenceCloud({store:state.store,db,auth,firestore,ownerUid,learnerId:profile,appId:APP_ID});
     state.cloudStatus='Pending cloud check';
     state.cloudAt=null;
@@ -117,7 +126,9 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     await syncNow();
   }
   function nav(){
-    const tabs=[['home','Overview'],['alphabet','Alphabet'],['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],['practice','Sentence practice'],['review','Review'],['pronunciation','Speak']];
+    const tabs=[['home','Overview'],['lesson',"Today's lesson"],['magic','Magic 10'],['alphabet','Alphabet'],
+      ['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],
+      ['practice','Sentence practice'],['review','Review'],['pronunciation','Speak']];
     return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p||(p==='sounds'&&state.page==='sound-quiz')?'active':'')+'">'+t+'</button>').join('')+'</nav>';
   }
   function top(){
@@ -166,9 +177,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       ['Accuracy',summary.accuracy],['Independence',summary.independence],
       ['7-day retention',summary.retention],['Unseen transfer',summary.transfer]
     ]:[];
-    return '<section class="ft-hero ft-card"><p class="ft-eyebrow">Your next step</p><h2>Speak in full sentences, not isolated word lists.</h2>'+
-      '<p>Start with the French alphabet, then a bilingual passage full of reusable connectives. Later, create unseen combinations without prompts.</p>'+
-      '<div class="ft-actions"><button data-page="alphabet" class="ft-primary">Learn the alphabet</button><button data-page="sounds">Hear French sounds</button>'+
+    return guidedUI.dashboard()+
+      '<section class="ft-hero ft-card"><p class="ft-eyebrow">REFERENCE &amp; FREE EXPLORATION</p><h2>Explore the words behind your lessons.</h2>'+
+      '<p>Use the guided lessons as your default. The alphabet, sound library, bilingual passage and sentence workshop remain available for optional exploration.</p>'+
+      '<div class="ft-actions"><button data-page="alphabet">Learn the alphabet</button><button data-page="sounds">Hear French sounds</button>'+
       '<button data-page="knowledge">Explore the knowledge grid</button><button data-page="practice">Practise sentences</button></div></section>'+
       '<section class="ft-card"><h2>Learning evidence</h2><p class="ft-small">Accuracy, independence, delayed recall and novel transfer are separate measures. An immediate correct answer is not proof of retention.</p>'+
       '<div class="ft-metrics">'+metrics.map(([name,m])=>'<div><strong>'+fmt(m.percent)+'</strong><span>'+name+'</span><small>'+(m.total||0)+' checked'+(m.unknownSupport?' · '+m.unknownSupport+' unknown help':'')+'</small></div>').join('')+'</div>'+
@@ -342,10 +354,17 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<button type="button" data-close-word aria-label="Close word explanation">×</button></div>';
     let content='';
     if(isVerb){
+      const timeline=optionalVerbTimeline(verb.lemma);
+      const timelineHTML=timeline?
+        '<h3>Use it now: past, present and future</h3><div class="ft-word-timeline">'+
+          timeline.map(row=>'<div><small>'+esc(row.kind)+'</small><strong lang="fr">'+esc(row.fr)+
+            '</strong><span>'+esc(row.en)+'</span><button type="button" data-dialog-speak="'+esc(row.fr)+'">▶</button></div>').join('')+
+          '</div><p class="ft-small">These are individually reviewed examples, not an automatic tense generator.</p>':
+        '<p class="ft-small">A complete past/future phrase has not been reviewed for this verb. Consult the sourced dictionary links below.</p>';
       const person=info.formKind==='present'&&info.personIndex!==null
         ?SUBJECTS[info.personIndex]+' · present tense'
         :info.formKind==='infinitive'?'Infinitive':info.formKind;
-      const table=verb.forms.length?'<details open><summary>See the present-tense endings</summary>'+
+      const table=verb.forms.length?'<details><summary>Explore all present-tense endings (optional grammar)</summary>'+
         '<table class="ft-verb-table"><thead><tr><th scope="col">Subject</th><th scope="col">Verb form</th></tr></thead><tbody>'+
         verb.forms.map((form,i)=>{
           const hint=verb.endingHints?.[i];
@@ -363,7 +382,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         '<div class="ft-word-facts"><div><small>Infinitive</small><strong lang="fr">'+esc(verb.lemma)+'</strong></div>'+
         '<div><small>Meaning</small><strong>'+esc(verb.meaning)+'</strong></div>'+
         '<div><small>Pattern</small><strong>'+esc(verb.group)+'</strong></div></div>'+
-        (info.explain?'<p class="ft-word-tip">'+esc(info.explain)+'</p>':'')+table+
+        (info.explain?'<p class="ft-word-tip">'+esc(info.explain)+'</p>':'')+timelineHTML+table+
         '<h3>How to use it</h3><p>'+esc(verb.note)+'</p>'+
         '<p lang="fr" class="ft-word-example">'+esc(verb.example)+'</p>'+
         '<div class="ft-actions"><button type="button" data-dialog-speak="'+esc(verb.lemma)+'">▶ Infinitive</button>'+
@@ -447,9 +466,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const ready=!!state.store;
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
       (!ready?login():nav()+
-      (state.page==='home'?overview():state.page==='alphabet'?alphabet():state.page==='sounds'?sounds():state.page==='sound-quiz'?soundQuiz():state.page==='knowledge'?knowledge():
+      (state.page==='home'?overview():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
+       state.page==='alphabet'?alphabet():state.page==='sounds'?sounds():state.page==='sound-quiz'?soundQuiz():state.page==='knowledge'?knowledge():
        state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())))+
-      '<p class="ft-foot">Inspired by Barry Smith and published Michaela French teaching descriptions; independently created course content, not an official Michaela product. <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES source</a> · <a href="https://jlmfl.wordpress.com/2017/04/23/michaela-french-how-we-use-knowledge-organisers/">Knowledge organisers</a></p>';
+      '<p class="ft-foot">Original lessons informed by Barry Smith, Jessica Lund’s published Michaela work, and general repeat-and-build principles described by Paul Noble. Not affiliated with or a reproduction of their courses. <a href="https://jlmfl.wordpress.com/2022/11/27/teaching-grammar-rote-vs-rules/">Lund on rote &amp; rules</a> · <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES</a></p>';
     if(ready&&state.page==='pronunciation')mountPronunciation();
   }
   function speak(s){
@@ -516,6 +536,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function setPage(page){
     if(!state.store){render();return;}
+    if(page==='lesson'){guidedUI.start();return;}
     if(page==='alphabet'){teach('alphabet');state.page=page;}
     else if(page==='sounds'){teach('sounds');state.page=page;}
     else if(page==='knowledge'||page==='workshop'){teach('connectives');state.page=page;}
@@ -551,6 +572,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     return String(error?.message||error);
   }
   async function onClick(e){
+    const guidedTarget=e.target.closest('[data-gact],[data-gchoice],[data-gspeak]');
+    if(guidedTarget&&guidedUI.click(guidedTarget))return;
     const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say],[data-word],[data-sound-group],[data-sound-play],[data-sound-compare],[data-sound-sentence],[data-sound-answer],[data-cuddle-word]');
     if(!b)return;
     if(b.dataset.page){setPage(b.dataset.page);return;}
@@ -698,6 +721,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
   }
   async function onSubmit(e){
+    if(guidedUI.submit(e.target,e))return;
     if(e.target.id==='ft-answer'){e.preventDefault();checkAnswer(new FormData(e.target).get('answer'));return;}
     if(e.target.id==='ft-letter-answer'){e.preventDefault();quizLetter(new FormData(e.target).get('answer'));return;}
     if(e.target.id==='ft-login'){
@@ -709,6 +733,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
   }
   async function onChange(e){
+    if(guidedUI.change(e.target))return;
     if(e.target.matches('[data-workshop-key]')){
       const key=e.target.dataset.workshopKey,v=Number(e.target.value);
       if(!['mode','left','right'].includes(key)||!Number.isInteger(v)||v<0)return;

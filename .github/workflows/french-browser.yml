@@ -10,6 +10,7 @@ on:
       - 'tests/french-dictionary-browser.mjs'
       - 'tests/french-ios-auth-browser.mjs'
       - 'tests/french-passkey-browser.mjs'
+      - 'tests/french-guided-browser.mjs'
       - '.github/workflows/french-browser.yml'
   pull_request:
     paths:
@@ -40,4 +41,5 @@ jobs:
           node tests/french-ios-auth-browser.mjs
           node tests/french-passkey-browser.mjs
           node tests/french-extensions-browser.mjs
+          node tests/french-guided-browser.mjs
           node tests/french-dictionary-browser.mjs
