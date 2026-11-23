@@ -32,7 +32,7 @@ export function reviewPlan(entries,now=Date.now()){
   }
   return {taughtAt:base,next,days:elapsed};
 }
-export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,linkGoogle,resetPassword}){
+export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,linkGoogle,signInPasskey,resetPassword}){
   if(!target||typeof connect!=='function')throw Error('French course target and Firebase adapter required');
   const authCapabilities=browserAuthContext(window);
   const state={page:'home',profile:'adult',context:null,store:null,cloud:null,cloudStatus:'Checking Firebase…',
@@ -136,11 +136,15 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       :iphonePwa?
         '<div class="ft-ios-login-note" role="note"><strong>Safe sign-in for iPhone Home Screen</strong>'+
         '<p>The Google popup can become unresponsive after iOS offers a saved passkey or password. To avoid trapping you in that screen, it is disabled in the installed app.</p>'+
-        '<p>Use your existing parent Firebase email and password below. To use Google instead, open this course directly in Safari. Safari and the Home Screen app may not share their sign-in sessions.</p>'+
+        '<p>Use the App Monitor passkey below to connect securely to the same Firebase learning records, or use your existing parent Firebase email and password. Google remains available in Safari.</p>'+
         '<button type="button" data-act="copy-course-link">Copy link for Safari</button></div>'
       :'';
     return '<section class="ft-card ft-signin"><h2>Sign in to sync your French</h2>'+
       '<p>Use your existing <strong>kk-syllabus parent Firebase account</strong>. There is no new French account. Your progress remains separate from Sai’s.</p>'+
+      (typeof signInPasskey==='function'
+        ?'<div class="ft-passkey-entry"><button type="button" class="ft-primary" data-act="passkey-signin">Continue with App Monitor passkey</button>'+
+          '<p class="ft-small">One passkey sign-in per device, then Firebase remembers the parent account. No new French password.</p></div>'
+        :'')+
       google+
       '<details class="ft-password-option"'+(iphonePwa||typeof signInGoogle!=='function'?' open':'')+'>'+
       '<summary>Use existing Firebase email and password</summary>'+
@@ -583,6 +587,20 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
     if(b.dataset.soundAnswer!==undefined){answerSoundQuiz(b.dataset.soundAnswer);return;}
     switch(b.dataset.act){
+      case 'passkey-signin':{
+        b.disabled=true;
+        state.cloudStatus='Verifying your App Monitor passkey…';updateStatus();
+        try{
+          if(typeof signInPasskey!=='function')throw Error('Passkey sign-in is not configured.');
+          await signInPasskey();
+          state.context=await connect();
+          await attach(state.profile);
+          state.authNotice='Your existing parent Firebase session is now active.';
+        }catch(error){
+          state.cloudStatus='Passkey sign-in: '+authError(error);
+        }
+        state.loading=false;render();break;
+      }
       case 'google-signin':{
         try{
           if(!authCapabilities.allowGooglePopup)throw Object.assign(Error('Google sign-in is not available inside the installed iPhone app.'),{code:'auth/unsupported-standalone'});

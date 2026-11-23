@@ -6,6 +6,8 @@ on:
     branches: ["main"]
     paths:
       - "app-monitor-worker.js"
+      - "french-teaching/v1/firebase-passkey-bridge.js"
+      - "tests/french-firebase-passkey.test.mjs"
       - "app-monitor-repository-privacy.js"
       - "app-monitor-app-catalog.js"
       - "nvr-private-data.js"
@@ -51,6 +53,10 @@ jobs:
           cache-dependency-path: package.json
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Verify passkey-to-Firebase owner bridge
+        run: |
+          node --check french-teaching/v1/firebase-passkey-bridge.js
+          node --test tests/french-firebase-passkey.test.mjs
       - name: Test Owner Console data layer
         run: |
           node --experimental-default-type=module --check app-monitor-repository-privacy.js

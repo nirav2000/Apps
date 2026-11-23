@@ -4,10 +4,11 @@ import { handleBizAppsCatalog } from './app-monitor-app-catalog.js';
 import { handleNvrDataRoute } from './nvr-private-data.js';
 import { notesRoute } from './notes/v1/server.js';
 import { inclassFamilyNotesRoute, inclassFamilyNotesHealth } from './notes/v1/inclass-family-bridge.js';
+import { frenchFirebaseOwnerTokenRoute } from './french-teaching/v1/firebase-passkey-bridge.js';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { observeAppMonitorSession, handleAppMonitorNotificationRoute } from './app-monitor-notifications.js';
 import { providerStatus, deliverNotification } from './notifications/v1/providers.js';
-const WORKER_BUILD='2026.11.09.nvr-coaching-v2';
+const WORKER_BUILD='2026.11.23.french-passkey-firebase-v1';
 const APP_MONITOR_RP_ID='nirav2000.github.io',APP_MONITOR_ORIGIN='https://nirav2000.github.io',APP_MONITOR_SECURITY='_app-monitor/v2/security/',APP_MONITOR_SESSION_MS=12*60*60*1000,APP_MONITOR_CHALLENGE_MS=5*60*1000,APP_MONITOR_BOOTSTRAP_MS=30*60*1000;
 // Dedicated App Monitor Cloudflare Worker. App Monitor data lives in its own R2 bucket.
 const cors=(origin,allowed)=>({
@@ -150,6 +151,12 @@ async function ownerGoogleToken(env){
 async function appMonitorRoute(request,env,headers,url){
   if(!allowedOrigin(request,env))return new Response('Forbidden origin',{status:403,headers});
   headers={...headers,'Cache-Control':'no-store'};
+  // A fixed-scope, passkey-verified Firebase owner token; never accept a UID
+  // or project ID from the browser. Preserve legacy Firestore owner rules.
+  if(url.pathname==='/app-monitor/owner/french/firebase-token'){
+    const session=await appMonitorSession(request,env);
+    return frenchFirebaseOwnerTokenRoute(request,env,headers,{passkeySession:session});
+  }
   if(url.pathname==='/app-monitor/inclass/family-notes/status'){
     const session=await appMonitorSession(request,env);
     if(!session.ok)return new Response('Unauthorized',{status:401,headers});
