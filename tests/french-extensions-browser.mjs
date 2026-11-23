@@ -75,14 +75,14 @@ try{
   await modal.getByRole('button',{name:'Infinitive'}).click();
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='vouloir',null,{timeout:2500});
   await modal.getByRole('button',{name:'Close word explanation'}).click();
-  assert.equal(await page.locator('.ft-word-dialog').count(),0);
+  await page.locator('.ft-word-dialog').waitFor({state:'detached'});
   await page.locator('.ft-grid-row [data-word="J\'habite"]').first().click();
   await page.locator('.ft-word-dialog').waitFor();
   assert.match(await page.locator('.ft-word-dialog').innerText(),/habiter/);
   assert.match(await page.locator('.ft-word-dialog').innerText(),/dans une maison/);
   assert.equal(await page.locator('.ft-verb-table tbody tr').count(),6);
   await page.keyboard.press('Escape');
-  assert.equal(await page.locator('.ft-word-dialog').count(),0);
+  await page.locator('.ft-word-dialog').waitFor({state:'detached'});
 
   // Word explorer also works in the sentence workshop; its visibility does not
   // turn a supported/practised answer into novel transfer evidence.
