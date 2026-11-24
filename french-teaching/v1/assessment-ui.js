@@ -46,7 +46,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   const entries=()=>getEntries()||[];
   const reset=()=>{state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};};
   const pick=(mode,item,extra={})=>{
-    state={...state,mode,item,started:Date.now(),feedback:null,...extra};
+    state={...state,mode,item,started:Date.now(),feedback:null,doneUnit:null,...extra};
     navigate('assessment');focusTarget('#ft-e-answer');
   };
   const dailyPlan=()=>{
@@ -125,7 +125,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       (state.feedback==='spoken'?'<p class="ft-e-prompt" lang="fr">'+h(item.fr)+'</p>'+btn('speak','▶ Hear again')+btn('oral-next','Next phrase',true):btn('oral-reveal','Reveal and hear',true))+
       '<p class="ft-small">Say your answer before revealing it. Self-check only; this is not an acoustic pronunciation score.</p>'+btn('leave','Finish')+'</section>';
     }
-    return '<section class="ft-card ft-e-question"><h2>Check complete</h2><p>'+h(state.feedback||'Your independent responses have been recorded.')+'</p>'+btn('daily','Continue learning',true)+' <button data-page="evidence">See dashboard</button> <button data-page="history">Review answers</button></section>';
+    return '<section class="ft-card ft-e-question"><h2>Check complete</h2><p>'+h(state.feedback||'Your independent responses have been recorded.')+'</p>'+(state.doneUnit?btn('continue-unit','Start this lesson',true):btn('daily','Continue learning',true))+' <button data-page="evidence">See dashboard</button> <button data-page="history">Review answers</button></section>';
   };
   const logAnswer=(value,item,r,ref,group='',support='none')=>{
     const compared=assessmentComparison(value,item);
@@ -165,11 +165,11 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     }
     const current=stage==='baseline'?baselineFor(state.unitId,entries()):pendingChecks(entries(),Date.now(),getTrack()).find(x=>x.unitId===state.unitId&&x.stage===stage);
     if(current){pick('check',current.items.find(x=>!x.row),{unitId:current.unitId,stage,anchor:current.anchor});return;}
-    state.mode='done';state.feedback=stage==='baseline'?'Starting knowledge recorded. Now learn the phrases.':'Your first answers are saved. Corrections are scheduled separately so the test stays independent.';refresh();
+    state.mode='done';state.doneUnit=stage==='baseline'?state.unitId:null;state.feedback=stage==='baseline'?'Starting knowledge recorded. Now learn the phrases.':'Your first answers are saved. Corrections are scheduled separately so the test stays independent.';refresh();
   };
   const startExperiment=()=>{
     const x=getTrack()==='michaela'?availableExperiment(entries()):null;
-    if(!x){state.mode='done';state.item={};state.feedback='The experiment becomes available after a full baseline and immediate check, on the day teaching finishes.';navigate('assessment');return;}
+    if(!x){state.mode='done';state.doneUnit=null;state.item={};state.feedback='The experiment becomes available after a full baseline and immediate check, on the day teaching finishes.';navigate('assessment');return;}
     const next=x.deck.find(i=>!firstByRef(entries()).has(i.ref));
     pick('experiment',next,{unitId:x.unit.id,anchor:x.anchor,played:false});
   };
@@ -181,6 +181,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     if(a.startsWith('range-')){state.range=Number(a.slice(6))===36500?36500:28;refresh();return true;}
     switch(a){
       case 'daily':startDaily();break;
+      case 'continue-unit':if(state.doneUnit)startUnit(state.doneUnit);break;
       case 'leave':state.mode=null;navigate('home');break;
       case 'unknown':finishAnswer('');break;
       case 'speak':if(state.item?.fr)speak(state.item.fr);break;

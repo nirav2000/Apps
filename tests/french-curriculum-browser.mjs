@@ -41,6 +41,17 @@ try{
  await page.locator('#ft-e-form button[type=submit]').click();
  await page.locator('.ft-tabs [data-page="history"]').click();
  assert.equal(await page.locator('.ft-audit-row.withheld').count(),1);
+ await page.locator('.ft-tabs [data-page="home"]').click();
+ await page.locator('[data-eact="unit:sai-months"]').click();
+ const months=assessmentDeck('sai-months','baseline');
+ for(const item of months.slice(1)){
+   assert.equal(await page.locator('.ft-e-prompt').innerText(),item.en);
+   await page.locator('#ft-e-answer').fill(item.fr);
+   await page.locator('#ft-e-form button[type=submit]').click();
+ }
+ await page.locator('[data-eact="continue-unit"]').click();
+ assert.match(await page.locator('.ft-guided-head').innerText(),/Months/);
+ assert.equal(await page.locator('[data-guided-step]').getAttribute('data-guided-step'),guidedLesson('sai-months').steps[0].id);
  await page.locator('[data-profile]').selectOption('adult');
  await page.locator('.ft-track-grid').waitFor();
  assert.equal(await page.locator('[data-track]').inputValue(),'unlocking');
