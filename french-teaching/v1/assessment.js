@@ -27,7 +27,9 @@ function buildBank(u){
   const rows=rowsFor(u),out=new Map(),slots=[];
   for(const stage of STAGES){
     const deck=rows.map((r,i)=>{
-      const kind=i%4<2?'recall':'transfer';
+      const alternate=['day3','day28'].includes(stage.id);
+      // Keep baseline, immediate and day-seven forms comparable; sample other structures on days 3/28.
+      const kind=r.id==='infinitive'||((i%4<2)!==alternate)?'recall':'transfer';
       const base={...r,unitId:u.id,stage:stage.id,kind,ref:key(u.id,stage.id,i,kind),index:i};
       if(kind==='transfer'){
         const candidates=[];
@@ -77,7 +79,7 @@ export function markAssessment(input,item){
   const variants=[want,want.replace(/la télévision/g,'la télé')];
   if(item.connector==='et'){
     const halves=want.split(' et ');
-    if(halves.length===2)variants.push(halves.reverse().join(' et '),halves.join(' et ').replace(/la télévision/g,'la télé'));
+    if(halves.length===2)variants.push(halves.join(' et ').replace(/la télévision/g,'la télé'));
   }
   if(variants.includes(got))return {correct:true,error:null};
   if(!got)return {correct:false,error:'unknown'};
@@ -173,7 +175,7 @@ export function assessmentStats(entries,now=Date.now(),days=28){
   const knowledge=MAGIC10_STRUCTURES.map(s=>{
     const rows=nonBaseline.filter(x=>x.id===s.id);
     const metric=scoreMetric(rows.map(x=>x.row));
-    const seven=scoreMetric(rows.filter(x=>x.stage==='day7').map(x=>x.row));
+    const seven=scoreMetric(rows.filter(x=>x.stage==='day7'||x.stage==='day28').map(x=>x.row));
     const novel=scoreMetric(rows.filter(x=>x.kind==='transfer').map(x=>x.row));
     return {id:s.id,label:s.name,...metric,seven,novel,secure:metric.total>=4&&metric.percent>=80&&seven.total>=1&&seven.percent===100&&novel.total>=1&&novel.percent>=80};
   });
@@ -182,6 +184,8 @@ export function assessmentStats(entries,now=Date.now(),days=28){
   const independent=scoreMetric(nonBaseline.map(x=>x.row)),recall=scoreMetric(delayed.map(x=>x.row)),novel=scoreMetric(transfer.map(x=>x.row));
   const practiceMetric=scoreMetric(practice);
   const gap=delayed.map(x=>observedGap(entries,x.concept,x.row.at,x.ref)).filter(x=>x!=null);
+  const sevenUnseen=scoreMetric(transfer.filter(x=>x.stage==='day7').map(x=>x.row));
+  const day28=scoreMetric(nonBaseline.filter(x=>x.stage==='day28'&&x.kind==='recall').map(x=>x.row));
   const tips=[];
   if(practiceMetric.total>=8&&independent.total>=8&&practiceMetric.percent-independent.percent>=20)tips.push('Guided success exceeds independent performance. Fade hints more gradually and retrieve without the model.');
   const immediate=chart.find(x=>x.label==='After teaching');
@@ -198,7 +202,7 @@ export function assessmentStats(entries,now=Date.now(),days=28){
   const gain=pairs.length?Math.round(100*pairs.reduce((n,[a,b])=>n+b.row.score.correct-a.row.score.correct,0)/pairs.length):null;
   return {practice:practiceMetric,independent,retention:recall,transfer:novel,chart,knowledge,errors,tips,
     medianMs:medianDuration(nonBaseline.map(x=>x.row)),gapDays:gap.length?Math.round(gap.reduce((a,b)=>a+b,0)/gap.length*10)/10:null,
-    gain,gainPairs:pairs.length,checks,measured:nonBaseline.length};
+    gain,gainPairs:pairs.length,checks,measured:nonBaseline.length,sevenUnseen,day28};
 }
 
 // One opt-in, matched-pair teaching experiment: written vs spoken prompt.
