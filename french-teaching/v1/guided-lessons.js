@@ -134,7 +134,7 @@ function construct(unit){
   for(let i=0;i<rows.length;i++){
     const r=rows[(i+5)%rows.length],words=r.fr.split(/\s+/);
     add('guided','write',r,'build-'+i,{
-      prompt:'Rebuild the French from the English. Use the starter if you need it.',
+      prompt:'Rebuild the French from the English. Ask for a hint only if you need one.',
       cue:'Start: '+words.slice(0,Math.min(2,words.length)).join(' ')+' …',
       support:'small-prompt'
     });

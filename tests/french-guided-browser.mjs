@@ -9,10 +9,11 @@ page.on('pageerror',e=>errors.push(String(e)));
 page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 try{
   await page.addInitScript(()=>{
-    window.__spoken=[];
+    window.__spoken=[];window.__holdSpeech=false;let active=null,timer;
+    window.__finishSpeech=()=>{clearTimeout(timer);const u=active;active=null;u?.onend?.();};
     Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{
-      cancel(){},getVoices(){return[{lang:'fr-FR',name:'Test French'}];},
-      speak(u){window.__spoken.push({text:u.text,lang:u.lang});}
+      cancel(){clearTimeout(timer);const u=active;active=null;u?.onerror?.();},getVoices(){return[{lang:'fr-FR',name:'Test French'}];},
+      speak(u){active=u;window.__spoken.push({text:u.text,lang:u.lang,step:document.querySelector('[data-guided-step]')?.dataset.guidedStep});if(!window.__holdSpeech)timer=setTimeout(window.__finishSpeech,50);}
     }});
     Object.defineProperty(window,'SpeechSynthesisUtterance',{configurable:true,
       value:class {constructor(text){this.text=text;this.lang='';this.rate=1;}}});
@@ -53,12 +54,23 @@ try{
   const models=lesson.steps.filter(s=>s.kind==='model');
   assert.equal(models.length,19);
   // Oral presentation is marked unscored. It can never inflate independence.
-  for(let i=0;i<models.length;i++){
+  await page.evaluate(()=>{window.__finishSpeech();window.__holdSpeech=true;});
+  const firstStep=models[0].id;
+  await page.locator('[data-gact="finish-model"]').click();
+  await page.waitForFunction(fr=>window.__spoken.at(-1)?.text===fr,models[0].fr);
+  assert.equal(await page.locator('[data-guided-step]').getAttribute('data-guided-step'),firstStep);
+  assert.equal(await page.locator('[data-gact="finish-model"]').isDisabled(),true);
+  await page.evaluate(()=>{window.__holdSpeech=false;window.__finishSpeech();});
+  await page.locator('[data-guided-step="'+models[1].id+'"]').waitFor();
+  await page.waitForFunction(step=>window.__spoken.at(-1)?.step===step,models[1].id);
+  for(let i=1;i<models.length;i++){
     if(i===3){
       await page.getByRole('button',{name:'Reveal French'}).click();
       await page.waitForFunction(fr=>window.__spoken.at(-1)?.text.includes(fr),models[i].fr);
     }
     await page.getByRole('button',{name:'I have repeated it → Next'}).click();
+    const next=lesson.steps[i+1];
+    await page.locator('[data-guided-step="'+next.id+'"]').waitFor();
   }
   await page.waitForFunction(fr=>window.__spoken.at(-1)?.text.includes(fr),models.at(-1).fr);
   assert.match(await page.locator('.ft-guided-task').innerText(),/Which French phrase matches the English/);
@@ -77,6 +89,7 @@ try{
   await page.waitForFunction(fr=>window.__spoken.at(-1)?.text===fr,wrong);
   assert.equal(await page.locator('.ft-guided-options button.correct').count(),1);
   await page.getByRole('button',{name:'Next phrase'}).click();
+  await page.locator('[data-guided-step="'+lesson.steps[20].id+'"]').waitFor();
   await page.waitForFunction(()=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref?.includes('guided-v2:')&&x.event?.score?.total===1),null,{timeout:12000});
   const events=await evidence();
   assert.ok(events.some(e=>e.source.ref.includes(':recap:')&&e.score.total===0));
@@ -90,6 +103,32 @@ try{
   await page.getByRole('button',{name:"Today's lesson",exact:true}).click();
   assert.ok((await page.locator('.ft-guided-progress').getAttribute('aria-valuenow'))>=20);
   assert.match(await page.locator('.ft-guided-head').innerText(),/Speak and listen/);
+  // Exercise inline French feedback and progressive hints.
+  const firstBuild=lesson.steps.findIndex(s=>s.stage==='guided'&&s.kind==='write');
+  for(const step of lesson.steps.slice(20,firstBuild)){
+    await page.locator('[data-guided-step="'+step.id+'"]').waitFor();
+    if(step.kind==='choice'||step.kind==='listen'){
+      await page.locator('[data-gchoice]').filter({hasText:step.kind==='choice'?step.fr:step.en}).first().click();
+      if(step.kind==='listen')assert.equal(await page.locator('.ft-choice-translation').innerText(),step.fr);
+    }else{
+      await page.locator('#ft-guided-input').fill(step.fr);
+      await page.getByRole('button',{name:'Check answer'}).click();
+    }
+    await page.getByRole('button',{name:'Next phrase'}).click();
+  }
+  const build=lesson.steps[firstBuild];
+  await page.locator('[data-guided-step="'+build.id+'"]').waitFor();
+  await page.locator('#ft-guided-input').fill('je');
+  await page.getByRole('button',{name:'Get a hint'}).click();
+  assert.equal(await page.locator('#ft-guided-input').inputValue(),'je');
+  assert.ok((await page.locator('.ft-guided-hint').innerText()).length>20);
+  await page.getByRole('button',{name:'Show first part'}).click();
+  assert.equal(await page.locator('#ft-guided-input').inputValue(),'je');
+  assert.equal(await page.locator('[data-gact="hint"]').count(),0);
+  await page.locator('#ft-guided-input').fill(build.fr);
+  await page.getByRole('button',{name:'Check answer'}).click();
+  assert.equal(await page.locator('.ft-guided-pair').count(),1);
+  await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref),build.id+':hint',{timeout:12000});
   // Adult/Sai scope changes reset current lesson (no accidental merged records).
   await page.locator('[data-profile]').selectOption('sai');
   await page.locator('.ft-todays-lesson').waitFor();

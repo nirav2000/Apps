@@ -53,7 +53,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   // The new lesson engine writes only additional evidence events to the
   // established Firebase parent/learner scope. Existing lesson records stay as-is.
   const guidedUI=createGuidedInterface({
-    getEntries:()=>state.store?.getEntries()||[],record,speak,refresh:render,
+    getEntries:()=>state.store?.getEntries()||[],record,speak,waitForSpeech,cancelSpeech,refresh:render,
     navigate:page=>{state.page=page;render();}
   });
   function teach(kind){
@@ -330,7 +330,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       (isFind?'<blockquote lang="fr">'+interactiveFrench(PASSAGE[x.line].fr)+'</blockquote>':'')+
       '<p class="ft-question">'+esc(x.prompt)+'</p>'+
       '<form id="ft-answer"><label for="ft-answer-text">Your answer</label><input id="ft-answer-text" name="answer" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" value="'+esc(state.lastInput)+'" '+(state.completed?'disabled':'required')+'></input>'+
-      (state.completed?'':'<div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button><button type="button" data-act="hint">Give me a hint</button><button type="button" data-act="model">Show model</button><button type="button" data-act="dictate">🎤 Dictate</button></div>')+'</form>'+
+      (state.completed?'':'<div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button><button type="button" data-act="hint"'+(state.hint!=='none'||!x.hint?' disabled':'')+'>Give me a hint</button><button type="button" data-act="model">Show model</button><button type="button" data-act="dictate">🎤 Dictate</button></div>')+'</form>'+
       (state.hint!=='none'?'<p class="ft-hint">Hint: '+esc(x.hint)+'</p>':'')+
       (state.feedback?'<div class="ft-feedback" role="status">'+esc(state.feedback)+'</div>':'')+
       (state.completed?'<div class="ft-model"><b>Model:</b> <span lang="'+(x.kind==='toEnglish'?'en':'fr')+'">'+(x.kind==='toEnglish'?esc(x.answer):interactiveFrench(x.answer))+'</span></div>'+
@@ -478,14 +478,50 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<p class="ft-foot">Original lessons informed by Barry Smith, Jessica Lund’s published Michaela work, and general repeat-and-build principles described by Paul Noble. Not affiliated with or a reproduction of their courses. <a href="https://jlmfl.wordpress.com/2022/11/27/teaching-grammar-rote-vs-rules/">Lund on rote &amp; rules</a> · <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES</a></p>';
     if(ready&&state.page==='pronunciation')mountPronunciation();
   }
+  // One active utterance and a completion promise, using actual end events.
+  let speechTask=null,advanceEpoch=0,advancePending=false;
+  function cancelSpeech(){
+    const active=speechTask;
+    if(active)active.finish(false);
+    try{window.speechSynthesis?.cancel();}catch{}
+  }
+  async function waitForSpeech(){
+    while(speechTask)await speechTask.promise;
+  }
   function speak(s,lang='fr-FR'){
-    if(!('speechSynthesis' in window)){state.feedback='Speech playback is unavailable on this browser.';updateStatus();return;}
-    window.speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(String(s));u.lang=lang;u.rate=.8;
-    const voices=window.speechSynthesis.getVoices();
-    const voice=voices.find(v=>v.lang.toLowerCase()===lang.toLowerCase())||voices.find(v=>v.lang.toLowerCase().split('-')[0]===lang.toLowerCase().split('-')[0]);
-    if(voice)u.voice=voice;
-    window.speechSynthesis.speak(u);
+    cancelSpeech();
+    if(!('speechSynthesis' in window)||!String(s).trim())return Promise.resolve(false);
+    let resolve,timer;
+    const promise=new Promise(r=>{resolve=r;});
+    const task={promise,finish(ok){
+      clearTimeout(timer);
+      if(speechTask!==task)return;
+      speechTask=null;resolve(ok);
+    }};
+    speechTask=task;
+    try{
+      const u=new SpeechSynthesisUtterance(String(s));u.lang=lang;u.rate=.8;
+      const voices=window.speechSynthesis.getVoices();
+      const voice=voices.find(v=>v.lang.toLowerCase()===lang.toLowerCase())||voices.find(v=>v.lang.toLowerCase().split('-')[0]===lang.toLowerCase().split('-')[0]);
+      if(voice)u.voice=voice;
+      task.utterance=u;
+      u.onend=()=>task.finish(true);
+      u.onerror=()=>task.finish(false);
+      timer=setTimeout(()=>{if(speechTask===task)cancelSpeech();},Math.max(12000,Math.min(60000,String(s).length*220+5000)));
+      window.speechSynthesis.speak(u);
+    }catch{task.finish(false);}
+    return promise;
+  }
+  function cancelPendingAdvance(){
+    advanceEpoch++;advancePending=false;guidedUI.leave();
+  }
+  async function afterSpeech(button,action){
+    if(advancePending)return;
+    advancePending=true;const epoch=++advanceEpoch;
+    button.disabled=true;button.setAttribute('aria-busy','true');
+    await waitForSpeech();
+    if(epoch!==advanceEpoch||destroyed)return;
+    advancePending=false;action();
   }
   async function mountPronunciation(){
     const host=el().querySelector('#ft-pronounce-host');
@@ -545,8 +581,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function setPage(page){
     if(!state.store){render();return;}
+    cancelPendingAdvance();
     if(page==='lesson'){guidedUI.start();return;}
-    window.speechSynthesis?.cancel();
     if(page==='alphabet'){teach('alphabet');state.page=page;}
     else if(page==='sounds'){teach('sounds');state.page=page;}
     else if(page==='knowledge'||page==='workshop'){teach('connectives');state.page=page;}
@@ -702,19 +738,22 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       case 'start-sound-quiz':startSoundQuiz();break;
       case 'hear-sound-question':{const q=state.soundQueue[state.soundQuestion];if(q)speak(q.target);break;}
       case 'next-sound-question':{
-        if(state.soundQuestion+1<state.soundQueue.length){state.soundQuestion++;state.soundAnswered=false;state.soundChoice=null;state.soundFeedback='';}
-        else{state.soundLastResult=state.soundCorrect+'/'+state.soundQueue.length+' correct';state.page='sounds';state.soundAnswered=false;state.soundChoice=null;}
-        render();
-        if(state.page==='sound-quiz')speak(state.soundQueue[state.soundQuestion].target);
-        break;
+        await afterSpeech(b,()=>{
+          if(state.soundQuestion+1<state.soundQueue.length){state.soundQuestion++;state.soundAnswered=false;state.soundChoice=null;state.soundFeedback='';}
+          else{state.soundLastResult=state.soundCorrect+'/'+state.soundQueue.length+' correct';state.page='sounds';state.soundAnswered=false;state.soundChoice=null;}
+          render();
+          if(state.page==='sound-quiz')speak(state.soundQueue[state.soundQuestion].target);
+        });break;
       }
       case 'quiz-hear':speak('la lettre '+state.alphabetQuiz[state.alphabetQuestion].name);break;
       case 'next-letter-question':{
-        if(state.alphabetQuestion<25){state.alphabetQuestion++;resetQuestion();render();speak('la lettre '+state.alphabetQuiz[state.alphabetQuestion].name);}
-        else{state.page='home';resetQuestion();render();}break;
+        await afterSpeech(b,()=>{
+          if(state.alphabetQuestion<25){state.alphabetQuestion++;resetQuestion();render();speak('la lettre '+state.alphabetQuiz[state.alphabetQuestion].name);}
+          else{state.page='home';resetQuestion();render();}
+        });break;
       }
       case 'toggle-english':state.hideEnglish=!state.hideEnglish;render();break;
-      case 'toggle-workshop':state.builder.showFrench=!state.builder.showFrench;render();if(state.builder.showFrench)speak(assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);else window.speechSynthesis?.cancel();break;
+      case 'toggle-workshop':state.builder.showFrench=!state.builder.showFrench;render();if(state.builder.showFrench)speak(assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);else cancelSpeech();break;
       case 'say-workshop':speak(assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);break;
       case 'try-workshop':{
         const q=assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right);
@@ -722,14 +761,20 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
           hint:'Use the connector and the two clauses from the workshop.'}];
         state.question=0;resetQuestion();state.page='practice';render();break;
       }
-      case 'hint':state.hint='small-prompt';state.feedback='Use the hint to reconstruct the sentence, then try again.';render();break;
+      case 'hint':{
+        const x=state.queue[state.question];
+        const input=el().querySelector('#ft-answer-text');
+        if(input)state.lastInput=input.value;
+        state.hint='small-prompt';state.feedback='';render();
+        el().querySelector('#ft-answer-text')?.focus({preventScroll:true});break;
+      }
       case 'model':{
         const x=state.queue[state.question];
         noteAnswer(false,x,true);
         state.completed=true;state.feedback='Model revealed: not scored as a correct answer.';render();if(x.kind!=='toEnglish')speak(x.answer);break;
       }
       case 'dictate':dictate();break;
-      case 'next-question':finishQuestion();break;
+      case 'next-question':await afterSpeech(b,finishQuestion);break;
       case 'restart':state.question=0;resetQuestion();render();break;
     }
   }
@@ -756,7 +801,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
     if(e.target.matches('[data-profile]')){
       const p=e.target.value;if(!['adult','sai'].includes(p)||p===state.profile)return;
-      window.speechSynthesis?.cancel();
+      cancelPendingAdvance();
       // All previous profile events stay in their original, uniquely scoped store.
       if(state.cloud)await syncNow();
       await attach(p);state.page='home';render();
@@ -783,7 +828,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     document.removeEventListener('visibilitychange',onVisible);
     el().removeEventListener('click',onClick);el().removeEventListener('submit',onSubmit);el().removeEventListener('change',onChange);
     if(wordDialog){try{wordDialog.close();}catch{}wordDialog.remove();wordDialog=null;}
-    if('speechSynthesis' in window)window.speechSynthesis.cancel();
+    cancelPendingAdvance();
     if(state.coach)Promise.resolve(state.coach.destroy()).catch(()=>{});
   }};
 }

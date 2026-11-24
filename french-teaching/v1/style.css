@@ -200,3 +200,20 @@
 .ft-app .ft-phonics-choices button.correct{background:#e4f3e8;border-color:#39845b;color:#175237}
 .ft-app .ft-phonics-choices button.incorrect{background:#fff0ed;border-color:#bd665d;color:#842f29}
 .ft-app .ft-phonics-choices .ft-choice-mark{font-size:20px;font-weight:800;flex-shrink:0}
+
+/* One bilingual row, with responsive stacking. */
+.ft-app .ft-guided-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,5vw,55px);align-items:center;padding:16px 18px;border:1px solid var(--ft-line);background:#f7faf6;border-radius:12px;margin:14px 0 20px;min-width:0}
+.ft-app .ft-guided-pair .ft-guided-english,.ft-app .ft-guided-pair .ft-guided-french{margin:0;overflow-wrap:anywhere}
+.ft-app .ft-guided-pair .ft-guided-french{font-size:clamp(18px,2.6vw,25px);line-height:1.4}
+.ft-app .ft-pair-french{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;min-width:0}
+.ft-app .ft-pair-french button{padding:7px 12px;min-height:40px}
+.ft-app .ft-pair-placeholder{color:#65776d;font-size:14px}
+.ft-app .ft-guided-options button:has(.ft-choice-translation){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:clamp(12px,4vw,38px)}
+.ft-app .ft-choice-translation{font-weight:700;overflow-wrap:anywhere}
+.ft-app .ft-guided-task button[aria-busy="true"]{opacity:.8;cursor:wait}
+@media(max-width:640px){
+ .ft-app .ft-guided-pair{grid-template-columns:minmax(0,1fr);gap:12px;padding:14px}
+ .ft-app .ft-guided-options button:has(.ft-choice-translation){grid-template-columns:minmax(0,1fr) auto;gap:5px 10px}
+ .ft-app .ft-guided-options .ft-choice-translation{grid-column:1;grid-row:2}
+ .ft-app .ft-guided-options button:has(.ft-choice-translation) .ft-choice-mark{grid-column:2;grid-row:1/3}
+}

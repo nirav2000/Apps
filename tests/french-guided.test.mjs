@@ -1,5 +1,5 @@
 import test from 'node:test';
-import {answerFeedback,guidedEntryAudio,teacherModelAudio} from '../french-teaching/v1/guided-ui.js';
+import {answerFeedback,guidedEntryAudio,teacherModelAudio,guidedHint} from '../french-teaching/v1/guided-ui.js';
 import assert from 'node:assert/strict';
 import {
   MAGIC10_VERSION,MAGIC10_VERBS,MAGIC10_STRUCTURES,magicTenFor,magicTenPhrase,optionalVerbTimeline
@@ -162,4 +162,16 @@ test('autoplay is restricted to visible teaching models and listening prompts',(
     }
   }
   assert.equal(guidedEntryAudio({stage:'review',kind:'write',fr:'je parle français'}),'');
+});
+
+test('contextual hints progress without giving the whole answer',()=>{
+ for(const unit of GUIDED_UNITS)for(const step of guidedLesson(unit.id).steps.filter(s=>['write','transcribe'].includes(s.kind))){
+  const first=guidedHint(step,1),second=guidedHint(step,2);
+  assert.ok(first.length>20&&second.length>10,step.id);
+  assert.ok(!first.includes(step.fr)&&!second.includes(step.fr),step.id);
+  assert.doesNotMatch(first,/Remember: (present|past|negative|near-future)/);
+ }
+ assert.match(guidedHint({kind:'transcribe',fr:'je parle français'}),/3 separate written words/);
+ assert.match(guidedHint({kind:'write',fr:'je veux parler français',structure:'want'},1),/I want/);
+ assert.match(guidedHint({kind:'write',fr:'parler français',structure:'infinitive'},2),/“parler”/);
 });
