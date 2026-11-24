@@ -22,7 +22,7 @@ const raw=[
       "C’est une information importante|It is an important piece of information",
       "C’est une situation normale|It is a normal situation"
     ],
-    "Notice practical → pratique, logical → logique, typical → typique and invitation → invitation. Cognates help you guess meaning, but not every English ending converts. In une information importante, the adjective agrees with the feminine noun."
+    "Notice practical → pratique, logical → logique, typical → typique and invitation → invitation. The ending -ique sounds like “eek”. Cognates help you guess meaning, but not every English ending converts. In une information importante, the adjective agrees with the feminine noun."
   ],
   [
     "unlock-past",
@@ -86,7 +86,7 @@ const raw=[
       "Je vais réserver une chambre|I am going to book a room",
       "Je voudrais visiter le musée|I would like to visit the museum"
     ],
-    "After veux, peux, dois, voudrais and vais, use the infinitive. Keep ne and pas around the first verb."
+    "The ending -ais in voudrais sounds like an open e. After veux, peux, dois, voudrais and vais, use the infinitive. Keep ne and pas around the first verb."
   ],
   [
     "unlock-help",

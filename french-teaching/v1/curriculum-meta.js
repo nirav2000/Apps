@@ -20,5 +20,8 @@ export function curriculumVariants(fr,en=''){
  if(base==="c'est quand ton anniversaire"){add('quand est ton anniversaire');add("quand est-ce que c'est ton anniversaire");}
  if(base.startsWith("mon anniversaire c'est le "))add(base.replace("mon anniversaire c'est le ","mon anniversaire est le "));
  if(!prompt.includes('use est-ce que')&&!prompt.includes('with est-ce que')&&base.startsWith('est-ce que tu '))add(base.slice(11));
+ if(base==='est-ce que je peux aller aux toilettes'&&!prompt.includes('use est-ce que')){add('puis-je aller aux toilettes');add('je peux aller aux toilettes');}
+ if(base==='je suis en retard')add('je suis en retard');
+ if(base==='est-ce que vous pouvez répéter'&&!prompt.includes('use est-ce que'))add('pouvez-vous répéter');
  return [...xs];
 }

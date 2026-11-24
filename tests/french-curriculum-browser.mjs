@@ -1,0 +1,51 @@
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+import {assessmentDeck} from '../french-teaching/v1/assessment.js';
+import {guidedLesson} from '../french-teaching/v1/guided-lessons.js';
+const b=await chromium.launch({headless:true}),page=await b.newPage({viewport:{width:390,height:844}});
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+try{
+ await page.goto('http://127.0.0.1:8898/tests/french-browser-harness.html');
+ await page.locator('.ft-track-grid').waitFor();
+ assert.equal(await page.locator('.ft-track-option').count(),3);
+ assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),4);
+ await page.locator('[data-track]').selectOption('unlocking');
+ assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),6);
+ await page.locator('[data-eact="unit:unlock-cognates"]').click();
+ const deck=assessmentDeck('unlock-cognates','baseline');
+ for(let i=0;i<deck.length;i++){
+   assert.equal(await page.locator('.ft-e-prompt').innerText(),deck[i].en);
+   await page.locator('#ft-e-answer').fill(deck[i].fr);
+   await page.locator('#ft-e-form button[type=submit]').click();
+ }
+ assert.match(await page.locator('.ft-e-question').innerText(),/Starting knowledge recorded/);
+ await page.locator('.ft-tabs [data-page="history"]').click();
+ assert.equal(await page.locator('.ft-audit-row.correct').count(),deck.length);
+ await page.locator('.ft-tabs [data-page="lesson"]').click();
+ assert.match(await page.locator('.ft-guided-head').innerText(),/Recognise familiar words/);
+ assert.equal(await page.locator('[data-guided-step]').getAttribute('data-guided-step'),guidedLesson('unlock-cognates').steps[0].id);
+ await page.locator('[data-track]').selectOption('michaela');
+ assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),4);
+ assert.equal(await page.locator('.ft-e-chart circle').count(),0);
+ await page.locator('[data-track]').selectOption('unlocking');
+ assert.equal(await page.locator('.ft-e-chart circle').count(),1);
+ await page.locator('[data-profile]').selectOption('sai');
+ await page.locator('.ft-track-grid').waitFor();
+ assert.equal(await page.locator('[data-track]').inputValue(),'sai');
+ assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),13);
+ assert.equal(await page.locator('.ft-e-chart circle').count(),0);
+ await page.locator('[data-eact="unit:sai-months"]').click();
+ assert.equal(await page.locator('.ft-e-prompt').innerText(),'January');
+ assert.match(await page.locator('.ft-e-question').innerText(),/1\/15/);
+ await page.locator('#ft-e-answer').fill('janvier');
+ await page.locator('#ft-e-form button[type=submit]').click();
+ await page.locator('.ft-tabs [data-page="history"]').click();
+ assert.equal(await page.locator('.ft-audit-row.withheld').count(),1);
+ await page.locator('[data-profile]').selectOption('adult');
+ await page.locator('.ft-track-grid').waitFor();
+ assert.equal(await page.locator('[data-track]').inputValue(),'unlocking');
+ assert.equal(await page.locator('.ft-e-chart circle').count(),1);
+ const dims=await page.evaluate(()=>({w:document.documentElement.scrollWidth,v:document.documentElement.clientWidth}));
+ assert.ok(dims.w<=dims.v+2,JSON.stringify(dims));assert.deepEqual(errors,[]);
+ console.log('Track browser: 4/13/6 lessons, independent baseline, variable answer audit, switching, persistence, mobile and learner isolation');
+}finally{await b.close();}

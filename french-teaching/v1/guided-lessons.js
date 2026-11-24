@@ -89,12 +89,12 @@ function construct(unit){
   const add=(stage,kind,row,part,extra={})=>deck.push({
     id:idOf(unit.id,stage,part),unitId:unit.id,stage,kind,concept:row.concept,
     fr:row.fr,en:row.en,structure:row.id,verbId:row.verbId,
-    cue:'',hint:row.hint||'',track:unit.track||'michaela',...extra
+    cue:'',hint:row.hint||'',track:unit.track||'michaela',audioContext:unit.track&&['listen','transcribe'].includes(kind)&&/\b(male|female)\b/i.test(row.en)?(row.en.toLowerCase().startsWith('you arrived')?'The person addressed is ':'The speaker is ')+(/\bfemale\b/i.test(row.en)?'female.':'male.'):'',...extra
   });
   // First lesson: these are *models*, not a false prior-knowledge recap.
   // Subsequent units deliberately revisit previously encountered constructions.
   for(let i=0;i<10;i++){
-    const r=rows[(i*3)%rows.length];
+    const r=rows[(unit.track?i:i*3)%rows.length];
     add('recap','model',r,String(i),{
       prompt:i<3?'Listen, repeat and notice the useful expression.':
         'Try to say the French from the English, then reveal it. No score here.',

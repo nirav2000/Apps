@@ -219,7 +219,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     if(!current&&status.mode==='complete'){
       const next=status.nextReviewAt?new Date(status.nextReviewAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'none scheduled';
       return head+'<div class="ft-guided-congrats"><h3>Excellent. Now leave it for a while.</h3>'+
-        '<p>You have completed the guided teaching. The next retrieval opportunity is <strong>'+html(next)+'</strong>. This is a schedule, not proof of retention.</p>'+
+        (unit.track?'<p>You have completed the guided teaching. Continue to the independent check and scheduled reviews.</p>':'<p>You have completed the guided teaching. The next retrieval opportunity is <strong>'+html(next)+'</strong>. This is a schedule, not proof of retention.</p>')+
         '<button type="button" data-gact="next-unit" class="ft-primary">Continue with another topic</button></div>'+
         '<button type="button" data-page="home">Return to overview</button></section>';
     }
@@ -244,6 +244,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
         (step.kind==='listen'||step.kind==='transcribe'
           ?'Listen to the French phrase. '+(step.kind==='listen'?'Choose the meaning.':'Write the French you heard.')
           :html(step.en))+'</p>';
+      if(step.audioContext)body+='<p class="ft-small">'+html(step.audioContext)+'</p>';
       if(step.kind==='listen'||step.kind==='transcribe')
         body+='<button type="button" class="ft-primary" data-gact="speak">▶ Play French phrase</button>';
       if(isChoice(step)){

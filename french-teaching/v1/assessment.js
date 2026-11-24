@@ -80,7 +80,7 @@ function customBank(u){
     const deck=rows.map((r,i)=>({...r,track:u.track,unitId:u.id,stage:stage.id,kind:'recall',ref:key(u.id,stage.id,i,'recall'),index:i}));
     for(let k=0;k<2;k++){
       const q=pairs[j*2+k],norm=curriculumNormalize(q.fr);
-      const novel=!allTaught.has(norm)&&!seen.has(norm);
+      const novel=norm.split(' ').length>2&&!seen.has(norm)&&![...allTaught].some(x=>(' '+x+' ').includes(' '+norm+' '));
       seen.add(norm);
       const i=rows.length+k,kind=novel?'transfer':'application';
       deck.push({...q,track:u.track,unitId:u.id,stage:stage.id,kind,index:i,id:u.id,verbId:u.id,concept:'french:'+u.id+':application:'+j+':'+k,ref:key(u.id,stage.id,i,kind),hint:u.soundFocus.note});
@@ -203,8 +203,8 @@ export function assessmentStats(entries,now=Date.now(),days=28,track='michaela')
   const knowledge=structures.map(s=>{
     const rows=nonBaseline.filter(x=>x.id===s.id);
     const metric=scoreMetric(rows.map(x=>x.row));
-    const seven=scoreMetric(rows.filter(x=>x.stage==='day7'||x.stage==='day28').map(x=>x.row));
-    const novel=scoreMetric(rows.filter(x=>x.kind==='transfer').map(x=>x.row));
+    const seven=scoreMetric(rows.filter(x=>(x.stage==='day7'||x.stage==='day28')&&(track==='michaela'||x.kind==='recall')).map(x=>x.row));
+    const novel=scoreMetric(rows.filter(x=>x.kind==='transfer'||(track!=='michaela'&&x.kind==='application')).map(x=>x.row));
     return {id:s.id,label:s.name,...metric,seven,novel,secure:metric.total>=4&&metric.percent>=80&&seven.total>=1&&seven.percent===100&&novel.total>=1&&novel.percent>=80};
   });
   const errors={};
