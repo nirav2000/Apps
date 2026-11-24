@@ -6,6 +6,8 @@ import {browserAuthContext} from './auth-context.js';
 import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES} from './guided-ui.js';
 import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
+import {TRACKS,validTrack} from './curriculum-meta.js';
+import {unitsForTrack} from './guided-lessons.js';
 import {ANSWER_APP,createAnswerHistory,exactAudit,visibleHistory,answerHistoryPage} from './answer-history.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
@@ -53,6 +55,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     alphabetQuiz:[],alphabetQuestion:0,attempted:false,failed:false,hint:'none',feedback:'',
     completed:false,answerResult:null,pronunciationIndex:0,coach:null,lastInput:'',busy:false,authNotice:'',letterGrouped:false,soundGroup:'vowel-contrasts',soundQueue:[],soundQuestion:0,soundAnswered:false,soundChoice:null,soundFeedback:'',soundCorrect:0,soundLastResult:null,builder:{mode:0,left:0,right:0,showFrench:true}};
   try{const p=localStorage.getItem('next-french:profile');if(p==='adult'||p==='sai')state.profile=p;}catch{}
+  const preferredTrack=profile=>{try{const t=localStorage.getItem('next-french:track:'+profile);if(validTrack(t))return t;}catch{}return profile==='sai'?'sai':'michaela';};
+  state.track=preferredTrack(state.profile);
   let preferredVoice='';
   try{preferredVoice=localStorage.getItem(VOICE_KEY)||'';}catch{}
   const el=()=>target;
@@ -72,10 +76,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   // The new lesson engine writes only additional evidence events to the
   // established Firebase parent/learner scope. Existing lesson records stay as-is.
   const guidedUI=createGuidedInterface({
-    getEntries:()=>state.store?.getEntries()||[],record,recordAttempt,speak,waitForSpeech,cancelSpeech,refresh:render,focusTarget,
+    getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,requestStart:unit=>assessmentUI.startUnit(unit),record,recordAttempt,speak,waitForSpeech,cancelSpeech,refresh:render,focusTarget,
     navigate:page=>{state.page=page;render();}
   });
-  const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],record,recordAttempt,speak,refresh:render,focusTarget,
+  const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,record,recordAttempt,speak,refresh:render,focusTarget,
     navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>guidedUI.start(unit)});
   function teach(kind){
     if(!state.store)return;
@@ -137,7 +141,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(!state.context?.auth?.currentUser)return;
     const {auth,db,firestore,ownerUid}=state.context;
     if(auth.currentUser.uid!==ownerUid){state.cloudStatus='Wrong account; no evidence will be mixed';return;}
-    state.profile=profile;
+    state.profile=profile;state.track=preferredTrack(profile);
     state.soundLastResult=null;state.soundQueue=[];state.soundQuestion=0;
     state.store=createEvidenceStore({appId:APP_ID,learnerId:profile,accountId:ownerUid});
     guidedUI.reset();assessmentUI.reset();
@@ -161,7 +165,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<div class="ft-account"><label for="ft-profile">Learner</label><select id="ft-profile" data-profile>'+
       '<option value="adult"'+(state.profile==='adult'?' selected':'')+'>Adult</option>'+
       '<option value="sai"'+(state.profile==='sai'?' selected':'')+'>Sai</option></select>'+
-      '<small data-cloud-status role="status" aria-live="polite">'+esc(state.cloudStatus)+'</small>'+
+      '<label for="ft-track">Course</label><select id="ft-track" data-track>'+TRACKS.map(t=>'<option value="'+t.id+'"'+(state.track===t.id?' selected':'')+'>'+esc(t.name)+'</option>').join('')+'</select><small data-cloud-status role="status" aria-live="polite">'+esc(state.cloudStatus)+'</small>'+
       (state.store?'<button type="button" class="ft-voice-settings-link" data-page="settings"'+(state.page==='settings'?' aria-current="page"':'')+'>⚙ Settings</button>':'')+'</div></div>';
   }
   function login(){
@@ -193,10 +197,13 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '</details>'+
       '<p class="ft-small">Already signed in? Your session is reused automatically. Your App Monitor passkey is not yet connected to these Firebase records.</p></section>';
   }
+  function tracks(){
+    return '<section class="ft-card ft-track-picker"><p class="ft-eyebrow">LEARNING TRACKS</p><h2>Choose your French course</h2><div class="ft-track-grid">'+TRACKS.map(t=>'<button type="button" class="ft-track-option'+(state.track===t.id?' selected':'')+'" data-act="track:'+t.id+'" aria-pressed="'+(state.track===t.id)+'"><strong>'+esc(t.name)+'</strong><small>'+unitsForTrack(t.id).length+' lessons</small><span>'+esc(t.summary)+'</span></button>').join('')+'</div></section>';
+  }
   function overview(){
     const active=state.context?.auth?.currentUser;
     const googleLinked=active?.providerData?.some(provider=>provider.providerId==='google.com')===true;
-    return assessmentUI.overview()+guidedUI.dashboard()+
+    return tracks()+assessmentUI.overview()+guidedUI.dashboard()+
       '<section class="ft-hero ft-card"><p class="ft-eyebrow">REFERENCE &amp; FREE EXPLORATION</p><h2>Explore the words behind your lessons.</h2>'+
       '<p>Use the guided lessons as your default. The alphabet, sound library, bilingual passage and sentence workshop remain available for optional exploration.</p>'+
       '<div class="ft-actions"><button data-page="alphabet">Learn the alphabet</button><button data-page="sounds">Hear French sounds</button>'+
@@ -659,6 +666,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(code==='auth/requires-recent-login')return 'For security, sign in again with your Firebase password before linking Google.';
     return String(error?.message||error);
   }
+  function changeTrack(track){if(!validTrack(track)||track===state.track||!state.store)return;cancelPendingAdvance();guidedUI.reset();assessmentUI.reset();state.track=track;try{localStorage.setItem('next-french:track:'+state.profile,track);}catch{}state.page='home';render();}
   async function onClick(e){
     const assessmentTarget=e.target.closest('[data-eact]');
     if(assessmentTarget&&assessmentUI.click(assessmentTarget))return;
@@ -667,6 +675,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(guidedTarget&&guidedUI.click(guidedTarget))return;
     const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say],[data-word],[data-sound-group],[data-sound-play],[data-sound-compare],[data-sound-sentence],[data-sound-answer],[data-cuddle-word]');
     if(!b)return;
+    if(b.dataset.act?.startsWith('track:')){changeTrack(b.dataset.act.slice(6));return;}
     if(b.dataset.page){setPage(b.dataset.page);return;}
     if(b.dataset.letter!==undefined){
       const i=Number(b.dataset.letter);
@@ -847,6 +856,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
   }
   async function onChange(e){
+    if(e.target.matches('[data-track]')){changeTrack(e.target.value);return;}
     if(e.target.matches('[data-history-filter]')){historyFilter=e.target.value;historyLimit=50;render();return;}
     if(e.target.matches('[data-french-voice]')){
       preferredVoice=e.target.value;

@@ -1,7 +1,7 @@
 // Private French-only answer audit. It deliberately does not enter the shared
 // learning-evidence store or its accuracy/retention calculations.
 import {normaliseAnswer,DRILLS} from './data.js';
-import {GUIDED_UNITS,guidedLesson} from './guided-lessons.js';
+import {ALL_UNITS,guidedLesson} from './guided-lessons.js';
 import {STAGES,assessmentDeck} from './assessment.js';
 export const ANSWER_APP='next-french-answers';
 const copy=x=>JSON.parse(JSON.stringify(x));
@@ -55,10 +55,10 @@ export function exactAudit(answer,expected,correct,{normalize=normaliseAnswer,re
   }
   return {...rest,answer,expected,result:correct?'correct':got?'incorrect':'unknown',reason:(reason?reason+' ':'')+detail,marker,normalizedAnswer:got,accepted:[want]};
 }
-const groupFor=ref=>/^assess-v1:[^:]+:[^:]+:\d+:(?:recall|transfer)$/.test(ref)?ref.split(':').slice(0,3).join(':'):'';
+const groupFor=ref=>/^assess-v1:[^:]+:[^:]+:\d+:(?:recall|transfer|application)$/.test(ref)?ref.split(':').slice(0,3).join(':'):'';
 const bank=()=>{
   const map=new Map();
-  for(const u of GUIDED_UNITS){
+  for(const u of ALL_UNITS){
     for(const stage of STAGES)for(const item of assessmentDeck(u.id,stage.id))map.set(item.ref,{question:item.en,expected:item.fr,activity:u.name+' · '+stage.label,checkGroup:groupFor(item.ref)});
     for(const item of guidedLesson(u.id).steps)map.set(item.id+':first',{question:item.kind==='listen'?'Listen: '+item.fr:item.kind==='transcribe'?'Dictation: '+item.fr:item.en,expected:item.kind==='listen'?item.en:item.fr,activity:u.name+' · Guided lesson'});
   }
@@ -77,6 +77,8 @@ export function visibleHistory(auditRows,evidence){
     if(group){if(!seen.has(group))seen.set(group,new Set());seen.get(group).add(ref);}
   }
   const known=bank();
+  const groupSizes=new Map();
+  for(const item of known.values())if(item.checkGroup)groupSizes.set(item.checkGroup,(groupSizes.get(item.checkGroup)||0)+1);
   const old=scored.filter(e=>!existing.has(e.source?.ref)).map(e=>{
     const ref=e.source?.ref||'';
     const item=known.get(ref);
@@ -85,7 +87,7 @@ export function visibleHistory(auditRows,evidence){
       result:e.score.correct===e.score.total?'correct':'incorrect',reason:'Earlier score only. Exact submitted text was not saved.'+(error?' Recorded error category: '+error+'.':''),support:e.support,marker:'legacy-score',accepted:[],checkGroup:item?.checkGroup||'',legacy:true};
   });
   return [...exact,...old].map(x=>{
-    if(x.checkGroup&&(seen.get(x.checkGroup)?.size||0)<8)return {...x,expected:null,reason:'Correction available when the independent check is complete.',result:'withheld',accepted:[],normalizedAnswer:null};
+    if(x.checkGroup&&(seen.get(x.checkGroup)?.size||0)<(groupSizes.get(x.checkGroup)||8))return {...x,expected:null,reason:'Correction available when the independent check is complete.',result:'withheld',accepted:[],normalizedAnswer:null};
     return x;
   }).sort((a,b)=>b.at-a.at||b.id.localeCompare(a.id));
 }
