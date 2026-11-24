@@ -1,4 +1,4 @@
-import {ALPHABET,CUDDLES,PASSAGE,PATTERNS,DRILLS,SENTENCE_WORKSHOP,assembleWorkshop,markAnswer} from './data.js';
+import {ALPHABET,CUDDLES,PASSAGE,PATTERNS,DRILLS,SENTENCE_WORKSHOP,assembleWorkshop,markAnswer,normaliseAnswer} from './data.js';
 import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,soundById} from './phonics.js';
 import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
@@ -6,6 +6,7 @@ import {browserAuthContext} from './auth-context.js';
 import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES} from './guided-ui.js';
 import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
+import {ANSWER_APP,createAnswerHistory,exactAudit,visibleHistory,answerHistoryPage} from './answer-history.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
 
@@ -56,6 +57,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   try{preferredVoice=localStorage.getItem(VOICE_KEY)||'';}catch{}
   const el=()=>target;
   let syncTimer=0,destroyed=false,syncTask=null,pendingAgain=false,wordDialog=null;
+  let answerStore=null,answerCloud=null,historyFilter='all',historyLimit=50;
+  const historyRows=()=>visibleHistory(answerStore?.getEntries()||[],state.store?.getEntries()||[]);
+  function recordAttempt(audit){
+    try{if(!answerStore)throw Error('Answer history unavailable');answerStore.record(audit);queueSync();return true;}
+    catch(error){state.cloudStatus='Answer not saved: '+String(error.message||error)+' — please retry';updateStatus();return false;}
+  }
   function record(raw){
     if(!state.store)throw Error('Sign in to record progress');
     const row=state.store.record({...raw,id:id(),source:{kind:'french-course',ref:raw.sourceRef||'session'}});
@@ -65,10 +72,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   // The new lesson engine writes only additional evidence events to the
   // established Firebase parent/learner scope. Existing lesson records stay as-is.
   const guidedUI=createGuidedInterface({
-    getEntries:()=>state.store?.getEntries()||[],record,speak,waitForSpeech,cancelSpeech,refresh:render,focusTarget,
+    getEntries:()=>state.store?.getEntries()||[],record,recordAttempt,speak,waitForSpeech,cancelSpeech,refresh:render,focusTarget,
     navigate:page=>{state.page=page;render();}
   });
-  const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],record,speak,refresh:render,focusTarget,
+  const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],record,recordAttempt,speak,refresh:render,focusTarget,
     navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>guidedUI.start(unit)});
   function teach(kind){
     if(!state.store)return;
@@ -96,7 +103,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(!state.cloud)return Promise.resolve();
     if(syncTimer){clearTimeout(syncTimer);syncTimer=0;}
     if(syncTask){pendingAgain=true;return syncTask;}
-    const cloud=state.cloud;
+    const cloud=state.cloud,historyCloud=answerCloud;
     syncTask=(async()=>{
       state.busy=true;
       try{
@@ -104,10 +111,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
           pendingAgain=false;
           state.cloudStatus='Syncing…';updateStatus();
           const result=await cloud.sync();
+          if(historyCloud)await historyCloud.sync();
           if(destroyed||state.cloud!==cloud)return;
           state.cloudAt=result.at;
           state.cloudStatus='Saved to Firebase';
-          if(state.page==='home'||state.page==='evidence')render();else updateStatus();
+          if(state.page==='home'||state.page==='evidence'||state.page==='history')render();else updateStatus();
         }while(pendingAgain&&state.cloud===cloud);
       }catch(e){
         if(destroyed)return;
@@ -133,6 +141,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     state.soundLastResult=null;state.soundQueue=[];state.soundQuestion=0;
     state.store=createEvidenceStore({appId:APP_ID,learnerId:profile,accountId:ownerUid});
     guidedUI.reset();assessmentUI.reset();
+    answerStore=createAnswerHistory({accountId:ownerUid,learnerId:profile});historyFilter='all';historyLimit=50;
+    answerCloud=createFirestoreEvidenceCloud({store:answerStore,db,auth,firestore,ownerUid,learnerId:profile,appId:ANSWER_APP});
     state.cloud=createFirestoreEvidenceCloud({store:state.store,db,auth,firestore,ownerUid,learnerId:profile,appId:APP_ID});
     state.cloudStatus='Pending cloud check';
     state.cloudAt=null;
@@ -140,7 +150,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     await syncNow();
   }
   function nav(){
-    const tabs=[['home','Overview'],['lesson',"Today's lesson"],['evidence','Learning dashboard'],['magic','Magic 10'],['alphabet','Alphabet'],
+    const tabs=[['home','Overview'],['lesson',"Today's lesson"],['evidence','Learning dashboard'],['history','Answer history'],['magic','Magic 10'],['alphabet','Alphabet'],
       ['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],
       ['practice','Sentence practice'],['review','Review'],['pronunciation','Speak']];
     return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p||(p==='sounds'&&state.page==='sound-quiz')?'active':'')+'">'+t+'</button>').join('')+'</nav>';
@@ -280,6 +290,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(!item.options.includes(value))return;
     if(state.soundAnswered){speak(value);return;}
     const correct=value===item.correct;
+    if(!recordAttempt(exactAudit(value,item.correct,correct,{ref:'sound-'+item.id,activity:'Phonics listening',question:'Which spelling matches the sound? '+item.target,support:'none',marker:'choice-v1',normalize:x=>String(x??'')})))return;
     if(correct)state.soundCorrect++;
     record({concept:item.concept,phase:phaseFor('sounds'),correctCount:correct?1:0,total:1,
       support:'none',taughtAt:taughtAt('sounds')||stamp(),sourceRef:'sound-'+item.id});
@@ -494,7 +505,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const ready=!!state.store;
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
       (!ready?login():nav()+
-      (state.page==='home'?overview():state.page==='evidence'?assessmentUI.dashboard():state.page==='assessment'?assessmentUI.page():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
+      (state.page==='home'?overview():state.page==='evidence'?assessmentUI.dashboard():state.page==='history'?answerHistoryPage(historyRows(),historyFilter,historyLimit):state.page==='assessment'?assessmentUI.page():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
        state.page==='alphabet'?alphabet():state.page==='sounds'?sounds():state.page==='sound-quiz'?soundQuiz():state.page==='knowledge'?knowledge():
        state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())))+
       '<p class="ft-foot">Original lessons informed by Barry Smith, Jessica Lund’s published Michaela work, and general repeat-and-build principles described by Paul Noble. Not affiliated with or a reproduction of their courses. <a href="https://jlmfl.wordpress.com/2022/11/27/teaching-grammar-rote-vs-rules/">Lund on rote &amp; rules</a> · <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES</a></p>';
@@ -575,6 +586,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     state.lastInput=String(input??'');
     if(!state.lastInput.trim())return;
     const correct=markAnswer(input,x.answer);
+    if(!recordAttempt(exactAudit(state.lastInput,x.answer,correct,{ref:x.id,activity:state.page==='review'?'Review':'Sentence practice',question:x.prompt,support:state.hint!=='none'?'small-prompt':x.guided?'worked-example':'none'})))return;
     noteAnswer(correct,x);
     state.attempted=true;state.answerResult=correct?'correct':'incorrect';state.completed=true;
     if(correct)state.feedback=state.failed||state.hint!=='none'||x.guided?'Correct with support. We will check independent recall later.':'Correct independently. Well done.';
@@ -591,6 +603,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const x=state.alphabetQuiz[state.alphabetQuestion];if(!x||state.completed)return;
     state.lastInput=String(input??'');
     const correct=state.lastInput.trim().toUpperCase()===x.letter;
+    if(!recordAttempt(exactAudit(state.lastInput,x.letter,correct,{ref:'alphabet-'+x.letter,activity:'Alphabet listening',question:'Which letter did you hear? '+x.name,support:state.failed?'small-prompt':'none',marker:'letter-v1',normalize:x=>String(x??'').trim().toUpperCase()})))return;
     state.answerResult=correct?'correct':'incorrect';
     const first=taughtAt('alphabet')||stamp();
     record({concept:'french:alphabet:'+x.letter,phase:phaseFor('alphabet'),
@@ -755,6 +768,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         break;
       }
       case 'sync':await syncNow();break;
+      case 'more-answers':historyLimit+=50;render();break;
+      case 'export-answers':{
+        const out=JSON.stringify({learner:state.profile,exportedAt:stamp(),answers:historyRows()},null,2);
+        const url=URL.createObjectURL(new Blob([out],{type:'application/json'}));
+        const link=document.createElement('a');link.href=url;link.download='next-french-answers-'+state.profile+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),3000);break;
+      }
       case 'export':{
         const out=state.store?.exportJSON();if(!out)return;
         const u=URL.createObjectURL(new Blob([out],{type:'application/json'}));
@@ -804,6 +823,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         const x=state.queue[state.question];
         const draft=el().querySelector('#ft-answer-text');
         if(draft)state.lastInput=draft.value;
+        if(!recordAttempt({ref:x.id,activity:'Sentence practice',question:x.prompt,answer:state.lastInput,expected:x.answer,result:'revealed',reason:'Model shown, not scored as correct.',support:'worked-example',marker:'unscored'}))break;
         noteAnswer(false,x,true);
         state.answerResult='revealed';state.completed=true;state.feedback='Model revealed: not scored as a correct answer.';render();if(x.kind!=='toEnglish')speak(x.answer);focusTarget('[data-act="next-question"]');break;
       }
@@ -827,6 +847,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
   }
   async function onChange(e){
+    if(e.target.matches('[data-history-filter]')){historyFilter=e.target.value;historyLimit=50;render();return;}
     if(e.target.matches('[data-french-voice]')){
       preferredVoice=e.target.value;
       try{localStorage.setItem(VOICE_KEY,preferredVoice);}catch{}

@@ -28,6 +28,16 @@ try{
   const rows=await page.evaluate(()=>[...window.__testEvidence.values()].map(x=>x.event).filter(x=>x.phase==='diagnostic'));
   assert.equal(rows.reduce((n,x)=>n+x.score.correct,0),7);
   assert.ok(rows.every(x=>x.support==='none'&&!x.novel));
+  await page.locator('.ft-tabs [data-page="history"]').click();
+  assert.equal(await page.locator('.ft-audit-row').count(),8);
+  assert.equal(await page.locator('.ft-audit-row.unknown').count(),1);
+  assert.equal(await page.locator('.ft-audit-row.correct').count(),7);
+  await page.locator('[data-history-filter]').selectOption('incorrect');
+  assert.equal(await page.locator('.ft-audit-row').count(),1);
+  await page.waitForFunction(()=>[...window.__testEvidence.values()].filter(x=>x.app==='next-french-answers').length===8,null,{timeout:12000});
+  await page.reload();await page.locator('.ft-tabs').waitFor();
+  await page.locator('.ft-tabs [data-page="history"]').click();
+  assert.equal(await page.locator('.ft-audit-row').count(),8);
   await page.locator('.ft-tabs [data-page="evidence"]').click();
   assert.equal(await page.locator('.ft-e-chart circle').count(),1);
   assert.ok(await page.locator('.ft-e-knowledge-row').count()>=10);
@@ -35,6 +45,7 @@ try{
   await page.locator('[data-profile]').selectOption('sai');
   await page.locator('.ft-e-today').waitFor();
   assert.equal(await page.locator('.ft-e-chart circle').count(),0);
+  await page.locator('.ft-tabs [data-page="history"]').click();assert.equal(await page.locator('.ft-audit-row').count(),0);
   await page.locator('.ft-tabs [data-page="lesson"]').click();
   assert.match(await page.locator('.ft-e-question').innerText(),/Before teaching/i);
   const dims=await page.evaluate(()=>({w:document.documentElement.scrollWidth,v:document.documentElement.clientWidth}));

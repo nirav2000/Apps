@@ -8,6 +8,7 @@ import {
   guidedCompletionRefs,recommendedGuidedUnit,guidedFirstAttemptPhase
 } from './guided-lessons.js';
 import {markAnswer,normaliseAnswer} from './data.js';
+import {exactAudit} from './answer-history.js';
 
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const marker=row=>guidedCompletionRefs(row.id);
@@ -108,7 +109,7 @@ export function answerComparison({answer='',expected,result,lang='fr',replay=''}
     '<div class="ft-answer-expected"><small>Correct answer</small><div class="ft-pair-french">'+
     '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected)+'</p>'+replay+'</div></div></div>';
 }
-export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{}}){
+export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,speak,waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{}}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')
     throw Error('Guided lessons require evidence and speech adapters');
   const state={
@@ -323,6 +324,14 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
           s.mode==='new'?'Ready to start':'In progress')+'</small>'+
         (s.mode==='new'?'':'<small>'+s.teaching.coreCompleted+'/'+s.teaching.coreTotal+' core · '+s.teaching.repairCompleted+'/'+s.teaching.repairTotal+' corrections</small>')+'</div>').join('')+'</div></section>';
   };
+  const logGuided=(step,answer,correct,{reveal=false,model=false}={})=>{
+    const expected=step.kind==='listen'?step.en:step.fr;
+    const support=reveal||model?'worked-example':state.hint||state.wrong||step.stage==='guided'||step.stage==='repair'?'small-prompt':'none';
+    const info={ref:model?step.id+':complete':step.id+':first',activity:GUIDED_UNITS.find(u=>u.id===step.unitId)?.name+' · '+step.stage,
+      question:step.kind==='listen'?'Listen: '+step.fr:step.kind==='transcribe'?'Dictation: '+step.fr:step.en,support};
+    if(reveal||model)return recordAttempt({...info,answer,expected,result:model?'model':'revealed',reason:model?'Oral repetition, not automatically marked.':'Model revealed; not an independent success.',marker:'unscored'});
+    return recordAttempt(exactAudit(answer,expected,correct,{...info,marker:isChoice(step)?'choice-v1':'guided-exact-v1',normalize:isChoice(step)?x=>String(x??''):normaliseAnswer}));
+  };
   const choose=(option)=>{
     const {current}=context();
     if(!current||!isChoice(current))return;
@@ -337,6 +346,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
       else if(correct)speak(current.fr);else speak(value,'en-GB');
       return;
     }
+    if(!logGuided(current,value,correct))return;
     firstAttempt(current,correct);
     state.answer=value;
     if(correct){
@@ -359,6 +369,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
     const answer=String(value??'');
     if(!answer.trim())return;
     const correct=markAnswer(answer,current.fr);
+    if(!logGuided(current,answer,correct))return;
     firstAttempt(current,correct);
     state.answer=answer;state.result=correct?'correct':'incorrect';
     if(correct){
@@ -415,6 +426,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
           if(current.kind!=='model'){
             const draft=target.closest?.('form')?.querySelector('input[name="answer"]');
             if(draft)state.answer=draft.value;
+            if(!logGuided(current,state.answer,false,{reveal:true}))break;
             firstAttempt(current,false,'worked-example');state.result='revealed';
           }
           state.revealed=true;state.feedback=current.kind==='model'?'':'Model shown. This is guided review, not an independent success.';
@@ -422,7 +434,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
           focusTarget(current.kind==='model'?'[data-gact="finish-model"]':'[data-gact="finish-revealed"]');
         }break;
       case 'finish-model':
-        if(current?.kind==='model'&&!state.done){state.revealed=true;completion(current,'worked-example');void advance(current.fr);}
+        if(current?.kind==='model'&&!state.done){if(!logGuided(current,null,false,{model:true}))break;state.revealed=true;completion(current,'worked-example');void advance(current.fr);}
         break;
       case 'finish-revealed':
         if(current&&state.revealed&&!state.done){completion(current,'worked-example');void advance(current.fr);}

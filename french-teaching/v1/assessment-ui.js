@@ -1,5 +1,6 @@
 import {GUIDED_UNITS,guidedStatus} from './guided-lessons.js';
-import {STAGES,assessmentStats,baselineFor,pendingChecks,pendingRepairs,repairRef,nextCheckDate,markAssessment,ERROR_TIPS,availableExperiment,experimentStats,experimentDeck,assessmentDeck,teachingFinishedAt} from './assessment.js';
+import {STAGES,assessmentStats,baselineFor,pendingChecks,pendingRepairs,repairRef,nextCheckDate,markAssessment,ERROR_TIPS,availableExperiment,experimentStats,experimentDeck,assessmentDeck,teachingFinishedAt,assessmentComparison} from './assessment.js';
+import {exactAudit} from './answer-history.js';
 import {firstByRef,ASSESSMENT_DAY as DAY} from '../../learning-evidence/v1/assessment.js';
 import {magicTenPhrase} from './magic10.js';
 
@@ -39,7 +40,7 @@ function extraRecall(entries,now){
   }
   return items.sort((a,b)=>map.get(repairRef(a)).at-map.get(repairRef(b)).at);
 }
-export function createAssessmentInterface({getEntries,record,speak,refresh,navigate,startGuided,focusTarget=()=>{}}){
+export function createAssessmentInterface({getEntries,record,recordAttempt=()=>true,speak,refresh,navigate,startGuided,focusTarget=()=>{}}){
   let state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};
   const entries=()=>getEntries()||[];
   const reset=()=>{state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};};
@@ -116,13 +117,21 @@ export function createAssessmentInterface({getEntries,record,speak,refresh,navig
       (state.feedback==='spoken'?'<p class="ft-e-prompt" lang="fr">'+h(item.fr)+'</p>'+btn('speak','▶ Hear again')+btn('oral-next','Next phrase',true):btn('oral-reveal','Reveal and hear',true))+
       '<p class="ft-small">Say your answer before revealing it. Self-check only; this is not an acoustic pronunciation score.</p>'+btn('leave','Finish')+'</section>';
     }
-    return '<section class="ft-card ft-e-question"><h2>Check complete</h2><p>'+h(state.feedback||'Your independent responses have been recorded.')+'</p>'+btn('daily','Continue learning',true)+' <button data-page="evidence">See dashboard</button></section>';
+    return '<section class="ft-card ft-e-question"><h2>Check complete</h2><p>'+h(state.feedback||'Your independent responses have been recorded.')+'</p>'+btn('daily','Continue learning',true)+' <button data-page="evidence">See dashboard</button> <button data-page="history">Review answers</button></section>';
+  };
+  const logAnswer=(value,item,r,ref,group='',support='none')=>{
+    const compared=assessmentComparison(value,item);
+    const audit=exactAudit(value,item.fr,r.correct,{ref,activity:(GUIDED_UNITS.find(u=>u.id===item.unitId)?.name||'French')+' · '+(STAGES.find(s=>s.id===state.stage)?.label||state.mode),question:item.en,support,checkGroup:group,
+      normalize:x=>assessmentComparison(x,item).got,marker:'assessment-v1',reason:r.error?'Recorded category: '+r.error+'.':''});
+    audit.accepted=compared.variants;
+    return recordAttempt(audit);
   };
   const finishAnswer=value=>{
     const item=state.item;if(!item)return;
     if(state.mode==='repair'){
       if(state.feedback!=='cover')return;
       const r=markAssessment(value,item);
+      if(!logAnswer(value,item,r,repairRef(item),'','worked-example'))return;
       if(r.correct){
         if(!firstByRef(entries()).has(repairRef(item)))record({concept:item.concept,phase:'practice',support:'worked-example',sourceRef:repairRef(item)});
         state.feedback='correct';
@@ -138,6 +147,7 @@ export function createAssessmentInterface({getEntries,record,speak,refresh,navig
       if(!valid){startDaily();return;}
     }
     const result=markAssessment(value,item);
+    if(!logAnswer(value,item,result,sourceRef,adaptive?'':item.ref.split(':').slice(0,3).join(':')))return;
     const stage=state.stage,phase=adaptive?'practice':stage==='baseline'?'diagnostic':item.kind==='transfer'?'transfer':stage==='immediate'?'practice':'retrieval';
     record({concept:item.concept,phase,support:'none',novel:phase==='transfer',correctCount:result.correct?1:0,total:1,
       taughtAt:state.anchor||undefined,durationMs:Math.max(1,Math.min(Date.now()-state.started,120001)),sourceRef});

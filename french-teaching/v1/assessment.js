@@ -74,13 +74,17 @@ export function assessmentDeck(unitId,stage){
   return bankCache.get(unitId).get(stage).map(x=>({...x}));
 }
 
-export function markAssessment(input,item){
+export function assessmentComparison(input,item){
   const got=normalize(input),want=normalize(item.fr);
   const variants=[want,want.replace(/la télévision/g,'la télé')];
   if(item.connector==='et'){
     const halves=want.split(' et ');
     if(halves.length===2)variants.push(halves.join(' et ').replace(/la télévision/g,'la télé'));
   }
+  return {got,want,variants:[...new Set(variants)]};
+}
+export function markAssessment(input,item){
+  const {got,want,variants}=assessmentComparison(input,item);
   if(variants.includes(got))return {correct:true,error:null};
   if(!got)return {correct:false,error:'unknown'};
   if(variants.some(x=>stripAccent(x)===stripAccent(got)))return {correct:false,error:'accents'};

@@ -79,3 +79,19 @@ test('one paired experimental observation is not evidence for promotion',()=>{
   assert.equal(stats.left.total,4);assert.equal(stats.right.total,4);assert.equal(stats.sufficient,false);
   assert.equal(stats.difference,0);assert.equal(medianDuration(ex),10000);
 });
+
+import {createAnswerHistory,exactAudit,visibleHistory} from '../french-teaching/v1/answer-history.js';
+test('answer audit captures exact text without changing score, isolates learners and reconstructs legacy scores',()=>{
+ const map=new Map(),storage={getItem:k=>map.get(k),setItem:(k,v)=>map.set(k,v)};
+ const store=createAnswerHistory({accountId:'parent',learnerId:'adult',storage});
+ const item=assessmentDeck(GUIDED_UNITS[0].id,'baseline')[0];
+ const raw="  Je parle français, français !  ";
+ store.record(exactAudit(raw,item.fr,false,{ref:item.ref,activity:'baseline',question:item.en,checkGroup:item.ref.split(':').slice(0,3).join(':')}));
+ assert.equal(store.getEntries()[0].answerAudit.answer,raw);
+ assert.equal(createAnswerHistory({accountId:'parent',learnerId:'sai',storage}).getEntries().length,0);
+ assert.equal(createAnswerHistory({accountId:'parent',learnerId:'adult',storage}).getEntries().length,1);
+ assert.equal(visibleHistory(store.getEntries(),[])[0].result,'withheld');
+ const evidence=assessmentDeck(GUIDED_UNITS[0].id,'baseline').map((x,i)=>({id:'old'+i,at:Date.now(),source:{ref:x.ref},score:{correct:0,total:1},support:'none'}));
+ const rows=visibleHistory(store.getEntries(),evidence);
+ assert.equal(rows.length,8);assert.equal(rows.find(x=>!x.legacy).answer,raw);assert.equal(rows.find(x=>x.legacy).answer,null);assert.equal(rows.find(x=>!x.legacy).expected,item.fr);
+});
