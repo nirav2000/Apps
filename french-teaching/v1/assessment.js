@@ -1,13 +1,15 @@
 // French assessment pilot. All records use the existing scoped, immutable evidence log.
-import {GUIDED_UNITS,guidedLesson,guidedStatus,guidedTeachingRef,guidedCompletionRefs} from './guided-lessons.js';
+import {GUIDED_UNITS,ALL_UNITS,unitsForTrack,lessonRows,guidedLesson,guidedStatus,guidedTeachingRef,guidedCompletionRefs} from './guided-lessons.js';
 import {magicTenPhrase,MAGIC10_STRUCTURES} from './magic10.js';
+import {applicationPairs} from './curriculum-assessments.js';
+import {curriculumNormalize,curriculumVariants} from './curriculum-meta.js';
 import {PASSAGE,DRILLS,SENTENCE_WORKSHOP,assembleWorkshop,normaliseAnswer} from './data.js';
 import {ASSESSMENT_DAY as DAY,CHECK_WINDOWS,firstByRef,scoreMetric,independentRows,assessmentWindow,medianDuration,observedGap,compareMethods} from '../../learning-evidence/v1/assessment.js';
 
 export const ASSESSMENT_VERSION='1.0.0';
 export const STAGES=Object.freeze([{id:'baseline',label:'Before teaching'},...CHECK_WINDOWS]);
-const unitFor=id=>GUIDED_UNITS.find(u=>u.id===id);
-const rowsFor=u=>u.verbs.flatMap(v=>u.structures.map(s=>magicTenPhrase(v,s)));
+const unitFor=id=>ALL_UNITS.find(u=>u.id===id);
+const rowsFor=lessonRows;
 const key=(unit,stage,i,kind)=>'assess-v1:'+unit+':'+stage+':'+i+':'+kind;
 const ref=e=>e?.source?.ref||'';
 const normalize=s=>normaliseAnswer(s).replace(/\s*[,;.!?]\s*/g,' ').replace(/\s+/g,' ').trim();
@@ -68,13 +70,33 @@ function buildBank(u){
   for(const {slot,candidate} of assigned.values())Object.assign(slot.base,candidate);
   return out;
 }
+// Legacy banks remain unchanged. New tracks recall taught items and use two
+// distinct application prompts per assessment stage. Familiar strings in a new
+// context are application, not unseen transfer.
+const allTaught=new Set([...known,...ALL_UNITS.flatMap(u=>guidedLesson(u.id).steps.map(s=>curriculumNormalize(s.fr)))]);
+function customBank(u){
+  const rows=rowsFor(u),pairs=applicationPairs(u.id),out=new Map(),seen=new Set();
+  STAGES.forEach((stage,j)=>{
+    const deck=rows.map((r,i)=>({...r,track:u.track,unitId:u.id,stage:stage.id,kind:'recall',ref:key(u.id,stage.id,i,'recall'),index:i}));
+    for(let k=0;k<2;k++){
+      const q=pairs[j*2+k],norm=curriculumNormalize(q.fr);
+      const novel=norm.split(' ').length>2&&!seen.has(norm)&&![...allTaught].some(x=>(' '+x+' ').includes(' '+norm+' '));
+      seen.add(norm);
+      const i=rows.length+k,kind=novel?'transfer':'application';
+      deck.push({...q,track:u.track,unitId:u.id,stage:stage.id,kind,index:i,id:u.id,verbId:u.id,concept:'french:'+u.id+':application:'+j+':'+k,ref:key(u.id,stage.id,i,kind),hint:u.soundFocus.note});
+    }
+    out.set(stage.id,deck);
+  });
+  return out;
+}
 export function assessmentDeck(unitId,stage){
   const u=unitFor(unitId);if(!u||!STAGES.some(s=>s.id===stage))throw Error('Unknown assessment');
-  if(!bankCache.has(unitId))bankCache.set(unitId,buildBank(u));
+  if(!bankCache.has(unitId))bankCache.set(unitId,u.track?customBank(u):buildBank(u));
   return bankCache.get(unitId).get(stage).map(x=>({...x}));
 }
 
 export function assessmentComparison(input,item){
+  if(item.track&&item.track!=='michaela')return {got:curriculumNormalize(input),want:curriculumNormalize(item.fr),variants:curriculumVariants(item.fr,item.en)};
   const got=normalize(input),want=normalize(item.fr);
   const variants=[want,want.replace(/la télévision/g,'la télé')];
   if(item.connector==='et'){
@@ -127,9 +149,9 @@ export function checkResult(unitId,stage,entries,now=Date.now()){
     metric:scoreMetric(attempted.map(x=>x.row)),recall:scoreMetric(attempted.filter(x=>x.kind==='recall').map(x=>x.row)),
     transfer:scoreMetric(attempted.filter(x=>x.kind==='transfer').map(x=>x.row))};
 }
-export function pendingChecks(entries,now=Date.now()){
+export function pendingChecks(entries,now=Date.now(),track='michaela'){
   const due=[];
-  for(const u of GUIDED_UNITS){
+  for(const u of unitsForTrack(track)){
     const anchor=teachingFinishedAt(u.id,entries,now),window=assessmentWindow(anchor,now);
     if(!window)continue;
     const result=checkResult(u.id,window.id,entries,now);
@@ -142,9 +164,9 @@ export function baselineFor(unitId,entries,now=Date.now()){
   const result=checkResult(unitId,'baseline',entries,now);
   return result.complete?null:{...result,unit:unitFor(unitId),label:'Before teaching'};
 }
-export function nextCheckDate(entries,now=Date.now()){
+export function nextCheckDate(entries,now=Date.now(),track='michaela'){
   const dates=[];
-  for(const u of GUIDED_UNITS){
+  for(const u of unitsForTrack(track)){
     const anchor=teachingFinishedAt(u.id,entries,now);
     if(anchor==null)continue;
     for(const w of CHECK_WINDOWS){
@@ -155,9 +177,9 @@ export function nextCheckDate(entries,now=Date.now()){
   return dates.length?Math.min(...dates):null;
 }
 export const repairRef=item=>item.ref+':repair:complete';
-export function pendingRepairs(entries,now=Date.now()){
+export function pendingRepairs(entries,now=Date.now(),track='michaela'){
   const map=firstByRef(entries),lastByConcept=new Map();
-  for(const u of GUIDED_UNITS)for(const s of STAGES.filter(x=>x.id!=='baseline')){
+  for(const u of unitsForTrack(track))for(const s of STAGES.filter(x=>x.id!=='baseline')){
     const result=checkResult(u.id,s.id,entries,now);
     if(!result.complete)continue;
     for(const item of result.attempted){
@@ -167,20 +189,22 @@ export function pendingRepairs(entries,now=Date.now()){
   }
   return [...lastByConcept.values()].filter(x=>!x.row.score.correct&&!map.has(repairRef(x))).sort((a,b)=>b.row.at-a.row.at);
 }
-export function assessmentStats(entries,now=Date.now(),days=28){
+export function assessmentStats(entries,now=Date.now(),days=28,track='michaela'){
   const start=now-days*DAY,all=[...firstByRef(entries).values()];
-  const checks=GUIDED_UNITS.flatMap(u=>STAGES.map(s=>checkResult(u.id,s.id,entries,now)));
+  const checks=unitsForTrack(track).flatMap(u=>STAGES.map(s=>checkResult(u.id,s.id,entries,now)));
   const items=checks.flatMap(c=>c.attempted).filter(x=>x.row.at>=start);
   const nonBaseline=items.filter(x=>x.stage!=='baseline');
-  const practice=all.filter(e=>e.phase==='practice'&&e.score?.total>0&&!ref(e).startsWith('assess-v1:')&&e.at>=start);
+  const unitIds=new Set(unitsForTrack(track).map(u=>u.id));
+  const practice=all.filter(e=>e.phase==='practice'&&e.score?.total>0&&!ref(e).startsWith('assess-v1:')&&e.at>=start&&(ref(e).startsWith('guided-v2:')?unitIds.has(ref(e).split(':')[1]):track==='michaela'));
   const delayed=nonBaseline.filter(x=>x.stage==='day7'&&x.kind==='recall');
   const transfer=nonBaseline.filter(x=>x.kind==='transfer'&&x.row.phase==='transfer'&&x.row.novel===true);
   const chart=STAGES.map(s=>({label:s.label,...scoreMetric(items.filter(x=>x.stage===s.id&&x.kind==='recall').map(x=>x.row))}));
-  const knowledge=MAGIC10_STRUCTURES.map(s=>{
+  const structures=track==='michaela'?MAGIC10_STRUCTURES:unitsForTrack(track).map(u=>({id:u.id,name:u.name}));
+  const knowledge=structures.map(s=>{
     const rows=nonBaseline.filter(x=>x.id===s.id);
     const metric=scoreMetric(rows.map(x=>x.row));
-    const seven=scoreMetric(rows.filter(x=>x.stage==='day7'||x.stage==='day28').map(x=>x.row));
-    const novel=scoreMetric(rows.filter(x=>x.kind==='transfer').map(x=>x.row));
+    const seven=scoreMetric(rows.filter(x=>(x.stage==='day7'||x.stage==='day28')&&(track==='michaela'||x.kind==='recall')).map(x=>x.row));
+    const novel=scoreMetric(rows.filter(x=>x.kind==='transfer'||(track!=='michaela'&&x.kind==='application')).map(x=>x.row));
     return {id:s.id,label:s.name,...metric,seven,novel,secure:metric.total>=4&&metric.percent>=80&&seven.total>=1&&seven.percent===100&&novel.total>=1&&novel.percent>=80};
   });
   const errors={};
@@ -189,6 +213,7 @@ export function assessmentStats(entries,now=Date.now(),days=28){
   const practiceMetric=scoreMetric(practice);
   const gap=delayed.map(x=>observedGap(entries,x.concept,x.row.at,x.ref)).filter(x=>x!=null);
   const sevenUnseen=scoreMetric(transfer.filter(x=>x.stage==='day7').map(x=>x.row));
+  const application=scoreMetric(nonBaseline.filter(x=>x.kind==='application'||x.kind==='transfer').map(x=>x.row));
   const day28=scoreMetric(nonBaseline.filter(x=>x.stage==='day28'&&x.kind==='recall').map(x=>x.row));
   const tips=[];
   if(practiceMetric.total>=8&&independent.total>=8&&practiceMetric.percent-independent.percent>=20)tips.push('Guided success exceeds independent performance. Fade hints more gradually and retrieve without the model.');
@@ -201,18 +226,18 @@ export function assessmentStats(entries,now=Date.now(),days=28){
   // Matched before/after observations, not a comparison of different learners or units.
   const pairs=checks.filter(c=>c.stage==='baseline'&&c.complete).flatMap(b=>{
     const post=checks.find(c=>c.unitId===b.unitId&&c.stage==='day7'&&c.complete);
-    return post?b.items.map(x=>[x,post.items.find(y=>y.index===x.index)]):[];
+    return post?b.items.filter(x=>!unitFor(b.unitId).track||x.kind==='recall').map(x=>[x,post.items.find(y=>y.index===x.index)]):[];
   }).filter(([a,b])=>a.row.at>=start&&b?.row);
   const gain=pairs.length?Math.round(100*pairs.reduce((n,[a,b])=>n+b.row.score.correct-a.row.score.correct,0)/pairs.length):null;
   return {practice:practiceMetric,independent,retention:recall,transfer:novel,chart,knowledge,errors,tips,
     medianMs:medianDuration(nonBaseline.map(x=>x.row)),gapDays:gap.length?Math.round(gap.reduce((a,b)=>a+b,0)/gap.length*10)/10:null,
-    gain,gainPairs:pairs.length,checks,measured:nonBaseline.length,sevenUnseen,day28};
+    gain,gainPairs:pairs.length,checks,measured:nonBaseline.length,sevenUnseen,day28,application};
 }
 
 // One opt-in, matched-pair teaching experiment: written vs spoken prompt.
 // Same one extra model exposure, counterbalanced by structure. No automatic promotion.
 export function experimentDeck(unitId){
-  const u=unitFor(unitId);if(!u)return [];
+  const u=unitFor(unitId);if(!u||u.track)return [];
   return rowsFor(u).map((row,i)=>({...row,unitId,index:i,arm:((i%4+Math.floor(i/4)+GUIDED_UNITS.indexOf(u))%2===0?'written':'audio'),
     ref:'experiment-v1:'+unitId+':'+i+':exposure'}));
 }
