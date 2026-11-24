@@ -52,12 +52,22 @@ try{
   assert.equal(await page.locator('.ft-sound-card').count(),4);
   await page.locator('.ft-sound-words [data-sound-play="in-ain-ein"][data-example="0"]').click();
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='vin',null,{timeout:2500});
+  const audioBefore=await page.evaluate(()=>window.__spoken.length);
   await page.getByRole('button',{name:'Test your ear'}).click();
+  assert.ok(await page.evaluate(n=>window.__spoken.length>n,audioBefore));
   await page.getByRole('button',{name:'Play the word'}).click();
   assert.equal(await page.locator('[data-sound-answer]').count(),3);
+  const selected=await page.locator('[data-sound-answer]').first().getAttribute('data-sound-answer');
   await page.locator('[data-sound-answer]').first().click();
   await page.locator('.ft-model').waitFor();
+  await page.waitForFunction(word=>window.__spoken.at(-1)?.text.startsWith(word),selected);
+  assert.equal(await page.locator('.ft-phonics-choices .correct').count(),1);
+  assert.equal(await page.locator('[data-sound-answer]:disabled').count(),0);
+  const another=await page.locator('[data-sound-answer]').nth(1).getAttribute('data-sound-answer');
+  await page.locator('[data-sound-answer]').nth(1).click();
+  await page.waitForFunction(word=>window.__spoken.at(-1)?.text===word,another);
   await page.waitForFunction(()=>[...window.__testEvidence.values()].some(x=>x.event?.score?.total===1&&x.event?.concept?.startsWith('french:phonics:')),null,{timeout:8000});
+  assert.equal(await page.evaluate(()=>[...window.__testEvidence.values()].filter(x=>x.event?.score?.total===1&&x.event?.concept?.startsWith('french:phonics:')).length),1);
 
   // Knowledge first, then optional grammar on-demand: verbs and the sans-dans explanation.
   await page.getByRole('button',{name:'Knowledge grid'}).click();

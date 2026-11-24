@@ -40,7 +40,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   const state={page:'home',profile:'adult',context:null,store:null,cloud:null,cloudStatus:'Checking Firebase…',
     cloudAt:null,loading:true,lessonIndex:0,hideEnglish:false,question:0,queue:DRILLS.slice(),
     alphabetQuiz:[],alphabetQuestion:0,attempted:false,failed:false,hint:'none',feedback:'',
-    completed:false,pronunciationIndex:0,coach:null,lastInput:'',busy:false,authNotice:'',letterGrouped:false,soundGroup:'vowel-contrasts',soundQueue:[],soundQuestion:0,soundAnswered:false,soundFeedback:'',soundCorrect:0,soundLastResult:null,builder:{mode:0,left:0,right:0,showFrench:true}};
+    completed:false,pronunciationIndex:0,coach:null,lastInput:'',busy:false,authNotice:'',letterGrouped:false,soundGroup:'vowel-contrasts',soundQueue:[],soundQuestion:0,soundAnswered:false,soundChoice:null,soundFeedback:'',soundCorrect:0,soundLastResult:null,builder:{mode:0,left:0,right:0,showFrench:true}};
   try{const p=localStorage.getItem('next-french:profile');if(p==='adult'||p==='sai')state.profile=p;}catch{}
   const el=()=>target;
   let syncTimer=0,destroyed=false,syncTask=null,pendingAgain=false,wordDialog=null;
@@ -250,9 +250,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     return '<section class="ft-card"><p class="ft-eyebrow">LISTENING RECOGNITION · '+(state.soundQuestion+1)+'/'+state.soundQueue.length+'</p>'+
       '<h2>Which French word did you hear?</h2><p>Listen first, then choose its spelling. The answer is hidden until you decide.</p>'+
       '<div class="ft-actions"><button type="button" data-act="hear-sound-question" class="ft-primary">▶ Play the word</button></div>'+
-      '<div class="ft-choices" role="group" aria-label="Choose what you heard">'+item.options.map(option=>
-        '<button type="button" data-sound-answer="'+esc(option)+'"'+(state.soundAnswered?' disabled':'')+' lang="fr">'+esc(option)+'</button>').join('')+'</div>'+
-      (state.soundFeedback?'<div class="ft-feedback" role="status">'+esc(state.soundFeedback)+'</div>':'')+
+      '<div class="ft-choices ft-phonics-choices" role="group" aria-label="Choose what you heard">'+item.options.map(option=>{
+        const result=state.soundAnswered?(option===item.correct?'correct':option===state.soundChoice?'incorrect':''):'';
+        return '<button type="button" data-sound-answer="'+esc(option)+'" class="'+result+'" lang="fr" aria-label="'+esc(option+(result==='correct'?' — correct':result==='incorrect'?' — incorrect':''))+'"><span>'+esc(option)+'</span>'+(result?'<span class="ft-choice-mark" aria-hidden="true">'+(result==='correct'?'✓':'×')+'</span>':'')+'</button>';
+      }).join('')+'</div>'+
+      (state.soundFeedback?'<div class="ft-sr-only" role="status">'+esc(state.soundFeedback)+'</div>':'')+
       (state.soundAnswered?'<div class="ft-model"><strong lang="fr">'+esc(item.correct)+'</strong> — '+esc(item.why)+'</div>'+
         '<button type="button" data-act="next-sound-question" class="ft-primary">'+(state.soundQuestion===state.soundQueue.length-1?'Finish listening check':'Next word')+'</button>':'')+
       '<p class="ft-small">Recognition results are saved as phonics evidence, not as a speech pronunciation score.</p></section>';
@@ -261,18 +263,22 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     teach('sounds');
     state.soundLastResult=null;
     state.soundQueue=shuffle(SOUND_QUIZ).slice(0,8).map(q=>({...q,options:shuffle(q.options)}));
-    state.soundQuestion=0;state.soundCorrect=0;state.soundAnswered=false;state.soundFeedback='';
+    state.soundQuestion=0;state.soundCorrect=0;state.soundAnswered=false;state.soundChoice=null;state.soundFeedback='';
     state.page='sound-quiz';render();
+    if(state.soundQueue[0])speak(state.soundQueue[0].target);
   }
   function answerSoundQuiz(value){
-    if(state.page!=='sound-quiz'||state.soundAnswered||!state.soundQueue[state.soundQuestion])return;
-    const item=state.soundQueue[state.soundQuestion],correct=value===item.correct;
+    if(state.page!=='sound-quiz'||!state.soundQueue[state.soundQuestion])return;
+    const item=state.soundQueue[state.soundQuestion];
+    if(!item.options.includes(value))return;
+    if(state.soundAnswered){speak(value);return;}
+    const correct=value===item.correct;
     if(correct)state.soundCorrect++;
     record({concept:item.concept,phase:phaseFor('sounds'),correctCount:correct?1:0,total:1,
       support:'none',taughtAt:taughtAt('sounds')||stamp(),sourceRef:'sound-'+item.id});
-    state.soundAnswered=true;
+    state.soundAnswered=true;state.soundChoice=value;
     state.soundFeedback=correct?'Correct — you distinguished the spelling.':'Not quite. Listen again and compare the two sounds.';
-    render();
+    render();speak(correct?value:value+'. '+item.correct);
   }
   function knowledge(){
     const rows=PASSAGE.map((l,i)=>'<div class="ft-grid-row"><div><span class="ft-number">'+(i+1)+'</span> <strong lang="fr" class="ft-inline-french">'+interactiveFrench(l.fr)+'</strong>'+
@@ -535,6 +541,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   function startQuiz(){
     teach('alphabet');state.alphabetQuiz=shuffle(ALPHABET);
     state.alphabetQuestion=0;resetQuestion();state.page='alphabet-quiz';render();
+    speak('la lettre '+state.alphabetQuiz[0].name);
   }
   function setPage(page){
     if(!state.store){render();return;}
@@ -695,13 +702,15 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       case 'start-sound-quiz':startSoundQuiz();break;
       case 'hear-sound-question':{const q=state.soundQueue[state.soundQuestion];if(q)speak(q.target);break;}
       case 'next-sound-question':{
-        if(state.soundQuestion+1<state.soundQueue.length){state.soundQuestion++;state.soundAnswered=false;state.soundFeedback='';}
-        else{state.soundLastResult=state.soundCorrect+'/'+state.soundQueue.length+' correct';state.page='sounds';state.soundAnswered=false;}
-        render();break;
+        if(state.soundQuestion+1<state.soundQueue.length){state.soundQuestion++;state.soundAnswered=false;state.soundChoice=null;state.soundFeedback='';}
+        else{state.soundLastResult=state.soundCorrect+'/'+state.soundQueue.length+' correct';state.page='sounds';state.soundAnswered=false;state.soundChoice=null;}
+        render();
+        if(state.page==='sound-quiz')speak(state.soundQueue[state.soundQuestion].target);
+        break;
       }
       case 'quiz-hear':speak('la lettre '+state.alphabetQuiz[state.alphabetQuestion].name);break;
       case 'next-letter-question':{
-        if(state.alphabetQuestion<25){state.alphabetQuestion++;resetQuestion();render();}
+        if(state.alphabetQuestion<25){state.alphabetQuestion++;resetQuestion();render();speak('la lettre '+state.alphabetQuiz[state.alphabetQuestion].name);}
         else{state.page='home';resetQuestion();render();}break;
       }
       case 'toggle-english':state.hideEnglish=!state.hideEnglish;render();break;
