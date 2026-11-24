@@ -5,6 +5,7 @@ import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from '
 import {browserAuthContext} from './auth-context.js';
 import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES} from './guided-ui.js';
 import {optionalVerbTimeline} from './magic10.js';
+import {createAssessmentInterface} from './assessment-ui.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
 
@@ -67,6 +68,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     getEntries:()=>state.store?.getEntries()||[],record,speak,waitForSpeech,cancelSpeech,refresh:render,focusTarget,
     navigate:page=>{state.page=page;render();}
   });
+  const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],record,speak,refresh:render,focusTarget,
+    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>guidedUI.start(unit)});
   function teach(kind){
     if(!state.store)return;
     const ref=kind==='alphabet'?'intro-alphabet':kind==='sounds'?'intro-sounds':'intro-connectives';
@@ -104,7 +107,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
           if(destroyed||state.cloud!==cloud)return;
           state.cloudAt=result.at;
           state.cloudStatus='Saved to Firebase';
-          if(state.page==='home')render();else updateStatus();
+          if(state.page==='home'||state.page==='evidence')render();else updateStatus();
         }while(pendingAgain&&state.cloud===cloud);
       }catch(e){
         if(destroyed)return;
@@ -129,7 +132,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     state.profile=profile;
     state.soundLastResult=null;state.soundQueue=[];state.soundQuestion=0;
     state.store=createEvidenceStore({appId:APP_ID,learnerId:profile,accountId:ownerUid});
-    guidedUI.reset();
+    guidedUI.reset();assessmentUI.reset();
     state.cloud=createFirestoreEvidenceCloud({store:state.store,db,auth,firestore,ownerUid,learnerId:profile,appId:APP_ID});
     state.cloudStatus='Pending cloud check';
     state.cloudAt=null;
@@ -137,7 +140,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     await syncNow();
   }
   function nav(){
-    const tabs=[['home','Overview'],['lesson',"Today's lesson"],['magic','Magic 10'],['alphabet','Alphabet'],
+    const tabs=[['home','Overview'],['lesson',"Today's lesson"],['evidence','Learning dashboard'],['magic','Magic 10'],['alphabet','Alphabet'],
       ['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],
       ['practice','Sentence practice'],['review','Review'],['pronunciation','Speak']];
     return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p||(p==='sounds'&&state.page==='sound-quiz')?'active':'')+'">'+t+'</button>').join('')+'</nav>';
@@ -181,30 +184,22 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<p class="ft-small">Already signed in? Your session is reused automatically. Your App Monitor passkey is not yet connected to these Firebase records.</p></section>';
   }
   function overview(){
-    const summary=state.store?.summary();
-    const plan=reviewPlan(state.store?.getEntries()||[]);
     const active=state.context?.auth?.currentUser;
     const googleLinked=active?.providerData?.some(provider=>provider.providerId==='google.com')===true;
-    const metrics=summary?[
-      ['Accuracy',summary.accuracy],['Independence',summary.independence],
-      ['7-day retention',summary.retention],['Unseen transfer',summary.transfer]
-    ]:[];
-    return guidedUI.dashboard()+
+    return assessmentUI.overview()+guidedUI.dashboard()+
       '<section class="ft-hero ft-card"><p class="ft-eyebrow">REFERENCE &amp; FREE EXPLORATION</p><h2>Explore the words behind your lessons.</h2>'+
       '<p>Use the guided lessons as your default. The alphabet, sound library, bilingual passage and sentence workshop remain available for optional exploration.</p>'+
       '<div class="ft-actions"><button data-page="alphabet">Learn the alphabet</button><button data-page="sounds">Hear French sounds</button>'+
       '<button data-page="knowledge">Explore the knowledge grid</button><button data-page="practice">Practise sentences</button></div></section>'+
-      '<section class="ft-card"><h2>Learning evidence</h2><p class="ft-small">Accuracy, independence, delayed recall and novel transfer are separate measures. An immediate correct answer is not proof of retention.</p>'+
-      '<div class="ft-metrics">'+metrics.map(([name,m])=>'<div><strong>'+fmt(m.percent)+'</strong><span>'+name+'</span><small>'+(m.total||0)+' checked'+(m.unknownSupport?' · '+m.unknownSupport+' unknown help':'')+'</small></div>').join('')+'</div>'+
-      '<p class="ft-small">'+(plan.next?'Next review: '+new Date(plan.next).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'Open the knowledge grid to start a revision cycle.')+'</p>'+
-      '<div class="ft-actions"><button data-act="sync">Sync with Firebase</button><button data-act="export">Export evidence</button><button data-page="review">Review from memory</button></div></section>'+
+      assessmentUI.dashboard()+
+      '<section class="ft-card"><div class="ft-actions"><button data-act="sync">Sync with Firebase</button><button data-act="export">Export evidence</button><button data-page="review">Manual review</button></div></section>'+
       '<section class="ft-card ft-identity"><h2>Your learning account</h2><p class="ft-small">'+(active?.email?'Signed in as <strong>'+esc(active.email)+'</strong>. ':'Signed in with your existing parent account. ')+(googleLinked?'Google sign-in linked to this Firebase account.':'Linking Google lets you use the same account without entering the Firebase password on other devices.')+'</p>'+
       (state.authNotice?'<p role="status">'+esc(state.authNotice)+'</p>':'')+
       (!googleLinked&&typeof linkGoogle==='function'&&authCapabilities.allowGooglePopup
   ?'<button data-act="link-google" type="button">Link Google to this account</button>'
   :(!googleLinked&&authCapabilities.iosStandalone
     ?'<p class="ft-small">Google account linking is available when you open the course in Safari, not from the installed iPhone app.</p>':''))+'</section>'+
-      '<section class="ft-card"><h2>How the course works</h2><p>Real French audio → bilingual understanding → CUDDLES noticing → guided translation → controlled substitution → independent unseen sentences → review on days 1, 3 and 7.</p>'+
+      '<section class="ft-card"><h2>How the course works</h2><p>Real French audio → bilingual understanding → CUDDLES noticing → guided translation → controlled substitution → independent unseen sentences → review on days 1, 3, 7 and 28.</p>'+
       '<p class="ft-small">PROFS: Past, Reasons, Opinions, Future, Subjunctive. This pilot introduces useful past, reason, opinion and future structures, plus a supported subjunctive example.</p></section>';
   }
   function interactiveFrench(value){
@@ -499,7 +494,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const ready=!!state.store;
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
       (!ready?login():nav()+
-      (state.page==='home'?overview():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
+      (state.page==='home'?overview():state.page==='evidence'?assessmentUI.dashboard():state.page==='assessment'?assessmentUI.page():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
        state.page==='alphabet'?alphabet():state.page==='sounds'?sounds():state.page==='sound-quiz'?soundQuiz():state.page==='knowledge'?knowledge():
        state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())))+
       '<p class="ft-foot">Original lessons informed by Barry Smith, Jessica Lund’s published Michaela work, and general repeat-and-build principles described by Paul Noble. Not affiliated with or a reproduction of their courses. <a href="https://jlmfl.wordpress.com/2022/11/27/teaching-grammar-rote-vs-rules/">Lund on rote &amp; rules</a> · <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES</a></p>';
@@ -615,7 +610,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   function setPage(page){
     if(!state.store){render();return;}
     cancelPendingAdvance();
-    if(page==='lesson'){guidedUI.start();return;}
+    if(page==='lesson'){assessmentUI.startDaily();return;}
     if(page==='alphabet'){teach('alphabet');state.page=page;}
     else if(page==='sounds'){teach('sounds');state.page=page;}
     else if(page==='knowledge'||page==='workshop'){teach('connectives');state.page=page;}
@@ -652,7 +647,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     return String(error?.message||error);
   }
   async function onClick(e){
+    const assessmentTarget=e.target.closest('[data-eact]');
+    if(assessmentTarget&&assessmentUI.click(assessmentTarget))return;
     const guidedTarget=e.target.closest('[data-gword],[data-gact],[data-gchoice],[data-gspeak]');
+    if(guidedTarget?.dataset.gact==='next-unit'){assessmentUI.startDaily();return;}
     if(guidedTarget&&guidedUI.click(guidedTarget))return;
     const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say],[data-word],[data-sound-group],[data-sound-play],[data-sound-compare],[data-sound-sentence],[data-sound-answer],[data-cuddle-word]');
     if(!b)return;
@@ -816,6 +814,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
   }
   async function onSubmit(e){
+    if(assessmentUI.submit(e.target,e))return;
     if(guidedUI.submit(e.target,e))return;
     if(e.target.id==='ft-answer'){e.preventDefault();const field=e.target.querySelector('input[name="answer"]');if(field)checkAnswer(field.value);return;}
     if(e.target.id==='ft-letter-answer'){e.preventDefault();quizLetter(new FormData(e.target).get('answer'));return;}
