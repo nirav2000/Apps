@@ -22,7 +22,7 @@ try{
   assert.equal(await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).count(),1);
   await page.locator('[data-profile]').selectOption('sai');
   await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).waitFor({timeout:9000});
-  assert.match(await page.locator('.ft-metrics').innerText(),/Not measured/);
+  assert.match(await page.locator('.ft-e-dashboard .ft-e-metrics').first().innerText(),/Not measured/);
   assert.deepEqual(errors,[]);
   console.log('French passkey browser smoke: authenticated owner, live Firebase sync, isolated learners');
 }finally{await browser.close();}
