@@ -13,7 +13,7 @@ try{
   assert.match(await cards.innerText(),/Not measured/);
   await page.locator('.ft-tabs [data-page="lesson"]').click();
   await page.locator('#ft-e-answer').waitFor();
-  assert.match(await page.locator('.ft-e-question').innerText(),/Before teaching/);
+  assert.match(await page.locator('.ft-e-question').innerText(),/Before teaching/i);
   const deck=assessmentDeck(GUIDED_UNITS[0].id,'baseline');
   for(let i=0;i<deck.length;i++){
     assert.equal(await page.locator('.ft-e-prompt').innerText(),deck[i].en);
@@ -23,7 +23,7 @@ try{
       await page.locator('#ft-e-form button[type=submit]').click();
     }
   }
-  assert.match(await page.locator('.ft-e-question').innerText(),/Starting knowledge recorded/);
+  assert.match(await page.locator('.ft-e-question').innerText(),/Starting knowledge recorded/i);
   await page.waitForFunction(()=>[...window.__testEvidence.values()].filter(x=>x.event?.phase==='diagnostic').length===8,null,{timeout:12000});
   const rows=await page.evaluate(()=>[...window.__testEvidence.values()].map(x=>x.event).filter(x=>x.phase==='diagnostic'));
   assert.equal(rows.reduce((n,x)=>n+x.score.correct,0),7);
@@ -36,7 +36,7 @@ try{
   await page.locator('.ft-e-today').waitFor();
   assert.equal(await page.locator('.ft-e-chart circle').count(),0);
   await page.locator('.ft-tabs [data-page="lesson"]').click();
-  assert.match(await page.locator('.ft-e-question').innerText(),/Before teaching/);
+  assert.match(await page.locator('.ft-e-question').innerText(),/Before teaching/i);
   const dims=await page.evaluate(()=>({w:document.documentElement.scrollWidth,v:document.documentElement.clientWidth}));
   assert.ok(dims.w<=dims.v+2,JSON.stringify(dims));
   assert.deepEqual(errors,[]);
