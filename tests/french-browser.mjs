@@ -57,10 +57,10 @@ try{
 
   await page.locator('[data-profile]').selectOption('sai');
   await page.locator('[data-cloud-status]').filter({hasText:'Firebase'}).waitFor({timeout:16000});
-  assert.match(await page.locator('.ft-metrics').innerText(),/Not measured/);
+  assert.match(await page.locator('.ft-e-dashboard .ft-e-metrics').first().innerText(),/Not measured/);
   await page.locator('[data-profile]').selectOption('adult');
   await page.locator('[data-cloud-status]').filter({hasText:'Firebase'}).waitFor({timeout:16000});
-  assert.match(await page.locator('.ft-metrics').innerText(),/100%/);
+  assert.match(await page.locator('.ft-e-dashboard .ft-e-metrics').first().innerText(),/100%/);
 
   assert.deepEqual(errors,[]);
   console.log('French browser smoke passed: alphabet, grid, workshop, answer, Firebase and learner isolation');
