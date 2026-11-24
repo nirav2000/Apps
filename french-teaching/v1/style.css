@@ -232,3 +232,11 @@
 .ft-app .ft-guided-feedback.revealed,.ft-app .ft-feedback.revealed{background:#f4f6f8;border:1px solid #c6d0d8;color:#334d43}
 .ft-app button:focus-visible{outline:2px solid #24634b;outline-offset:3px}
 @media(max-width:640px){.ft-app .ft-answer-comparison .ft-answer-expected{border-left:0;padding-left:0;border-top:1px solid #bd665d55;padding-top:12px}}
+
+/* Individual word playback is inline, not a new card or full-width button. */
+.ft-app button.ft-spoken-word{display:inline;min-height:0;min-width:0;max-width:100%;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:inherit;font:inherit;line-height:inherit;text-decoration:none;vertical-align:baseline;cursor:pointer;overflow-wrap:anywhere;white-space:normal}
+.ft-app button.ft-spoken-word:hover,.ft-app button.ft-spoken-word:focus-visible{text-decoration:underline;text-underline-offset:4px;background:#18392f09}
+.ft-app .ft-progress-count{line-height:1.6;margin-bottom:2px}
+.ft-app .ft-voice-settings-link{align-self:start;font-size:12px;min-height:32px;padding:6px 10px;margin-top:4px}
+.ft-app .ft-voice-settings select{width:100%;max-width:520px}
+.ft-app .ft-voice-settings label{display:grid;gap:8px;margin:20px 0 12px}

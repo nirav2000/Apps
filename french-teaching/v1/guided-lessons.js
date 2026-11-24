@@ -217,12 +217,14 @@ export function guidedStatus(unitId,entries,now=Date.now()){
       completed:refs.has(guidedRefs(repairId).complete)};
   });
   const repairPending=repairs.filter(x=>!x.completed);
+  const teaching={coreTotal:main.length,coreCompleted:main.length-unfinished.length,repairTotal:repairs.length,repairCompleted:repairs.length-repairPending.length};
+  teaching.total=teaching.coreTotal+teaching.repairTotal;
+  teaching.completed=teaching.coreCompleted+teaching.repairCompleted;
   if(unfinished.length||repairPending.length){
-    return {unit:lesson.unit,mode:taughtAt?'resume':'new',taughtAt,
+    return {unit:lesson.unit,mode:taughtAt?'resume':'new',taughtAt,teaching,
       steps:[...main,...repairs],next:unfinished[0]||repairPending[0],
       remaining:unfinished.length+repairPending.length,
-      completed:main.filter(x=>x.completed).length+repairs.length-repairPending.length,
-      total:main.length+repairs.length,reviewDay:null};
+      completed:teaching.completed,total:teaching.total,reviewDay:null};
   }
   if(taughtAt!=null){
     const elapsed=Math.floor((now-taughtAt)/DAY);
@@ -231,7 +233,7 @@ export function guidedStatus(unitId,entries,now=Date.now()){
     if(dueDay){
       const review=reviewSteps(lesson.unit,dueDay);
       const todo=review.filter(s=>!refs.has(guidedRefs(s.id).complete));
-      if(todo.length)return {unit:lesson.unit,mode:'review',taughtAt,
+      if(todo.length)return {unit:lesson.unit,mode:'review',taughtAt,teaching,
         steps:review.map(s=>({...s,completed:refs.has(guidedRefs(s.id).complete)})),
         next:todo[0],remaining:todo.length,total:review.length,
         completed:review.length-todo.length,reviewDay:dueDay};
@@ -239,8 +241,8 @@ export function guidedStatus(unitId,entries,now=Date.now()){
   }
   const elapsed=taughtAt==null?0:Math.floor((now-taughtAt)/DAY);
   const nextDay=GUIDED_REVIEW_DAYS.find(x=>x>elapsed);
-  return {unit:lesson.unit,mode:'complete',taughtAt,steps:[],next:null,remaining:0,
-    total:lesson.steps.length,completed:lesson.steps.length,reviewDay:null,
+  return {unit:lesson.unit,mode:'complete',taughtAt,teaching,steps:[],next:null,remaining:0,
+    total:teaching.total,completed:teaching.completed,reviewDay:null,
     nextReviewAt:nextDay&&taughtAt?taughtAt+nextDay*DAY:null};
 }
 export function recommendedGuidedUnit(entries,now=Date.now()){

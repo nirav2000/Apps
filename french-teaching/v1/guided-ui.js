@@ -81,17 +81,32 @@ export function guidedHint(step,level=1){
   return (clues[step.structure]||'Break the meaning into a subject, an action and any extra details.')+
     (v&&['present','negative','past'].includes(step.structure)?' Think of the action “'+v.english+'”.':'');
 }
+// Render each visible French word as a small native button without altering
+// or duplicating a single character of the source. Keep elisions together.
+export function spokenWords(value){
+  const text=String(value??'');
+  const tokens=/[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*/gu;
+  let cursor=0,result='';
+  for(const match of text.matchAll(tokens)){
+    const word=match[0],start=match.index;
+    result+=html(text.slice(cursor,start))+'<button type="button" class="ft-spoken-word" lang="fr" data-gword="'+html(word)+'" aria-label="Hear '+html(word)+'" title="Hear '+html(word)+'">'+html(word)+'</button>';
+    cursor=start+word.length;
+  }
+  return result+html(text.slice(cursor));
+}
+export const EXACT_ANSWER_ATTRIBUTES='spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" writingsuggestions="false" inputmode="text"';
 export function answerComparison({answer='',expected,result,lang='fr',replay=''}) {
   const status=result==='correct'?'correct':result==='incorrect'?'incorrect':'revealed';
   const label=status==='correct'?'Correct':status==='incorrect'?'Incorrect':'Answer revealed';
   const submitted=String(answer??'').trim().length>0;
+  const content=value=>lang==='fr'?spokenWords(value):html(value);
   const mark=status==='correct'?'✓':status==='incorrect'?'×':'';
   return '<div class="ft-guided-pair ft-answer-comparison '+status+'" role="group" aria-label="'+label+'">'+
     '<div class="ft-answer-submitted"><small>'+ (status==='revealed'?'Your draft (not checked)':'Your answer')+
     (mark?' <span class="ft-answer-mark" aria-hidden="true">'+mark+'</span>':'')+'</small>'+
-    '<p lang="'+html(lang)+'" class="ft-answer-value">'+(submitted?html(answer):'—')+'</p></div>'+
+    '<p lang="'+html(lang)+'" class="ft-answer-value">'+(submitted?content(answer):'—')+'</p></div>'+
     '<div class="ft-answer-expected"><small>Correct answer</small><div class="ft-pair-french">'+
-    '<p lang="'+html(lang)+'" class="ft-answer-value">'+html(expected)+'</p>'+replay+'</div></div></div>';
+    '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected)+'</p>'+replay+'</div></div></div>';
 }
 export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{}}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')
@@ -184,6 +199,8 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
     const stageLabels=Object.fromEntries(groups);
     const completed=status.completed;
     const total=status.total;
+    const counts=status.teaching;
+    const breakdown=counts.coreCompleted+'/'+counts.coreTotal+' core steps · '+counts.repairCompleted+'/'+counts.repairTotal+' corrections';
     const pct=total?Math.round(completed/total*100):0;
     const other=GUIDED_UNITS.map(u=>'<option value="'+html(u.id)+'"'+(u.id===id?' selected':'')+'>'+
       html(u.label+': '+u.name)+'</option>').join('');
@@ -193,7 +210,8 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
       '<label>Teaching unit<select data-gunit>'+other+'</select></label></div>'+
       '<div class="ft-guided-progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="'+completed+
       '" aria-valuemin="0" aria-valuemax="'+total+'"><span style="width:'+pct+'%"></span></div>'+
-      '<p class="ft-small"><strong>'+completed+'/'+total+'</strong> completed · stop whenever you like; your place is saved to Firebase as evidence syncs.</p>';
+      '<p class="ft-small ft-progress-count"><strong>'+completed+'/'+total+'</strong> '+(status.mode==='review'?'day '+status.reviewDay+' review completed':'teaching steps completed')+' · '+html(breakdown)+'</p>'+
+      '<p class="ft-small">Your place is saved to Firebase as evidence syncs.</p>';
     if(!current&&status.mode==='complete'){
       const next=status.nextReviewAt?new Date(status.nextReviewAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'none scheduled';
       return head+'<div class="ft-guided-congrats"><h3>Excellent. Now leave it for a while.</h3>'+
@@ -207,7 +225,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
     const busy=state.advancing?' disabled aria-busy="true"':'';
     const advanceButton=(act,label)=>'<button type="button" data-gact="'+act+'" class="ft-primary"'+busy+'>'+html(state.advancing?'Listening…':label)+'</button>';
     const pair=(english,french,covered=false)=>'<div class="ft-guided-pair'+(covered?' ft-pair-covered':'')+'"><p class="ft-guided-english">'+html(english)+'</p>'+
-      (french?'<div class="ft-pair-french"><p lang="fr" class="ft-guided-french">'+html(french)+'</p><button type="button" data-gact="speak" aria-label="Hear the French again">▶</button></div>':
+      (french?'<div class="ft-pair-french"><p lang="fr" class="ft-guided-french">'+spokenWords(french)+'</p><button type="button" data-gact="speak" aria-label="Hear the French again">▶</button></div>':
         covered?'<span class="ft-pair-placeholder">Say it from memory, then reveal.</span>':'')+'</div>';
     let body='<div class="ft-guided-task" data-guided-step="'+html(step.id)+'"><p class="ft-eyebrow">'+html(style+phase)+'</p>'+
       '<h3>'+html(step.prompt)+'</h3>';
@@ -238,7 +256,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
           }).join('')+'</div>';
       }else if(!state.done&&!state.revealed){
         body+='<form id="ft-guided-form"><label for="ft-guided-input">Your French</label>'+
-          '<input id="ft-guided-input" name="answer" lang="fr" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" value="'+html(state.answer)+'" required>'+
+          '<input id="ft-guided-input" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' value="'+html(state.answer)+'" required>'+
           '<div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button>'+
           (state.hint<2?'<button type="button" data-gact="hint">'+(state.hint?'Show first part':'Get a hint')+'</button>':'')+
           '<button type="button" data-gact="reveal">Show answer</button></div></form>';
@@ -281,7 +299,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
         html(v)+'</option>').join('')+'</select></label>'+
       '<div class="ft-magic-rows">'+rows.map((row,i)=>
         '<div class="ft-magic-row"><small>'+String(i+1)+'. '+html(row.kind)+'</small>'+
-        '<strong lang="fr">'+html(row.fr)+'</strong><span>'+html(row.en)+'</span>'+
+        '<strong lang="fr">'+spokenWords(row.fr)+'</strong><span>'+html(row.en)+'</span>'+
         '<button type="button" data-gspeak="'+i+'" aria-label="Hear '+html(row.fr)+'">▶</button></div>').join('')+'</div>'+
       '<details class="ft-guided-grammar"><summary>Curious? Explore the grammar behind these patterns</summary>'+
       '<p>These are useful frames, not ten grammatical tenses. Some are opinions or modals.</p>'+
@@ -302,7 +320,8 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
       '<div class="ft-guided-unit-summary">'+statuses.map(s=>
         '<div><strong>'+html(s.unit.label)+'</strong><span>'+html(s.unit.name)+'</span>'+
         '<small>'+html(s.mode==='complete'?'Teaching complete':s.mode==='review'?'Review due':
-          s.mode==='new'?'Ready to start':'In progress')+'</small></div>').join('')+'</div></section>';
+          s.mode==='new'?'Ready to start':'In progress')+'</small>'+
+        (s.mode==='new'?'':'<small>'+s.teaching.coreCompleted+'/'+s.teaching.coreTotal+' core · '+s.teaching.repairCompleted+'/'+s.teaching.repairTotal+' corrections</small>')+'</div>').join('')+'</div></section>';
   };
   const choose=(option)=>{
     const {current}=context();
@@ -359,7 +378,8 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
     focusTarget(correct?'[data-gact="next"]':'[data-gact="finish-revealed"]');
   };
   const click=(target)=>{
-    if(state.advancing&&(target.dataset.gchoice!==undefined||target.dataset.gact||target.dataset.gspeak!==undefined))return true;
+    if(state.advancing&&(target.dataset.gchoice!==undefined||target.dataset.gact||target.dataset.gspeak!==undefined||target.dataset.gword!==undefined))return true;
+    if(target.dataset.gword!==undefined){speak(target.dataset.gword);return true;}
     if(target.dataset.gchoice!==undefined){choose(target.dataset.gchoice);return true;}
     if(target.dataset.gspeak!==undefined){
       const row=magicTenFor(state.selectedVerb)[Number(target.dataset.gspeak)];
@@ -428,7 +448,8 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
   const submit=(form,event)=>{
     if(form.id!=='ft-guided-form')return false;
     event.preventDefault();
-    write(new FormData(form).get('answer'));
+    const field=form.querySelector('input[name="answer"]');
+    if(field)write(field.value);
     return true;
   };
   return {dashboard,page,reference,start,reset,leave:cancelAdvance,click,change,submit};

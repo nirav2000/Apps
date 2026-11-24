@@ -1,5 +1,5 @@
 import test from 'node:test';
-import {answerFeedback,guidedEntryAudio,teacherModelAudio,guidedHint} from '../french-teaching/v1/guided-ui.js';
+import {answerFeedback,guidedEntryAudio,teacherModelAudio,guidedHint,spokenWords,answerComparison,EXACT_ANSWER_ATTRIBUTES} from '../french-teaching/v1/guided-ui.js';
 import assert from 'node:assert/strict';
 import {
   MAGIC10_VERSION,MAGIC10_VERBS,MAGIC10_STRUCTURES,magicTenFor,magicTenPhrase,optionalVerbTimeline
@@ -174,4 +174,23 @@ test('contextual hints progress without giving the whole answer',()=>{
  assert.match(guidedHint({kind:'transcribe',fr:'je parle français'}),/3 separate written words/);
  assert.match(guidedHint({kind:'write',fr:'je veux parler français',structure:'want'},1),/I want/);
  assert.match(guidedHint({kind:'write',fr:'parler français',structure:'infinitive'},2),/“parler”/);
+});
+
+test('63 core plus 12 repair steps remain 75 after completion and across review',()=>{
+ const now=Date.parse('2026-11-20T08:00:00Z');
+ const deck=guidedLesson(unit).steps;assert.equal(deck.length,63);
+ const all=[at(guidedTeachingRef(unit),now),...deck.map(x=>at(guidedCompletionRefs(x.id).complete,now)),...deck.filter(x=>x.kind!=='model').slice(0,12).map(x=>at(guidedCompletionRefs(x.id).first,now,false))];
+ const active=guidedStatus(unit,all,now);assert.equal(active.total,75);assert.equal(active.completed,63);
+ const done=[...all,...active.steps.filter(x=>x.stage==='repair').map(x=>at(guidedCompletionRefs(x.id).complete,now))];
+ const completed=guidedStatus(unit,done,now);assert.equal(completed.total,75);assert.equal(completed.completed,75);assert.deepEqual(completed.teaching,{coreTotal:63,coreCompleted:63,repairTotal:12,repairCompleted:12,total:75,completed:75});
+ const review=guidedStatus(unit,done,now+DAY);assert.equal(review.total,8);assert.equal(review.teaching.total,75);assert.equal(review.teaching.completed,75);
+});
+test('word audio markup preserves repeated words, order, accents and punctuation',()=>{
+ const input="Je parle français, mais j’aime le français.";const expected="Je parle français, mais je veux écouter la radio.";
+ const words=spokenWords(input);assert.equal(words.replace(/<[^>]+>/g,''),input);
+ assert.equal((words.match(/data-gword="français"/g)||[]).length,2);
+ const box=answerComparison({answer:input,expected,result:'incorrect'});
+ const learner=box.split('ft-answer-submitted')[1].split('ft-answer-expected')[0];
+ assert.equal((learner.match(/data-gword="français"/g)||[]).length,2);
+ assert.match(EXACT_ANSWER_ATTRIBUTES,/autocorrect="off"/);assert.match(EXACT_ANSWER_ATTRIBUTES,/writingsuggestions="false"/);
 });

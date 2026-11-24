@@ -12,8 +12,8 @@ try{
     window.__spoken=[];window.__holdSpeech=false;let active=null,timer;
     window.__finishSpeech=()=>{clearTimeout(timer);const u=active;active=null;u?.onend?.();};
     Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{
-      cancel(){clearTimeout(timer);const u=active;active=null;u?.onerror?.();},getVoices(){return[{lang:'fr-FR',name:'Test French'}];},
-      speak(u){active=u;window.__spoken.push({text:u.text,lang:u.lang,step:document.querySelector('[data-guided-step]')?.dataset.guidedStep});if(!window.__holdSpeech)timer=setTimeout(window.__finishSpeech,50);}
+      cancel(){clearTimeout(timer);const u=active;active=null;u?.onerror?.();},getVoices(){return[{lang:'fr-FR',name:'Test French',voiceURI:'test-fr'},{lang:'fr-CA',name:'Test Canadian',voiceURI:'test-ca'},{lang:'en-GB',name:'Test English',voiceURI:'test-en'}];},
+      speak(u){active=u;window.__spoken.push({text:u.text,lang:u.lang,voice:u.voice?.voiceURI,step:document.querySelector('[data-guided-step]')?.dataset.guidedStep});if(!window.__holdSpeech)timer=setTimeout(window.__finishSpeech,50);}
     }});
     Object.defineProperty(window,'SpeechSynthesisUtterance',{configurable:true,
       value:class {constructor(text){this.text=text;this.lang='';this.rate=1;}}});
@@ -21,6 +21,16 @@ try{
   await page.goto('http://127.0.0.1:8898/tests/french-browser-harness.html');
   await page.locator('.ft-tabs').waitFor();
   const evidence=()=>page.evaluate(()=>[...window.__testEvidence.values()].map(x=>x.event));
+  await page.getByRole('button',{name:'Settings',exact:false}).click();
+  const voices=page.locator('[data-french-voice]');
+  assert.equal(await voices.locator('option').count(),3);
+  await voices.selectOption('test-ca');
+  await page.getByRole('button',{name:'Preview voice'}).click();
+  await page.waitForFunction(()=>window.__spoken.at(-1)?.voice==='test-ca');
+  await page.reload();await page.locator('.ft-tabs').waitFor();
+  await page.getByRole('button',{name:'Settings',exact:false}).click();
+  assert.equal(await page.locator('[data-french-voice]').inputValue(),'test-ca');
+  await page.locator('[data-french-voice]').selectOption('test-fr');
   // The Magic Ten shows full usable phrases and no mandatory grammar.
   await page.getByRole('button',{name:'Magic 10',exact:true}).click();
   assert.equal(await page.locator('.ft-magic-row').count(),10);
@@ -48,6 +58,8 @@ try{
   await page.locator('.ft-guided-task').waitFor();
   assert.match(await page.locator('.ft-guided-head').innerText(),/Speak and listen/);
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text.includes('Écoutez bien.'));
+  await page.locator('.ft-guided-french [data-gword="français"]').click();
+  await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='français');
   await page.locator('[data-gact="focus-word"]').first().click();
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='écouter');
   const lesson=guidedLesson('speak-and-listen');
@@ -134,13 +146,18 @@ try{
   const wrongBuild=lesson.steps[firstBuild+1];
   await page.locator('[data-guided-step="'+wrongBuild.id+'"]').waitFor();
   assert.equal(await page.evaluate(()=>document.activeElement?.id),'ft-guided-input');
-  const incorrect="je ne sais pas";
+  const incorrect="je parle français, mais j’aime le français";
+  assert.equal(await page.locator('#ft-guided-input').getAttribute('autocorrect'),'off');
   await page.locator('#ft-guided-input').fill(incorrect);
   await page.keyboard.press('Enter');
   const marked=page.locator('.ft-answer-comparison.incorrect');
   await marked.waitFor();
   assert.equal(await marked.locator('.ft-answer-submitted .ft-answer-value').innerText(),incorrect);
   assert.equal(await marked.locator('.ft-answer-expected .ft-answer-value').innerText(),wrongBuild.fr);
+  assert.equal(await marked.locator('.ft-answer-submitted [data-gword="français"]').count(),2);
+  await marked.locator('.ft-answer-submitted [data-gword="français"]').first().click();
+  await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='français');
+  await page.locator('[data-gact="finish-revealed"]').focus();
   assert.equal(await marked.evaluate(x=>getComputedStyle(x).backgroundColor),'rgb(255, 240, 237)');
   assert.equal(await page.locator('.ft-guided-feedback.incorrect').count(),1);
   assert.equal(await page.evaluate(()=>document.activeElement?.dataset.gact),'finish-revealed');

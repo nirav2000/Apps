@@ -3,12 +3,21 @@ import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,so
 import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
 import {browserAuthContext} from './auth-context.js';
-import {createGuidedInterface,answerComparison} from './guided-ui.js';
+import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES} from './guided-ui.js';
 import {optionalVerbTimeline} from './magic10.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
 
 const APP_ID='next-french';
+const VOICE_KEY='next-french:preferred-voice';
+export const frenchVoiceKey=v=>String(v?.voiceURI||v?.name||'');
+export function frenchVoices(voices=[]){
+  return Array.from(voices).filter(v=>/^fr(?:[-_]|$)/i.test(v.lang||''));
+}
+export function preferredFrenchVoice(voices=[],key=''){
+  const french=frenchVoices(voices);
+  return french.find(v=>key&&frenchVoiceKey(v)===key)||french.find(v=>/^fr[-_]fr$/i.test(v.lang))||french[0];
+}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const stamp=()=>new Date().toISOString();
 const id=()=>globalThis.crypto?.randomUUID?.()||'a-'+Date.now()+'-'+Math.random().toString(36).slice(2);
@@ -42,6 +51,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     alphabetQuiz:[],alphabetQuestion:0,attempted:false,failed:false,hint:'none',feedback:'',
     completed:false,answerResult:null,pronunciationIndex:0,coach:null,lastInput:'',busy:false,authNotice:'',letterGrouped:false,soundGroup:'vowel-contrasts',soundQueue:[],soundQuestion:0,soundAnswered:false,soundChoice:null,soundFeedback:'',soundCorrect:0,soundLastResult:null,builder:{mode:0,left:0,right:0,showFrench:true}};
   try{const p=localStorage.getItem('next-french:profile');if(p==='adult'||p==='sai')state.profile=p;}catch{}
+  let preferredVoice='';
+  try{preferredVoice=localStorage.getItem(VOICE_KEY)||'';}catch{}
   const el=()=>target;
   let syncTimer=0,destroyed=false,syncTask=null,pendingAgain=false,wordDialog=null;
   function record(raw){
@@ -137,7 +148,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<div class="ft-account"><label for="ft-profile">Learner</label><select id="ft-profile" data-profile>'+
       '<option value="adult"'+(state.profile==='adult'?' selected':'')+'>Adult</option>'+
       '<option value="sai"'+(state.profile==='sai'?' selected':'')+'>Sai</option></select>'+
-      '<small data-cloud-status role="status" aria-live="polite">'+esc(state.cloudStatus)+'</small></div></div>';
+      '<small data-cloud-status role="status" aria-live="polite">'+esc(state.cloudStatus)+'</small>'+
+      (state.store?'<button type="button" class="ft-voice-settings-link" data-page="settings"'+(state.page==='settings'?' aria-current="page"':'')+'>⚙ Settings</button>':'')+'</div></div>';
   }
   function login(){
     const iphonePwa=authCapabilities.iosStandalone;
@@ -331,7 +343,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<p class="ft-question">'+esc(x.prompt)+'</p>'+
       (state.completed?answerComparison({answer:state.lastInput,expected:x.answer,result:state.answerResult,lang:x.kind==='toEnglish'?'en':'fr',
         replay:x.kind==='toEnglish'?'':'<button type="button" data-act="hear-practice-model" aria-label="Hear the correct French again">▶</button>'}):
-      '<form id="ft-answer"><label for="ft-answer-text">Your answer</label><input id="ft-answer-text" name="answer" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" value="'+esc(state.lastInput)+'" required>'+
+      '<form id="ft-answer"><label for="ft-answer-text">Your answer</label><input id="ft-answer-text" name="answer" type="text" lang="'+(x.kind==='toEnglish'?'en':'fr')+'" '+EXACT_ANSWER_ATTRIBUTES+' value="'+esc(state.lastInput)+'" required>'+
       '<div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button><button type="button" data-act="hint"'+(state.hint!=='none'||!x.hint?' disabled':'')+'>Give me a hint</button><button type="button" data-act="model">Show model</button><button type="button" data-act="dictate">🎤 Dictate</button></div></form>')+
       (state.hint!=='none'?'<p class="ft-hint">Hint: '+esc(x.hint)+'</p>':'')+
       (state.feedback?'<div class="ft-feedback '+(state.answerResult||'')+'" role="status">'+esc(state.feedback)+'</div>':'')+
@@ -357,7 +369,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     dialog.className='ft-word-dialog';
     dialog.setAttribute('aria-label','Explore French word '+surface);
     const isVerb=info?.type==='verb',verb=info?.entry;
-    const header='<div class="ft-word-dialog-top"><div><p class="ft-eyebrow">OPTIONAL LANGUAGE EXPLORER</p><h2 lang="fr">'+esc(surface)+'</h2></div>'+
+    const header='<div class="ft-word-dialog-top"><div><p class="ft-eyebrow">OPTIONAL LANGUAGE EXPLORER</p><h2 lang="fr">'+spokenWords(surface)+'</h2></div>'+
       '<button type="button" data-close-word aria-label="Close word explanation">×</button></div>';
     let content='';
     if(isVerb){
@@ -398,7 +410,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       content='<p class="ft-word-form">'+esc(info.kind)+'</p>'+
         '<div class="ft-word-facts"><div><small>Meaning</small><strong>'+esc(info.meaning)+'</strong></div></div>'+
         '<h3>Notice</h3><p>'+esc(info.tip)+'</p>'+
-        '<p lang="fr" class="ft-word-example">'+esc(info.example)+'</p>'+
+        '<p lang="fr" class="ft-word-example">'+spokenWords(info.example)+'</p>'+
         '<div class="ft-actions"><button type="button" data-dialog-speak="'+esc(info.surface)+'">▶ Word</button>'+
         '<button type="button" data-dialog-speak="'+esc(info.example)+'">▶ Example</button></div>';
     }else{
@@ -460,6 +472,19 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     else dialog.setAttribute('open','');
     if(!info&&lookup)loadDictionary();
   }
+  function settings(){
+    const voices=frenchVoices(window.speechSynthesis?.getVoices?.()||[]);
+    const available=voices.some(v=>frenchVoiceKey(v)===preferredVoice);
+    const options='<option value=""'+(!preferredVoice?' selected':'')+'>Automatic — device French voice</option>'+
+      (!available&&preferredVoice?'<option value="'+esc(preferredVoice)+'" selected>Saved voice unavailable on this device</option>':'')+
+      voices.map(v=>'<option value="'+esc(frenchVoiceKey(v))+'"'+(frenchVoiceKey(v)===preferredVoice?' selected':'')+'>'+esc(v.name+' · '+v.lang)+'</option>').join('');
+    return '<section class="ft-card ft-voice-settings"><p class="ft-eyebrow">FRENCH SETTINGS</p><h2>Choose your French voice</h2>'+
+      '<p>Use the same voice for lessons, words, corrections and listening exercises on this device.</p>'+
+      '<label for="ft-voice">French voice<select id="ft-voice" data-french-voice>'+options+'</select></label>'+
+      '<div class="ft-actions"><button type="button" class="ft-primary" data-act="preview-french-voice">▶ Preview voice</button><button type="button" data-page="home">Done</button></div>'+
+      '<p class="ft-small">'+(!voices.length?'No French voices listed yet. The automatic voice may become available after the browser loads its voices.':!available&&preferredVoice?'The saved voice is unavailable here. A device French voice will be used until it is available.':'Your selection is saved on this device. Available voices depend on your operating system and browser.')+'</p>'+
+      '<p class="ft-small">On iPad or iPhone, additional system voices may be available under Settings → Accessibility → Read &amp; Speak or Spoken Content. Safari may expose only some installed voices. The separate pronunciation coach uses its own reference audio.</p></section>';
+  }
   function pronounce(){
     return '<section class="ft-card"><p class="ft-eyebrow">OPTIONAL PRONUNCIATION COACH</p><h2>Listen and repeat aloud</h2>'+
       '<p>This reuses your existing shared Apps pronunciation lab. Its transcript, rhythm and pitch estimates are <b>provisional coaching cues</b>, not proof of phoneme accuracy.</p>'+
@@ -474,7 +499,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const ready=!!state.store;
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
       (!ready?login():nav()+
-      (state.page==='home'?overview():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
+      (state.page==='home'?overview():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
        state.page==='alphabet'?alphabet():state.page==='sounds'?sounds():state.page==='sound-quiz'?soundQuiz():state.page==='knowledge'?knowledge():
        state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())))+
       '<p class="ft-foot">Original lessons informed by Barry Smith, Jessica Lund’s published Michaela work, and general repeat-and-build principles described by Paul Noble. Not affiliated with or a reproduction of their courses. <a href="https://jlmfl.wordpress.com/2022/11/27/teaching-grammar-rote-vs-rules/">Lund on rote &amp; rules</a> · <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES</a></p>';
@@ -504,8 +529,9 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     try{
       const u=new SpeechSynthesisUtterance(String(s));u.lang=lang;u.rate=.8;
       const voices=window.speechSynthesis.getVoices();
-      const voice=voices.find(v=>v.lang.toLowerCase()===lang.toLowerCase())||voices.find(v=>v.lang.toLowerCase().split('-')[0]===lang.toLowerCase().split('-')[0]);
-      if(voice)u.voice=voice;
+      const voice=/^fr(?:[-_]|$)/i.test(lang)?preferredFrenchVoice(voices,preferredVoice):
+        voices.find(v=>String(v.lang).toLowerCase()===lang.toLowerCase())||voices.find(v=>String(v.lang).toLowerCase().split('-')[0]===lang.toLowerCase().split('-')[0]);
+      if(voice){u.voice=voice;u.lang=voice.lang||lang;}
       task.utterance=u;
       u.onend=()=>task.finish(true);
       u.onerror=()=>task.finish(false);
@@ -626,7 +652,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     return String(error?.message||error);
   }
   async function onClick(e){
-    const guidedTarget=e.target.closest('[data-gact],[data-gchoice],[data-gspeak]');
+    const guidedTarget=e.target.closest('[data-gword],[data-gact],[data-gchoice],[data-gspeak]');
     if(guidedTarget&&guidedUI.click(guidedTarget))return;
     const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say],[data-word],[data-sound-group],[data-sound-play],[data-sound-compare],[data-sound-sentence],[data-sound-answer],[data-cuddle-word]');
     if(!b)return;
@@ -639,7 +665,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       return;
     }
     if(b.dataset.say!==undefined){speak(PASSAGE[Number(b.dataset.say)].fr);return;}
-    if(b.dataset.word!==undefined){openWordInfo(b.dataset.word,b);return;}
+    if(b.dataset.word!==undefined){speak(b.dataset.word);openWordInfo(b.dataset.word,b);return;}
     if(b.dataset.cuddleWord!==undefined){
       const example=CUDDLES_DEMOS.find(d=>d.id===b.dataset.cuddleWord);
       if(example)speak(example.word);return;
@@ -664,6 +690,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
     if(b.dataset.soundAnswer!==undefined){answerSoundQuiz(b.dataset.soundAnswer);return;}
     switch(b.dataset.act){
+      case 'preview-french-voice':speak('Bonjour ! Je parle français. Écoutez bien et répétez avec moi.');break;
       case 'passkey-signin':{
         b.disabled=true;
         state.cloudStatus='Verifying your App Monitor passkey…';updateStatus();
@@ -790,7 +817,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   async function onSubmit(e){
     if(guidedUI.submit(e.target,e))return;
-    if(e.target.id==='ft-answer'){e.preventDefault();checkAnswer(new FormData(e.target).get('answer'));return;}
+    if(e.target.id==='ft-answer'){e.preventDefault();const field=e.target.querySelector('input[name="answer"]');if(field)checkAnswer(field.value);return;}
     if(e.target.id==='ft-letter-answer'){e.preventDefault();quizLetter(new FormData(e.target).get('answer'));return;}
     if(e.target.id==='ft-login'){
       e.preventDefault();const data=new FormData(e.target),btn=e.target.querySelector('button');
@@ -801,6 +828,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
   }
   async function onChange(e){
+    if(e.target.matches('[data-french-voice]')){
+      preferredVoice=e.target.value;
+      try{localStorage.setItem(VOICE_KEY,preferredVoice);}catch{}
+      cancelSpeech();return;
+    }
     if(guidedUI.change(e.target))return;
     if(e.target.matches('[data-workshop-key]')){
       const key=e.target.dataset.workshopKey,v=Number(e.target.value);
@@ -823,7 +855,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   // Native form Enter checks; focused Next uses native button Enter. Ignore
   // held-down Enter repeats so they never skip an unseen question.
-  const onKeyDown=e=>{if(e.key==='Enter'&&e.repeat&&!e.isComposing)e.preventDefault();};
+  // Do not turn an IME/composition confirmation or a held key into a lesson
+  // submission. Exact input fields disable browser spelling substitutions.
+  const onKeyDown=e=>{if(e.key==='Enter'&&(e.repeat||e.isComposing||e.keyCode===229))e.preventDefault();};
+  const onVoicesChanged=()=>{if(!destroyed&&state.page==='settings')render();};
+  window.speechSynthesis?.addEventListener?.('voiceschanged',onVoicesChanged);
   el().addEventListener('keydown',onKeyDown);
   el().addEventListener('click',onClick);
   el().addEventListener('submit',onSubmit);
@@ -838,6 +874,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     finally{state.loading=false;render();}})();
   return {destroy(){
     destroyed=true;if(syncTimer)clearTimeout(syncTimer);
+    window.speechSynthesis?.removeEventListener?.('voiceschanged',onVoicesChanged);
     window.removeEventListener('online',onOnline);
     document.removeEventListener('visibilitychange',onVisible);
     el().removeEventListener('keydown',onKeyDown);
