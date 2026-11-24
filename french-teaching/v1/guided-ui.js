@@ -4,11 +4,12 @@
 // No publisher text, recordings or proprietary course scripts are reproduced.
 import {MAGIC10_VERBS,magicTenFor,magicTenUnitHints} from './magic10.js';
 import {
-  GUIDED_UNITS,guidedLesson,guidedStatus,guidedTeachingRef,
+  ALL_UNITS,unitsForTrack,guidedLesson,guidedStatus,guidedTeachingRef,
   guidedCompletionRefs,recommendedGuidedUnit,guidedFirstAttemptPhase
 } from './guided-lessons.js';
 import {markAnswer,normaliseAnswer} from './data.js';
 import {exactAudit} from './answer-history.js';
+import {curriculumVariants,curriculumNormalize} from './curriculum-meta.js';
 
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const marker=row=>guidedCompletionRefs(row.id);
@@ -66,6 +67,7 @@ export function guidedHint(step,level=1){
     const purpose={'parce que':'a reason (because)','mais':'a contrast (but)','donc':'a result (so)'}[connector];
     return 'Build two short ideas first. Join them with '+purpose+'.';
   }
+  if(step.hint)return step.hint;
   const v=MAGIC10_VERBS[step.verbId];
   const clues={
     infinitive:'Think of the action in its dictionary form, without adding “I”.',
@@ -109,7 +111,7 @@ export function answerComparison({answer='',expected,result,lang='fr',replay=''}
     '<div class="ft-answer-expected"><small>Correct answer</small><div class="ft-pair-french">'+
     '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected)+'</p>'+replay+'</div></div></div>';
 }
-export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,speak,waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{}}){
+export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{}}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')
     throw Error('Guided lessons require evidence and speech adapters');
   const state={
@@ -127,7 +129,8 @@ export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,
   const announce=()=>refresh();
   const go=page=>typeof navigate==='function'?navigate(page):announce();
   const start=(unitId)=>{
-    const id=unitId||recommendedGuidedUnit(evidence()).unit.id;
+    const id=unitId||recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id;
+    if(!unitsForTrack(getTrack()).some(u=>u.id===id))return;
     guidedLesson(id); // validate before writing any record
     cancelAdvance();resetStep();
     state.unitId=id;
@@ -141,7 +144,7 @@ export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,
   };
   const reset=()=>{cancelAdvance();state.unitId=null;resetStep();state.selectedVerb='parler';};
   const context=()=>{
-    const id=state.unitId||recommendedGuidedUnit(evidence()).unit.id;
+    const id=state.unitId||recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id;
     const status=guidedStatus(id,evidence());
     const current=state.step||status.next;
     if(current&&!state.step){state.step=current;if(has(evidence(),hintRef(current)))state.hint=1;}
@@ -203,7 +206,7 @@ export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,
     const counts=status.teaching;
     const breakdown=counts.coreCompleted+'/'+counts.coreTotal+' core steps · '+counts.repairCompleted+'/'+counts.repairTotal+' corrections';
     const pct=total?Math.round(completed/total*100):0;
-    const other=GUIDED_UNITS.map(u=>'<option value="'+html(u.id)+'"'+(u.id===id?' selected':'')+'>'+
+    const other=unitsForTrack(getTrack()).map(u=>'<option value="'+html(u.id)+'"'+(u.id===id?' selected':'')+'>'+
       html(u.label+': '+u.name)+'</option>').join('');
     const head='<section class="ft-card ft-guided-shell"><div class="ft-guided-head">'+
       '<div><p class="ft-eyebrow">GUIDED FRENCH · SPEAK → REPEAT → REMEMBER</p>'+
@@ -282,7 +285,7 @@ export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,
     if(state.feedback)body+='<p class="'+(isChoice(step)?'ft-sr-only':'ft-guided-feedback '+(state.result||''))+'" role="status">'+html(state.feedback)+'</p>';
     body+='</div>';
     const why=step.stage==='guided'?'These repetitions are guided practice, not independent transfer.':
-      step.stage==='transfer'?'Only the first unaided attempt at a genuinely new combination is transfer evidence.':
+      step.stage==='transfer'?(step.novel?'Only the first unaided attempt at a genuinely new combination is transfer evidence.':'Use what you learned in a different combination; formal transfer is measured separately.'):
       step.stage==='review'?'A day-seven independent answer is separately counted for retention.':
       step.kind==='model'?'Listening and repetition are unscored teaching.':'Your first attempt is saved separately from retries and hints.';
     body+='<p class="ft-small">'+html(why)+'</p></section>';
@@ -309,17 +312,17 @@ export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,
       '<div class="ft-actions"><button type="button" data-gact="start" class="ft-primary">Practise with a guided lesson</button></div></section>';
   };
   const dashboard=()=>{
-    const statuses=GUIDED_UNITS.map(u=>guidedStatus(u.id,evidence()));
-    const preferred=recommendedGuidedUnit(evidence());
+    const statuses=unitsForTrack(getTrack()).map(u=>guidedStatus(u.id,evidence()));
+    const preferred=recommendedGuidedUnit(evidence(),Date.now(),getTrack());
     return '<section class="ft-card ft-todays-lesson"><p class="ft-eyebrow">TODAY’S GUIDED FRENCH</p>'+
       '<h2>'+html(preferred.mode==='review'?'Remember what you learned':'Build French one phrase at a time')+'</h2>'+
       '<p>'+html(preferred.unit.name)+' · '+html(preferred.unit.goal)+'</p>'+
       '<div class="ft-actions"><button data-gact="start" class="ft-primary">'+
       (preferred.mode==='review'?'Start your review':preferred.mode==='new'?'Start guided lesson':'Continue guided lesson')+
       '</button><button data-page="magic">Explore Magic 10</button></div>'+
-      '<p class="ft-small">Practise small useful structures repeatedly, cover the prompts, and revisit them after 1, 3 and 7 days.</p>'+
+      '<p class="ft-small">Practise small useful structures repeatedly, cover the prompts, and revisit them after 1, 3, 7 and 28 days.</p>'+
       '<div class="ft-guided-unit-summary">'+statuses.map(s=>
-        '<div><strong>'+html(s.unit.label)+'</strong><span>'+html(s.unit.name)+'</span>'+
+        '<div><strong>'+html(s.unit.label)+'</strong><span>'+html(s.unit.name)+'</span><button type="button" data-eact="unit:'+html(s.unit.id)+'">Open lesson</button>'+
         '<small>'+html(s.mode==='complete'?'Teaching complete':s.mode==='review'?'Review due':
           s.mode==='new'?'Ready to start':'In progress')+'</small>'+
         (s.mode==='new'?'':'<small>'+s.teaching.coreCompleted+'/'+s.teaching.coreTotal+' core · '+s.teaching.repairCompleted+'/'+s.teaching.repairTotal+' corrections</small>')+'</div>').join('')+'</div></section>';
@@ -327,10 +330,13 @@ export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,
   const logGuided=(step,answer,correct,{reveal=false,model=false}={})=>{
     const expected=step.kind==='listen'?step.en:step.fr;
     const support=reveal||model?'worked-example':state.hint||state.wrong||step.stage==='guided'||step.stage==='repair'?'small-prompt':'none';
-    const info={ref:model?step.id+':complete':step.id+':first',activity:GUIDED_UNITS.find(u=>u.id===step.unitId)?.name+' · '+step.stage,
+    const info={ref:model?step.id+':complete':step.id+':first',activity:ALL_UNITS.find(u=>u.id===step.unitId)?.name+' · '+step.stage,
       question:step.kind==='listen'?'Listen: '+step.fr:step.kind==='transcribe'?'Dictation: '+step.fr:step.en,support};
     if(reveal||model)return recordAttempt({...info,answer,expected,result:model?'model':'revealed',reason:model?'Oral repetition, not automatically marked.':'Model revealed; not an independent success.',marker:'unscored'});
-    return recordAttempt(exactAudit(answer,expected,correct,{...info,marker:isChoice(step)?'choice-v1':'guided-exact-v1',normalize:isChoice(step)?x=>String(x??''):normaliseAnswer}));
+    const custom=step.track&&step.track!=='michaela'&&!isChoice(step);
+    const audit=exactAudit(answer,expected,correct,{...info,marker:isChoice(step)?'choice-v1':custom?'curriculum-v1':'guided-exact-v1',normalize:isChoice(step)?x=>String(x??''):custom?curriculumNormalize:normaliseAnswer});
+    if(custom)audit.accepted=step.kind==='transcribe'?[curriculumNormalize(expected)]:curriculumVariants(expected,step.en);
+    return recordAttempt(audit);
   };
   const choose=(option)=>{
     const {current}=context();
@@ -368,7 +374,7 @@ export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,
     if(!current||state.done||!['write','transcribe'].includes(current.kind)||state.revealed)return;
     const answer=String(value??'');
     if(!answer.trim())return;
-    const correct=markAnswer(answer,current.fr);
+    const correct=current.track==='michaela'?markAnswer(answer,current.fr):current.kind==='transcribe'?curriculumNormalize(answer)===curriculumNormalize(current.fr):curriculumVariants(current.fr,current.en).includes(curriculumNormalize(answer));
     if(!logGuided(current,answer,correct))return;
     firstAttempt(current,correct);
     state.answer=answer;state.result=correct?'correct':'incorrect';
@@ -401,12 +407,12 @@ export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,
     if(!act)return false;
     const {current}=context();
     switch(act){
-      case 'start':start(recommendedGuidedUnit(evidence()).unit.id);break;
-      case 'next-unit':start(recommendedGuidedUnit(evidence()).unit.id);break;
+      case 'start':{const id=recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id;if(getTrack()!=='michaela'&&requestStart)requestStart(id);else start(id);break;}
+      case 'next-unit':start(recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id);break;
       case 'pause':resetStep();announce();break;
       case 'speak':if(current)speak(current.fr);break;
       case 'focus-word':{
-        const item=GUIDED_UNITS.find(x=>x.id===context().id)?.soundFocus;
+        const item=ALL_UNITS.find(x=>x.id===context().id)?.soundFocus;
         if(item)speak(item.word);
         break;
       }
@@ -452,7 +458,7 @@ export function createGuidedInterface({getEntries,record,recordAttempt=()=>true,
       return true;
     }
     if(target.dataset.gunit!==undefined){
-      if(GUIDED_UNITS.some(u=>u.id===target.value)){start(target.value);}
+      if(unitsForTrack(getTrack()).some(u=>u.id===target.value)){if(getTrack()!=='michaela'&&requestStart)requestStart(target.value);else start(target.value);}
       return true;
     }
     return false;

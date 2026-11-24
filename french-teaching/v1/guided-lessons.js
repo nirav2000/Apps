@@ -1,6 +1,8 @@
 // Original, repeat-rich French lessons. Inspired by the *principles* described by
 // Jessica Lund and Paul Noble, not a reproduction of either person's course.
 import {magicTenFor,magicTenPhrase} from './magic10.js';
+import {SAI_UNITS} from './sai-curriculum.js';
+import {UNLOCKING_UNITS} from './unlocking-curriculum.js';
 export const GUIDED_VERSION='2.0.0';
 export const GUIDED_PREFIX='guided-v2:';
 export const GUIDED_REVIEW_DAYS=Object.freeze([1,3,7]);
@@ -72,19 +74,22 @@ const LESSONS=Object.freeze([
         'I practised French, so I would like to read in French.','result']
     ]}
 ]);
-export const GUIDED_UNITS=LESSONS;
+export const GUIDED_UNITS=LESSONS; // compatibility: original four foundations
+export const ALL_UNITS=Object.freeze([...LESSONS,...SAI_UNITS,...UNLOCKING_UNITS]);
+export const unitsForTrack=(track='michaela')=>ALL_UNITS.filter(u=>(u.track||'michaela')===track);
 const idOf=(unit,stage,part)=>GUIDED_PREFIX+unit+':'+stage+':'+part;
 export const guidedRefs=id=>({
   first:id+':first',complete:id+':complete'
 });
 const markerOf=unit=>GUIDED_PREFIX+unit+':taught';
-const rowsFor=unit=>unit.verbs.flatMap(verb=>unit.structures.map(id=>magicTenPhrase(verb,id)));
+export const lessonRows=unit=>unit.rows||unit.verbs.flatMap(verb=>unit.structures.map(id=>magicTenPhrase(verb,id)));
+const rowsFor=lessonRows;
 function construct(unit){
   const rows=rowsFor(unit),deck=[];
   const add=(stage,kind,row,part,extra={})=>deck.push({
     id:idOf(unit.id,stage,part),unitId:unit.id,stage,kind,concept:row.concept,
     fr:row.fr,en:row.en,structure:row.id,verbId:row.verbId,
-    cue:'',...extra
+    cue:'',hint:row.hint||'',track:unit.track||'michaela',...extra
   });
   // First lesson: these are *models*, not a false prior-knowledge recap.
   // Subsequent units deliberately revisit previously encountered constructions.
@@ -106,7 +111,7 @@ function construct(unit){
   add('present','model',{
     ...rows[0],fr:unit.bridge.fr,en:unit.bridge.en,
     concept:'french:connectives:'+unit.id
-  },'connector',{prompt:'Notice one linking word: '+unit.bridge.point,modelInitiallyShown:true});
+  },'connector',{prompt:(unit.track?'Notice the pattern: ':'Notice one linking word: ')+unit.bridge.point,modelInitiallyShown:true});
   // Same small set is revisited in varied modalities.
   for(let i=0;i<rows.length;i++){
     const r=rows[i],other1=rows[(i+1)%rows.length],other2=rows[(i+3)%rows.length];
@@ -155,13 +160,13 @@ function construct(unit){
       concept:'french:guided:transfer:'+unit.id+':'+connector
     },'new-'+i,{
       prompt:'New combination: put familiar parts together without a model.',
-      support:'none',novel:true
+      support:'none',novel:!unit.track
     });
   }
   return deck;
 }
 export function guidedLesson(unitId){
-  const u=GUIDED_UNITS.find(x=>x.id===unitId);
+  const u=ALL_UNITS.find(x=>x.id===unitId);
   if(!u)throw Error('Unsupported guided French lesson');
   return {unit:u,steps:construct(u)};
 }
@@ -193,7 +198,7 @@ function reviewSteps(unit,dayNumber){
     id:idOf(unit.id,'review-'+dayNumber,String(i)),
     unitId:unit.id,stage:'review',kind:'write',concept:r.concept,
     fr:r.fr,en:r.en,structure:r.id,verbId:r.verbId,support:'none',
-    prompt:'Recall from memory after '+dayNumber+' day'+(dayNumber===1?'':'s')+'. No model.',novel:false
+    track:unit.track||'michaela',hint:r.hint||'',prompt:'Recall from memory after '+dayNumber+' day'+(dayNumber===1?'':'s')+'. No model.',novel:false
   }));
 }
 export function guidedStatus(unitId,entries,now=Date.now()){
@@ -226,7 +231,7 @@ export function guidedStatus(unitId,entries,now=Date.now()){
       remaining:unfinished.length+repairPending.length,
       completed:teaching.completed,total:teaching.total,reviewDay:null};
   }
-  if(taughtAt!=null){
+  if(taughtAt!=null&&!lesson.unit.track){
     const elapsed=Math.floor((now-taughtAt)/DAY);
     // If late, do NOT backfill missed review days as separate observations.
     const dueDay=GUIDED_REVIEW_DAYS.filter(x=>elapsed>=x).at(-1);
@@ -240,14 +245,14 @@ export function guidedStatus(unitId,entries,now=Date.now()){
     }
   }
   const elapsed=taughtAt==null?0:Math.floor((now-taughtAt)/DAY);
-  const nextDay=GUIDED_REVIEW_DAYS.find(x=>x>elapsed);
+  const nextDay=lesson.unit.track?null:GUIDED_REVIEW_DAYS.find(x=>x>elapsed);
   return {unit:lesson.unit,mode:'complete',taughtAt,teaching,steps:[],next:null,remaining:0,
     total:teaching.total,completed:teaching.completed,reviewDay:null,
     nextReviewAt:nextDay&&taughtAt?taughtAt+nextDay*DAY:null};
 }
-export function recommendedGuidedUnit(entries,now=Date.now()){
+export function recommendedGuidedUnit(entries,now=Date.now(),track='michaela'){
   // Reviews first, then the first unfinished/new teaching unit.
-  const statuses=GUIDED_UNITS.map(u=>guidedStatus(u.id,entries,now));
+  const statuses=unitsForTrack(track).map(u=>guidedStatus(u.id,entries,now));
   return statuses.find(x=>x.mode==='review') ||
     statuses.find(x=>x.mode==='resume') ||
     statuses.find(x=>x.mode==='new') ||
