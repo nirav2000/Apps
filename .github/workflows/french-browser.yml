@@ -6,6 +6,7 @@ on:
       - 'french-teaching/**'
       - 'learning-evidence/v1/firestore-cloud.js'
       - 'tests/french-browser*'
+      - 'tests/french-assessment-browser.mjs'
       - 'tests/french-extensions-browser.mjs'
       - 'tests/french-dictionary-browser.mjs'
       - 'tests/french-ios-auth-browser.mjs'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'french-teaching/**'
       - 'tests/french-browser*'
+      - 'tests/french-assessment-browser.mjs'
       - '.github/workflows/french-browser.yml'
   workflow_dispatch:
 permissions:
@@ -43,3 +45,4 @@ jobs:
           node tests/french-extensions-browser.mjs
           node tests/french-guided-browser.mjs
           node tests/french-dictionary-browser.mjs
+          node tests/french-assessment-browser.mjs
