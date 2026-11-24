@@ -81,11 +81,23 @@ export function guidedHint(step,level=1){
   return (clues[step.structure]||'Break the meaning into a subject, an action and any extra details.')+
     (v&&['present','negative','past'].includes(step.structure)?' Think of the action “'+v.english+'”.':'');
 }
-export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate}){
+export function answerComparison({answer='',expected,result,lang='fr',replay=''}) {
+  const status=result==='correct'?'correct':result==='incorrect'?'incorrect':'revealed';
+  const label=status==='correct'?'Correct':status==='incorrect'?'Incorrect':'Answer revealed';
+  const submitted=String(answer??'').trim().length>0;
+  const mark=status==='correct'?'✓':status==='incorrect'?'×':'';
+  return '<div class="ft-guided-pair ft-answer-comparison '+status+'" role="group" aria-label="'+label+'">'+
+    '<div class="ft-answer-submitted"><small>'+ (status==='revealed'?'Your draft (not checked)':'Your answer')+
+    (mark?' <span class="ft-answer-mark" aria-hidden="true">'+mark+'</span>':'')+'</small>'+
+    '<p lang="'+html(lang)+'" class="ft-answer-value">'+(submitted?html(answer):'—')+'</p></div>'+
+    '<div class="ft-answer-expected"><small>Correct answer</small><div class="ft-pair-french">'+
+    '<p lang="'+html(lang)+'" class="ft-answer-value">'+html(expected)+'</p>'+replay+'</div></div></div>';
+}
+export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{}}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')
     throw Error('Guided lessons require evidence and speech adapters');
   const state={
-    unitId:null,step:null,answer:'',feedback:'',wrong:false,done:false,
+    unitId:null,step:null,answer:'',result:null,feedback:'',wrong:false,done:false,
     hint:0,revealed:false,wrongChoices:new Set(),selectedVerb:'parler',error:null,advancing:false
   };
   let navigation=0;
@@ -93,7 +105,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
   const cancelAdvance=()=>{navigation++;state.advancing=false;cancelSpeech();};
   const hintRef=step=>step.id+':hint';
   const resetStep=()=>{
-    state.step=null;state.answer='';state.feedback='';state.wrong=false;
+    state.step=null;state.answer='';state.result=null;state.feedback='';state.wrong=false;
     state.done=false;state.hint=0;state.revealed=false;state.wrongChoices.clear();state.error=null;
   };
   const announce=()=>refresh();
@@ -135,6 +147,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
     state.advancing=false;resetStep();announce();
     const intro=guidedEntryAudio(context().current);
     if(intro)speak(intro);
+    focusTarget('#ft-guided-input,[data-gchoice],[data-gact="reveal"],[data-gact="finish-model"],[data-gact="next-unit"]');
   };
   const completion=(step,support)=>{
     if(!has(evidence(),marker(step).complete)){
@@ -205,8 +218,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
         (!showFrench?'<button type="button" data-gact="reveal">Reveal French</button>':'')+
         advanceButton('finish-model','I have repeated it → Next')+'</div>';
     }else{
-      if(!isChoice(step)&&showFrench)body+=pair(step.en,step.fr);
-      else body+='<p class="ft-guided-english">'+
+      body+='<p class="ft-guided-english">'+
         (step.kind==='listen'||step.kind==='transcribe'
           ?'Listen to the French phrase. '+(step.kind==='listen'?'Choose the meaning.':'Write the French you heard.')
           :html(step.en))+'</p>';
@@ -231,10 +243,12 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
           (state.hint<2?'<button type="button" data-gact="hint">'+(state.hint?'Show first part':'Get a hint')+'</button>':'')+
           '<button type="button" data-gact="reveal">Show answer</button></div></form>';
       }
+      if(!isChoice(step)&&showFrench)body+=answerComparison({answer:state.answer,expected:step.fr,result:state.result,
+        replay:'<button type="button" data-gact="speak" aria-label="Hear the correct French again">▶</button>'});
       if(state.hint&&!state.done&&!state.revealed)body+='<p class="ft-guided-hint" role="status">'+
         html(guidedHint(step,1))+(state.hint>=2?'<br><strong>'+html(guidedHint(step,2))+'</strong>':'')+'</p>';
       if(state.revealed&&!state.done)
-        body+=advanceButton('finish-revealed','I reviewed the model → Next');
+        body+=advanceButton('finish-revealed',state.result==='incorrect'?'Next phrase →':'I reviewed the model → Next');
       if(state.done)
         body+=advanceButton('next','Next phrase →');
     }
@@ -246,7 +260,7 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
       (step.id.endsWith(':0')||step.id.endsWith(':3')));
     if(teachSound)body+='<aside class="ft-guided-sound"><strong>Sound &amp; spelling to notice: '+html(focus.spelling)+'</strong>'+
       '<p>'+html(focus.note)+'</p><button type="button" data-gact="focus-word">▶ Hear '+html(focus.word)+'</button></aside>';
-    if(state.feedback)body+='<p class="'+(isChoice(step)?'ft-sr-only':'ft-guided-feedback')+'" role="status">'+html(state.feedback)+'</p>';
+    if(state.feedback)body+='<p class="'+(isChoice(step)?'ft-sr-only':'ft-guided-feedback '+(state.result||''))+'" role="status">'+html(state.feedback)+'</p>';
     body+='</div>';
     const why=step.stage==='guided'?'These repetitions are guided practice, not independent transfer.':
       step.stage==='transfer'?'Only the first unaided attempt at a genuinely new combination is transfer evidence.':
@@ -318,15 +332,16 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
     announce();
     if(current.kind==='choice')speak(value);
     else if(correct)speak(current.fr);else speak(value,'en-GB');
+    if(correct)focusTarget('[data-gact="next"]');else focusTarget('[data-gchoice="'+i+'"]');
   };
   const write=(value)=>{
     const {current}=context();
     if(!current||state.done||!['write','transcribe'].includes(current.kind)||state.revealed)return;
-    const answer=String(value??'').trim();
-    if(!answer)return;
+    const answer=String(value??'');
+    if(!answer.trim())return;
     const correct=markAnswer(answer,current.fr);
     firstAttempt(current,correct);
-    state.answer=answer;
+    state.answer=answer;state.result=correct?'correct':'incorrect';
     if(correct){
       completion(current,state.hint||state.wrong?'small-prompt':current.support==='none'?'none':'small-prompt');
       state.feedback=state.hint||state.wrong?
@@ -334,10 +349,14 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
         'Correct on your first try. This counts as independent only if no model was shown.';
     }else{
       state.wrong=true;
+      // Record the unaided failure before showing the model. Completion is
+      // assisted; the existing repair queue revisits missed main-deck items.
       state.feedback=answerFeedback(answer,current.fr);
+      state.revealed=true;
     }
     announce();
-    if(correct)speak(current.fr);
+    speak(current.fr);
+    focusTarget(correct?'[data-gact="next"]':'[data-gact="finish-revealed"]');
   };
   const click=(target)=>{
     if(state.advancing&&(target.dataset.gchoice!==undefined||target.dataset.gact||target.dataset.gspeak!==undefined))return true;
@@ -373,9 +392,14 @@ export function createGuidedInterface({getEntries,record,speak,waitForSpeech=()=
         }break;
       case 'reveal':
         if(current&&!state.done){
-          if(current.kind!=='model')firstAttempt(current,false,'worked-example');
+          if(current.kind!=='model'){
+            const draft=target.closest?.('form')?.querySelector('input[name="answer"]');
+            if(draft)state.answer=draft.value;
+            firstAttempt(current,false,'worked-example');state.result='revealed';
+          }
           state.revealed=true;state.feedback=current.kind==='model'?'':'Model shown. This is guided review, not an independent success.';
           announce();speak(current.kind==='model'?teacherModelAudio(current):current.fr);
+          focusTarget(current.kind==='model'?'[data-gact="finish-model"]':'[data-gact="finish-revealed"]');
         }break;
       case 'finish-model':
         if(current?.kind==='model'&&!state.done){state.revealed=true;completion(current,'worked-example');void advance(current.fr);}

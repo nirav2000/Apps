@@ -3,7 +3,7 @@ import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,so
 import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
 import {browserAuthContext} from './auth-context.js';
-import {createGuidedInterface} from './guided-ui.js';
+import {createGuidedInterface,answerComparison} from './guided-ui.js';
 import {optionalVerbTimeline} from './magic10.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
@@ -40,7 +40,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   const state={page:'home',profile:'adult',context:null,store:null,cloud:null,cloudStatus:'Checking Firebase…',
     cloudAt:null,loading:true,lessonIndex:0,hideEnglish:false,question:0,queue:DRILLS.slice(),
     alphabetQuiz:[],alphabetQuestion:0,attempted:false,failed:false,hint:'none',feedback:'',
-    completed:false,pronunciationIndex:0,coach:null,lastInput:'',busy:false,authNotice:'',letterGrouped:false,soundGroup:'vowel-contrasts',soundQueue:[],soundQuestion:0,soundAnswered:false,soundChoice:null,soundFeedback:'',soundCorrect:0,soundLastResult:null,builder:{mode:0,left:0,right:0,showFrench:true}};
+    completed:false,answerResult:null,pronunciationIndex:0,coach:null,lastInput:'',busy:false,authNotice:'',letterGrouped:false,soundGroup:'vowel-contrasts',soundQueue:[],soundQuestion:0,soundAnswered:false,soundChoice:null,soundFeedback:'',soundCorrect:0,soundLastResult:null,builder:{mode:0,left:0,right:0,showFrench:true}};
   try{const p=localStorage.getItem('next-french:profile');if(p==='adult'||p==='sai')state.profile=p;}catch{}
   const el=()=>target;
   let syncTimer=0,destroyed=false,syncTask=null,pendingAgain=false,wordDialog=null;
@@ -53,7 +53,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   // The new lesson engine writes only additional evidence events to the
   // established Firebase parent/learner scope. Existing lesson records stay as-is.
   const guidedUI=createGuidedInterface({
-    getEntries:()=>state.store?.getEntries()||[],record,speak,waitForSpeech,cancelSpeech,refresh:render,
+    getEntries:()=>state.store?.getEntries()||[],record,speak,waitForSpeech,cancelSpeech,refresh:render,focusTarget,
     navigate:page=>{state.page=page;render();}
   });
   function teach(kind){
@@ -278,7 +278,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       support:'none',taughtAt:taughtAt('sounds')||stamp(),sourceRef:'sound-'+item.id});
     state.soundAnswered=true;state.soundChoice=value;
     state.soundFeedback=correct?'Correct — you distinguished the spelling.':'Not quite. Listen again and compare the two sounds.';
-    render();speak(correct?value:value+'. '+item.correct);
+    render();speak(correct?value:value+'. '+item.correct);focusTarget('[data-act="next-sound-question"]');
   }
   function knowledge(){
     const rows=PASSAGE.map((l,i)=>'<div class="ft-grid-row"><div><span class="ft-number">'+(i+1)+'</span> <strong lang="fr" class="ft-inline-french">'+interactiveFrench(l.fr)+'</strong>'+
@@ -317,7 +317,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<button data-act="try-workshop" class="ft-primary">Type from English</button></div></div>'+
       '<p class="ft-small">Workshop repetitions count as guided practice, not as genuinely unseen transfer. Separate unseen tests are part of Sentence practice.</p></section>'+patterns();
   }
-  function resetQuestion(){state.attempted=false;state.failed=false;state.hint='none';state.feedback='';state.completed=false;state.lastInput='';}
+  function resetQuestion(){state.attempted=false;state.failed=false;state.hint='none';state.feedback='';state.completed=false;state.lastInput='';state.answerResult=null;}
   function practice(){
     if(!state.queue.length)state.queue=DRILLS.slice();
     const x=state.queue[Math.min(state.question,state.queue.length-1)];
@@ -329,12 +329,13 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       (x.novel?'<p class="ft-tag">New combination · transfer check</p>':'')+
       (isFind?'<blockquote lang="fr">'+interactiveFrench(PASSAGE[x.line].fr)+'</blockquote>':'')+
       '<p class="ft-question">'+esc(x.prompt)+'</p>'+
-      '<form id="ft-answer"><label for="ft-answer-text">Your answer</label><input id="ft-answer-text" name="answer" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" value="'+esc(state.lastInput)+'" '+(state.completed?'disabled':'required')+'></input>'+
-      (state.completed?'':'<div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button><button type="button" data-act="hint"'+(state.hint!=='none'||!x.hint?' disabled':'')+'>Give me a hint</button><button type="button" data-act="model">Show model</button><button type="button" data-act="dictate">🎤 Dictate</button></div>')+'</form>'+
+      (state.completed?answerComparison({answer:state.lastInput,expected:x.answer,result:state.answerResult,lang:x.kind==='toEnglish'?'en':'fr',
+        replay:x.kind==='toEnglish'?'':'<button type="button" data-act="hear-practice-model" aria-label="Hear the correct French again">▶</button>'}):
+      '<form id="ft-answer"><label for="ft-answer-text">Your answer</label><input id="ft-answer-text" name="answer" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" value="'+esc(state.lastInput)+'" required>'+
+      '<div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button><button type="button" data-act="hint"'+(state.hint!=='none'||!x.hint?' disabled':'')+'>Give me a hint</button><button type="button" data-act="model">Show model</button><button type="button" data-act="dictate">🎤 Dictate</button></div></form>')+
       (state.hint!=='none'?'<p class="ft-hint">Hint: '+esc(x.hint)+'</p>':'')+
-      (state.feedback?'<div class="ft-feedback" role="status">'+esc(state.feedback)+'</div>':'')+
-      (state.completed?'<div class="ft-model"><b>Model:</b> <span lang="'+(x.kind==='toEnglish'?'en':'fr')+'">'+(x.kind==='toEnglish'?esc(x.answer):interactiveFrench(x.answer))+'</span></div>'+
-      '<div class="ft-actions"><button class="ft-primary" data-act="next-question">'+(state.question===state.queue.length-1?'See results':'Next question')+'</button></div>':'')+
+      (state.feedback?'<div class="ft-feedback '+(state.answerResult||'')+'" role="status">'+esc(state.feedback)+'</div>':'')+
+      (state.completed?'<div class="ft-actions"><button class="ft-primary" data-act="next-question">'+(state.question===state.queue.length-1?'See results':'Next question')+'</button></div>':'')+
       '<p class="ft-small">Exact model answers are checked for words and spelling; valid alternative wording may need a teacher to review. Speech recognition is not a pronunciation score.</p></section>'+
       (state.page==='practice'?patterns():'');
   }
@@ -343,9 +344,9 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     return '<section class="ft-card"><p class="ft-eyebrow">ALPHABET LISTENING CHECK · '+(state.alphabetQuestion+1)+'/26</p><h2>Which letter did you hear?</h2>'+
       '<p>Listen without looking at the letter. Type the English capital letter you heard named in French.</p>'+
       '<div class="ft-actions"><button data-act="quiz-hear" class="ft-primary">▶ Play letter name</button></div>'+
-      '<form id="ft-letter-answer"><label for="ft-quiz-input">Letter (A–Z)</label><input id="ft-quiz-input" name="answer" type="text" maxlength="1" autocomplete="off" autocapitalize="characters" required '+(state.completed?'disabled':'')+'>'+
+      '<form id="ft-letter-answer"><label for="ft-quiz-input">Letter (A–Z)</label><input id="ft-quiz-input" name="answer" class="'+(state.answerResult==='incorrect'?'ft-input-incorrect':'')+'" value="'+esc(state.lastInput)+'" type="text" maxlength="1" autocomplete="off" autocapitalize="characters" required '+(state.completed?'disabled':'')+'>'+
       (state.completed?'':'<button class="ft-primary" type="submit">Check</button>')+'</form>'+
-      (state.feedback?'<div class="ft-feedback" role="status">'+esc(state.feedback)+'</div>':'')+
+      (state.feedback?'<div class="ft-feedback '+(state.answerResult||'')+'" role="status">'+esc(state.feedback)+'</div>':'')+
       (state.completed?'<div class="ft-actions"><button class="ft-primary" data-act="next-letter-question">'+(state.alphabetQuestion===25?'Finish quiz':'Next letter')+'</button></div>':'')+
       '<p class="ft-small">The audio comes from your device’s French voice and should be checked against a proficient speaker if anything sounds unclear.</p></section>';
   }
@@ -465,6 +466,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<label for="ft-target">Sentence<select id="ft-target" data-target>'+PASSAGE.map((p,i)=>'<option value="'+i+'"'+(i===state.pronunciationIndex?' selected':'')+'>'+esc(p.fr)+'</option>').join('')+'</select></label>'+
       '<div id="ft-pronounce-host"></div></section>';
   }
+  function focusTarget(selector){el().querySelector(selector)?.focus();}
   function render(){
     if(destroyed)return;
     if(wordDialog){const old=wordDialog;wordDialog=null;try{old.close();}catch{}old.remove();}
@@ -549,22 +551,26 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function checkAnswer(input){
     const x=state.queue[state.question];if(!x||state.completed)return;
-    state.lastInput=simplify(input);
+    state.lastInput=String(input??'');
+    if(!state.lastInput.trim())return;
     const correct=markAnswer(input,x.answer);
     noteAnswer(correct,x);
-    state.attempted=true;
-    if(correct){state.feedback=state.failed||state.hint!=='none'||x.guided?'Correct with support. We will check independent recall later.':'Correct independently. Well done.';state.completed=true;}
-    else{state.failed=true;state.feedback='Not quite. Check word order, articles, accents and conjugations. Try again, or request a hint.';}
+    state.attempted=true;state.answerResult=correct?'correct':'incorrect';state.completed=true;
+    if(correct)state.feedback=state.failed||state.hint!=='none'||x.guided?'Correct with support. We will check independent recall later.':'Correct independently. Well done.';
+    else{state.failed=true;state.feedback='Not quite. Compare your answer with the correct model.';}
     render();
-    if(correct&&x.kind!=='toEnglish')speak(x.answer);
+    if(x.kind!=='toEnglish')speak(x.answer);
+    focusTarget('[data-act="next-question"]');
   }
   function finishQuestion(){
-    if(state.question+1<state.queue.length){state.question++;resetQuestion();render();}
+    if(state.question+1<state.queue.length){state.question++;resetQuestion();render();focusTarget('#ft-answer-text');}
     else{state.page='home';state.question=0;resetQuestion();render();}
   }
   function quizLetter(input){
     const x=state.alphabetQuiz[state.alphabetQuestion];if(!x||state.completed)return;
-    const correct=String(input).trim().toUpperCase()===x.letter;
+    state.lastInput=String(input??'');
+    const correct=state.lastInput.trim().toUpperCase()===x.letter;
+    state.answerResult=correct?'correct':'incorrect';
     const first=taughtAt('alphabet')||stamp();
     record({concept:'french:alphabet:'+x.letter,phase:phaseFor('alphabet'),
       correctCount:correct?1:0,total:1,support:state.failed?'small-prompt':'none',
@@ -572,7 +578,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     state.failed=!correct||state.failed;
     state.completed=correct;
     state.feedback=correct?'Correct: '+x.letter+' (French name: '+x.name+').':'Not yet. Replay it and try again.';
-    render();
+    render();focusTarget(correct?'[data-act="next-letter-question"]':'#ft-quiz-input');
+    if(!correct)el().querySelector('#ft-quiz-input')?.select();
   }
   function startQuiz(){
     teach('alphabet');state.alphabetQuiz=shuffle(ALPHABET);
@@ -748,7 +755,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       case 'quiz-hear':speak('la lettre '+state.alphabetQuiz[state.alphabetQuestion].name);break;
       case 'next-letter-question':{
         await afterSpeech(b,()=>{
-          if(state.alphabetQuestion<25){state.alphabetQuestion++;resetQuestion();render();speak('la lettre '+state.alphabetQuiz[state.alphabetQuestion].name);}
+          if(state.alphabetQuestion<25){state.alphabetQuestion++;resetQuestion();render();speak('la lettre '+state.alphabetQuiz[state.alphabetQuestion].name);focusTarget('#ft-quiz-input');}
           else{state.page='home';resetQuestion();render();}
         });break;
       }
@@ -770,9 +777,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       }
       case 'model':{
         const x=state.queue[state.question];
+        const draft=el().querySelector('#ft-answer-text');
+        if(draft)state.lastInput=draft.value;
         noteAnswer(false,x,true);
-        state.completed=true;state.feedback='Model revealed: not scored as a correct answer.';render();if(x.kind!=='toEnglish')speak(x.answer);break;
+        state.answerResult='revealed';state.completed=true;state.feedback='Model revealed: not scored as a correct answer.';render();if(x.kind!=='toEnglish')speak(x.answer);focusTarget('[data-act="next-question"]');break;
       }
+      case 'hear-practice-model':{const x=state.queue[state.question];if(x&&state.completed&&x.kind!=='toEnglish')speak(x.answer);break;}
       case 'dictate':dictate();break;
       case 'next-question':await afterSpeech(b,finishQuestion);break;
       case 'restart':state.question=0;resetQuestion();render();break;
@@ -811,6 +821,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       state.coach.setTarget(PASSAGE[state.pronunciationIndex].fr,'fr-FR');
     }
   }
+  // Native form Enter checks; focused Next uses native button Enter. Ignore
+  // held-down Enter repeats so they never skip an unseen question.
+  const onKeyDown=e=>{if(e.key==='Enter'&&e.repeat&&!e.isComposing)e.preventDefault();};
+  el().addEventListener('keydown',onKeyDown);
   el().addEventListener('click',onClick);
   el().addEventListener('submit',onSubmit);
   el().addEventListener('change',onChange);
@@ -826,6 +840,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     destroyed=true;if(syncTimer)clearTimeout(syncTimer);
     window.removeEventListener('online',onOnline);
     document.removeEventListener('visibilitychange',onVisible);
+    el().removeEventListener('keydown',onKeyDown);
     el().removeEventListener('click',onClick);el().removeEventListener('submit',onSubmit);el().removeEventListener('change',onChange);
     if(wordDialog){try{wordDialog.close();}catch{}wordDialog.remove();wordDialog=null;}
     cancelPendingAdvance();

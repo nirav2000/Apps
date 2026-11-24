@@ -128,6 +128,25 @@ try{
   await page.locator('#ft-guided-input').fill(build.fr);
   await page.getByRole('button',{name:'Check answer'}).click();
   assert.equal(await page.locator('.ft-guided-pair').count(),1);
+  assert.equal(await page.locator('.ft-answer-comparison.correct').count(),1);
+  assert.equal(await page.evaluate(()=>document.activeElement?.dataset.gact),'next');
+  await page.keyboard.press('Enter');
+  const wrongBuild=lesson.steps[firstBuild+1];
+  await page.locator('[data-guided-step="'+wrongBuild.id+'"]').waitFor();
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'ft-guided-input');
+  const incorrect="je ne sais pas";
+  await page.locator('#ft-guided-input').fill(incorrect);
+  await page.keyboard.press('Enter');
+  const marked=page.locator('.ft-answer-comparison.incorrect');
+  await marked.waitFor();
+  assert.equal(await marked.locator('.ft-answer-submitted .ft-answer-value').innerText(),incorrect);
+  assert.equal(await marked.locator('.ft-answer-expected .ft-answer-value').innerText(),wrongBuild.fr);
+  assert.equal(await marked.evaluate(x=>getComputedStyle(x).backgroundColor),'rgb(255, 240, 237)');
+  assert.equal(await page.locator('.ft-guided-feedback.incorrect').count(),1);
+  assert.equal(await page.evaluate(()=>document.activeElement?.dataset.gact),'finish-revealed');
+  await page.keyboard.press('Enter');
+  await page.locator('[data-guided-step="'+lesson.steps[firstBuild+2].id+'"]').waitFor();
+  await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref&&x.event?.score?.total===1&&x.event?.score?.correct===0),wrongBuild.id+':first',{timeout:12000});
   await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref),build.id+':hint',{timeout:12000});
   // Adult/Sai scope changes reset current lesson (no accidental merged records).
   await page.locator('[data-profile]').selectOption('sai');
