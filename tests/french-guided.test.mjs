@@ -1,5 +1,5 @@
 import test from 'node:test';
-import {answerFeedback} from '../french-teaching/v1/guided-ui.js';
+import {answerFeedback,guidedEntryAudio,teacherModelAudio} from '../french-teaching/v1/guided-ui.js';
 import assert from 'node:assert/strict';
 import {
   MAGIC10_VERSION,MAGIC10_VERBS,MAGIC10_STRUCTURES,magicTenFor,magicTenPhrase,optionalVerbTimeline
@@ -150,4 +150,16 @@ test('guided correction flags tense, negation and accents without leaking model'
  assert.match(answerFeedback('je vais parlé français',"j'ai parlé français"),/completed past/);
  assert.match(answerFeedback("j'ecoute la radio","j'écoute la radio"),/accents/);
  assert.match(answerFeedback('je parle français','je parle français parce que je pratique'),/parce que/);
+});
+
+test('autoplay is restricted to visible teaching models and listening prompts',()=>{
+  for(const unit of GUIDED_UNITS){
+    for(const step of guidedLesson(unit.id).steps){
+      const audio=guidedEntryAudio(step);
+      if(step.kind==='listen'||step.kind==='transcribe'||step.kind==='model'&&step.modelInitiallyShown)assert.ok(audio.includes(step.fr));
+      else assert.equal(audio,'',step.id);
+      if(step.kind==='model')assert.ok(teacherModelAudio(step).includes(step.fr));
+    }
+  }
+  assert.equal(guidedEntryAudio({stage:'review',kind:'write',fr:'je parle français'}),'');
 });

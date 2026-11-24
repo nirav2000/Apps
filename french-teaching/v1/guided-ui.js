@@ -34,17 +34,35 @@ export function answerFeedback(input,expected){
   return 'Nearly there. Check the word order and the verb form; try saying the French aloud before retrying.';
 }
 
+// Only teaching models and listening prompts may autoplay on entry.
+export function guidedEntryAudio(step){
+  if(!step)return '';
+  if(step.kind==='listen'||step.kind==='transcribe')return step.fr;
+  if(step.kind!=='model'||!step.modelInitiallyShown)return '';
+  return teacherModelAudio(step);
+}
+export function teacherModelAudio(step){
+  if(!step?.fr)return '';
+  // Short recurring classroom French, deliberately intermittent. Quoted
+  // expressions work for both an infinitive and a complete sentence.
+  if(step.stage==='present'&&step.id.endsWith(':connector'))
+    return 'Écoutez cette phrase. '+step.fr+'. À vous de répéter.';
+  if(step.id.endsWith(':0'))return 'Écoutez bien. On dit : '+step.fr+'. Répétez.';
+  if(step.id.endsWith(':3'))return 'Voici une expression utile : '+step.fr+'. À vous !';
+  if(step.id.endsWith(':6'))return 'Encore une fois : '+step.fr+'.';
+  return step.fr;
+}
 export function createGuidedInterface({getEntries,record,speak,refresh,navigate}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')
     throw Error('Guided lessons require evidence and speech adapters');
   const state={
     unitId:null,step:null,answer:'',feedback:'',wrong:false,done:false,
-    hint:false,revealed:false,selectedVerb:'parler',error:null
+    hint:false,revealed:false,wrongChoices:new Set(),selectedVerb:'parler',error:null
   };
   const evidence=()=>getEntries()||[];
   const resetStep=()=>{
     state.step=null;state.answer='';state.feedback='';state.wrong=false;
-    state.done=false;state.hint=false;state.revealed=false;state.error=null;
+    state.done=false;state.hint=false;state.revealed=false;state.wrongChoices.clear();state.error=null;
   };
   const announce=()=>refresh();
   const go=page=>typeof navigate==='function'?navigate(page):announce();
@@ -59,6 +77,7 @@ export function createGuidedInterface({getEntries,record,speak,refresh,navigate}
         taughtAt:now,sourceRef:guidedTeachingRef(id),at:now});
     }
     go('lesson');
+    const audio=guidedEntryAudio(context().current);if(audio)speak(audio);
   };
   const reset=()=>{state.unitId=null;resetStep();state.selectedVerb='parler';};
   const context=()=>{
@@ -67,6 +86,18 @@ export function createGuidedInterface({getEntries,record,speak,refresh,navigate}
     const current=state.step||status.next;
     if(current&&!state.step)state.step=current;
     return {id,status,current};
+  };
+  // Render without auto-speaking on incidental Firebase or UI refreshes.
+  // A navigation gesture can reinforce the old model and introduce the next
+  // in a single utterance, avoiding SpeechSynthesis.cancel cutting it off.
+  const advance=(reinforce='')=>{
+    resetStep();announce();
+    const next=context().current;
+    // Never preview the next hidden answer (including via a repeated model).
+    const safeRepeat=next&&next.fr===reinforce&&!guidedEntryAudio(next)?'':reinforce;
+    const intro=guidedEntryAudio(next);
+    const audio=[safeRepeat,intro].filter(Boolean).join('. ');
+    if(audio)speak(audio);
   };
   const completion=(step,support)=>{
     if(!has(evidence(),marker(step).complete)){
@@ -143,8 +174,14 @@ export function createGuidedInterface({getEntries,record,speak,refresh,navigate}
       if(isChoice(step)){
         const options=choiceOrder(step);
         body+='<div class="ft-guided-options">'+options.map((option,i)=>
-          '<button type="button" data-gchoice="'+i+'"'+(state.done?' disabled':'')+
-          ' class="'+(state.answer===option?'selected':'')+'">'+html(option)+'</button>').join('')+'</div>';
+          {
+            const right=state.done&&option===(step.kind==='choice'?step.fr:step.en);
+            const wrong=state.wrongChoices.has(option)&&!right;
+            const result=right?'correct':wrong?'incorrect':'';
+            return '<button type="button" data-gchoice="'+i+'"'+(step.kind==='choice'?' lang="fr"':' lang="en"')+
+              ' class="'+result+'" aria-label="'+html(option+(right?' — correct':wrong?' — incorrect':''))+'">'+
+              '<span>'+html(option)+'</span>'+(result?'<span class="ft-choice-mark" aria-hidden="true">'+(right?'✓':'×')+'</span>':'')+'</button>';
+          }).join('')+'</div>';
       }else if(!state.done&&!state.revealed){
         body+='<form id="ft-guided-form"><label for="ft-guided-input">Your French</label>'+
           '<input id="ft-guided-input" name="answer" lang="fr" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" value="'+html(state.answer)+'" required>'+
@@ -156,7 +193,7 @@ export function createGuidedInterface({getEntries,record,speak,refresh,navigate}
       }
       if(state.hint&&!state.done)body+='<p class="ft-guided-hint">Hint: '+
         html(step.cue||'Remember: '+step.structure+'. Say each chunk before you write it.')+'</p>';
-      if(showFrench)body+='<div class="ft-guided-model"><p class="ft-eyebrow">French model</p>'+
+      if(showFrench&&step.kind!=='choice')body+='<div class="ft-guided-model"><p class="ft-eyebrow">French model</p>'+
         '<p lang="fr">'+html(step.fr)+'</p><button type="button" data-gact="speak">▶ Hear the model</button></div>';
       if(state.revealed&&!state.done)
         body+='<button type="button" data-gact="finish-revealed" class="ft-primary">I reviewed the model → Next</button>';
@@ -171,12 +208,12 @@ export function createGuidedInterface({getEntries,record,speak,refresh,navigate}
       (step.id.endsWith(':0')||step.id.endsWith(':3')));
     if(teachSound)body+='<aside class="ft-guided-sound"><strong>Sound &amp; spelling to notice: '+html(focus.spelling)+'</strong>'+
       '<p>'+html(focus.note)+'</p><button type="button" data-gact="focus-word">▶ Hear '+html(focus.word)+'</button></aside>';
-    if(state.feedback)body+='<p class="ft-guided-feedback" role="status">'+html(state.feedback)+'</p>';
+    if(state.feedback)body+='<p class="'+(isChoice(step)?'ft-sr-only':'ft-guided-feedback')+'" role="status">'+html(state.feedback)+'</p>';
     body+='</div>';
     const why=step.stage==='guided'?'These repetitions are guided practice, not independent transfer.':
       step.stage==='transfer'?'Only the first unaided attempt at a genuinely new combination is transfer evidence.':
       step.stage==='review'?'A day-seven independent answer is separately counted for retention.':
-      'Your first attempt is saved separately from retries and hints.';
+      step.kind==='model'?'Listening and repetition are unscored teaching.':'Your first attempt is saved separately from retries and hints.';
     body+='<p class="ft-small">'+html(why)+'</p></section>';
     return head+body;
   };
@@ -217,23 +254,32 @@ export function createGuidedInterface({getEntries,record,speak,refresh,navigate}
   };
   const choose=(option)=>{
     const {current}=context();
-    if(!current||state.done||!isChoice(current))return;
+    if(!current||!isChoice(current))return;
     const choices=choiceOrder(current),i=Number(option);
     if(!Number.isInteger(i)||i<0||i>=choices.length)return;
     const value=choices[i];
     const correct=value===(current.kind==='choice'?current.fr:current.en);
+    if(state.done){
+      // Replay without creating another attempt, changing the selected
+      // correct response, or advancing the evidence-backed lesson.
+      if(current.kind==='choice')speak(value);
+      else speak(value,'en-GB');
+      return;
+    }
     firstAttempt(current,correct);
     state.answer=value;
     if(correct){
       completion(current,state.wrong?'small-prompt':current.support||'small-prompt');
-      state.feedback=state.wrong?'Correct after retry. We recorded the first attempt separately.':'Correct. Hear the model and move on.';
+      state.feedback=state.wrong?'Correct after retry. First attempt remains unchanged.':'Correct.';
     }else{
-      state.wrong=true;
+      state.wrong=true;state.wrongChoices.add(value);
       state.feedback=current.kind==='listen'?
         'Not quite. Replay the French and listen for the meaning, then try again.':
         'Not quite. Say each part in French again, then choose another answer.';
     }
     announce();
+    if(current.kind==='choice')speak(value);
+    else if(correct)speak(current.fr);else speak(value,'en-GB');
   };
   const write=(value)=>{
     const {current}=context();
@@ -253,6 +299,7 @@ export function createGuidedInterface({getEntries,record,speak,refresh,navigate}
       state.feedback=answerFeedback(answer,current.fr);
     }
     announce();
+    if(correct)speak(current.fr);
   };
   const click=(target)=>{
     if(target.dataset.gchoice!==undefined){choose(target.dataset.gchoice);return true;}
@@ -278,17 +325,17 @@ export function createGuidedInterface({getEntries,record,speak,refresh,navigate}
       case 'reveal':
         if(current&&!state.done){
           if(current.kind!=='model')firstAttempt(current,false,'worked-example');
-          state.revealed=true;state.feedback='Model shown. This is guided review, not an independent success.';
-          announce();
+          state.revealed=true;state.feedback=current.kind==='model'?'':'Model shown. This is guided review, not an independent success.';
+          announce();speak(current.kind==='model'?teacherModelAudio(current):current.fr);
         }break;
       case 'finish-model':
-        if(current?.kind==='model'&&!state.done){completion(current,'worked-example');resetStep();announce();}
+        if(current?.kind==='model'&&!state.done){completion(current,'worked-example');advance(current.fr);}
         break;
       case 'finish-revealed':
-        if(current&&state.revealed&&!state.done){completion(current,'worked-example');resetStep();announce();}
+        if(current&&state.revealed&&!state.done){completion(current,'worked-example');advance(current.fr);}
         break;
       case 'next':
-        if(state.done){resetStep();announce();}
+        if(state.done)advance();
         break;
       default:return false;
     }

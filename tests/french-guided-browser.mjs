@@ -46,6 +46,7 @@ try{
   await page.getByRole('button',{name:'Start guided lesson'}).click();
   await page.locator('.ft-guided-task').waitFor();
   assert.match(await page.locator('.ft-guided-head').innerText(),/Speak and listen/);
+  await page.waitForFunction(()=>window.__spoken.at(-1)?.text.includes('Écoutez bien.'));
   await page.locator('[data-gact="focus-word"]').first().click();
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='écouter');
   const lesson=guidedLesson('speak-and-listen');
@@ -53,16 +54,34 @@ try{
   assert.equal(models.length,19);
   // Oral presentation is marked unscored. It can never inflate independence.
   for(let i=0;i<models.length;i++){
+    if(i===3){
+      await page.getByRole('button',{name:'Reveal French'}).click();
+      await page.waitForFunction(fr=>window.__spoken.at(-1)?.text.includes(fr),models[i].fr);
+    }
     await page.getByRole('button',{name:'I have repeated it → Next'}).click();
   }
+  await page.waitForFunction(fr=>window.__spoken.at(-1)?.text.includes(fr),models.at(-1).fr);
   assert.match(await page.locator('.ft-guided-task').innerText(),/Which French phrase matches the English/);
   const answer=lesson.steps.find(s=>s.kind==='choice').fr;
+  const choice=lesson.steps.find(s=>s.kind==='choice');
+  const wrong=choice.choices.find(x=>x!==answer);
+  await page.locator('.ft-guided-options button').filter({hasText:wrong}).first().click();
+  await page.waitForFunction(fr=>window.__spoken.at(-1)?.text===fr,wrong);
+  assert.equal(await page.locator('.ft-guided-options button.incorrect').count(),1);
   await page.locator('.ft-guided-options button').filter({hasText:answer}).first().click();
+  await page.waitForFunction(fr=>window.__spoken.at(-1)?.text===fr,answer);
+  assert.equal(await page.locator('.ft-guided-options button.correct').count(),1);
+  assert.equal(await page.locator('.ft-guided-model').count(),0);
+  assert.equal(await page.locator('.ft-guided-options button:disabled').count(),0);
+  await page.locator('.ft-guided-options button').filter({hasText:wrong}).first().click();
+  await page.waitForFunction(fr=>window.__spoken.at(-1)?.text===fr,wrong);
+  assert.equal(await page.locator('.ft-guided-options button.correct').count(),1);
   await page.getByRole('button',{name:'Next phrase'}).click();
   await page.waitForFunction(()=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref?.includes('guided-v2:')&&x.event?.score?.total===1),null,{timeout:12000});
   const events=await evidence();
   assert.ok(events.some(e=>e.source.ref.includes(':recap:')&&e.score.total===0));
-  assert.ok(events.some(e=>e.source.ref.includes(':guided:')&&e.source.ref.endsWith(':first')&&e.score.total===1));
+  const first=events.filter(e=>e.source.ref===choice.id+':first');
+  assert.equal(first.length,1);assert.equal(first[0].score.correct,0);assert.equal(first[0].score.total,1);
   assert.ok(events.every(e=>!e.source.ref.startsWith('next-french-preview')));
 
   // Durable progress survives navigation and page reload via scoped evidence.

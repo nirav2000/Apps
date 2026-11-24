@@ -472,12 +472,13 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<p class="ft-foot">Original lessons informed by Barry Smith, Jessica Lund’s published Michaela work, and general repeat-and-build principles described by Paul Noble. Not affiliated with or a reproduction of their courses. <a href="https://jlmfl.wordpress.com/2022/11/27/teaching-grammar-rote-vs-rules/">Lund on rote &amp; rules</a> · <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES</a></p>';
     if(ready&&state.page==='pronunciation')mountPronunciation();
   }
-  function speak(s){
+  function speak(s,lang='fr-FR'){
     if(!('speechSynthesis' in window)){state.feedback='Speech playback is unavailable on this browser.';updateStatus();return;}
     window.speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(String(s));u.lang='fr-FR';u.rate=.8;
-    const fr=window.speechSynthesis.getVoices().find(v=>v.lang.toLowerCase()==='fr-fr');
-    if(fr)u.voice=fr;
+    const u=new SpeechSynthesisUtterance(String(s));u.lang=lang;u.rate=.8;
+    const voices=window.speechSynthesis.getVoices();
+    const voice=voices.find(v=>v.lang.toLowerCase()===lang.toLowerCase())||voices.find(v=>v.lang.toLowerCase().split('-')[0]===lang.toLowerCase().split('-')[0]);
+    if(voice)u.voice=voice;
     window.speechSynthesis.speak(u);
   }
   async function mountPronunciation(){
@@ -513,6 +514,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(correct){state.feedback=state.failed||state.hint!=='none'||x.guided?'Correct with support. We will check independent recall later.':'Correct independently. Well done.';state.completed=true;}
     else{state.failed=true;state.feedback='Not quite. Check word order, articles, accents and conjugations. Try again, or request a hint.';}
     render();
+    if(correct&&x.kind!=='toEnglish')speak(x.answer);
   }
   function finishQuestion(){
     if(state.question+1<state.queue.length){state.question++;resetQuestion();render();}
@@ -537,6 +539,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   function setPage(page){
     if(!state.store){render();return;}
     if(page==='lesson'){guidedUI.start();return;}
+    window.speechSynthesis?.cancel();
     if(page==='alphabet'){teach('alphabet');state.page=page;}
     else if(page==='sounds'){teach('sounds');state.page=page;}
     else if(page==='knowledge'||page==='workshop'){teach('connectives');state.page=page;}
@@ -550,6 +553,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       state.question=0;resetQuestion();state.page=page;
     }else state.page=page;
     render();
+    if(page==='workshop'&&state.builder.showFrench)speak(assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);
   }
   function dictate(){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -701,7 +705,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         else{state.page='home';resetQuestion();render();}break;
       }
       case 'toggle-english':state.hideEnglish=!state.hideEnglish;render();break;
-      case 'toggle-workshop':state.builder.showFrench=!state.builder.showFrench;render();break;
+      case 'toggle-workshop':state.builder.showFrench=!state.builder.showFrench;render();if(state.builder.showFrench)speak(assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);else window.speechSynthesis?.cancel();break;
       case 'say-workshop':speak(assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);break;
       case 'try-workshop':{
         const q=assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right);
@@ -713,7 +717,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       case 'model':{
         const x=state.queue[state.question];
         noteAnswer(false,x,true);
-        state.completed=true;state.feedback='Model revealed: not scored as a correct answer.';render();break;
+        state.completed=true;state.feedback='Model revealed: not scored as a correct answer.';render();if(x.kind!=='toEnglish')speak(x.answer);break;
       }
       case 'dictate':dictate();break;
       case 'next-question':finishQuestion();break;
@@ -739,10 +743,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       if(!['mode','left','right'].includes(key)||!Number.isInteger(v)||v<0)return;
       state.builder[key]=v;
       if(key==='mode'){state.builder.left=0;state.builder.right=0;}
-      state.builder.showFrench=true;render();return;
+      state.builder.showFrench=true;render();speak(assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);return;
     }
     if(e.target.matches('[data-profile]')){
       const p=e.target.value;if(!['adult','sai'].includes(p)||p===state.profile)return;
+      window.speechSynthesis?.cancel();
       // All previous profile events stay in their original, uniquely scoped store.
       if(state.cloud)await syncNow();
       await attach(p);state.page='home';render();
