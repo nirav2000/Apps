@@ -108,7 +108,7 @@ try{
   for(const step of lesson.steps.slice(20,firstBuild)){
     await page.locator('[data-guided-step="'+step.id+'"]').waitFor();
     if(step.kind==='choice'||step.kind==='listen'){
-      await page.locator('[data-gchoice]').filter({hasText:step.kind==='choice'?step.fr:step.en}).first().click();
+      await page.getByRole('button',{name:step.kind==='choice'?step.fr:step.en,exact:true}).click();
       if(step.kind==='listen')assert.equal(await page.locator('.ft-choice-translation').innerText(),step.fr);
     }else{
       await page.locator('#ft-guided-input').fill(step.fr);
