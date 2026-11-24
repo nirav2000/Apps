@@ -23,7 +23,7 @@ const BANK={
     "a blue fish|un poisson bleu",
     "a grey hamster|un hamster gris",
     "a yellow bird|un oiseau jaune",
-    "a brown horse|un cheval brun",
+    "a brown horse|un cheval marron",
     "a black mouse|une souris noire",
     "a white rabbit|un lapin blanc",
     "a grey cat|un chat gris",
@@ -35,12 +35,12 @@ const BANK={
     "a clever rabbit|un lapin intelligent",
     "a cute cat|un chat mignon",
     "a mean cat|un chat méchant",
-    "a silly dog|un chien stupide",
+    "a stupid dog|un chien stupide",
     "a small mouse|une petite souris",
     "a big mouse|une grande souris",
     "a cute hamster|un hamster mignon",
     "a clever dog|un chien intelligent",
-    "a silly mouse|une souris stupide",
+    "a stupid mouse|une souris stupide",
     "a big rabbit|un grand lapin"
   ],
   "sai-avoir": [
@@ -87,14 +87,14 @@ const BANK={
   ],
   "sai-mixed": [
     "We have a black dog|Nous avons un chien noir",
-    "She has a red fish|Elle a un poisson rouge",
+    "She has a goldfish|Elle a un poisson rouge",
     "They (masculine) have a white mouse|Ils ont une souris blanche",
     "You (singular) have a black dog|Tu as un chien noir",
     "We have a rabbit|Nous avons un lapin",
     "She has a cat|Elle a un chat",
     "They (masculine) have a rabbit|Ils ont un lapin",
     "I like birds but I have a rabbit|J’aime les oiseaux mais j’ai un lapin",
-    "I have a red fish but I prefer horses|J’ai un poisson rouge mais je préfère les chevaux",
+    "I have a goldfish but I prefer horses|J’ai un poisson rouge mais je préfère les chevaux",
     "I have a white mouse and I like birds|J’ai une souris blanche et j’aime les oiseaux",
     "I have a cat but I do not like snakes|J’ai un chat mais je n’aime pas les serpents",
     "I prefer horses but I have a black dog|Je préfère les chevaux mais j’ai un chien noir"
@@ -119,7 +119,7 @@ const BANK={
     "You forgot your homework. Tell your teacher in French.|J’ai oublié mes devoirs",
     "Your pen has stopped working. Tell your teacher.|Mon stylo ne marche pas",
     "You need glue. Ask politely for some glue.|Je voudrais de la colle",
-    "You did not understand. Say so in French (present tense).|Je ne comprends pas",
+    "You do not understand. Say so in French.|Je ne comprends pas",
     "You need the teacher to say something again. Ask them to repeat.|Pouvez-vous répéter ?",
     "Your task is complete. Say you have finished.|J’ai fini",
     "Say you have forgotten your pen and need help.|J’ai oublié mon stylo et j’ai besoin d’aide",
@@ -138,8 +138,8 @@ const BANK={
     "Which day comes immediately before Monday? Write its French name only.|dimanche",
     "Which day comes immediately before Tuesday? Write its French name only.|lundi",
     "Which day comes immediately before Wednesday? Write its French name only.|mardi",
-    "Which day comes immediately before Thursday? Write its French name only.|mercredi",
-    "Which day comes immediately before Friday? Write its French name only.|jeudi"
+    "Say “Today is Wednesday” in French.|Aujourd’hui, c’est mercredi",
+    "Say “Today is Friday” in French.|Aujourd’hui, c’est vendredi"
   ],
   "sai-months": [
     "Which month comes immediately after January? Write its French name only.|février",
@@ -152,22 +152,22 @@ const BANK={
     "Which month comes immediately after August? Write its French name only.|septembre",
     "Which month comes immediately after September? Write its French name only.|octobre",
     "Which month comes immediately after October? Write its French name only.|novembre",
-    "Which month comes immediately after November? Write its French name only.|décembre",
-    "Which month comes immediately after December? Write its French name only.|janvier"
+    "Write “in December” in French.|en décembre",
+    "Write “in February” in French.|en février"
   ],
   "sai-dates": [
-    "Write 02/03 in French, starting with le.|le deux mars",
-    "Write 14/07 in French, starting with le.|le quatorze juillet",
-    "Write 20/01 in French, starting with le.|le vingt janvier",
-    "Write 15/10 in French, starting with le.|le quinze octobre",
-    "Write 18/04 in French, starting with le.|le dix-huit avril",
-    "Write 01/06 in French, starting with le.|le premier juin",
-    "Write 03/05 in French, starting with le.|le trois mai",
-    "Write 10/07 in French, starting with le.|le dix juillet",
-    "Write 14/01 in French, starting with le.|le quatorze janvier",
-    "Write 18/08 in French, starting with le.|le dix-huit août",
-    "Write 02/10 in French, starting with le.|le deux octobre",
-    "Write 03/04 in French, starting with le.|le trois avril"
+    "Write 02/03 (day/month) in French, spelling the number and month and starting with le.|le deux mars",
+    "Write 14/07 (day/month) in French, spelling the number and month and starting with le.|le quatorze juillet",
+    "Write 20/01 (day/month) in French, spelling the number and month and starting with le.|le vingt janvier",
+    "Write 15/10 (day/month) in French, spelling the number and month and starting with le.|le quinze octobre",
+    "Write 18/04 (day/month) in French, spelling the number and month and starting with le.|le dix-huit avril",
+    "Write 01/06 (day/month) in French, spelling the number and month and starting with le.|le premier juin",
+    "Write 03/05 (day/month) in French, spelling the number and month and starting with le.|le trois mai",
+    "Write 10/07 (day/month) in French, spelling the number and month and starting with le.|le dix juillet",
+    "Write 14/01 (day/month) in French, spelling the number and month and starting with le.|le quatorze janvier",
+    "Write 18/08 (day/month) in French, spelling the number and month and starting with le.|le dix-huit août",
+    "Write 02/10 (day/month) in French, spelling the number and month and starting with le.|le deux octobre",
+    "Write 03/04 (day/month) in French, spelling the number and month and starting with le.|le trois avril"
   ],
   "sai-questions": [
     "Turn Tu aimes les lapins into a question with est-ce que.|Est-ce que tu aimes les lapins ?",
@@ -203,12 +203,12 @@ const BANK={
     "I organised lunch|J’ai organisé le déjeuner",
     "I booked a table|J’ai réservé une table",
     "I finished lunch|J’ai terminé le déjeuner",
-    "I changed the room|J’ai changé la chambre",
+    "I changed a ticket|J’ai changé un billet",
     "I bought a ticket|J’ai acheté un billet",
     "I forgot the book|J’ai oublié le livre",
     "I prepared a meeting|J’ai préparé une réunion",
     "I organised the work|J’ai organisé le travail",
-    "I changed the book|J’ai changé le livre",
+    "I bought the book|J’ai acheté le livre",
     "I forgot the ticket|J’ai oublié le billet"
   ],
   "unlock-people": [
@@ -258,14 +258,14 @@ const BANK={
     "I was going to leave when you arrived (female, informal)|J’allais partir quand tu es arrivée",
     "I was in the middle of working when you called (informal)|J’étais en train de travailler quand tu as téléphoné",
     "I was in the middle of preparing dinner when you called (informal)|J’étais en train de préparer le dîner quand tu as téléphoné",
-    "I was going to call but I stayed here|J’allais téléphoner mais je suis resté ici",
+    "I was going to call but you called (informal)|J’allais téléphoner mais tu as téléphoné",
     "I was going to work|J’allais travailler",
     "I was in the middle of calling|J’étais en train de téléphoner",
     "I was going to prepare dinner|J’allais préparer le dîner",
     "I am staying here because it is interesting|Je reste ici parce que c’est intéressant",
     "I am staying here because it is normal|Je reste ici parce que c’est normal",
     "I was in the middle of leaving when you called (informal)|J’étais en train de partir quand tu as téléphoné",
-    "I was going to call because it is urgent|J’allais téléphoner parce que c’est urgent"
+    "I was going to work when you arrived (male, informal)|J’allais travailler quand tu es arrivé"
   ]
 };
 export function applicationPairs(unitId){const rows=BANK[unitId];if(!rows||rows.length!==12)throw Error('Missing application bank: '+unitId);return rows.map(s=>{const [en,fr]=s.split('|');return {en,fr};});}

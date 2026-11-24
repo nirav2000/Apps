@@ -11,18 +11,25 @@ const raw=[
       "C’est urgent|It is urgent",
       "C’est différent|It is different",
       "C’est intéressant|It is interesting",
-      "C’est une invitation|It is an invitation"
+      "C’est une invitation|It is an invitation",
+      "C’est logique|It is logical",
+      "C’est typique|It is typical",
+      "C’est une information|It is a piece of information",
+      "C’est important|It is important",
+      "C’est une situation|It is a situation"
     ],
     [
-      "C’est une information importante|It is important information",
+      "C’est une information importante|It is an important piece of information",
       "C’est une situation normale|It is a normal situation"
     ],
-    "English -ical often becomes French -ique; -tion often stays the same. Check gender and spelling rather than assuming every word converts."
+    "Notice practical → pratique, logical → logique, typical → typique and invitation → invitation. Cognates help you guess meaning, but not every English ending converts. In une information importante, the adjective agrees with the feminine noun."
   ],
   [
     "unlock-past",
     "Build past-tense sentences",
     [
+      "préparer|to prepare",
+      "j’ai préparé|I prepared",
       "J’ai préparé le déjeuner|I prepared lunch",
       "J’ai visité le château|I visited the castle",
       "J’ai organisé une réunion|I organised a meeting",
@@ -30,13 +37,16 @@ const raw=[
       "J’ai terminé le travail|I finished the work",
       "J’ai changé le billet|I changed the ticket",
       "J’ai acheté un livre|I bought a book",
-      "J’ai oublié mon sac|I forgot my bag"
+      "J’ai oublié mon sac|I forgot my bag",
+      "J’ai visité le musée|I visited the museum",
+      "J’ai préparé le repas|I prepared the meal",
+      "J’ai réservé une table|I booked a table"
     ],
     [
       "J’ai préparé le travail|I prepared the work",
       "J’ai réservé un billet|I booked a ticket"
     ],
-    "J’ai + past participle. Many regular -er verbs use -é, which sounds like -er."
+    "Start with préparer (to prepare), then j’ai préparé (I prepared), then add an object. Reuse j’ai with each past participle. Most regular -er verbs take -é, which sounds like -er. This is not the rule for every verb."
   ],
   [
     "unlock-people",
@@ -68,7 +78,9 @@ const raw=[
       "Je vais préparer le dîner|I am going to prepare dinner",
       "Je ne veux pas attendre|I do not want to wait",
       "Je ne peux pas venir|I cannot come",
-      "Je ne dois pas oublier|I must not forget"
+      "Je ne dois pas oublier|I must not forget",
+      "attendre|to wait",
+      "venir|to come"
     ],
     [
       "Je vais réserver une chambre|I am going to book a room",
@@ -104,6 +116,8 @@ const raw=[
       "J’étais en train de travailler|I was in the middle of working",
       "J’étais en train de préparer le dîner|I was in the middle of preparing dinner",
       "Tu as téléphoné|You called (informal)",
+      "Tu es arrivé|You arrived (male, informal)",
+      "Tu es arrivée|You arrived (female, informal)",
       "Je suis arrivé|I arrived (male speaker)",
       "Je suis arrivée|I arrived (female speaker)",
       "Je reste ici parce que c’est pratique|I am staying here because it is practical"
@@ -112,7 +126,8 @@ const raw=[
       "J’allais partir quand tu as téléphoné|I was going to leave when you called",
       "Je reste ici parce que c’est magnifique|I am staying here because it is magnificent"
     ],
-    "J’allais and j’étais en train de describe a background action; a completed event can interrupt it."
+    "J’allais + infinitive expresses a plan in the past. J’étais en train de + infinitive describes an ongoing action; quand introduces an event that may interrupt it. Arriver uses être here; arrivé/arrivée agrees with the subject."
   ]
 ];
-export const UNLOCKING_UNITS=raw.map(([id,name,pairs,transfer,note],i)=>({id,name,track:'unlocking',label:'Unlocking '+(i+1),goal:'Build useful French by reusing familiar patterns.',verbs:[],structures:[],rows:pairs.map((p,j)=>{const [fr,en]=p.split('|');return {fr,en,id:name,verbId:id,concept:'french:'+id+':'+j}}),soundFocus:{word:pairs[0].split('|')[0],spelling:'',note},bridge:{fr:pairs[0].split('|')[0],en:pairs[0].split('|')[1],point:note},transfer:transfer.map(p=>[...p.split('|'),'recombine'])}));
+const sounds={'unlock-cognates':['logique','ique'],'unlock-past':['préparé','é'],'unlock-people':['vous avez','liaison'],'unlock-plans':['voudrais','ais'],'unlock-help':['besoin','oin'],'unlock-time':['arrivée','ée']};
+export const UNLOCKING_UNITS=raw.map(([id,name,pairs,transfer,note],i)=>{const [word,spelling]=sounds[id];return {id,name,track:'unlocking',label:'Lesson '+(i+1),goal:'Build useful French by reusing familiar patterns.',verbs:[],structures:[],rows:pairs.map((p,j)=>{const [fr,en]=p.split('|');return {fr,en,id,verbId:id,concept:'french:'+id+':'+j,hint:note}}),soundFocus:{word,spelling,note},bridge:{fr:pairs[0].split('|')[0],en:pairs[0].split('|')[1],point:note},transfer:transfer.map(p=>[...p.split('|'),'recombine'])};});
