@@ -312,3 +312,5 @@
 
 .ft-app .ft-word-difference{color:inherit;background:#f4c4ba;border-radius:3px;padding:1px 2px;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
 .ft-app .ft-answer-expected .ft-word-difference,.ft-app .ft-audit-pair>div:nth-child(2) .ft-word-difference{background:#d6ead9;text-decoration-color:#43835d}
+
+.ft-app .ft-revision-row{border:1px solid var(--ft-line);border-radius:12px;padding:14px;margin-top:10px;overflow-wrap:anywhere}.ft-app .ft-revision-row .ft-row>strong{font-size:20px}.ft-app .ft-revision-row .ft-row>span{font-size:12px;color:#607467}.ft-app .ft-revision-errors{color:#842f29}.ft-app .ft-revision-task form,.ft-app .ft-revision-dashboard form{display:grid;gap:8px;margin:14px 0}.ft-app .ft-revision-task form button,.ft-app .ft-revision-dashboard form button{justify-self:start}.ft-app .ft-revision-task>button{margin:8px 8px 8px 0}

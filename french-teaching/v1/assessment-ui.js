@@ -130,7 +130,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   };
   const logAnswer=(value,item,r,ref,group='',support='none')=>{
     const compared=assessmentComparison(value,item);
-    const audit=exactAudit(value,item.fr,r.correct,{ref,activity:(ALL_UNITS.find(u=>u.id===item.unitId)?.name||'French')+' · '+(STAGES.find(s=>s.id===state.stage)?.label||state.mode),question:item.en,support,checkGroup:group,
+    const audit=exactAudit(value,item.fr,r.correct,{ref,activity:(ALL_UNITS.find(u=>u.id===item.unitId)?.name||'French')+' · '+(STAGES.find(s=>s.id===state.stage)?.label||state.mode),question:item.en,support,checkGroup:group,targetLang:'fr',
       normalize:x=>assessmentComparison(x,item).got,marker:'assessment-v1',reason:r.error?'Recorded category: '+r.error+'.':''});
     audit.accepted=compared.variants;
     return recordAttempt(audit);
