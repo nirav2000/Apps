@@ -165,8 +165,8 @@ const chapters=[
  "I forgot my water bottle and my bag|forgot mybottle and mybag","You are almost ready (male, informal)|youare almost ready",
  "Tell a boy to hurry up|hurry","Reply that you are not ready yet (use 'not yet')|notyet",
  "Tell someone you are coming|coming","Reassure a friend: don't worry|dontworry",
- "Say to a friend: you will manage|manage","Tell a friend: I am almost ready and I am coming (male)|iam almost ready and coming",
- "Ask a boy: are you almost ready? (informal)|youare almost ready","Say you have forgotten your bag (use I forgot)|forgot mybag"
+ "Say to a friend: you will manage|manage","I am almost ready and I am coming (male speaker)|iam almost ready and coming",
+ "Ask a boy: are you almost ready? (informal)|youare almost ready","Say you forgot your bag|forgot mybag"
  ]],
  ['school-before-after','Before and After School','May companion chapter rebuilt around getting to school, music, collecting someone, snacks and useful questions.',[
   block("one|one minute|une minute|/yn minyt/"),
@@ -181,7 +181,7 @@ const chapters=[
   block("hello|good morning, sir|bonjour monsieur|/bɔ̃ʒuʁ məsjø/"),
   block("money|some money|de l’argent|/də laʁʒɑ̃/","I have some money|have money"),
   block("snack|a snack|un goûter|/œ̃ ɡute/","I have a snack|have snack"),
-  block("went|How did it go? (informal neutral)|ça s’est bien passé|/sa sɛ bjɛ̃ pase/|With rising intonation, ask whether it went well."),
+  block("went|Did it go well? (rising intonation)|ça s’est bien passé|/sa sɛ bjɛ̃ pase/|With rising intonation, ask whether it went well."),
   block("maths|in maths|en maths|/ɑ̃ mat/","Did it go well in maths?|went maths"),
   block("english|in English|en anglais|/ɑ̃ nɑ̃ɡlɛ/","Did it go well in English?|went english"),
   block("school|at school|à l’école|/a lekɔl/","Did it go well at school?|went school")
@@ -201,7 +201,7 @@ const chapters=[
   block("went|did it go well?|ça s’est bien passé|/sa sɛ bjɛ̃ pase/"),
   block("yes|yes|oui|/wi/"),
   block("well|it went well|ça s’est bien passé|/sa sɛ bjɛ̃ pase/","Yes, it went well|yes well"),
-  block("okay|it was all right|c’était correct|/setɛ kɔʁɛkt/"),
+  block("okay|it was all right|ça allait|/sa alɛ/"),
   block("difficult|it was difficult|c’était difficile|/setɛ difisil/"),
   block("fun|it was fun|c’était amusant|/setɛ amyzɑ̃/"),
   block("tired|I am tired (male speaker)|je suis fatigué|/ʒə sɥi fatiɡe/"),
@@ -214,9 +214,9 @@ const chapters=[
  ],[
  "It went well but I am tired (male speaker)|well but tired","It was difficult but it was fun|difficult but fun",
  "It was all right but I am tired (male speaker)|okay but tired","I had a maths lesson but I am tired (male speaker)|had maths but tired",
- "It is raining but it is fun|raining but fun","It is cold but it went well|cold but well",
+ "It is raining but it was fun|raining but fun","It is cold but it went well|cold but well",
  "I ate lunch with my friends but I am tired (male speaker)|ate lunch friends but tired","I had a maths lesson but it was difficult|had maths but difficult",
- "I ate lunch but I am tired (male speaker)|ate lunch but tired","It was fun but it is raining|fun but raining",
+ "I ate lunch but I am tired (male speaker)|ate lunch but tired","It was difficult but I am tired (male speaker)|difficult but tired",
  "I had a maths lesson but it went well|had maths but well","It is cold but it was fun|cold but fun"
  ]],
  ['sailing','Sailing Days','May companion chapter rebuilt: weather, getting ready for sailing and describing an outing.',[
@@ -240,16 +240,42 @@ const chapters=[
  "It is cold but I am going sailing|cold but future sail","It is raining but I am going sailing|raining but future sail",
  "It is hot and it is windy|hot and wind","I am going sailing today|future sail today",
  "It is cold and it is raining|cold and raining","I am ready and I am going sailing (male speaker)|ready and future sail",
- "I am putting on my life jacket and I am ready (male speaker)|wear jacket and ready","Yesterday I went sailing but it was cold (describe the weather as it is now instead: it is cold)|yesterday sailingpast but cold",
+ "I am putting on my life jacket and I am ready (male speaker)|wear jacket and ready","It is cold but I am ready (male speaker)|cold but ready",
  "It is windy and it is raining|wind and raining","It is hot but it is windy|hot but wind",
  "I am going sailing because it is windy|future sail because wind","Today I am putting on my life jacket|today wear jacket"
+ ]],
+ ['sailing-water','Sailing Days · On the water','Extend the May sailing chapter with equipment, preparation and sailing actions.',[
+ block("have|I have|j’ai|/ʒe/"),
+ block("wetsuit|a wetsuit|une combinaison néoprène|/yn kɔ̃binɛzɔ̃ neopʁɛn/","I have a wetsuit|have wetsuit"),
+ block("drysuit|a drysuit|une combinaison étanche|/yn kɔ̃binɛzɔ̃ etɑ̃ʃ/","I have a drysuit|have drysuit"),
+ block("helmet|a helmet|un casque|/œ̃ kask/","I have a helmet|have helmet"),
+ block("will|I am going to|je vais|/ʒə vɛ/"),
+ block("rig|to rig the boat|gréer le bateau|/ɡʁee lə bato/","I am going to rig the boat|will rig"),
+ block("helm|to steer the boat|barrer le bateau|/baʁe lə bato/","I am going to steer the boat|will helm"),
+ block("tack|to tack|virer de bord|/viʁe də bɔʁ/","I am going to tack|will tack"),
+ block("gybe|to gybe|empanner|/ɑ̃pane/","I am going to gybe|will gybe"),
+ block("race|to race|faire une régate|/fɛʁ yn ʁeɡat/","I am going to race|will race"),
+ block("boat|the boat|le bateau|/lə bato/"),
+ block("capsized|capsized|a chaviré|/a ʃaviʁe/","The boat capsized|boat capsized"),
+ block("we|we|nous|/nu/"),
+ block("tacked|tacked|avons viré de bord|/avɔ̃ viʁe də bɔʁ/","We tacked|we tacked"),
+ block("gybed|gybed|avons empanné|/avɔ̃ ɑ̃pane/","We gybed|we gybed"),
+ block("and|and|et|/e/","We tacked and we gybed|we tacked and we gybed"),
+ block("but|but|mais|/mɛ/","We tacked but the boat capsized|we tacked but boat capsized")
+ ],[
+ "I have a helmet and a wetsuit|have helmet and wetsuit","I have a wetsuit and a drysuit|have wetsuit and drysuit",
+ "I am going to rig the boat and I am going to steer the boat|will rig and will helm","I am going to tack and I am going to gybe|will tack and will gybe",
+ "I have a helmet and I am going to race|have helmet and will race","I have a drysuit and I am going to tack|have drysuit and will tack",
+ "We gybed but the boat capsized|we gybed but boat capsized","I am going to race and I am going to steer the boat|will race and will helm",
+ "I have a drysuit and I have a helmet|have drysuit and have helmet","We gybed and we tacked|we gybed and we tacked",
+ "I am going to rig the boat and I am going to tack|will rig and will tack","I have a wetsuit and I am going to race|have wetsuit and will race"
  ]],
  ['homework','Sai’s French homework · Pets and opinions','Based on the recovered October animal-opinions homework and November revision anchors. Construct original answers before doing the school worksheet.',[
   block("name|my name is (literally I call myself)|je m’appelle|/ʒə mapɛl/"),
   block("leo|Léo|Léo|/leo/","My name is Léo|name leo"),
   block("have|I have|j’ai|/ʒe/"),
   block("dog|a dog|un chien|/œ̃ ʃjɛ̃/","I have a dog|have dog"),
-  block("red|red|rouge|/ʁuʒ/","I have a red dog|have dog red"),
+  block("red|red|rouge|/ʁuʒ/","I have a red dog (imaginary animal)|have dog red"),
   block("small|a small dog|un petit chien|/œ̃ pəti ʃjɛ̃/|Petit normally goes before chien.","I have a small dog|have small"),
   block("clever|clever (masculine)|intelligent|/ɛ̃teliʒɑ̃/","I have a clever dog|have dog clever"),
   block("like|I like|j’aime|/ʒɛm/"),
@@ -285,7 +311,7 @@ function compile([slug,name,goal,sections,application],index){
  const parse=(q,check=false)=>{
    const [en,keys]=q.split('|'),ids=keys.split(' ');
    if(!en||!keys||ids.some(k=>!blocks.has(k)))throw Error(id+' has an untaught block in '+q);
-   const parts=ids.map(k=>blocks.get(k)),fr=upper(combine(parts.map(x=>x.fr)))+(en.endsWith('?')?' ?':'');
+   const parts=ids.map(k=>blocks.get(k)),fr=upper(combine(parts.map(x=>x.fr)))+(en.includes('?')||/^Ask /i.test(en)?' ?':'');
    return {en,fr,parts:ids,components:parts.map(x=>({fr:x.fr,en:x.en})),id,verbId:id,concept:concept((check?'apply:':'build:')+ids.join('-'))};
  };
  const add=(stage,kind,row,action,extra={})=>sequence.push({...row,id:'guided-v2:'+id+':'+stage+':'+sequence.length,unitId:id,structure:id,verbId:id,track:'unlocking',stage,kind,unlockAction:action,novel:false,support:kind==='write'?'none':'worked-example',...extra});
@@ -312,14 +338,14 @@ function compile([slug,name,goal,sections,application],index){
  });
  // End of chapter: cover-and-reveal in both directions, then a few
  // independent written constructions. No self-reported oral mastery.
- const sample=[...introduced.filter((_,i)=>i%Math.max(1,Math.floor(introduced.length/5))===0).slice(0,5),...builds.slice(-3)];
- for(const r of sample){
+ const sample=[...introduced,...builds.slice(-3)];
+ for(const r of [...introduced,...builds.slice(-3)]){
    add('recap','model',r,'reverse',{modelInitiallyShown:false,prompt:'Vocabulary checklist · What does this French mean?'});
    add('recap','model',r,'recall',{modelInitiallyShown:false,prompt:'Vocabulary checklist · Now say it in French.'});
  }
  for(const r of builds.slice(-3))add('independent','write',r,'write',{prompt:'Independent check · Write the complete French without looking.'});
  const applicationRows=application.map(q=>parse(q,true));
- if(applicationRows.length!==12||sample.length!==8)throw Error(id+' invalid check size');
+ if(applicationRows.length!==12||sample.length!==introduced.length+3)throw Error(id+' invalid check size');
  return {id,name,goal,track:'unlocking',incremental:true,label:'Chapter '+(index+1),rows:sample,blocks:introduced,sequence,application:applicationRows,verbs:[],structures:[],transfer:[]};
 }
 export const UNLOCKING_BUILDER_UNITS=Object.freeze(chapters.map(compile));

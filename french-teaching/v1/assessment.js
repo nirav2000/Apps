@@ -1,5 +1,5 @@
 // French assessment pilot. All records use the existing scoped, immutable evidence log.
-import {GUIDED_UNITS,ALL_UNITS,unitsForTrack,lessonRows,guidedLesson,guidedStatus,guidedTeachingRef,guidedCompletionRefs} from './guided-lessons.js';
+import {GUIDED_UNITS,ALL_UNITS,ORIGINAL_UNITS,unitsForTrack,lessonRows,guidedLesson,guidedStatus,guidedTeachingRef,guidedCompletionRefs} from './guided-lessons.js';
 import {magicTenPhrase,MAGIC10_STRUCTURES} from './magic10.js';
 import {applicationPairs} from './curriculum-assessments.js';
 import {curriculumNormalize,curriculumVariants} from './curriculum-meta.js';
@@ -73,17 +73,20 @@ function buildBank(u){
 // Legacy banks remain unchanged. New tracks recall taught items and use two
 // distinct application prompts per assessment stage. Familiar strings in a new
 // context are application, not unseen transfer.
-const allTaught=new Set([...known,...ALL_UNITS.flatMap(u=>guidedLesson(u.id).steps.map(s=>curriculumNormalize(s.fr)))]);
+const allTaught=new Set([...known,...ORIGINAL_UNITS.flatMap(u=>guidedLesson(u.id).steps.map(s=>curriculumNormalize(s.fr)))]);
+const incrementalTaught=new Set([...allTaught,...ALL_UNITS.filter(u=>u.incremental).flatMap(u=>guidedLesson(u.id).steps.map(s=>curriculumNormalize(s.fr)))]);
+const repeatedApplication=new Map();for(const u of ALL_UNITS.filter(u=>u.incremental))for(const x of u.application){const n=curriculumNormalize(x.fr);repeatedApplication.set(n,(repeatedApplication.get(n)||0)+1);}
 function customBank(u){
-  const rows=rowsFor(u),pairs=applicationPairs(u.id),out=new Map(),seen=new Set();
+  const rows=rowsFor(u),pairs=u.incremental?u.application:applicationPairs(u.id),out=new Map(),seen=new Set();
+  const taught=u.incremental?incrementalTaught:allTaught;
   STAGES.forEach((stage,j)=>{
     const deck=rows.map((r,i)=>({...r,track:u.track,unitId:u.id,stage:stage.id,kind:'recall',ref:key(u.id,stage.id,i,'recall'),index:i}));
     for(let k=0;k<2;k++){
       const q=pairs[j*2+k],norm=curriculumNormalize(q.fr);
-      const novel=norm.split(' ').length>2&&!seen.has(norm)&&![...allTaught].some(x=>(' '+x+' ').includes(' '+norm+' '));
+      const novel=norm.split(' ').length>2&&!seen.has(norm)&&(!u.incremental||repeatedApplication.get(norm)===1)&&![...taught].some(x=>(' '+x+' ').includes(' '+norm+' '));
       seen.add(norm);
       const i=rows.length+k,kind=novel?'transfer':'application';
-      deck.push({...q,track:u.track,unitId:u.id,stage:stage.id,kind,index:i,id:u.id,verbId:u.id,concept:'french:'+u.id+':application:'+j+':'+k,ref:key(u.id,stage.id,i,kind),hint:u.soundFocus.note});
+      deck.push({...q,track:u.track,unitId:u.id,stage:stage.id,kind,index:i,id:u.id,verbId:u.id,concept:'french:'+u.id+':application:'+j+':'+k,ref:key(u.id,stage.id,i,kind),hint:u.incremental?'Build the sentence from the components learned in this chapter.':u.soundFocus.note});
     }
     out.set(stage.id,deck);
   });

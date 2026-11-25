@@ -3,6 +3,7 @@
 import {magicTenFor,magicTenPhrase} from './magic10.js';
 import {SAI_UNITS} from './sai-curriculum.js';
 import {UNLOCKING_UNITS} from './unlocking-curriculum.js';
+import {UNLOCKING_BUILDER_UNITS,unlockingSteps} from './unlocking-builder.js';
 export const GUIDED_VERSION='2.0.0';
 export const GUIDED_PREFIX='guided-v2:';
 export const GUIDED_REVIEW_DAYS=Object.freeze([1,3,7]);
@@ -75,7 +76,8 @@ const LESSONS=Object.freeze([
     ]}
 ]);
 export const GUIDED_UNITS=LESSONS; // compatibility: original four foundations
-export const ALL_UNITS=Object.freeze([...LESSONS,...SAI_UNITS,...UNLOCKING_UNITS]);
+export const ORIGINAL_UNITS=Object.freeze([...LESSONS,...SAI_UNITS,...UNLOCKING_UNITS.map(u=>({...u,track:'unlocking-archive'}))]);
+export const ALL_UNITS=Object.freeze([...ORIGINAL_UNITS,...UNLOCKING_BUILDER_UNITS]);
 export const unitsForTrack=(track='michaela')=>ALL_UNITS.filter(u=>(u.track||'michaela')===track);
 const idOf=(unit,stage,part)=>GUIDED_PREFIX+unit+':'+stage+':'+part;
 export const guidedRefs=id=>({
@@ -168,7 +170,7 @@ function construct(unit){
 export function guidedLesson(unitId){
   const u=ALL_UNITS.find(x=>x.id===unitId);
   if(!u)throw Error('Unsupported guided French lesson');
-  return {unit:u,steps:construct(u)};
+  return {unit:u,steps:u.incremental?unlockingSteps(u):construct(u)};
 }
 export function guidedTeachingRef(unitId){
   guidedLesson(unitId);
@@ -212,12 +214,13 @@ export function guidedStatus(unitId,entries,now=Date.now()){
   const firstWrong=rows.filter(e=>e.source?.ref?.endsWith(':first')&&
     e.source.ref.startsWith(GUIDED_PREFIX+unitId+':')&&e.score?.total>0&&
     e.score.correct===0);
-  const repairBase=lesson.steps.filter(x=>firstWrong.some(e=>e.source.ref===guidedRefs(x.id).first)&&
+  const repairBase=lesson.steps.filter(x=>(firstWrong.some(e=>e.source.ref===guidedRefs(x.id).first)||(lesson.unit.incremental&&refs.has(x.id+':oral-retry')))&&
     refs.has(guidedRefs(x.id).complete));
   const repairs=repairBase.map(x=>{
     const repairId=idOf(unitId,'repair',x.id.slice(GUIDED_PREFIX.length));
-    return {...x,id:repairId,kind:'write',stage:'repair',
-      prompt:'One more try at a phrase that needed correction.',
+    const oral=lesson.unit.incremental&&x.kind==='model';
+    return {...x,id:repairId,kind:oral?'model':'write',stage:'repair',modelInitiallyShown:false,unlockAction:oral?(x.unlockAction==='reverse'?'reverse':'recall'):x.unlockAction,
+      prompt:oral?'Cover the answer and try this earlier building block again.':'One more try at a phrase that needed correction.',
       support:'small-prompt',cue:'Remember the structure: '+x.structure,novel:false,
       completed:refs.has(guidedRefs(repairId).complete)};
   });

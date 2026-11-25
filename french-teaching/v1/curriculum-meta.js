@@ -2,7 +2,8 @@ import {normaliseAnswer} from './data.js';
 export const TRACKS=Object.freeze([
  {id:'michaela',name:'Michaela foundations',summary:'Original four intensive sentence-building lessons.'},
  {id:'sai',name:'Sai · school French',summary:'School vocabulary, classroom language, grammar and cumulative revision.'},
- {id:'unlocking',name:'Unlocking French',summary:'Original cumulative everyday French inspired by repeat-and-build teaching.'}
+ {id:'unlocking',name:'Unlocking French',summary:'One new building block at a time, spoken recall, sentence construction and independent checks.'},
+ {id:'unlocking-archive',name:'Earlier Unlocking · archive',summary:'The original six sentence-based lessons and their existing progress.'}
 ]);
 export const trackName=id=>TRACKS.find(t=>t.id===id)?.name||TRACKS[0].name;
 export const validTrack=id=>TRACKS.some(t=>t.id===id);
