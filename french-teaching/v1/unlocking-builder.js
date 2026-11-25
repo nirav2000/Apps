@@ -181,7 +181,7 @@ const chapters=[
   block("hello|good morning, sir|bonjour monsieur|/bɔ̃ʒuʁ məsjø/"),
   block("money|some money|de l’argent|/də laʁʒɑ̃/","I have some money|have money"),
   block("snack|a snack|un goûter|/œ̃ ɡute/","I have a snack|have snack"),
-  block("went|Did it go well? (rising intonation)|ça s’est bien passé|/sa sɛ bjɛ̃ pase/|With rising intonation, ask whether it went well."),
+  block("went|did it go well? (rising intonation)|ça s’est bien passé|/sa sɛ bjɛ̃ pase/|With rising intonation, ask whether it went well."),
   block("maths|in maths|en maths|/ɑ̃ mat/","Did it go well in maths?|went maths"),
   block("english|in English|en anglais|/ɑ̃ nɑ̃ɡlɛ/","Did it go well in English?|went english"),
   block("school|at school|à l’école|/a lekɔl/","Did it go well at school?|went school")
@@ -214,7 +214,7 @@ const chapters=[
  ],[
  "It went well but I am tired (male speaker)|well but tired","It was difficult but it was fun|difficult but fun",
  "It was all right but I am tired (male speaker)|okay but tired","I had a maths lesson but I am tired (male speaker)|had maths but tired",
- "It is raining but it was fun|raining but fun","It is cold but it went well|cold but well",
+ "It was fun but it is cold|fun but cold","It is cold but it went well|cold but well",
  "I ate lunch with my friends but I am tired (male speaker)|ate lunch friends but tired","I had a maths lesson but it was difficult|had maths but difficult",
  "I ate lunch but I am tired (male speaker)|ate lunch but tired","It was difficult but I am tired (male speaker)|difficult but tired",
  "I had a maths lesson but it went well|had maths but well","It is cold but it was fun|cold but fun"
@@ -311,8 +311,9 @@ function compile([slug,name,goal,sections,application],index){
  const parse=(q,check=false)=>{
    const [en,keys]=q.split('|'),ids=keys.split(' ');
    if(!en||!keys||ids.some(k=>!blocks.has(k)))throw Error(id+' has an untaught block in '+q);
-   const parts=ids.map(k=>blocks.get(k)),fr=upper(combine(parts.map(x=>x.fr)))+(en.includes('?')||/^Ask /i.test(en)?' ?':'');
-   return {en,fr,parts:ids,components:parts.map(x=>({fr:x.fr,en:x.en})),id,verbId:id,concept:concept((check?'apply:':'build:')+ids.join('-'))};
+   const parts=ids.map(k=>blocks.get(k)),fr=upper(combine(parts.map(x=>x.fr.replace(/\s*[?!.]$/,''))))+(en.includes('?')||/^Ask /i.test(en)?' ?':'');
+   const pronunciation=parts.map(x=>x.pronunciation.replace(/^\/|\/$/g,'')).join(' ').replace(/də (ɛd|œ̃)/g,'d$1');
+   return {en,fr,pronunciation:'/'+pronunciation+'/',parts:ids,components:parts.map(x=>({fr:x.fr,en:x.en})),id,verbId:id,concept:concept((check?'apply:':'build:')+ids.join('-'))};
  };
  const add=(stage,kind,row,action,extra={})=>sequence.push({...row,id:'guided-v2:'+id+':'+stage+':'+sequence.length,unitId:id,structure:id,verbId:id,track:'unlocking',stage,kind,unlockAction:action,novel:false,support:kind==='write'?'none':'worked-example',...extra});
  sections.forEach((section,i)=>{
