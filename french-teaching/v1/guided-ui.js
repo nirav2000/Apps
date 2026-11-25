@@ -153,7 +153,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
         taughtAt:now,sourceRef:guidedTeachingRef(id),at:now});
     }
     state.step=chooseNext();
-    if(state.step&&has(evidence(),hintRef(state.step)))state.hint=1;
+    if(state.step)state.hint=state.step.adaptivePlan?.hintLevel||Number(has(evidence(),hintRef(state.step)));
     go('lesson');
     const audio=guidedEntryAudio(context().current);if(audio)speak(audio);
   };
@@ -180,7 +180,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     if(safeRepeat)await speak(safeRepeat);
     if(token!==navigation)return;
     state.advancing=false;resetStep();state.step=next;
-    if(next&&has(evidence(),hintRef(next)))state.hint=1;
+    if(next)state.hint=next.adaptivePlan?.hintLevel||Number(has(evidence(),hintRef(next)));
     announce();
     const intro=guidedEntryAudio(context().current);
     if(intro)speak(intro);
@@ -365,7 +365,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const info={ref:model?step.id+':complete':step.id+':first',activity:ALL_UNITS.find(u=>u.id===step.unitId)?.name+' · '+step.stage,
       context:{...signalContext(step),unitId:step.unitId,stage:step.stage,kind:step.kind,structure:step.structure||'',fr:step.fr,en:step.en},
       question:step.unlockAction==='reverse'?step.fr:step.kind==='listen'?'Listen: '+step.fr:step.kind==='transcribe'?'Dictation: '+step.fr:step.en,support,targetLang:step.kind==='listen'||step.unlockAction==='reverse'?'en':isChoice(step)?'choice':'fr'};
-    if(step.adaptivePlan)info.signal=adaptiveOutcome(step.adaptivePlan,{correct,reveal,model,support});
+    if(step.adaptivePlan)info.signal=adaptiveOutcome(step.adaptivePlan,{correct,reveal,model,support,answer});
     if(reveal||model)return recordAttempt({...info,answer,expected,result:model?'model':'revealed',reason:model?'Oral repetition, not automatically marked.':'Model revealed; not an independent success.',marker:'unscored'});
     const custom=step.track&&step.track!=='michaela'&&!isChoice(step);
     const audit=exactAudit(answer,expected,correct,{...info,marker:isChoice(step)?'choice-v1':custom?'curriculum-v1':'guided-exact-v1',normalize:isChoice(step)?x=>String(x??''):custom?curriculumNormalize:normaliseAnswer});
@@ -454,7 +454,10 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
           if(input)state.answer=input.value;
           const selection=input?[input.selectionStart,input.selectionEnd]:null;
           state.hint++;
-          if(!current.adaptivePlan){
+          if(current.adaptivePlan){
+            const p=current.adaptivePlan;
+            if(!recordSignal(p.target,'hint',p.fr,{english:p.mode==='dictation'?'':p.en,targetKind:p.targetKind,structure:p.structure,planId:p.id,hintLevel:state.hint,context:signalContext(current)})){state.hint--;break;}
+          }else{
             if(!has(evidence(),hintRef(current)))record({concept:current.concept,phase:'practice',support:'small-prompt',sourceRef:hintRef(current),taughtAt:context().status.taughtAt||new Date().toISOString()});
             const t=phraseTarget(current.fr,current.en,current.structure);
             recordSignal(t.word,'hint',t.sentence,{...t,hintLevel:state.hint,context:signalContext(current)});
@@ -471,7 +474,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
             if(!logGuided(current,state.answer,false,{reveal:true}))break;
             firstAttempt(current,false,'worked-example');state.result='revealed';
           }
-          state.revealed=true;state.feedback=current.kind==='model'?'':'Model shown. This is guided review, not an independent success.';
+          state.revealed=true;state.feedback='';
           announce();speak(current.kind==='model'?teacherModelAudio(current):current.fr);
           focusTarget(current.kind==='model'?'[data-gact="finish-model"]':'[data-gact="finish-revealed"]');
         }break;

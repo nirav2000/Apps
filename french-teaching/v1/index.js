@@ -8,7 +8,7 @@ import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
 import {unitsForTrack,guidedStatus} from './guided-lessons.js';
-import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport} from './revision-signals.js';
+import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget} from './revision-signals.js';
 import {adaptivePlans,chooseAdaptivePlan} from './adaptive-teaching.js';
 import {ANSWER_APP,createAnswerHistory,exactAudit,visibleHistory,answerHistoryPage} from './answer-history.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
@@ -75,7 +75,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     session.lastAt=now;try{localStorage.setItem(key,JSON.stringify(session));}catch{}
     return session.id;
   }
-  function signalContext(step=guidedUI.current()){
+  function signalContext(step=state.page==='lesson'?guidedUI.current():null){
     const unitId=step?.unitId||'',status=unitId?guidedStatus(unitId,state.store?.getEntries()||[]):null;
     return {sessionId:currentSession(),track:state.track,unitId,stepId:step?.id||'',stage:step?.stage||state.page,position:status?status.teaching.completed:0};
   }
@@ -105,12 +105,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(!word)return;
     const block=node.closest('p[lang="fr"],strong[lang="fr"],.ft-choice-translation');
     const current=state.page==='lesson'?guidedUI.current():null;
-    const sentence=current?.fr||(!submitted?block?.textContent?.trim()||word:word);
-    recordSignal(word,'pronunciation',sentence,{english:current?.en||'',context:signalContext(current)});
+    const sentence=current&&containsTarget(current.fr,word)?current.fr:(!submitted?block?.textContent?.trim()||word:word);
+    recordSignal(word,'pronunciation',sentence,{english:current&&sentence===current.fr?current.en:'',context:signalContext(current)});
   }
   function revisionOverview(){
     const rows=revisions(),due=rows.filter(x=>x.due).length;
-    return '<section class="ft-card ft-revision-summary"><div class="ft-row"><div><p class="ft-eyebrow">PERSONAL REVISION</p><h2>'+due+' words ready to revisit</h2><p class="ft-small">Spelling, repeated listening and relative typing hesitation guide the timing.</p></div><button type="button" data-page="signals" class="ft-primary">Review signals →</button></div></section>';
+    return '<section class="ft-card ft-revision-summary"><div class="ft-row"><div><p class="ft-eyebrow">PERSONAL REVISION</p><h2>'+due+' words or structures ready to revisit</h2><p class="ft-small">Spelling, repeated listening and relative typing hesitation guide the timing.</p></div><button type="button" data-page="signals" class="ft-primary">Review signals →</button></div></section>';
   }
   function startRevision(auto=false){
     const due=revisions().filter(x=>x.due).slice(0,5);

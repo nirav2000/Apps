@@ -166,7 +166,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     }
     const current=stage==='baseline'?baselineFor(state.unitId,entries()):pendingChecks(entries(),Date.now(),getTrack()).find(x=>x.unitId===state.unitId&&x.stage===stage);
     if(current){pick('check',current.items.find(x=>!x.row),{unitId:current.unitId,stage,anchor:current.anchor});return;}
-    state.mode='done';state.doneUnit=stage==='baseline'?state.unitId:null;state.feedback=stage==='baseline'?'Starting knowledge recorded. Now learn the phrases.':'Your first answers are saved. Corrections are scheduled separately so the test stays independent.';refresh();
+    state.mode='done';state.doneUnit=stage==='baseline'?state.unitId:null;state.feedback=stage==='baseline'?'Starting knowledge recorded. Now learn the phrases.':'Check complete.';refresh();
   };
   const startExperiment=()=>{
     const x=getTrack()==='michaela'?availableExperiment(entries()):null;

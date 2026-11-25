@@ -116,7 +116,13 @@ export function revisionEvents(audits,visible){
  }
  for(const item of timeline){
   if(item.event){add(item.event);continue;}
-  const x=item.audit;if(x.signal)continue;
+  const x=item.audit;
+  if(x.signal){
+   // In a personalised sentence, a second word can also reveal a spelling
+   // difficulty. Record it, but do not double-count the targeted outcome.
+   if(x.signal.adaptive&&x.result==='incorrect')for(const e of auditSignals({...x,signal:null}))if(e.kind==='spelling'&&wordKey(e.word)!==wordKey(x.signal.word))add({...e,context:x.context||{},english:x.question,targetKind:'word'});
+   continue;
+  }
   const context=x.context||{},first=x.ref+'|'+x.result;
   if(!['correct','incorrect','unknown','revealed'].includes(x.result))continue;
   const written=frenchWritten(x),fr=written?x.expected:context.fr,english=context.en||x.question;
@@ -138,7 +144,7 @@ export function revisionEvents(audits,visible){
    for(const target of targets.values()){
     if(!containsTarget(x.answer,target.word))continue;
     if(x.typing?.some(t=>t.slow&&containsTarget(target.word,t.word)))continue;
-    add({...target,kind:'success',sentence:x.answer,english,ref:x.ref,at:x.at,id:x.id+':success:'+wordKey(target.word),context});
+    add({...target,kind:'success',sentence:x.answer,english,ref:x.ref,at:x.at,id:x.id+':success:'+wordKey(target.word),context,delayed:/^(day[137]|day28)$/.test(context.stage||'')||/review-[137]/.test(x.ref)});
    }
   }
  }
@@ -151,8 +157,8 @@ export function revisionQueue(events,now=Date.now()){
   seen.add(e.id);const key=wordKey(e.word);
   const row=map.get(key)||{key,word:e.word,score:0,level:0,dueAt:null,counts:{spelling:0,pronunciation:0,hesitation:0,manual:0,review:0,hint:0,reveal:0,construction:0,recognition:0,success:0,exposure:0,assisted:0},signals:[],sentence:'',english:'',targetKind:'word',structure:'',lastDifficulty:null,lastAction:null};
   row.counts[e.kind]++;row.signals.push(e);
-  if(e.sentence)row.sentence=e.sentence;
-  if(e.english)row.english=e.english;
+  if(e.sentence&&e.english){row.sentence=e.sentence;row.english=e.english;}
+  else if(e.sentence&&!row.sentence)row.sentence=e.sentence;
   if(e.targetKind)row.targetKind=e.targetKind;
   if(e.structure)row.structure=e.structure;
   if(e.kind==='review'){
@@ -165,7 +171,7 @@ export function revisionQueue(events,now=Date.now()){
     else{row.level=Math.min(5,row.level+1);row.dueAt=row.level>=5?null:e.at+[DAY,3*DAY,7*DAY,28*DAY][row.level-1];row.needsRecall=false;}
    }else{row.level=0;row.score=Math.min(20,row.score+4);row.dueAt=e.at+10*MIN;row.lastDifficulty=e;}
   }else if(e.kind==='success'){
-   row.score=Math.max(0,row.score-1.5);
+   row.score=Math.max(0,row.score-(e.delayed?3:1.5));
    row.lastIndependentAt=e.at;
    // Natural unaided success weakens the signal, but does not fabricate
    // a scheduled retention pass; reserve that for an actual later test.

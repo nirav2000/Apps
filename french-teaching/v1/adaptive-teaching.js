@@ -42,7 +42,9 @@ export function adaptivePlans(audits,unitId){
   if(p?.id&&p.unitId===unitId&&!byId.has(p.id))byId.set(p.id,{...p,at:a.at});
  }
  const refs=new Set(audits.filter(a=>['correct','incorrect','unknown','revealed','model'].includes(a.answerAudit?.result)).map(a=>a.answerAudit.ref));
- return [...byId.values()].map(p=>({...p,complete:refs.has(p.id+':first')||refs.has(p.id+':complete')})).sort((a,b)=>a.at-b.at||a.id.localeCompare(b.id));
+ const hints=new Map();
+ for(const a of audits){const q=a.answerAudit?.signal;if(q?.kind==='hint'&&q.planId)hints.set(q.planId,Math.max(hints.get(q.planId)||0,Number(q.hintLevel)||1));}
+ return [...byId.values()].map(p=>({...p,hintLevel:hints.get(p.id)||0,complete:refs.has(p.id+':first')||refs.has(p.id+':complete')})).sort((a,b)=>a.at-b.at||a.id.localeCompare(b.id));
 }
 function taughtPairs(evidence,track){
  const done=new Set(evidence.filter(e=>e.source?.ref?.endsWith(':complete')).map(e=>e.source.ref));
@@ -58,10 +60,10 @@ function taughtPairs(evidence,track){
 const fingerprint=s=>{let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return (h>>>0).toString(36);};
 function sentenceChoices(row,known,planHistory,current,track){
  const prior=planHistory.filter(p=>p.key===row.key).map(p=>norm(p.fr));
- const source=row.sentence&&row.english&&!/^Dictation:|^Listen:|^Which |^Requested /i.test(row.english)?[pair(row.sentence,row.english)]:[];
  const targetKnown=known.filter(x=>containsTarget(x.fr,row.word));
- const words=new Set([...known.map(x=>x.fr),...source.map(x=>x.fr),row.word].flatMap(x=>frenchTokens(x).map(t=>t.key)));
+ const words=new Set(known.flatMap(x=>frenchTokens(x.fr).map(t=>t.key)));
  const allowed=x=>frenchTokens(x.fr).every(t=>words.has(t.key));
+ const source=row.sentence&&row.english&&!/^Dictation:|^Listen:|^Which |^Requested /i.test(row.english)&&allowed({fr:row.sentence})?[pair(row.sentence,row.english)]:[];
  const isClause=x=>/^(?:hier[, ]|demain[, ]|aujourd'hui[, ]|je |j'|tu |nous |vous |il |elle |ils |elles )/i.test(wordKey(x.fr))&&/^(?:Yesterday|Tomorrow|Today|I |You |We |He |She |They )/i.test(x.en)&&!/[?]/.test(x.en)&&frenchTokens(x.fr).length>=3;
  const combos=[];
  const clauses=[...new Map(known.filter(isClause).map(x=>[norm(x.fr),x])).values()].slice(-100);
@@ -82,14 +84,14 @@ function sentenceChoices(row,known,planHistory,current,track){
  return candidates.map(x=>({...x,rank:(prior.includes(norm(x.fr))?-30:0)+(norm(x.fr)!==sameSource?8:0)+(x.unitId===current?.unitId?4:x.track===track?2:0)+(frenchTokens(x.fr).length>=3?4:0)})).sort((a,b)=>b.rank-a.rank||norm(a.fr).localeCompare(norm(b.fr)));
 }
 export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track,now=Date.now()}){
- if(!status?.unit||status.mode==='review')return null;
+ if(!status?.unit||!['new','resume'].includes(status.mode))return null;
  const unitId=status.unit.id,plans=adaptivePlans(audits,unitId),pending=plans.find(p=>!p.complete);
- if(pending)return {...pending,resume:true};
+ if(pending&&status.next&&!['independent','transfer','review'].includes(status.next.stage))return {...pending,resume:true};
  const counts=status.teaching,position=counts.coreCompleted+counts.repairCompleted;
  const next=status.next;
  // Do not insert a model into an independent/transfer run. Preserve the
  // mandatory building-block order and the formal assessment windows.
- if(next&&['independent','transfer','review'].includes(next.stage))return null;
+ if(!next||['independent','transfer','review'].includes(next.stage))return null;
  if(position<3||plans.some(p=>position-p.position<3))return null;
  const max=Math.min(12,Math.ceil(counts.coreTotal/5));
  if(plans.length>=max)return null;
@@ -106,7 +108,8 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
   // Recent strong signals can be brought forward within this lesson after
   // three other steps, including a failed or modelled adaptive exercise.
   const recentAction=action?.context?.unitId===unitId&&action.context.sessionId===sessionId&&position-(action.context.position??position)>=3;
-  const recentStrong=local&&row.score>=3;
+  const unaddressed=difficulty&&(!action||difficulty.at>action.at)&&(!row.lastIndependentAt||difficulty.at>row.lastIndependentAt);
+  const recentStrong=local&&row.score>=3&&unaddressed;
   return row.due||recentStrong||(recentAction&&['exposure','assisted'].includes(action.kind))||(recentAction&&action.kind==='review'&&!action.correct);
  }).sort((a,b)=>{
   const priority=x=>x.score+(x.lastDifficulty?.context?.unitId===unitId?2:0)+(x.lastDifficulty?.context?.sessionId===sessionId?1:0)+(x.due?1:0);
@@ -114,7 +117,14 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
  });
  if(!eligible.length)return null;
  const known=taughtPairs(evidence,track);
+ const taughtWords=new Set(known.flatMap(x=>frenchTokens(x.fr).map(t=>t.key)));
+ // Existing upcoming repetitions are the first choice. Do not add an
+ // extra drill immediately before the same naturally scheduled retrieval.
+ const upcoming=status.steps.filter(s=>!s.completed&&s.stage!=='repair').slice(0,2);
  for(const row of eligible){
+  const targetTaught=frenchTokens(row.word).every(t=>taughtWords.has(t.key));
+  if(!targetTaught&&!row.counts.manual&&!row.counts.pronunciation)continue;
+  if(upcoming.some(s=>s.kind==='write'&&containsTarget(s.fr,row.word)))continue;
   const previous=allPlans.filter(p=>p.key===row.key);
   const candidates=sentenceChoices(row,known,previous,next,track);
   const candidate=candidates[0];
@@ -125,11 +135,13 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
     row.level>0&&candidate?'recall':row.targetKind==='phrase'&&candidate?'recall':
     candidate&&(row.counts.spelling===0||previous.length>0)?'recall':'dictation';
   if(last?.kind==='exposure'&&candidate)mode='recall';
-  const fr=candidate?.fr||row.word,en=candidate?.en||'Listen and spell the French.';
+  // Avoid translating an arbitrary target with an invented English gloss.
+  if(!candidate)mode='dictation';
+  const fr=mode==='dictation'?row.word:candidate.fr,en=mode==='dictation'?'Listen and spell the French.':candidate.en;
   if(protectedSentences().fr.has(norm(fr))||protectedSentences().en.has(norm(en)))continue;
   const reason=row.lastDifficulty?.kind||'scheduled recall';
   const id='adaptive-v1:'+unitId+':'+position+':'+fingerprint(row.key+':'+previous.length);
-  return {id,unitId,track,sessionId,position,key:row.key,target:row.word,targetKind:row.targetKind,structure:row.structure||'',mode,fr,en,reason,priority:row.score,signalIds:row.signals.slice(-8).map(e=>e.id),newContext:!!candidate&&norm(fr)!==norm(row.sentence||''),plannedAt:now};
+  return {id,unitId,track,sessionId,position,key:row.key,target:row.word,targetKind:row.targetKind,structure:row.structure||'',mode,fr,en,reason,priority:row.score,signalIds:row.signals.slice(-8).map(e=>e.id),newContext:mode!=='dictation'&&!!candidate&&norm(fr)!==norm(row.sentence||''),plannedAt:now};
  }
  return null;
 }
@@ -138,6 +150,10 @@ export function adaptiveStep(plan){
  return {id:plan.id,unitId:plan.unitId,track:plan.track,stage:'adaptive',kind,fr:plan.fr,en:plan.en,structure:plan.structure,concept:'french:adaptive:'+fingerprint(plan.key),support:kind==='model'?'worked-example':'none',modelInitiallyShown:kind==='model',adaptivePlan:plan,
   prompt:kind==='model'?'Listen and notice this useful pattern.':kind==='transcribe'?'Listen carefully. Write the French you hear.':plan.newContext?'Use a familiar word or structure in a different sentence.':'Recall the French without looking.',novel:false};
 }
-export function adaptiveOutcome(plan,{correct=false,reveal=false,model=false,support='none'}={}){
- return {kind:model?'exposure':reveal||support!=='none'&&correct?'assisted':'review',word:plan.target,targetKind:plan.targetKind,structure:plan.structure,sentence:plan.fr,english:plan.en,correct:!!correct,mode:plan.mode,adaptive:true,planId:plan.id,newContext:plan.newContext};
+export function adaptiveOutcome(plan,{correct=false,reveal=false,model=false,support='none',answer=''}={}){
+ const targetPresent=containsTarget(answer,plan.target);
+ // A different accepted translation that avoids the target is not a
+ // successful recall of the target. Neither is a supplied model.
+ const success=correct&&targetPresent&&!reveal&&!model&&support==='none';
+ return {kind:model?'exposure':reveal||correct&&!success?'assisted':'review',word:plan.target,targetKind:plan.targetKind,structure:plan.structure,sentence:plan.fr,english:plan.mode==='dictation'?'':plan.en,correct:success,mode:plan.mode,adaptive:true,planId:plan.id,newContext:plan.newContext};
 }

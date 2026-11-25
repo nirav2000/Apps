@@ -249,3 +249,49 @@ test('explicit manual revision import proposes unique valid words without a writ
  assert.deepEqual(revisionImport('#revise='+encodeURIComponent('école,École,bonjour,<script>')),['École','bonjour']);
  assert.deepEqual(revisionImport('#elsewhere'),[]);
 });
+
+
+import {chooseAdaptivePlan,adaptivePlans,adaptiveStep,adaptiveOutcome} from '../french-teaching/v1/adaptive-teaching.js';
+import {revisionEvents,phraseTarget} from '../french-teaching/v1/revision-signals.js';
+import {assessmentDeck,STAGES} from '../french-teaching/v1/assessment.js';
+import {curriculumNormalize} from '../french-teaching/v1/curriculum-meta.js';
+test('adaptive teaching respects completed blocks, safe spacing, core progress and assessment protection',()=>{
+ const now=Date.parse('2026-11-25T08:00:00Z'),id='unlock2-past',deck=guidedLesson(id).steps,sessionId='s';
+ const entries=n=>[at(guidedTeachingRef(id),now),...deck.slice(0,n).map(x=>at(guidedCompletionRefs(x.id).complete,now))];
+ const difficulty={id:'error',word:'préparé',kind:'spelling',at:now,context:{sessionId,unitId:id,position:6},sentence:"J'ai préparé le repas",english:'I prepared the meal'};
+ const queue=revisionQueue([difficulty],now);
+ const options=n=>({status:guidedStatus(id,entries(n),now),queue,audits:[],evidence:entries(n),sessionId,track:'unlocking',now});
+ assert.equal(chooseAdaptivePlan(options(8)),null);
+ const p=chooseAdaptivePlan(options(12));
+ assert.ok(p);assert.equal(p.target,'préparé');assert.equal(p.mode,'dictation');assert.equal(p.fr,'préparé');
+ assert.equal(adaptiveStep(p).novel,false);
+ const saved={id:'p',at:now,answerAudit:{signal:{kind:'adaptive-plan',plan:p}}};
+ const hint={id:'hint',at:now+1,answerAudit:{signal:{kind:'hint',planId:p.id,hintLevel:2}}};
+ const restored=chooseAdaptivePlan({...options(12),audits:[saved,hint]});
+ assert.equal(restored.id,p.id);assert.equal(restored.hintLevel,2);assert.equal(restored.resume,true);
+ const answer={id:'a',at:now+2,answerAudit:{ref:p.id+':first',result:'correct'}};
+ assert.equal(adaptivePlans([saved,hint,answer],id)[0].complete,true);
+ const success=adaptiveOutcome(p,{answer:'préparé',correct:true});
+ assert.equal(success.correct,true);
+ const after=revisionQueue([difficulty,{...success,id:'a',at:now+2,ref:p.id+':first',context:{sessionId,unitId:id,position:12}}],now+3);
+ assert.equal(chooseAdaptivePlan({...options(16),queue:after,audits:[saved,answer],now:now+3}),null);
+ const delayed=chooseAdaptivePlan({...options(20),queue:revisionQueue([difficulty,{...success,id:'a',at:now+2,ref:p.id+':first'}],now+DAY+3),audits:[saved,answer],now:now+DAY+3,sessionId:'later'});
+ assert.ok(delayed);assert.equal(delayed.mode,'recall');assert.notEqual(delayed.fr,p.fr);
+ for(const stage of STAGES)for(const x of assessmentDeck(id,stage.id).filter(x=>['transfer','application'].includes(x.kind)))assert.notEqual(curriculumNormalize(delayed.fr),curriculumNormalize(x.fr));
+ assert.equal(chooseAdaptivePlan({...options(12),status:{...options(12).status,next:{...deck[12],stage:'independent'}}}),null);
+ assert.equal(chooseAdaptivePlan({...options(12),status:{...options(12).status,mode:'complete',next:null}}),null);
+ assert.equal(guidedStatus(id,entries(12),now).teaching.coreCompleted,12);
+});
+test('positive independent and delayed evidence reduce priority; assistance and unfamiliar translations do not advance recall',()=>{
+ const at=1000,base={id:'a',at,ref:'a',marker:'guided-exact-v1',targetLang:'fr',support:'none',result:'incorrect',answer:'je parle francais',expected:'je parle français',question:'I speak French',context:{kind:'write',stage:'independent',unitId:'x',sessionId:'s',position:1}};
+ const good={...base,id:'b',at:at+100,ref:'b',result:'correct',answer:'je parle français'};
+ const assisted={...good,id:'c',ref:'c',at:at+200,support:'small-prompt'};
+ const late={...good,id:'d',ref:'d',at:at+DAY,context:{...base.context,stage:'day7'}};
+ const events=revisionEvents([], [base,good,assisted,late]);
+ assert.equal(events.filter(x=>x.kind==='success').length,2);
+ assert.equal(revisionQueue(events,at+DAY)[0].score,0);
+ const plan={id:'p',key:'français',target:'français',targetKind:'word',fr:'je parle français',en:'I speak French',mode:'recall'};
+ assert.equal(adaptiveOutcome(plan,{correct:true,answer:'je parle français',support:'small-prompt'}).kind,'assisted');
+ assert.equal(adaptiveOutcome(plan,{correct:true,answer:'je parle une autre langue'}).correct,false);
+ assert.equal(phraseTarget('je dois étudier','I must study').word,'je dois');
+});
