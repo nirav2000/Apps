@@ -44,7 +44,7 @@ try{
  assert.equal(await page.locator('[data-rest-continue]').isDisabled(),false);
  await page.locator('[data-rest-continue]').click();
  await page.locator('#ft-e-answer').waitFor();
- assert.match(await page.locator('.ft-e-question').innerText(),/After teaching/);
+ assert.match(await page.locator('.ft-e-question').innerText(),/After teaching/i);
  assert.equal(await page.locator('.ft-rest-clock').count(),0);
  await page.getByRole('button',{name:'Overview',exact:true}).click();
  await page.clock.setSystemTime(Number(deadline)+31*60000);
