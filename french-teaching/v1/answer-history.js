@@ -27,7 +27,7 @@ export function createAnswerHistory({accountId,learnerId,storage=globalThis.loca
           expected:text(a.expected),result:a.result,reason:text(a.reason),support:text(a.support),marker:text(a.marker),
           normalizedAnswer:a.normalizedAnswer==null?null:text(a.normalizedAnswer),
           accepted:Array.isArray(a.accepted)?a.accepted.map(text):[],checkGroup:text(a.checkGroup),
-          ...(a.targetLang?{targetLang:text(a.targetLang)}:{}),...(Array.isArray(a.typing)&&a.typing.length?{typing:copy(a.typing)}:{}),...(a.signal?{signal:copy(a.signal)}:{})}};
+          ...(a.targetLang?{targetLang:text(a.targetLang)}:{}),...(Array.isArray(a.typing)&&a.typing.length?{typing:copy(a.typing)}:{}),...(a.signal?{signal:copy(a.signal)}:{}),...(a.context?{context:copy(a.context)}:{})}};
       persist([...rows,row]);return copy(row);
     },
     ingest(incoming){
@@ -89,7 +89,7 @@ export function visibleHistory(auditRows,evidence){
       result:e.score.correct===e.score.total?'correct':'incorrect',reason:'Earlier score only. Exact submitted text was not saved.'+(error?' Recorded error category: '+error+'.':''),support:e.support,marker:'legacy-score',accepted:[],checkGroup:item?.checkGroup||'',legacy:true};
   });
   return [...exact,...old].map(x=>{
-    if(x.checkGroup&&(seen.get(x.checkGroup)?.size||0)<(groupSizes.get(x.checkGroup)||8))return {...x,expected:null,reason:'Correction available when the independent check is complete.',result:'withheld',accepted:[],normalizedAnswer:null,typing:[]};
+    if(x.checkGroup&&(seen.get(x.checkGroup)?.size||0)<(groupSizes.get(x.checkGroup)||8))return {...x,expected:null,reason:'Correction available when the independent check is complete.',result:'withheld',accepted:[],normalizedAnswer:null,typing:[],context:null};
     return x;
   }).sort((a,b)=>b.at-a.at||b.id.localeCompare(a.id));
 }

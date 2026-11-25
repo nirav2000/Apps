@@ -42,7 +42,7 @@ function extraRecall(entries,now,track){
   }
   return items.sort((a,b)=>map.get(repairRef(a)).at-map.get(repairRef(b)).at);
 }
-export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,refresh,navigate,startGuided,focusTarget=()=>{}}){
+export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,refresh,navigate,startGuided,focusTarget=()=>{},onRest=()=>false}){
   let state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};
   const entries=()=>getEntries()||[];
   const reset=()=>{state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};};
@@ -73,7 +73,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       pick('check',item,{unitId:d.unitId,stage:d.stage,anchor:d.anchor});
     }else if(plan.mode==='guided')startGuided(plan.unitId);
     else if(plan.mode==='repair'||plan.mode==='adaptive')pick(plan.mode,plan.item);
-    else navigate('evidence');
+    else if(!onRest())navigate('evidence');
   };
   const startUnit=unitId=>{
     if(!unitsForTrack(getTrack()).some(u=>u.id===unitId))return;
@@ -130,7 +130,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   };
   const logAnswer=(value,item,r,ref,group='',support='none')=>{
     const compared=assessmentComparison(value,item);
-    const audit=exactAudit(value,item.fr,r.correct,{ref,activity:(ALL_UNITS.find(u=>u.id===item.unitId)?.name||'French')+' · '+(STAGES.find(s=>s.id===state.stage)?.label||state.mode),question:item.en,support,checkGroup:group,targetLang:'fr',
+    const audit=exactAudit(value,item.fr,r.correct,{ref,activity:(ALL_UNITS.find(u=>u.id===item.unitId)?.name||'French')+' · '+(STAGES.find(s=>s.id===state.stage)?.label||state.mode),question:item.en,support,checkGroup:group,targetLang:'fr',context:{unitId:item.unitId||state.unitId||'',stage:state.stage||state.mode,kind:'write',structure:item.id||'',fr:item.fr,en:item.en},
       normalize:x=>assessmentComparison(x,item).got,marker:'assessment-v1',reason:r.error?'Recorded category: '+r.error+'.':''});
     audit.accepted=compared.variants;
     return recordAttempt(audit);
