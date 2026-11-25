@@ -38,6 +38,8 @@ try{
   await page.getByRole('button',{name:'Knowledge grid',exact:true}).click();
   // Curated verb explanation stays available without a network request.
   await page.locator('.ft-grid-row [data-word="veux"]').first().click();
+  assert.equal(await page.locator(".ft-word-dialog").count(),0);
+  await page.locator('[data-word-action="explore"]').click();
   const dialog=page.locator('.ft-word-dialog');
   await dialog.waitFor();
   assert.match(await dialog.innerText(),/vouloir/);
@@ -53,6 +55,7 @@ try{
 
   // Any previously unknown word in a lesson is tappable and can load details.
   await page.locator('.ft-grid-row [data-word="jour"]').first().click();
+  await page.locator('[data-word-action="explore"]').click();
   await dialog.waitFor();
   await dialog.locator('.ft-dictionary-result').getByText('day', {exact:true}).waitFor();
   assert.deepEqual(networkWords,['vouloir','jour']);
@@ -66,6 +69,7 @@ try{
 
   // Reopening this word uses memory/local cache rather than another request.
   await page.locator('.ft-grid-row [data-word="jour"]').first().click();
+  await page.locator('[data-word-action="explore"]').click();
   await dialog.waitFor();
   await dialog.locator('.ft-dictionary-result').getByText('day', {exact:true}).waitFor();
   assert.equal(networkWords.length,2);
