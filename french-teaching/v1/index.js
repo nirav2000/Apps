@@ -199,7 +199,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<p class="ft-small">Already signed in? Your session is reused automatically. Your App Monitor passkey is not yet connected to these Firebase records.</p></section>';
   }
   function tracks(){
-    return '<section class="ft-card ft-track-picker"><p class="ft-eyebrow">LEARNING TRACKS</p><h2>Choose your French course</h2><div class="ft-track-grid">'+TRACKS.map(t=>'<button type="button" class="ft-track-option'+(state.track===t.id?' selected':'')+'" data-act="track:'+t.id+'" aria-pressed="'+(state.track===t.id)+'"><strong>'+esc(t.name)+'</strong><small>'+unitsForTrack(t.id).length+' lessons</small><span>'+esc(t.summary)+'</span></button>').join('')+'</div></section>';
+    return '<section class="ft-card ft-track-picker"><p class="ft-eyebrow">LEARNING TRACKS</p><h2>Choose your French course</h2><div class="ft-track-grid">'+TRACKS.filter(t=>t.id!=='unlocking-archive').map(t=>'<button type="button" class="ft-track-option'+(state.track===t.id?' selected':'')+'" data-act="track:'+t.id+'" aria-pressed="'+(state.track===t.id)+'"><strong>'+esc(t.name)+'</strong><small>'+unitsForTrack(t.id).length+' lessons</small><span>'+esc(t.summary)+'</span></button>').join('')+'</div><p class="ft-small"><button type="button" data-act="track:unlocking-archive">Earlier Unlocking lessons &amp; progress</button></p></section>';
   }
   function overview(){
     const active=state.context?.auth?.currentUser;

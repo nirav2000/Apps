@@ -45,6 +45,7 @@ export function guidedEntryAudio(step){
 }
 export function teacherModelAudio(step){
   if(!step?.fr)return '';
+  if(step.unlockAction)return step.fr;
   // Short recurring classroom French, deliberately intermittent. Quoted
   // expressions work for both an infinitive and a complete sentence.
   if(step.stage==='present'&&step.id.endsWith(':connector'))
@@ -212,7 +213,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const other=unitsForTrack(getTrack()).map(u=>'<option value="'+html(u.id)+'"'+(u.id===id?' selected':'')+'>'+
       html(u.label+': '+u.name)+'</option>').join('');
     const head='<section class="ft-card ft-guided-shell"><div class="ft-guided-head">'+
-      '<div><p class="ft-eyebrow">GUIDED FRENCH · SPEAK → REPEAT → REMEMBER</p>'+
+      '<div><p class="ft-eyebrow">'+(unit.incremental?'UNLOCKING FRENCH · ONE BLOCK AT A TIME':'GUIDED FRENCH · SPEAK → REPEAT → REMEMBER')+'</p>'+
       '<h2>'+html(unit.name)+'</h2><p>'+html(unit.goal)+'</p></div>'+
       '<label>Teaching unit<select data-gunit>'+other+'</select></label></div>'+
       '<div class="ft-guided-progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="'+completed+
@@ -223,7 +224,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       const next=status.nextReviewAt?new Date(status.nextReviewAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'none scheduled';
       return head+'<div class="ft-guided-congrats"><h3>Excellent. Now leave it for a while.</h3>'+
         (unit.track?'<p>You have completed the guided teaching. Continue to the independent check and scheduled reviews.</p>':'<p>You have completed the guided teaching. The next retrieval opportunity is <strong>'+html(next)+'</strong>. This is a schedule, not proof of retention.</p>')+
-        '<button type="button" data-gact="next-unit" class="ft-primary">Continue with another topic</button></div>'+
+        '<button type="button" data-gact="next-unit" class="ft-primary">Continue to the next learning activity</button></div>'+(unit.incremental?'<details class="ft-unlock-glossary"><summary>Chapter vocabulary &amp; building blocks</summary>'+unit.blocks.map(b=>'<div class="ft-unlock-glossary-row"><span>'+html(b.en)+'</span><strong lang="fr">'+spokenWords(b.fr)+'</strong><small>'+html(b.pronunciation)+'</small></div>').join('')+'</details>':'')+
         '<button type="button" data-page="home">Return to overview</button></section>';
     }
     if(!current)return head+'<p>Nothing due in this lesson. Select a different teaching unit above.</p></section>';
@@ -234,11 +235,23 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const pair=(english,french,covered=false)=>'<div class="ft-guided-pair'+(covered?' ft-pair-covered':'')+'"><p class="ft-guided-english">'+html(english)+'</p>'+
       (french?'<div class="ft-pair-french"><p lang="fr" class="ft-guided-french">'+spokenWords(french)+'</p><button type="button" data-gact="speak" aria-label="Hear the French again">▶</button></div>':
         covered?'<span class="ft-pair-placeholder">Say it from memory, then reveal.</span>':'')+'</div>';
-    let body='<div class="ft-guided-task" data-guided-step="'+html(step.id)+'"><p class="ft-eyebrow">'+html(style+phase)+'</p>'+
+    let body='<div class="ft-guided-task'+(unit.incremental?' ft-unlock-task':'')+'" data-guided-step="'+html(step.id)+'"'+(step.unlockAction?' data-unlock-action="'+html(step.unlockAction)+'"':'')+'><p class="ft-eyebrow">'+html(step.unlockAction?({introduce:'NEW BUILDING BLOCK',recall:'COVER & RECALL',build:'BUILD A SENTENCE',reverse:'FRENCH → ENGLISH',write:'INDEPENDENT WRITING'}[step.unlockAction]||style):style+phase)+'</p>'+
       '<h3>'+html(step.prompt)+'</h3>';
     const showFrench=step.kind==='model'?Boolean(step.modelInitiallyShown||state.revealed):state.done||state.revealed;
     if(step.kind==='model'){
-      body+=pair(step.en,showFrench?step.fr:'',!showFrench)+
+      if(unit.incremental){
+        const reverse=step.unlockAction==='reverse';
+        body+=reverse?'<div class="ft-guided-pair"><div class="ft-pair-french"><p lang="fr" class="ft-guided-french">'+spokenWords(step.fr)+'</p><button type="button" data-gact="speak">▶</button></div>'+
+          (showFrench?'<p class="ft-guided-english">'+html(step.en)+'</p>':'<p class="ft-pair-placeholder">Work out the English meaning first.</p>')+'</div>':pair(step.en,showFrench?step.fr:'',!showFrench);
+        if(showFrench){
+          if(step.pronunciation)body+='<p class="ft-unlock-pron" aria-label="Pronunciation">'+html(step.pronunciation)+' · tap the French to listen</p>';
+          if(step.note)body+='<details class="ft-unlock-note"><summary>Notice the pattern</summary><p>'+html(step.note)+'</p></details>';
+          if(step.components?.length>1)body+='<div class="ft-unlock-components" aria-label="How the sentence is built">'+step.components.map(c=>'<span><small>'+html(c.en)+'</small><strong lang="fr">'+spokenWords(c.fr)+'</strong></span>').join('')+'</div>';
+        }
+        body+='<div class="ft-actions">'+(!showFrench?advanceButton('reveal',reverse?'Reveal English':'Reveal French'):
+          advanceButton('finish-model',step.unlockAction==='introduce'?'I have said it → Next':'Got it → Next')+
+          (step.unlockAction!=='introduce'&&step.stage!=='repair'?'<button type="button" data-gact="oral-retry"'+busy+'>Needed help · revisit later</button>':''))+'</div>';
+      }else body+=pair(step.en,showFrench?step.fr:'',!showFrench)+
         '<div class="ft-actions">'+
         (!showFrench?'<button type="button" data-gact="reveal">Reveal French</button>':'')+
         advanceButton('finish-model','I have repeated it → Next')+'</div>';
@@ -292,7 +305,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     if(showFrench)body+='<p class="ft-small ft-word-hint">Tap a French word to hear it. Hold it or choose Explore to learn more.</p>';
     if(state.feedback)body+='<p class="'+(isChoice(step)?'ft-sr-only':'ft-guided-feedback '+(state.result||''))+'" role="status">'+html(state.feedback)+'</p>';
     body+='</div>';
-    const why=step.stage==='guided'?'These repetitions are guided practice, not independent transfer.':
+    const why=unit.incremental&&step.kind==='model'?'Say the answer before revealing. Oral self-checks guide practice but do not count as independent assessment scores.':step.stage==='guided'?'These repetitions are guided practice, not independent transfer.':
       step.stage==='transfer'?(step.novel?'Only the first unaided attempt at a genuinely new combination is transfer evidence.':'Use what you learned in a different combination; formal transfer is measured separately.'):
       step.stage==='review'?'A day-seven independent answer is separately counted for retention.':
       step.kind==='model'?'Listening and repetition are unscored teaching.':'Your first attempt is saved separately from retries and hints.';
@@ -330,16 +343,16 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       '</button><button data-page="magic">Explore Magic 10</button></div>'+
       '<p class="ft-small">Practise small useful structures repeatedly, cover the prompts, and revisit them after 1, 3, 7 and 28 days.</p>'+
       '<div class="ft-guided-unit-summary">'+statuses.map(s=>
-        '<div><strong>'+html(s.unit.label)+'</strong><span>'+html(s.unit.name)+'</span><button type="button" data-eact="unit:'+html(s.unit.id)+'">Open lesson</button>'+
+        '<div><strong>'+html(s.unit.label)+'</strong><span>'+html(s.unit.name)+'</span><button type="button" data-eact="unit:'+html(s.unit.id)+'">'+(s.unit.incremental?'Open chapter':'Open lesson')+'</button>'+
         '<small>'+html(s.mode==='complete'?'Teaching complete':s.mode==='review'?'Review due':
           s.mode==='new'?'Ready to start':'In progress')+'</small>'+
         (s.mode==='new'?'':'<small>'+s.teaching.coreCompleted+'/'+s.teaching.coreTotal+' core · '+s.teaching.repairCompleted+'/'+s.teaching.repairTotal+' corrections</small>')+'</div>').join('')+'</div></section>';
   };
   const logGuided=(step,answer,correct,{reveal=false,model=false}={})=>{
-    const expected=step.kind==='listen'?step.en:step.fr;
+    const expected=step.kind==='listen'||step.unlockAction==='reverse'?step.en:step.fr;
     const support=reveal||model?'worked-example':state.hint||state.wrong||step.stage==='guided'||step.stage==='repair'?'small-prompt':'none';
     const info={ref:model?step.id+':complete':step.id+':first',activity:ALL_UNITS.find(u=>u.id===step.unitId)?.name+' · '+step.stage,
-      question:step.kind==='listen'?'Listen: '+step.fr:step.kind==='transcribe'?'Dictation: '+step.fr:step.en,support};
+      question:step.unlockAction==='reverse'?step.fr:step.kind==='listen'?'Listen: '+step.fr:step.kind==='transcribe'?'Dictation: '+step.fr:step.en,support};
     if(reveal||model)return recordAttempt({...info,answer,expected,result:model?'model':'revealed',reason:model?'Oral repetition, not automatically marked.':'Model revealed; not an independent success.',marker:'unscored'});
     const custom=step.track&&step.track!=='michaela'&&!isChoice(step);
     const audit=exactAudit(answer,expected,correct,{...info,marker:isChoice(step)?'choice-v1':custom?'curriculum-v1':'guided-exact-v1',normalize:isChoice(step)?x=>String(x??''):custom?curriculumNormalize:normaliseAnswer});
@@ -447,8 +460,14 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
           announce();speak(current.kind==='model'?teacherModelAudio(current):current.fr);
           focusTarget(current.kind==='model'?'[data-gact="finish-model"]':'[data-gact="finish-revealed"]');
         }break;
+      case 'oral-retry':
       case 'finish-model':
-        if(current?.kind==='model'&&!state.done){if(!logGuided(current,null,false,{model:true}))break;state.revealed=true;completion(current,'worked-example');void advance(current.fr);}
+        if(current?.kind==='model'&&!state.done){
+          if(current.unlockAction&&!current.modelInitiallyShown&&!state.revealed)break;
+          if(!logGuided(current,null,false,{model:true}))break;
+          if(act==='oral-retry'&&!has(evidence(),current.id+':oral-retry'))record({concept:current.concept,phase:'practice',support:'worked-example',sourceRef:current.id+':oral-retry'});
+          state.revealed=true;completion(current,'worked-example');void advance(current.fr);
+        }
         break;
       case 'finish-revealed':
         if(current&&state.revealed&&!state.done){completion(current,'worked-example');void advance(current.fr);}
