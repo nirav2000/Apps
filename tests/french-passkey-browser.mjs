@@ -20,8 +20,9 @@ try{
   assert.ok(documents.some(([path,data])=>path.includes('/learners/adult/progress/')&&data.ownerUid==='test-owner'));
   assert.ok(documents.every(([path])=>!path.includes('next-french-preview')));
   assert.equal(await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).count(),1);
+  assert.equal(await page.locator('[data-cloud-status]').isVisible(),false);
   await page.locator('[data-profile]').selectOption('sai');
-  await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).waitFor({timeout:9000});
+  await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).waitFor({state:'attached',timeout:9000});
   assert.match(await page.locator('.ft-e-dashboard .ft-e-metrics').first().innerText(),/Not measured/);
   assert.deepEqual(errors,[]);
   console.log('French passkey browser smoke: authenticated owner, live Firebase sync, isolated learners');

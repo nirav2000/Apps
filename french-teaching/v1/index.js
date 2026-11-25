@@ -334,7 +334,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<p>Start with the <strong>whole sentence</strong>, then notice how letters combine into sounds. Hear examples, compare similar sounds, and return to your knowledge grid. These are curated common patterns, not universal spelling rules.</p>'+
       '<div class="ft-sound-groups" role="group" aria-label="Sound families">'+SOUND_FAMILIES.map(g=>
         '<button type="button" data-sound-group="'+esc(g.id)+'" aria-pressed="'+(g.id===selected.id)+'" class="'+(g.id===selected.id?'active':'')+'">'+esc(g.title)+'</button>').join('')+'</div>'+
-      (state.soundLastResult?'<p role="status" class="ft-feedback">Listening check: '+esc(state.soundLastResult)+'. Your answers were recorded in the phonics section of Learning Evidence.</p>':'')+
+      (state.soundLastResult?'<p role="status" class="ft-feedback">Listening check: '+esc(state.soundLastResult)+'.</p>':'')+
       '<p class="ft-sound-intro">'+esc(selected.intro)+'</p>'+
       '<div class="ft-sound-cards">'+selected.sounds.map((pattern)=>{
         return '<article class="ft-sound-card"><div class="ft-row"><div><h3>'+esc(pattern.spell)+'</h3><small>'+esc(pattern.ipa)+'</small></div>'+
@@ -364,7 +364,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       (state.soundFeedback?'<div class="ft-sr-only" role="status">'+esc(state.soundFeedback)+'</div>':'')+
       (state.soundAnswered?'<div class="ft-model"><strong lang="fr">'+esc(item.correct)+'</strong> — '+esc(item.why)+'</div>'+
         '<button type="button" data-act="next-sound-question" class="ft-primary">'+(state.soundQuestion===state.soundQueue.length-1?'Finish listening check':'Next word')+'</button>':'')+
-      '<p class="ft-small">Recognition results are saved as phonics evidence, not as a speech pronunciation score.</p></section>';
+      '</section>';
   }
   function startSoundQuiz(){
     teach('sounds');

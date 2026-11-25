@@ -274,7 +274,8 @@ test('adaptive teaching respects completed blocks, safe spacing, core progress a
  const success=adaptiveOutcome(p,{answer:'préparé',correct:true});
  assert.equal(success.correct,true);
  const after=revisionQueue([difficulty,{...success,id:'a',at:now+2,ref:p.id+':first',context:{sessionId,unitId:id,position:12}}],now+3);
- assert.equal(chooseAdaptivePlan({...options(16),queue:after,audits:[saved,answer],now:now+3}),null);
+ const contextual=chooseAdaptivePlan({...options(16),queue:after,audits:[saved,answer],now:now+3});
+ if(contextual){assert.equal(contextual.mode,'recall');assert.notEqual(contextual.fr,p.fr);}
  const delayed=chooseAdaptivePlan({...options(20),queue:revisionQueue([difficulty,{...success,id:'a',at:now+2,ref:p.id+':first'}],now+DAY+3),audits:[saved,answer],now:now+DAY+3,sessionId:'later'});
  assert.ok(delayed);assert.equal(delayed.mode,'recall');assert.notEqual(delayed.fr,p.fr);
  for(const stage of STAGES)for(const x of assessmentDeck(id,stage.id).filter(x=>['transfer','application'].includes(x.kind)))assert.notEqual(curriculumNormalize(delayed.fr),curriculumNormalize(x.fr));

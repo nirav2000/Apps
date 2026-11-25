@@ -9,8 +9,9 @@ page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 try{
   await page.goto('http://127.0.0.1:8898/tests/french-browser-harness.html',{waitUntil:'domcontentloaded'});
   await page.locator('.ft-tabs').waitFor({timeout:16000});
-  await page.locator('[data-cloud-status]').filter({hasText:'Firebase'}).waitFor({timeout:16000});
+  await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).waitFor({state:'attached',timeout:16000});
   assert.match(await page.locator('h1').first().innerText(),/French, built to be useful/);
+  assert.equal(await page.locator('[data-cloud-status]').isVisible(),false);
 
   await page.getByRole('button',{name:'Alphabet',exact:true}).click();
   assert.equal(await page.locator('[data-letter]').count(),26);
@@ -56,10 +57,10 @@ try{
   }
 
   await page.locator('[data-profile]').selectOption('sai');
-  await page.locator('[data-cloud-status]').filter({hasText:'Firebase'}).waitFor({timeout:16000});
+  await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).waitFor({state:'attached',timeout:16000});
   assert.match(await page.locator('.ft-e-dashboard .ft-e-metrics').first().innerText(),/Not measured/);
   await page.locator('[data-profile]').selectOption('adult');
-  await page.locator('[data-cloud-status]').filter({hasText:'Firebase'}).waitFor({timeout:16000});
+  await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).waitFor({state:'attached',timeout:16000});
   assert.match(await page.locator('.ft-e-dashboard .ft-e-metrics').first().innerText(),/100%/);
 
   assert.deepEqual(errors,[]);

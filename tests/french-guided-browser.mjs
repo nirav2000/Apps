@@ -21,6 +21,27 @@ try{
   await page.goto('http://127.0.0.1:8898/tests/french-browser-harness.html');
   await page.locator('.ft-tabs').waitFor();
   const evidence=()=>page.evaluate(()=>[...window.__testEvidence.values()].map(x=>x.event));
+  const stepId=()=>page.locator('[data-guided-step]').getAttribute('data-guided-step');
+  async function waitCore(expected,previous=''){
+    for(let i=0;i<14;i++){
+      await page.waitForFunction(({expected,previous})=>{
+        const s=document.querySelector('[data-guided-step]')?.dataset.guidedStep;
+        return s===expected||s?.startsWith('adaptive-v1:')&&s!==previous;
+      },{expected,previous});
+      const step=await stepId();
+      if(step===expected)return;
+      const plan=await page.evaluate(step=>JSON.parse(localStorage.getItem('next-french-answers-v1:test-owner:adult')||'[]').find(x=>x.answerAudit?.signal?.plan?.id===step)?.answerAudit.signal.plan,step);
+      assert.ok(plan,'Inserted step has a persisted plan');
+      if(plan.mode==='model')await page.locator('[data-gact="finish-model"]').click();
+      else{
+        await page.locator('#ft-guided-input').fill(plan.fr);
+        await page.locator('#ft-guided-form button[type=submit]').click();
+        await page.locator('[data-gact="next"]').click();
+      }
+      previous=step;
+    }
+    assert.fail('Core step did not resume after bounded adaptive inserts');
+  }
   await page.getByRole('button',{name:'Settings',exact:false}).click();
   const voices=page.locator('[data-french-voice]');
   assert.equal(await voices.locator('option').count(),3);
@@ -110,7 +131,7 @@ try{
   assert.equal(await page.locator('[data-guided-step]').getAttribute('data-guided-step'),firstStep);
   assert.equal(await page.locator('[data-gact="finish-model"]').isDisabled(),true);
   await page.evaluate(()=>{window.__holdSpeech=false;window.__finishSpeech();});
-  await page.locator('[data-guided-step="'+models[1].id+'"]').waitFor();
+  await waitCore(models[1].id);
   await page.waitForFunction(step=>window.__spoken.at(-1)?.step===step,models[1].id);
   for(let i=1;i<models.length;i++){
     if(i===3){
@@ -119,7 +140,7 @@ try{
     }
     await page.getByRole('button',{name:'I have repeated it → Next'}).click();
     const next=lesson.steps[i+1];
-    await page.locator('[data-guided-step="'+next.id+'"]').waitFor();
+    await waitCore(next.id);
   }
   await page.waitForFunction(fr=>window.__spoken.at(-1)?.text.includes(fr),models.at(-1).fr);
   assert.match(await page.locator('.ft-guided-task').innerText(),/Which French phrase matches the English/);
@@ -142,7 +163,7 @@ try{
   await page.waitForFunction(fr=>window.__spoken.at(-1)?.text===fr,wrong);
   assert.equal(await page.locator('.ft-guided-options button.correct').count(),1);
   await page.getByRole('button',{name:'Next phrase'}).click();
-  await page.locator('[data-guided-step="'+lesson.steps[20].id+'"]').waitFor();
+  await waitCore(lesson.steps[20].id);
   await page.waitForFunction(()=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref?.includes('guided-v2:')&&x.event?.score?.total===1),null,{timeout:12000});
   const events=await evidence();
   assert.ok(events.some(e=>e.source.ref.includes(':recap:')&&e.score.total===0));
@@ -159,7 +180,7 @@ try{
   // Exercise inline French feedback and progressive hints.
   const firstBuild=lesson.steps.findIndex(s=>s.stage==='guided'&&s.kind==='write');
   for(const step of lesson.steps.slice(20,firstBuild)){
-    await page.locator('[data-guided-step="'+step.id+'"]').waitFor();
+    await waitCore(step.id);
     if(step.kind==='choice'||step.kind==='listen'){
       await page.getByRole('button',{name:step.kind==='choice'?step.fr:step.en,exact:true}).click();
       if(step.kind==='listen')assert.equal(await page.locator('.ft-choice-translation').innerText(),step.fr);
@@ -170,7 +191,7 @@ try{
     await page.getByRole('button',{name:'Next phrase'}).click();
   }
   const build=lesson.steps[firstBuild];
-  await page.locator('[data-guided-step="'+build.id+'"]').waitFor();
+  await waitCore(build.id);
   await page.locator('#ft-guided-input').fill('je');
   await page.getByRole('button',{name:'Get a hint'}).click();
   assert.equal(await page.locator('#ft-guided-input').inputValue(),'je');
@@ -185,7 +206,7 @@ try{
   assert.equal(await page.evaluate(()=>document.activeElement?.dataset.gact),'next');
   await page.keyboard.press('Enter');
   const wrongBuild=lesson.steps[firstBuild+1];
-  await page.locator('[data-guided-step="'+wrongBuild.id+'"]').waitFor();
+  await waitCore(wrongBuild.id);
   assert.equal(await page.evaluate(()=>document.activeElement?.id),'ft-guided-input');
   const incorrect="je parle français, mais j’aime le français";
   assert.equal(await page.locator('#ft-guided-input').getAttribute('autocorrect'),'off');
@@ -203,7 +224,7 @@ try{
   assert.equal(await page.locator('.ft-guided-feedback.incorrect').count(),1);
   assert.equal(await page.evaluate(()=>document.activeElement?.dataset.gact),'finish-revealed');
   await page.keyboard.press('Enter');
-  await page.locator('[data-guided-step="'+lesson.steps[firstBuild+2].id+'"]').waitFor();
+  await waitCore(lesson.steps[firstBuild+2].id);
   await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref&&x.event?.score?.total===1&&x.event?.score?.correct===0),wrongBuild.id+':first',{timeout:12000});
   await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref),build.id+':hint',{timeout:12000});
   // Manual additions enter the private queue and trigger actual practice.

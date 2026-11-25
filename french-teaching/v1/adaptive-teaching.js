@@ -110,7 +110,7 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
   const recentAction=action?.context?.unitId===unitId&&action.context.sessionId===sessionId&&position-(action.context.position??position)>=3;
   const unaddressed=difficulty&&(!action||difficulty.at>action.at)&&(!row.lastIndependentAt||difficulty.at>row.lastIndependentAt);
   const recentStrong=local&&row.score>=3&&unaddressed;
-  return row.due||recentStrong||(recentAction&&['exposure','assisted'].includes(action.kind))||(recentAction&&action.kind==='review'&&!action.correct);
+  return row.due||recentStrong||(recentAction&&['exposure','assisted'].includes(action.kind))||(recentAction&&action.kind==='review'&&(!action.correct||action.mode==='dictation'&&row.needsRecall));
  }).sort((a,b)=>{
   const priority=x=>x.score+(x.lastDifficulty?.context?.unitId===unitId?2:0)+(x.lastDifficulty?.context?.sessionId===sessionId?1:0)+(x.due?1:0);
   return priority(b)-priority(a)||(a.dueAt??Infinity)-(b.dueAt??Infinity)||a.key.localeCompare(b.key);
@@ -128,6 +128,7 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
   const previous=allPlans.filter(p=>p.key===row.key);
   const candidates=sentenceChoices(row,known,previous,next,track);
   const candidate=candidates[0];
+  if(!candidate&&!row.due&&row.lastAction?.mode==='dictation'&&row.lastAction.correct)continue;
   // A user-requested isolated word may not have a known bilingual context.
   // It can be practised as dictation, never given a guessed translation.
   const last=row.lastAction,needsModel=last?.kind==='review'&&!last.correct||(!last&&row.counts.reveal+row.counts.construction>=2);
