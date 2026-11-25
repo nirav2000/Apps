@@ -12,6 +12,7 @@ import {exactAudit} from './answer-history.js';
 import {compareFrench,correctionSummary,phraseTarget} from './revision-signals.js';
 import {adaptiveStep,adaptiveOutcome} from './adaptive-teaching.js';
 import {curriculumVariants,curriculumNormalize} from './curriculum-meta.js';
+import {activeRest,restForUnit,restMarkup} from './study-timing.js';
 
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const marker=row=>guidedCompletionRefs(row.id);
@@ -142,11 +143,13 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
   const announce=()=>refresh();
   const go=page=>typeof navigate==='function'?navigate(page):announce();
   const start=(unitId)=>{
-    const id=unitId||recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id;
+    const locked=activeRest(evidence(),Date.now(),getTrack());
+    const id=locked?.unitId||unitId||recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id;
     if(!unitsForTrack(getTrack()).some(u=>u.id===id))return;
     guidedLesson(id); // validate before writing any record
     cancelAdvance();resetStep();
     state.unitId=id;
+    if(locked){go('lesson');return;}
     if(!has(evidence(),guidedTeachingRef(id))){
       const now=new Date().toISOString();
       record({concept:'french:guided:'+id,phase:'practice',support:'worked-example',
@@ -235,11 +238,12 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       '<div class="ft-guided-progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="'+completed+
       '" aria-valuemin="0" aria-valuemax="'+total+'"><span style="width:'+pct+'%"></span></div>'+
       '<p class="ft-small ft-progress-count"><strong>'+completed+'/'+total+'</strong> '+(status.mode==='review'?'day '+status.reviewDay+' review completed':'teaching steps completed')+' · '+html(breakdown)+'</p>';
-    if(!current&&status.mode==='complete'){
+    const rest=restForUnit(id,evidence());
+    if(rest||(!current&&status.mode==='complete')){
       const next=status.nextReviewAt?new Date(status.nextReviewAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'none scheduled';
       return head+'<div class="ft-guided-congrats"><h3>Excellent. Now leave it for a while.</h3>'+
-        (unit.track?'<p>You have completed the guided teaching. Continue to the independent check and scheduled reviews.</p>':'<p>You have completed the guided teaching. The next retrieval opportunity is <strong>'+html(next)+'</strong>. This is a schedule, not proof of retention.</p>')+
-        '<button type="button" data-gact="next-unit" class="ft-primary">Continue to the next learning activity</button></div>'+(unit.incremental?'<details class="ft-unlock-glossary"><summary>Chapter vocabulary &amp; building blocks</summary>'+unit.blocks.map(b=>'<div class="ft-unlock-glossary-row"><span>'+html(b.en)+'</span><strong lang="fr">'+spokenWords(b.fr)+'</strong><small>'+html(b.pronunciation)+'</small></div>').join('')+'</details>':'')+
+        (rest?restMarkup(rest):unit.track?'<p>You have completed the guided teaching. Continue to the independent check and scheduled reviews.</p>':'<p>You have completed the guided teaching. The next retrieval opportunity is <strong>'+html(next)+'</strong>. This is a schedule, not proof of retention.</p>')+
+        (rest?'<button type="button" data-gact="next-unit" data-rest-continue data-rest-unit="'+html(id)+'" class="ft-primary"'+(rest.active?' disabled aria-disabled="true"':'')+'>'+ (rest.active?'Continue when the break finishes':'Start independent recall')+'</button>':'<button type="button" data-gact="next-unit" class="ft-primary">Continue to the next learning activity</button>')+'</div>'+(unit.incremental&&!rest?'<details class="ft-unlock-glossary"><summary>Chapter vocabulary &amp; building blocks</summary>'+unit.blocks.map(b=>'<div class="ft-unlock-glossary-row"><span>'+html(b.en)+'</span><strong lang="fr">'+spokenWords(b.fr)+'</strong><small>'+html(b.pronunciation)+'</small></div>').join('')+'</details>':'')+
         '<button type="button" data-page="home">Return to overview</button></section>';
     }
     if(!current)return head+'<p>Nothing due in this lesson. Select a different teaching unit above.</p></section>';
@@ -440,7 +444,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const {current}=context();
     switch(act){
       case 'start':{const id=recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id;if(getTrack()!=='michaela'&&requestStart)requestStart(id);else start(id);break;}
-      case 'next-unit':start(recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id);break;
+      case 'next-unit':if(!activeRest(evidence(),Date.now(),getTrack())){if(requestStart&&target.dataset.restUnit)requestStart(target.dataset.restUnit);else start(recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id);}break;
       case 'pause':resetStep();announce();break;
       case 'speak':if(current)speak(current.fr);break;
       case 'focus-word':{

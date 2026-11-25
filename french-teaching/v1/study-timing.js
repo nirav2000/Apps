@@ -30,7 +30,7 @@ export function scheduledPractice(entries,now=Date.now(),track='michaela'){
  for(const u of unitsForTrack(track)){
   const anchor=teachingFinishedAt(u.id,entries,now);
   if(anchor===null||now<anchor)continue;
-  const current=CHECK_WINDOWS.find(w=>now>=dueTime(anchor,w)&&now<anchor+w.to*DAY);
+  const current=CHECK_WINDOWS.find(w=>now>=dueTime(anchor,w)&&now<anchor+w.to*DAY)||(now<anchor+MINIMUM_REST_MS&&checkResult(u.id,'immediate',entries,now).attempted.length?CHECK_WINDOWS[0]:null);
   const upcoming=CHECK_WINDOWS.find(w=>dueTime(anchor,w)>now);
   if(upcoming){const at=dueTime(anchor,upcoming);if(!next||at<next.at)next={at,stage:upcoming.id,unitId:u.id,name:u.name};}
   if(!current)continue;
@@ -77,6 +77,7 @@ export function updateStudyClocks(root,now=Date.now()){
   const fraction=Math.min(1,remaining/Math.max(1,duration));
   const c=2*Math.PI*54;
   clock.querySelector('[data-rest-time]').textContent=countdownText(remaining);
+  clock.setAttribute('aria-label','Learning break: '+countdownText(remaining)+' remaining');
   clock.querySelector('[data-rest-ring]').setAttribute('stroke-dasharray',(fraction*c)+' '+c);
   clock.querySelector('[data-rest-hand]').setAttribute('transform','rotate('+(fraction*360)+' 60 60)');
   clock.querySelector('[data-rest-label]').textContent=active?'Take a five-minute break':'Ready for independent recall';
@@ -90,13 +91,13 @@ export function updateStudyClocks(root,now=Date.now()){
 }
 export function noticeMarkup(schedule,words,rest,{enabled=false,supported=false}={}){
  const n=schedule.overdue.length+words.length;
- if(!n&&!schedule.due.length&&!rest&&!schedule.next)return '';
- const earliest=schedule.overdue[0],late=earliest?lateText(earliest.lateMs):words.length?lateText(Date.now()-words[0].at):'';
- const title=n?'Practice overdue':rest?'Learning break in progress':schedule.due.length?'Practice ready':'Next scheduled practice';
+ if(!n&&!schedule.due.length&&!rest&&!schedule.next&&!supported)return '';
+ const earliest=schedule.overdue[0],oldest=Math.min(earliest?.at??Infinity,words[0]?.at??Infinity),late=Number.isFinite(oldest)?lateText(Date.now()-oldest):'';
+ const title=n?'Practice overdue':rest?'Learning break in progress':schedule.due.length?'Practice ready':schedule.next?'Next scheduled practice':'Practice reminders';
  const message=n?(schedule.overdue.length?schedule.overdue.length+' lesson check'+(schedule.overdue.length===1?'':'s')+' overdue. ':'')+(words.length?words.length+' personal revision item'+(words.length===1?'':'s')+' overdue. ':'')+(late?'Oldest shown: '+late+' since due.':'')+(earliest?.missed.length?' An earlier check was missed; do the current check rather than backdating it.':''):
  rest?'Your next independent check unlocks at '+shortDate(rest.readyAt)+'.':
  schedule.due.length?schedule.due[0].name+' · '+schedule.due[0].label+' check is ready.':
- schedule.next.name+' · '+shortDate(schedule.next.at)+'.';
+ schedule.next?schedule.next.name+' · '+shortDate(schedule.next.at)+'.':'No practice is currently scheduled.';
  return '<aside class="ft-timing-notice'+(n?' overdue':'')+'" aria-label="Practice schedule"><div><strong>'+esc(title)+'</strong><p>'+esc(message)+'</p></div><div class="ft-actions">'+
  (rest||schedule.due.length?'<button type="button" data-eact="daily" class="ft-primary">'+(rest?'View countdown':'Practise now')+'</button>':words.length?'<button type="button" data-act="revision-start" class="ft-primary">Review words</button>':'')+
  (supported?'<button type="button" data-act="practice-alerts">'+(enabled?'Turn off device alerts':'Enable device alerts')+'</button>':'')+

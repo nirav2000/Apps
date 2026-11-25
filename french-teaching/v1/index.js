@@ -10,6 +10,7 @@ import {TRACKS,validTrack} from './curriculum-meta.js';
 import {unitsForTrack,guidedStatus} from './guided-lessons.js';
 import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget} from './revision-signals.js';
 import {adaptivePlans,chooseAdaptivePlan} from './adaptive-teaching.js';
+import {activeRest,scheduledPractice,overdueWords,noticeMarkup,updateStudyClocks,alertKeys} from './study-timing.js';
 import {ANSWER_APP,createAnswerHistory,exactAudit,visibleHistory,answerHistoryPage} from './answer-history.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
@@ -113,6 +114,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     return '<section class="ft-card ft-revision-summary"><div class="ft-row"><div><p class="ft-eyebrow">PERSONAL REVISION</p><h2>'+due+' words or structures ready to revisit</h2><p class="ft-small">Spelling, repeated listening and relative typing hesitation guide the timing.</p></div><button type="button" data-page="signals" class="ft-primary">Review signals →</button></div></section>';
   }
   function startRevision(auto=false){
+    if(enforceBreak())return;
     const due=revisions().filter(x=>x.due).slice(0,5);
     if(!due.length){if(auto)assessmentUI.startDaily();return;}
     cancelPendingAdvance();revision={items:due,index:0,result:null,answer:'',auto};state.page='signals';render();
@@ -163,6 +165,54 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   });
   const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,record,recordAttempt,speak,refresh:render,focusTarget,
     navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>guidedUI.start(unit),onRest:()=>{const due=revisions().some(x=>x.due);if(due){startRevision(false);return true;}return false;}});
+  // The five-minute policy is scoped to this learner/course and anchored to
+  // immutable teaching completion evidence. Leaving for the overview is safe.
+  const breakForCourse=()=>state.store?activeRest(state.store.getEntries(),Date.now(),state.track):null;
+  function enforceBreak(){const rest=breakForCourse();if(!rest)return false;revision=null;cancelPendingAdvance();guidedUI.start(rest.unitId);return true;}
+  const alertSupported=()=>typeof window.Notification!=='undefined'&&!!navigator.serviceWorker;
+  const alertScope=()=>state.store?'next-french:practice-alerts:'+state.store.scope.accountId+':'+state.profile:'';
+  function alertsEnabled(){try{return !!alertScope()&&localStorage.getItem(alertScope())==='1'&&window.Notification?.permission==='granted';}catch{return false;}}
+  let lastTimingPoll=0,alertInFlight=false,alertNotice='';
+  async function togglePracticeAlerts(){
+    const key=alertScope();if(!key||!alertSupported())return;
+    if(alertsEnabled()){try{localStorage.removeItem(key);}catch{}alertNotice='Device alerts turned off.';timingTick(true);return;}
+    try{
+      const permission=window.Notification.permission==='granted'?'granted':await window.Notification.requestPermission();
+      if(key!==alertScope())return;
+      if(permission!=='granted'){alertNotice='Notification permission was not granted. In-app reminders still work.';timingTick(true);return;}
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(!reg?.active){alertNotice='Device alerts need an active installed web app. In-app reminders still work.';timingTick(true);return;}
+      localStorage.setItem(key,'1');alertNotice='Device alerts enabled while Next is open.';timingTick(true);
+    }catch{alertNotice='Device alerts unavailable. In-app reminders still work.';timingTick(true);}
+  }
+  async function notifyOverdue(keys){
+    if(!keys.length||!alertsEnabled()||alertInFlight)return;
+    const scope=alertScope(),storageKey=scope+':sent';
+    let sent=[];try{sent=JSON.parse(localStorage.getItem(storageKey)||'[]');if(!Array.isArray(sent))sent=[];}catch{}
+    const fresh=keys.filter(k=>!sent.includes(k));if(!fresh.length)return;
+    alertInFlight=true;
+    try{
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(scope!==alertScope()||!alertsEnabled()||!reg?.active)return;
+      await reg.showNotification('Next French · Practice overdue',{body:'A scheduled French practice is overdue. Open Next to resume learning.',tag:'next-french-practice',data:{nextFrench:true}});
+      localStorage.setItem(storageKey,JSON.stringify([...new Set([...sent,...fresh])].slice(-300)));
+    }catch{}finally{alertInFlight=false;}
+  }
+  function timingTick(force=false){
+    if(destroyed)return;
+    const now=Date.now();updateStudyClocks(el(),now);
+    if(!state.store||state.loading||(!force&&now-lastTimingPoll<15000))return;
+    lastTimingPoll=now;
+    const entries=state.store.getEntries(),schedule=scheduledPractice(entries,now,state.track),words=overdueWords(revisions(),now),rest=activeRest(entries,now,state.track);
+    const slot=el().querySelector('[data-study-notice]');
+    if(slot){
+      const show=['home','evidence','signals','settings'].includes(state.page)&&!revision;
+      const markup=show?noticeMarkup(schedule,words,rest,{enabled:alertsEnabled(),supported:alertSupported()}):'';
+      const message=show&&alertNotice?'<p class="ft-small" role="status">'+esc(alertNotice)+'</p>':'';
+      if(slot.dataset.markup!==markup+message){slot.innerHTML=markup+message;slot.dataset.markup=markup+message;}
+    }
+    void notifyOverdue(alertKeys(schedule,words));
+  }
   function teach(kind){
     if(!state.store)return;
     const ref=kind==='alphabet'?'intro-alphabet':kind==='sounds'?'intro-sounds':'intro-connectives';
@@ -223,7 +273,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(!state.context?.auth?.currentUser)return;
     const {auth,db,firestore,ownerUid}=state.context;
     if(auth.currentUser.uid!==ownerUid){state.cloudStatus='Wrong account; no evidence will be mixed';return;}
-    state.profile=profile;state.track=preferredTrack(profile);revision=null;session=null;typingSamples=new WeakMap();pendingTyping=[];
+    state.profile=profile;state.track=preferredTrack(profile);revision=null;session=null;alertNotice='';typingSamples=new WeakMap();pendingTyping=[];
     state.soundLastResult=null;state.soundQueue=[];state.soundQuestion=0;
     state.store=createEvidenceStore({appId:APP_ID,learnerId:profile,accountId:ownerUid});
     guidedUI.reset();assessmentUI.reset();
@@ -666,12 +716,13 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(state.coach){const old=state.coach;state.coach=null;Promise.resolve(old.destroy()).catch(()=>{});}
     const ready=!!state.store;
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
-      (!ready?login():nav()+
+      (!ready?login():nav()+'<div data-study-notice></div>'+
       (state.page==='home'?overview():state.page==='evidence'?assessmentUI.dashboard():state.page==='history'?answerHistoryPage(historyRows(),historyFilter,historyLimit):state.page==='signals'?revisionPage():state.page==='assessment'?assessmentUI.page():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
        state.page==='alphabet'?alphabet():state.page==='sounds'?sounds():state.page==='sound-quiz'?soundQuiz():state.page==='knowledge'?knowledge():
        state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())))+
       '<p class="ft-foot">Original lessons informed by Barry Smith, Jessica Lund’s published Michaela work, and general repeat-and-build principles described by Paul Noble. Not affiliated with or a reproduction of their courses. <a href="https://jlmfl.wordpress.com/2022/11/27/teaching-grammar-rote-vs-rules/">Lund on rote &amp; rules</a> · <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES</a></p>';
     if(ready&&state.page==='pronunciation')mountPronunciation();
+    if(ready)timingTick(true);
   }
   // One active utterance and a completion promise, using actual end events.
   let speechTask=null,advanceEpoch=0,advancePending=false;
@@ -784,6 +835,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function setPage(page){
     if(!state.store){render();return;}
+    if(!['home','evidence','history','signals','settings'].includes(page)&&enforceBreak())return;
     cancelPendingAdvance();
     if(page==='lesson'){revision=null;startDailyWithSignals(true);return;}
     revision=null;
@@ -840,10 +892,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(assessmentTarget?.dataset.eact==='daily'){startDailyWithSignals(true);return;}
     if(assessmentTarget&&assessmentUI.click(assessmentTarget))return;
     const guidedTarget=e.target.closest('[data-gword],[data-gact],[data-gchoice],[data-gspeak]');
-    if(guidedTarget?.dataset.gact==='next-unit'){startDailyWithSignals();return;}
+    if(guidedTarget?.dataset.gact==='next-unit'){if(enforceBreak())return;const unit=guidedTarget.dataset.restUnit;if(unit)assessmentUI.startUnit(unit);else startDailyWithSignals();return;}
     if(guidedTarget&&guidedUI.click(guidedTarget))return;
     const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say],[data-word],[data-sound-group],[data-sound-play],[data-sound-compare],[data-sound-sentence],[data-sound-answer],[data-cuddle-word]');
     if(!b)return;
+    if(b.dataset.act==='practice-alerts'){await togglePracticeAlerts();return;}
     if(b.dataset.act?.startsWith('track:')){changeTrack(b.dataset.act.slice(6));return;}
     if(b.dataset.page){setPage(b.dataset.page);return;}
     if(b.dataset.letter!==undefined){
@@ -1115,7 +1168,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   el().addEventListener('submit',onSubmit);
   el().addEventListener('change',onChange);
   const onOnline=()=>syncNow();
-  const onVisible=()=>{if(document.visibilityState==='visible')syncNow();else typingSamples=new WeakMap();};
+  const onVisible=()=>{if(document.visibilityState==='visible'){timingTick(true);void syncNow();}else typingSamples=new WeakMap();};
+  const timingInterval=setInterval(()=>timingTick(),1000);
   window.addEventListener('online',onOnline);
   document.addEventListener('visibilitychange',onVisible);
   (async()=>{try{state.context=await connect();if(state.context?.auth.currentUser)await attach(state.profile);
@@ -1123,7 +1177,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     catch(e){state.cloudStatus='Firebase unavailable: '+String(e.message||e);}
     finally{state.loading=false;render();}})();
   return {destroy(){
-    destroyed=true;if(syncTimer)clearTimeout(syncTimer);
+    destroyed=true;clearInterval(timingInterval);if(syncTimer)clearTimeout(syncTimer);
     window.speechSynthesis?.removeEventListener?.('voiceschanged',onVoicesChanged);
     window.removeEventListener('online',onOnline);
     document.removeEventListener('visibilitychange',onVisible);
