@@ -306,3 +306,6 @@
 .ft-app .ft-choice-replay{font-size:13px;opacity:.75;min-width:20px;text-align:center}
 .ft-app .ft-word-hint{margin:8px 0;font-size:12px;color:#65776d}
 @media(max-width:640px){.ft-app .ft-guided-options button:has(.ft-choice-translation) .ft-choice-end{grid-column:2;grid-row:1/3}}
+
+/* Incremental Unlocking chapters */
+.ft-unlock-task .ft-guided-pair{padding:24px;background:#f4f7f6;border:1px solid #e0e9e4;border-radius:18px;color:#20352b}.ft-unlock-task .ft-guided-english{font-size:clamp(22px,4vw,30px);font-weight:650}.ft-unlock-task .ft-guided-french{font-size:clamp(24px,4.5vw,34px);color:#245f4b}.ft-unlock-pron{font-size:14px;margin-top:8px}.ft-unlock-note{margin:10px 0}.ft-unlock-components{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}.ft-unlock-components>span{display:grid;gap:4px;max-width:100%;background:#edf4f0;color:#20352b;border:1px solid #dce8df;border-radius:12px;padding:10px 12px}.ft-unlock-components small{color:#586d60;font-size:12px}.ft-unlock-components strong{overflow-wrap:anywhere;font-size:17px}.ft-unlock-task .ft-actions button{white-space:normal}.ft-unlock-glossary{margin-top:16px}.ft-unlock-glossary-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:9px 0;border-bottom:1px solid #e0e6e3}.ft-unlock-glossary-row small{grid-column:2}

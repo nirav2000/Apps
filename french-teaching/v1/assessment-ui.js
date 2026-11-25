@@ -108,7 +108,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       const progress=state.mode==='check'?deck.filter(x=>firstByRef(entries()).has(x.ref)).length:null;
       return '<section class="ft-card ft-e-question"><p class="ft-eyebrow">'+h(title)+(progress==null?'':' · '+Math.min(progress+1,deck.length)+'/'+deck.length)+'</p><h2>Answer in French</h2><p class="ft-e-prompt">'+h(item.en)+'</p>'+
         '<p class="ft-small">'+(baseline?'This checks what you already know; it is not a grade.':state.mode==='adaptive'?'Recall the repaired phrase without a model.':'First answer only. No hints, dictionary or corrections until the check is finished.')+'</p>'+
-        '<form id="ft-e-form"><label for="ft-e-answer">Your French</label><input id="ft-e-answer" name="answer" '+inputs+' required><div class="ft-actions"><button type="submit" class="ft-primary">Submit answer</button>'+btn('unknown',"I don't know")+'</div></form>'+btn('leave','Pause')+'</section>';
+        '<form id="ft-e-form"><label for="ft-e-answer">Your French</label><input id="ft-e-answer" name="answer" '+inputs+' required><div class="ft-actions"><button type="submit" class="ft-primary">Submit answer</button>'+btn('unknown',"I don't know")+'</div></form>'+((baseline&&ALL_UNITS.find(u=>u.id===state.unitId)?.incremental)?btn('skip-baseline','Start teaching without a baseline'):'')+btn('leave','Pause')+'</section>';
     }
     if(state.mode==='repair'){
       return '<section class="ft-card ft-e-question"><p class="ft-eyebrow">TARGETED REPAIR</p><h2>'+h(labels[item.error]||'Phrase construction')+'</h2><p>'+h(ERROR_TIPS[item.error]||ERROR_TIPS.chunk)+'</p><p class="ft-e-prompt">'+h(item.en)+'</p>'+
@@ -174,7 +174,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     const next=x.deck.find(i=>!firstByRef(entries()).has(i.ref));
     pick('experiment',next,{unitId:x.unit.id,anchor:x.anchor,played:false});
   };
-  const oralDeck=()=>unitsForTrack(getTrack()).flatMap(u=>lessonRows(u).filter(r=>r.id!=='infinitive'));
+  const oralDeck=()=>unitsForTrack(getTrack()).flatMap(u=>(u.incremental?u.blocks:lessonRows(u)).filter(r=>r.id!=='infinitive'));
   const oral=i=>{const deck=oralDeck();pick('oral',deck[i%deck.length],{oralIndex:i%deck.length});};
   const click=target=>{
     const a=target.dataset.eact;if(!a)return false;
@@ -182,6 +182,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     if(a.startsWith('range-')){state.range=Number(a.slice(6))===36500?36500:28;refresh();return true;}
     switch(a){
       case 'daily':startDaily();break;
+      case 'skip-baseline':if(state.mode==='check'&&state.stage==='baseline'&&ALL_UNITS.find(u=>u.id===state.unitId)?.incremental)startGuided(state.unitId);break;
       case 'continue-unit':if(state.doneUnit)startUnit(state.doneUnit);break;
       case 'leave':state.mode=null;navigate('home');break;
       case 'unknown':finishAnswer('');break;

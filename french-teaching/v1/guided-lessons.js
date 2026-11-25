@@ -225,12 +225,13 @@ export function guidedStatus(unitId,entries,now=Date.now()){
       completed:refs.has(guidedRefs(repairId).complete)};
   });
   const repairPending=repairs.filter(x=>!x.completed);
+  const interleaved=lesson.unit.incremental?repairPending.find(r=>{const i=lesson.steps.findIndex(s=>r.id.endsWith(s.id.slice(GUIDED_PREFIX.length)));return i>=0&&main.slice(i+1,i+4).filter(s=>s.completed).length>=2;}):null;
   const teaching={coreTotal:main.length,coreCompleted:main.length-unfinished.length,repairTotal:repairs.length,repairCompleted:repairs.length-repairPending.length};
   teaching.total=teaching.coreTotal+teaching.repairTotal;
   teaching.completed=teaching.coreCompleted+teaching.repairCompleted;
   if(unfinished.length||repairPending.length){
     return {unit:lesson.unit,mode:taughtAt?'resume':'new',taughtAt,teaching,
-      steps:[...main,...repairs],next:unfinished[0]||repairPending[0],
+      steps:[...main,...repairs],next:interleaved||unfinished[0]||repairPending[0],
       remaining:unfinished.length+repairPending.length,
       completed:teaching.completed,total:teaching.total,reviewDay:null};
   }
