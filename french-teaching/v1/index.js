@@ -8,7 +8,7 @@ import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
 import {unitsForTrack,guidedStatus} from './guided-lessons.js';
-import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary} from './revision-signals.js';
+import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport} from './revision-signals.js';
 import {ANSWER_APP,createAnswerHistory,exactAudit,visibleHistory,answerHistoryPage} from './answer-history.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
@@ -65,7 +65,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   let selectedWord=null,wordToolbar=null,wordPress=null,suppressedWordClick=null;
   let answerStore=null,answerCloud=null,historyFilter='all',historyLimit=50;
   const historyRows=()=>visibleHistory(answerStore?.getEntries()||[],state.store?.getEntries()||[]);
-  let typingSamples=new WeakMap(),pendingTyping=[],revision=null,autoRevisionOffered=false;
+  let typingSamples=new WeakMap(),pendingTyping=[],revision=null,autoRevisionOfferedAt=0;
+  let importedWords=revisionImport(window.location.hash);
   const revisions=()=>revisionQueue(revisionEvents(answerStore?.getEntries()||[],historyRows()));
   const answerField=node=>node?.matches?.('#ft-guided-input,#ft-answer-text,#ft-e-answer')?node:null;
   const onTypingFocus=e=>{const input=answerField(e.target);if(!input)return;const old=typingSamples.get(input);if(old)old.invalidate();else typingSamples.set(input,createTypingSample(input.value));};
@@ -98,7 +99,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function startDailyWithSignals(resuming=false){
     const active=resuming&&unitsForTrack(state.track).some(u=>guidedStatus(u.id,state.store.getEntries()).mode==='resume');
-    if(!active&&!autoRevisionOffered&&revisions().some(x=>x.due)){autoRevisionOffered=true;startRevision(true);return;}
+    if(!active&&Date.now()-autoRevisionOfferedAt>=600000&&revisions().some(x=>x.due)){autoRevisionOfferedAt=Date.now();startRevision(true);return;}
     assessmentUI.startDaily();
   }
   function revisionPage(){
@@ -114,13 +115,15 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         '<button type="button" data-act="revision-leave">'+(revision.auto?'Continue lesson':'Back to signals')+'</button><p class="ft-small">This is targeted spelling/listening practice, not an independent sentence assessment.</p></section>';
     }
     const rows=revisions(),due=rows.filter(x=>x.due);
+    const pending=importedWords.filter(w=>!rows.some(x=>x.key===wordKey(w)&&x.dueAt!==null));
+    const importBox=importedWords.length?'<section class="ft-revision-row"><strong>Words to add to this learner’s revision</strong><p lang="fr">'+importedWords.map(esc).join(' · ')+'</p><p class="ft-small">'+(pending.length?pending.length+' new words; existing scheduled words will not be duplicated.':'All these words already have a scheduled review.')+'</p><button type="button" data-act="revision-import" class="ft-primary">'+(pending.length?'Confirm and add':'Done')+'</button></section>':'';
     const date=ms=>ms===null?'No drill scheduled':ms<=Date.now()?'Ready now':new Date(ms).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
     return '<section class="ft-card ft-revision-dashboard"><p class="ft-eyebrow">PERSONAL LEARNING SIGNALS</p><h2>Your revision queue</h2><p>Each signal is a clue, not a mastery score. Repeated difficulty brings a word forward. Correct revision answers space it further apart.</p>'+
       '<div class="ft-actions"><button type="button" data-act="revision-start" class="ft-primary"'+(!due.length?' disabled':'')+'>Practise '+Math.min(5,due.length)+' due words</button><button type="button" data-act="sync">Sync</button></div>'+
-      '<form id="ft-revision-add"><label for="ft-revision-add-word">Add a French word to revise</label><input id="ft-revision-add-word" name="word" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required maxlength="80"><button type="submit">Add word</button></form>'+
+      importBox+'<form id="ft-revision-add"><label for="ft-revision-add-word">Add a French word to revise</label><input id="ft-revision-add-word" name="word" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required maxlength="80"><button type="submit">Add word</button></form>'+
       (rows.length?rows.map(x=>'<article class="ft-revision-row"><div class="ft-row"><strong lang="fr">'+spokenWords(x.word)+'</strong><span>'+esc(x.priority)+' · '+x.score+' · '+esc(date(x.dueAt))+'</span></div><p class="ft-small">'+x.counts.spelling+' spelling / form · '+x.counts.pronunciation+' word plays · '+x.counts.hesitation+' slower typing · '+x.counts.review+' reviews</p>'+
         (x.counts.spelling?'<p class="ft-revision-errors">'+[...new Set(x.signals.filter(s=>s.kind==='spelling').map(s=>s.actual))].map(esc).join(', ')+' → <strong>'+esc(x.word)+'</strong></p>':'')+
-        '<details><summary>Signal history</summary>'+x.signals.slice().reverse().map(s=>'<p class="ft-small">'+esc(new Date(s.at).toLocaleString('en-GB'))+' · '+esc(s.kind)+(s.kind==='hesitation'?' · '+s.ratio+'× your sentence baseline':s.kind==='review'?' · '+(s.correct?'correct':'incorrect'):'')+'</p>').join('')+'</details></article>').join(''):'<p>No signals recorded yet. Words you mistype, repeatedly listen to or hesitate over will appear here.</p>')+
+        '<details><summary>Signal history</summary>'+x.signals.slice().reverse().map(s=>'<p class="ft-small">'+esc(new Date(s.at).toLocaleString('en-GB'))+' · '+esc(s.kind)+(s.kind==='hesitation'?' · '+s.ratio+'× your sentence baseline'+(s.mode==='before-word'?' (pause before word)':' (typing)'):s.kind==='review'?' · '+(s.correct?'correct':'incorrect'):'')+'</p>').join('')+'</details></article>').join(''):'<p>No signals recorded yet. Words you mistype, repeatedly listen to or hesitate over will appear here.</p>')+
       '<p class="ft-small">Timing uses only word-level aggregates from ordinary typing in answer fields, never a keystroke log. One slow word alone does not establish a difficulty.</p></section>';
   }
   function recordAttempt(audit){
@@ -201,7 +204,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(!state.context?.auth?.currentUser)return;
     const {auth,db,firestore,ownerUid}=state.context;
     if(auth.currentUser.uid!==ownerUid){state.cloudStatus='Wrong account; no evidence will be mixed';return;}
-    state.profile=profile;state.track=preferredTrack(profile);revision=null;autoRevisionOffered=false;typingSamples=new WeakMap();pendingTyping=[];
+    state.profile=profile;state.track=preferredTrack(profile);revision=null;autoRevisionOfferedAt=0;typingSamples=new WeakMap();pendingTyping=[];
     state.soundLastResult=null;state.soundQueue=[];state.soundQuestion=0;
     state.store=createEvidenceStore({appId:APP_ID,learnerId:profile,accountId:ownerUid});
     guidedUI.reset();assessmentUI.reset();
@@ -212,6 +215,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     state.cloudAt=null;
     try{localStorage.setItem('next-french:profile',profile);}catch{}
     await syncNow();
+    if(importedWords.length)state.page='signals';
   }
   function nav(){
     const tabs=[['home','Overview'],['lesson',"Today's lesson"],['evidence','Learning dashboard'],['history','Answer history'],['signals','Revision signals'],['magic','Magic 10'],['alphabet','Alphabet'],
@@ -920,6 +924,16 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         }catch(error){
           if(status)status.textContent='Password reset unavailable: '+authError(error);
         }finally{if(b.isConnected)b.disabled=false;}
+        break;
+      }
+      case 'revision-import':{
+        const rows=revisions();
+        const pending=importedWords.filter(w=>!rows.some(x=>x.key===wordKey(w)&&x.dueAt!==null));
+        if(pending.every(w=>recordSignal(w,'manual'))){
+          importedWords=[];
+          try{window.history.replaceState(null,'',window.location.pathname+window.location.search);}catch{}
+          render();
+        }
         break;
       }
       case 'revision-start':startRevision();break;

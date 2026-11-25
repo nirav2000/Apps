@@ -87,17 +87,17 @@ export function guidedHint(step,level=1){
 }
 // Render each visible French word as a small native button without altering
 // or duplicating a single character of the source. Keep elisions together.
-export function spokenWords(value,{choice=false,highlights=[]}={}){
+export function spokenWords(value,{choice=false,highlights=[],targets=[]}={}){
   const text=String(value??'');
   const tokens=/[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*/gu;
   let cursor=0,result='';
   for(const match of text.matchAll(tokens)){
     const word=match[0],start=match.index;
-    const escaped=html(word),difference=highlights.find(x=>x.start===start);
+    const escaped=html(word),difference=highlights.find(x=>x.start===start),target=targets.find(x=>x.start===start)?.replacement||difference?.replacement;
     const content=difference?'<mark class="ft-word-difference">'+escaped+'</mark>':escaped;
     result+=html(text.slice(cursor,start))+(choice?
       '<span class="ft-choice-word" lang="fr" data-choice-word="'+escaped+'" title="Tap to hear; hold to explore">'+escaped+'</span>':
-      '<button type="button" class="ft-spoken-word" lang="fr" data-gword="'+escaped+'" aria-label="Hear '+escaped+'" title="Tap to hear; hold to explore"'+(difference?.replacement?' data-revision-target="'+html(difference.replacement)+'"':'')+'>'+content+'</button>');
+      '<button type="button" class="ft-spoken-word" lang="fr" data-gword="'+escaped+'" aria-label="Hear '+escaped+'" title="Tap to hear; hold to explore"'+(target?' data-revision-target="'+html(target)+'"':'')+'>'+content+'</button>');
     cursor=start+word.length;
   }
   return result+html(text.slice(cursor));
@@ -107,15 +107,17 @@ export function answerComparison({answer='',expected,result,lang='fr',replay=''}
   const status=result==='correct'?'correct':result==='incorrect'?'incorrect':'revealed';
   const label=status==='correct'?'Correct':status==='incorrect'?'Incorrect':'Answer revealed';
   const submitted=String(answer??'').trim().length>0;
-  const diff=status==='incorrect'&&lang==='fr'?compareFrench(answer,expected).filter(x=>x.kind!=='match'):[];
+  const aligned=status==='incorrect'&&lang==='fr'?compareFrench(answer,expected):[];
+  const diff=aligned.filter(x=>x.kind!=='match');
   const left=diff.filter(x=>x.left).map(x=>({...x.left,replacement:x.near?x.right?.text:null}));
   const right=diff.filter(x=>x.right).map(x=>x.right);
-  const content=(value,highlights)=>lang==='fr'?spokenWords(value,{highlights}):html(value);
+  const targets=aligned.filter(x=>x.left&&x.right&&(x.kind==='match'||x.near)).map(x=>({start:x.left.start,replacement:x.right.text}));
+  const content=(value,highlights,targets=[])=>lang==='fr'?spokenWords(value,{highlights,targets}):html(value);
   const mark=status==='correct'?'✓':status==='incorrect'?'×':'';
   return '<div class="ft-guided-pair ft-answer-comparison '+status+'" role="group" aria-label="'+label+'">'+
     '<div class="ft-answer-submitted"><small>'+ (status==='revealed'?'Your draft (not checked)':'Your answer')+
     (mark?' <span class="ft-answer-mark" aria-hidden="true">'+mark+'</span>':'')+'</small>'+
-    '<p lang="'+html(lang)+'" class="ft-answer-value">'+(submitted?content(answer,left):'—')+'</p></div>'+
+    '<p lang="'+html(lang)+'" class="ft-answer-value">'+(submitted?content(answer,left,targets):'—')+'</p></div>'+
     '<div class="ft-answer-expected"><small>Correct answer</small><div class="ft-pair-french">'+
     '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected,right)+'</p>'+replay+'</div></div></div>';
 }

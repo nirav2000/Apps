@@ -55,11 +55,18 @@ export function createTypingSample(initial=''){
    if(invalid||String(final)!==value||value.length!==times.length)return [];
    const rows=frenchTokens(value).map((w,index)=>{
     const gaps=times.slice(w.start,w.end).filter(t=>Number.isFinite(t)&&t>0);
-    return {index,word:w.text,start:w.start,msPerChar:gaps.length>=2&&w.text.length>=3?Math.round(median(gaps)):null,samples:gaps.length};
+    return {index,word:w.text,start:w.start,msPerChar:gaps.length>=2&&w.text.length>=3?Math.round(median(gaps)):null,samples:gaps.length,startDelayMs:times[w.start]??null};
    }).filter(x=>x.msPerChar!==null);
    if(rows.length<3)return [];
    const baseline=Math.max(40,median(rows.map(x=>x.msPerChar)));
-   return rows.map(x=>({...x,baseline,ratio:Math.round(x.msPerChar/baseline*100)/100,slow:x.msPerChar>=2.2*baseline&&x.msPerChar-baseline>=180}));
+   const starts=rows.map(x=>x.startDelayMs).filter(Number.isFinite);
+   const startBaseline=starts.length>=3?Math.max(40,median(starts)):baseline;
+   return rows.map(x=>{
+    const slowKeys=x.msPerChar>=2.2*baseline&&x.msPerChar-baseline>=180;
+    const slowStart=x.startDelayMs!==null&&x.startDelayMs>=3*startBaseline&&x.startDelayMs-startBaseline>=500;
+    const mode=slowKeys?'typing':slowStart?'before-word':null;
+    return {...x,baseline,startBaseline,ratio:Math.round((slowStart&&!slowKeys?x.startDelayMs/startBaseline:x.msPerChar/baseline)*100)/100,slow:!!mode,mode};
+   });
   }
  };
 }
@@ -72,7 +79,7 @@ export function auditSignals(x){
   if(!timing.slow)continue;
   const d=pairs.find(pair=>pair.left?.start===timing.start);
   const word=x.result==='correct'?timing.word:d?.kind==='match'?d.right.text:null;
-  if(word)out.push({kind:'hesitation',word,sentence:x.result==='correct'?x.answer:x.expected,ref:x.ref,at:x.at,id:x.id+':typing:'+timing.start,ratio:timing.ratio,msPerChar:timing.msPerChar,baseline:timing.baseline});
+  if(word)out.push({kind:'hesitation',word,sentence:x.result==='correct'?x.answer:x.expected,ref:x.ref,at:x.at,id:x.id+':typing:'+timing.start,ratio:timing.ratio,msPerChar:timing.msPerChar,baseline:timing.baseline,mode:timing.mode||'typing',startDelayMs:timing.startDelayMs??null});
  }
  return out;
 }
@@ -110,4 +117,12 @@ export function clozeFor(sentence,word){
  let found=false;
  const result=src.replace(/[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*/gu,w=>{if(wordKey(w)===target){found=true;return '____';}return w;});
  return found?result:'';
+}
+
+// A URL fragment is only a proposed private manual import, never a write.
+export function revisionImport(hash){
+ const raw=new URLSearchParams(String(hash||'').replace(/^#/,'')).get('revise');
+ if(!raw)return [];
+ const words=raw.split(',').map(w=>w.trim()).filter(w=>w.length<=80&&/^[\p{L}\p{M}]+(?:['’\- ][\p{L}\p{M}]+)*$/u.test(w));
+ return [...new Map(words.map(w=>[wordKey(w),w])).values()].slice(0,10);
 }

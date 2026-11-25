@@ -79,6 +79,11 @@ try{
   assert.match(await modal.innerText(),/infinitive étudier/);
   assert.equal(await page.evaluate(()=>window.__spoken.length),spokenBefore);
   await modal.locator('[data-close-word]').click();await modal.waitFor({state:'detached'});
+  // The single deliberate word request is saved separately from scoring.
+  await page.getByRole('button',{name:'Revision signals',exact:true}).click();
+  const signalRow=page.locator('.ft-revision-row').filter({has:page.locator('[data-gword="dois"]')});
+  assert.match(await signalRow.innerText(),/1 word plays/);
+  assert.match(await signalRow.innerText(),/Low/);
   await page.getByRole('button',{name:'Overview',exact:true}).click();
   assert.equal(await page.locator('.ft-todays-lesson').count(),1);
   await page.getByRole('button',{name:'Start guided lesson'}).click();
@@ -201,10 +206,25 @@ try{
   await page.locator('[data-guided-step="'+lesson.steps[firstBuild+2].id+'"]').waitFor();
   await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref&&x.event?.score?.total===1&&x.event?.score?.correct===0),wrongBuild.id+':first',{timeout:12000});
   await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref),build.id+':hint',{timeout:12000});
+  // Manual additions enter the private queue and trigger actual practice.
+  await page.getByRole('button',{name:'Revision signals',exact:true}).click();
+  await page.locator('#ft-revision-add-word').fill('école');
+  await page.locator('#ft-revision-add button[type="submit"],#ft-revision-add button:not([type])').click();
+  await page.locator('.ft-revision-row').filter({has:page.locator('[data-gword="école"]')}).waitFor();
+  await page.getByRole('button',{name:/Practise .* due words/}).click();
+  await page.locator('#ft-revision-answer').waitFor();
+  const wordToReview=await page.evaluate(()=>window.__spoken.at(-1).text);
+  await page.locator('#ft-revision-answer').fill(wordToReview);
+  await page.locator('#ft-revision-form button[type="submit"]').click();
+  await page.locator('.ft-revision-task .ft-answer-comparison.correct').waitFor();
+  await page.waitForFunction(()=>[...window.__testEvidence.values()].some(x=>x.event?.answerAudit?.signal?.kind==='review'&&x.event.answerAudit.signal.correct),null,{timeout:12000});
+  await page.locator('[data-act="revision-leave"]').click();
   // Adult/Sai scope changes reset current lesson (no accidental merged records).
   await page.locator('[data-profile]').selectOption('sai');
   await page.locator('.ft-todays-lesson').waitFor();
   assert.match(await page.locator('.ft-todays-lesson').innerText(),/Start guided lesson/);
+  await page.getByRole('button',{name:'Revision signals',exact:true}).click();
+  assert.equal(await page.locator('.ft-revision-row').count(),0);
 
   const dims=await page.evaluate(()=>({w:document.documentElement.scrollWidth,v:document.documentElement.clientWidth}));
   assert.ok(dims.w<=dims.v+2,JSON.stringify(dims));

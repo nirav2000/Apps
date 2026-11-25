@@ -233,3 +233,19 @@ test('repeated signals increase priority, successful recall spaces practice and 
  assert.equal(clozeFor('je vais à école','école'),'je vais à ____');
  assert.equal(auditSignals({id:'x',at:1,targetLang:'fr',result:'withheld',answer:'ecole',expected:'école'}).length,0);
 });
+
+test('a pause before a fluent word is distinguished from slow keystrokes',()=>{
+ const sample=createTypingSample();let value='',at=0;
+ for(const ch of 'bonjour merci toujours demain'){
+  value+=ch;at+=value==='bonjour merci t'?950:100;sample.add(value,at);
+ }
+ const rows=sample.finish(value);
+ assert.equal(rows.find(x=>x.word==='toujours').mode,'before-word');
+ assert.equal(rows.find(x=>x.word==='demain').slow,false);
+});
+
+import {revisionImport} from '../french-teaching/v1/revision-signals.js';
+test('explicit manual revision import proposes unique valid words without a write',()=>{
+ assert.deepEqual(revisionImport('#revise='+encodeURIComponent('école,École,bonjour,<script>')),['École','bonjour']);
+ assert.deepEqual(revisionImport('#elsewhere'),[]);
+});
