@@ -199,3 +199,37 @@ test('devoir timeline teaches obligation in past, present and future',()=>{
  const rows=optionalVerbTimeline('devoir');assert.ok(rows.some(x=>x.fr==='je dois étudier'));assert.ok(rows.some(x=>x.fr==="j'ai dû étudier"));assert.ok(rows.some(x=>x.fr==='je devrai étudier'));
  assert.equal(spokenWords('je dois étudier',{choice:true}).replace(/<[^>]+>/g,''),'je dois étudier');assert.doesNotMatch(spokenWords('je dois étudier',{choice:true}),/<button/);
 });
+
+import {compareFrench,createTypingSample,revisionQueue,auditSignals,clozeFor} from '../french-teaching/v1/revision-signals.js';
+test('word alignment highlights changed words and does not confuse une with negation',()=>{
+ const got="J'ai preparé une tarte et j'ai reservé une table",expected="J'ai préparé une tarte et j'ai réservé une table";
+ assert.doesNotMatch(answerFeedback(got,expected),/negative/);
+ assert.match(answerFeedback(got,expected),/accents/);
+ assert.deepEqual(compareFrench(got,expected).filter(d=>d.kind!=='match').map(d=>d.right.text),['préparé','réservé']);
+ assert.equal(compareFrench('je parle la radio','je parle puis la radio').filter(d=>d.kind!=='match')[0].kind,'missing');
+ const box=answerComparison({answer:got,expected,result:'incorrect'});
+ assert.match(box,/<mark class="ft-word-difference">preparé<\/mark>/);
+ assert.match(box,/<mark class="ft-word-difference">réservé<\/mark>/);
+ assert.doesNotMatch(box,/<mark class="ft-word-difference">une<\/mark>/);
+});
+test('word typing uses relative aggregates, excludes paste and treats a lone hesitation as weak',()=>{
+ const sample=createTypingSample();let text='',at=0;
+ for(const c of 'bonjour merci toujours'){text+=c;at+=text.startsWith('bonjour merci t')?650:100;sample.add(text,at);}
+ const timings=sample.finish(text);
+ assert.ok(timings.find(x=>x.word==='toujours')?.slow);
+ assert.ok(!timings.find(x=>x.word==='merci')?.slow);
+ const paste=createTypingSample();paste.add(text,1,{inputType:'insertFromPaste'});assert.deepEqual(paste.finish(text),[]);
+ const rows=auditSignals({id:'a',at:100,ref:'x',targetLang:'fr',result:'correct',answer:text,expected:text,typing:timings});
+ assert.equal(rows.length,1);assert.equal(revisionQueue(rows,100)[0].dueAt,null);
+});
+test('repeated signals increase priority, successful recall spaces practice and errors retry sooner',()=>{
+ const events=[{id:'a',at:100,kind:'pronunciation',word:'École'},{id:'b',at:200,kind:'pronunciation',word:'école'},{id:'c',at:300,kind:'spelling',word:'école',actual:'ecole'}];
+ assert.equal(revisionQueue(events.slice(0,1),100)[0].due,false);
+ const after=revisionQueue(events,300)[0];assert.equal(after.due,true);assert.equal(after.counts.pronunciation,2);
+ assert.equal(revisionQueue([...events,events[0]],300)[0].counts.pronunciation,2);
+ const review={id:'d',at:400,kind:'review',word:'école',correct:true};
+ assert.equal(revisionQueue([...events,review],400)[0].dueAt,400+86400000);
+ assert.equal(revisionQueue([...events,{...review,correct:false}],400)[0].dueAt,400+600000);
+ assert.equal(clozeFor('je vais à école','école'),'je vais à ____');
+ assert.equal(auditSignals({id:'x',at:1,targetLang:'fr',result:'withheld',answer:'ecole',expected:'école'}).length,0);
+});

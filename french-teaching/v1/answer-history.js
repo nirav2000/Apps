@@ -1,6 +1,7 @@
 // Private French-only answer audit. It deliberately does not enter the shared
 // learning-evidence store or its accuracy/retention calculations.
 import {normaliseAnswer,DRILLS} from './data.js';
+import {compareFrench,correctionSummary} from './revision-signals.js';
 import {ALL_UNITS,guidedLesson} from './guided-lessons.js';
 import {STAGES,assessmentDeck} from './assessment.js';
 export const ANSWER_APP='next-french-answers';
@@ -18,14 +19,15 @@ export function createAnswerHistory({accountId,learnerId,storage=globalThis.loca
   const persist=next=>{storage.setItem(key,JSON.stringify(next));rows=next;};
   return {scope,key,getEntries:()=>copy(rows),
     record(a){
-      if(!a.ref||!a.question||!['correct','incorrect','unknown','revealed','model'].includes(a.result))throw Error('Incomplete answer audit');
+      if(!a.ref||!a.question||!['correct','incorrect','unknown','revealed','model','signal'].includes(a.result))throw Error('Incomplete answer audit');
       const at=Date.now();
       const row={schema:1,id:uid(),...scope,at,updatedAt:at,phase:'audit',concept:'answer-audit',support:'unknown',
         score:{correct:0,total:0},source:{kind:'french-answer-audit',ref:'answer-history:'+a.ref},
         answerAudit:{version:1,ref:text(a.ref),activity:text(a.activity),question:text(a.question),answer:a.answer==null?null:text(a.answer),
           expected:text(a.expected),result:a.result,reason:text(a.reason),support:text(a.support),marker:text(a.marker),
           normalizedAnswer:a.normalizedAnswer==null?null:text(a.normalizedAnswer),
-          accepted:Array.isArray(a.accepted)?a.accepted.map(text):[],checkGroup:text(a.checkGroup)}};
+          accepted:Array.isArray(a.accepted)?a.accepted.map(text):[],checkGroup:text(a.checkGroup),
+          ...(a.targetLang?{targetLang:text(a.targetLang)}:{}),...(Array.isArray(a.typing)&&a.typing.length?{typing:copy(a.typing)}:{}),...(a.signal?{signal:copy(a.signal)}:{})}};
       persist([...rows,row]);return copy(row);
     },
     ingest(incoming){
@@ -68,7 +70,7 @@ const bank=()=>{
 // Old evidence can identify the question and score but cannot recreate a typed
 // answer. Label those rows explicitly rather than inventing historical text.
 export function visibleHistory(auditRows,evidence){
-  const exact=auditRows.map(x=>({...x.answerAudit,id:x.id,at:x.at,legacy:false}));
+  const exact=auditRows.filter(x=>x.answerAudit.result!=='signal').map(x=>({...x.answerAudit,id:x.id,at:x.at,legacy:false}));
   const existing=new Set(exact.map(x=>x.ref));
   const scored=evidence.filter(e=>e.score?.total>0);
   const seen=new Map();
@@ -87,9 +89,14 @@ export function visibleHistory(auditRows,evidence){
       result:e.score.correct===e.score.total?'correct':'incorrect',reason:'Earlier score only. Exact submitted text was not saved.'+(error?' Recorded error category: '+error+'.':''),support:e.support,marker:'legacy-score',accepted:[],checkGroup:item?.checkGroup||'',legacy:true};
   });
   return [...exact,...old].map(x=>{
-    if(x.checkGroup&&(seen.get(x.checkGroup)?.size||0)<(groupSizes.get(x.checkGroup)||8))return {...x,expected:null,reason:'Correction available when the independent check is complete.',result:'withheld',accepted:[],normalizedAnswer:null};
+    if(x.checkGroup&&(seen.get(x.checkGroup)?.size||0)<(groupSizes.get(x.checkGroup)||8))return {...x,expected:null,reason:'Correction available when the independent check is complete.',result:'withheld',accepted:[],normalizedAnswer:null,typing:[]};
     return x;
   }).sort((a,b)=>b.at-a.at||b.id.localeCompare(a.id));
+}
+function markedHistory(value,changes){
+ const src=text(value);let out='',cursor=0;
+ for(const change of changes){out+=h(src.slice(cursor,change.start))+'<mark class="ft-word-difference">'+h(change.text)+'</mark>';cursor=change.end;}
+ return out+h(src.slice(cursor));
 }
 export function answerHistoryPage(rows,filter='all',limit=50){
   const filtered=rows.filter(x=>filter==='all'||(filter==='incorrect'?['incorrect','unknown'].includes(x.result):x.result===filter));
@@ -97,7 +104,11 @@ export function answerHistoryPage(rows,filter='all',limit=50){
   return '<section class="ft-card ft-answer-history"><p class="ft-eyebrow">PRIVATE LEARNING RECORD</p><h2>Answer history</h2><p>See what was submitted, the expected answer and why the marker made its decision. Earlier scores may have no original text. A valid alternative can be rejected by exact-match marking.</p>'+
     '<div class="ft-actions"><label>Show <select data-history-filter><option value="all"'+(filter==='all'?' selected':'')+'>All attempts</option><option value="incorrect"'+(filter==='incorrect'?' selected':'')+'>Incorrect / no answer</option><option value="correct"'+(filter==='correct'?' selected':'')+'>Correct</option></select></label><button type="button" data-act="export-answers">Export answer history</button><button type="button" data-act="sync">Sync</button></div>'+
     '<p class="ft-small">'+filtered.length+' matching records · newest first · stored separately for each learner</p>'+
-    (filtered.length?filtered.slice(0,limit).map(x=>'<article class="ft-audit-row '+h(x.result)+'"><div class="ft-audit-meta"><strong>'+h(labels[x.result]||x.result)+'</strong><small>'+h(new Date(x.at).toLocaleString('en-GB'))+' · '+h(x.activity)+'</small></div><p class="ft-audit-question">'+h(x.question)+'</p><div class="ft-audit-pair"><div><small>Your answer</small><p>'+h(x.answer==null?(x.legacy?'Not recorded in older version':x.result==='model'?'Spoken answer not recorded':'Not submitted'):x.answer||'—')+'</p></div><div><small>Expected answer</small><p>'+h(x.expected??(x.result==='withheld'?'Hidden until check complete':'Not retained'))+'</p></div></div><p class="ft-audit-reason">'+h(x.reason)+'</p>'+
-      (x.normalizedAnswer!=null&&x.result!=='withheld'?'<details><summary>Marking details</summary><p>Marker: '+h(x.marker)+'</p><p>Compared input: '+h(x.normalizedAnswer||'—')+'</p><p>Accepted forms: '+h(x.accepted.join(' / '))+'</p><p>Support: '+h(x.support||'Not specified')+'</p></details>':'')+'</article>').join(''):'<p>No matching answers yet.</p>')+
+    (filtered.length?filtered.slice(0,limit).map(x=>{
+      const fr=x.targetLang==='fr'||!x.targetLang&&['guided-exact-v1','curriculum-v1','assessment-v1'].includes(x.marker);
+      const diff=x.result==='incorrect'&&fr&&x.answer&&x.expected?compareFrench(x.answer,x.expected).filter(d=>d.kind!=='match'):[];
+      const left=diff.filter(d=>d.left).map(d=>d.left),right=diff.filter(d=>d.right).map(d=>d.right);
+      return '<article class="ft-audit-row '+h(x.result)+'"><div class="ft-audit-meta"><strong>'+h(labels[x.result]||x.result)+'</strong><small>'+h(new Date(x.at).toLocaleString('en-GB'))+' · '+h(x.activity)+'</small></div><p class="ft-audit-question">'+h(x.question)+'</p><div class="ft-audit-pair"><div><small>Your answer</small><p>'+markedHistory(x.answer==null?(x.legacy?'Not recorded in older version':x.result==='model'?'Spoken answer not recorded':'Not submitted'):x.answer||'—',left)+'</p></div><div><small>Expected answer</small><p>'+markedHistory(x.expected??(x.result==='withheld'?'Hidden until check complete':'Not retained'),right)+'</p></div></div><p class="ft-audit-reason">'+h(diff.length?correctionSummary(x.answer,x.expected):x.reason)+'</p>'+
+      (x.normalizedAnswer!=null&&x.result!=='withheld'?'<details><summary>Marking details</summary><p>Marker: '+h(x.marker)+'</p><p>Compared input: '+h(x.normalizedAnswer||'—')+'</p><p>Accepted forms: '+h(x.accepted.join(' / '))+'</p><p>Support: '+h(x.support||'Not specified')+'</p></details>':'')+(x.typing?.length&&x.result!=='withheld'?'<details><summary>Word typing observations</summary>'+x.typing.map(w=>'<p>'+h(w.word)+' · '+w.msPerChar+' ms per character'+(w.slow?' · slower than other words':'')+'</p>').join('')+'</details>':'')+'</article>';}).join(''):'<p>No matching answers yet.</p>')+
     (filtered.length>limit?'<button type="button" data-act="more-answers">Show more</button>':'')+'</section>';
 }

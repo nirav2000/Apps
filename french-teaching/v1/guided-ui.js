@@ -9,6 +9,7 @@ import {
 } from './guided-lessons.js';
 import {markAnswer,normaliseAnswer} from './data.js';
 import {exactAudit} from './answer-history.js';
+import {compareFrench,correctionSummary} from './revision-signals.js';
 import {curriculumVariants,curriculumNormalize} from './curriculum-meta.js';
 
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -23,9 +24,8 @@ function choiceOrder(row){
 export function answerFeedback(input,expected){
   const got=normaliseAnswer(input),want=normaliseAnswer(expected);
   if(!got)return 'Say the full phrase first, then try typing it.';
-  if(want.includes('ne ')||want.includes("n'")){
-    if(!got.includes(' pas'))return 'Check the negative: ne (or n’) goes before the verb, and pas after it.';
-  }
+  const negative=s=>/(?:^|\s)(?:ne\s|n')[^.!?;]*?\bpas\b/u.test(s);
+  if(negative(want)&&!negative(got))return 'Check the negative: ne (or n’) goes before the verb, and pas after it.';
   if(want.includes('je vais ')&&got.includes("j'ai "))return 'Je vais + infinitive is a future plan. J’ai + past participle is a completed action.';
   if(want.includes("j'ai ")&&got.includes('je vais '))return 'For the completed past, use j’ai + the correct past participle.';
   const strip=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -33,7 +33,7 @@ export function answerFeedback(input,expected){
   if(want.includes('parce que')&&!got.includes('parce que'))return 'To explain why, join the two clauses with parce que.';
   if(want.includes(' mais ')&&!got.includes(' mais '))return 'To contrast two ideas, use mais.';
   if(want.startsWith("j'")&&got.startsWith('je '))return 'Before a vowel sound, je normally contracts to j’.';
-  return 'Nearly there. Check the word order and the verb form; try saying the French aloud before retrying.';
+  return correctionSummary(input,expected);
 }
 
 // Only teaching models and listening prompts may autoplay on entry.
@@ -87,16 +87,17 @@ export function guidedHint(step,level=1){
 }
 // Render each visible French word as a small native button without altering
 // or duplicating a single character of the source. Keep elisions together.
-export function spokenWords(value,{choice=false}={}){
+export function spokenWords(value,{choice=false,highlights=[]}={}){
   const text=String(value??'');
   const tokens=/[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*/gu;
   let cursor=0,result='';
   for(const match of text.matchAll(tokens)){
     const word=match[0],start=match.index;
-    const escaped=html(word);
+    const escaped=html(word),difference=highlights.find(x=>x.start===start);
+    const content=difference?'<mark class="ft-word-difference">'+escaped+'</mark>':escaped;
     result+=html(text.slice(cursor,start))+(choice?
       '<span class="ft-choice-word" lang="fr" data-choice-word="'+escaped+'" title="Tap to hear; hold to explore">'+escaped+'</span>':
-      '<button type="button" class="ft-spoken-word" lang="fr" data-gword="'+escaped+'" aria-label="Hear '+escaped+'" title="Tap to hear; hold to explore">'+escaped+'</button>');
+      '<button type="button" class="ft-spoken-word" lang="fr" data-gword="'+escaped+'" aria-label="Hear '+escaped+'" title="Tap to hear; hold to explore"'+(difference?.replacement?' data-revision-target="'+html(difference.replacement)+'"':'')+'>'+content+'</button>');
     cursor=start+word.length;
   }
   return result+html(text.slice(cursor));
@@ -106,14 +107,17 @@ export function answerComparison({answer='',expected,result,lang='fr',replay=''}
   const status=result==='correct'?'correct':result==='incorrect'?'incorrect':'revealed';
   const label=status==='correct'?'Correct':status==='incorrect'?'Incorrect':'Answer revealed';
   const submitted=String(answer??'').trim().length>0;
-  const content=value=>lang==='fr'?spokenWords(value):html(value);
+  const diff=status==='incorrect'&&lang==='fr'?compareFrench(answer,expected).filter(x=>x.kind!=='match'):[];
+  const left=diff.filter(x=>x.left).map(x=>({...x.left,replacement:x.near?x.right?.text:null}));
+  const right=diff.filter(x=>x.right).map(x=>x.right);
+  const content=(value,highlights)=>lang==='fr'?spokenWords(value,{highlights}):html(value);
   const mark=status==='correct'?'✓':status==='incorrect'?'×':'';
   return '<div class="ft-guided-pair ft-answer-comparison '+status+'" role="group" aria-label="'+label+'">'+
     '<div class="ft-answer-submitted"><small>'+ (status==='revealed'?'Your draft (not checked)':'Your answer')+
     (mark?' <span class="ft-answer-mark" aria-hidden="true">'+mark+'</span>':'')+'</small>'+
-    '<p lang="'+html(lang)+'" class="ft-answer-value">'+(submitted?content(answer):'—')+'</p></div>'+
+    '<p lang="'+html(lang)+'" class="ft-answer-value">'+(submitted?content(answer,left):'—')+'</p></div>'+
     '<div class="ft-answer-expected"><small>Correct answer</small><div class="ft-pair-french">'+
-    '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected)+'</p>'+replay+'</div></div></div>';
+    '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected,right)+'</p>'+replay+'</div></div></div>';
 }
 export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{}}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')
@@ -352,7 +356,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const expected=step.kind==='listen'||step.unlockAction==='reverse'?step.en:step.fr;
     const support=reveal||model?'worked-example':state.hint||state.wrong||step.stage==='guided'||step.stage==='repair'?'small-prompt':'none';
     const info={ref:model?step.id+':complete':step.id+':first',activity:ALL_UNITS.find(u=>u.id===step.unitId)?.name+' · '+step.stage,
-      question:step.unlockAction==='reverse'?step.fr:step.kind==='listen'?'Listen: '+step.fr:step.kind==='transcribe'?'Dictation: '+step.fr:step.en,support};
+      question:step.unlockAction==='reverse'?step.fr:step.kind==='listen'?'Listen: '+step.fr:step.kind==='transcribe'?'Dictation: '+step.fr:step.en,support,targetLang:step.kind==='listen'||step.unlockAction==='reverse'?'en':isChoice(step)?'choice':'fr'};
     if(reveal||model)return recordAttempt({...info,answer,expected,result:model?'model':'revealed',reason:model?'Oral repetition, not automatically marked.':'Model revealed; not an independent success.',marker:'unscored'});
     const custom=step.track&&step.track!=='michaela'&&!isChoice(step);
     const audit=exactAudit(answer,expected,correct,{...info,marker:isChoice(step)?'choice-v1':custom?'curriculum-v1':'guided-exact-v1',normalize:isChoice(step)?x=>String(x??''):custom?curriculumNormalize:normaliseAnswer});
