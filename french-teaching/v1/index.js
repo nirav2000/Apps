@@ -9,6 +9,7 @@ import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
 import {unitsForTrack,guidedStatus} from './guided-lessons.js';
 import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport} from './revision-signals.js';
+import {adaptivePlans,chooseAdaptivePlan} from './adaptive-teaching.js';
 import {ANSWER_APP,createAnswerHistory,exactAudit,visibleHistory,answerHistoryPage} from './answer-history.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
@@ -65,7 +66,26 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   let selectedWord=null,wordToolbar=null,wordPress=null,suppressedWordClick=null;
   let answerStore=null,answerCloud=null,historyFilter='all',historyLimit=50;
   const historyRows=()=>visibleHistory(answerStore?.getEntries()||[],state.store?.getEntries()||[]);
-  let typingSamples=new WeakMap(),pendingTyping=[],revision=null,autoRevisionOfferedAt=0;
+  let typingSamples=new WeakMap(),pendingTyping=[],revision=null,session=null;
+  const audits=()=>answerStore?.getEntries()||[];
+  function currentSession(){
+    const now=Date.now(),key='next-french:session:'+state.store?.scope?.accountId+':'+state.profile+':'+state.track;
+    if(!session||session.key!==key){try{session=JSON.parse(localStorage.getItem(key)||'null');}catch{session=null;}}
+    if(!session||session.key!==key||!Number.isFinite(session.lastAt)||now-session.lastAt>30*60000)session={id:id(),key,lastAt:now};
+    session.lastAt=now;try{localStorage.setItem(key,JSON.stringify(session));}catch{}
+    return session.id;
+  }
+  function signalContext(step=guidedUI.current()){
+    const unitId=step?.unitId||'',status=unitId?guidedStatus(unitId,state.store?.getEntries()||[]):null;
+    return {sessionId:currentSession(),track:state.track,unitId,stepId:step?.id||'',stage:step?.stage||state.page,position:status?status.teaching.completed:0};
+  }
+  function planAdaptive(status){
+    if(!answerStore||!state.store)return null;
+    const plan=chooseAdaptivePlan({status,queue:revisions(),audits:audits(),evidence:state.store.getEntries(),sessionId:currentSession(),track:state.track});
+    if(!plan||plan.resume)return plan;
+    if(!recordAttempt({ref:plan.id,activity:'Personal teaching',question:plan.en,expected:plan.fr,result:'signal',marker:'adaptive-plan-v1',reason:plan.reason,signal:{kind:'adaptive-plan',plan},context:{sessionId:plan.sessionId,track:plan.track,unitId:plan.unitId,position:plan.position}}))return null;
+    return plan;
+  }
   let importedWords=revisionImport(window.location.hash);
   const revisions=()=>revisionQueue(revisionEvents(answerStore?.getEntries()||[],historyRows()));
   const answerField=node=>node?.matches?.('#ft-guided-input,#ft-answer-text,#ft-e-answer')?node:null;
@@ -77,15 +97,16 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   };
   function recordSignal(word,kind,sentence='',extra={}){
     if(!word||!answerStore)return false;
-    return recordAttempt({ref:'revision:'+kind,activity:'Personal word revision',question:kind==='pronunciation'?'Requested word audio':'Word revision signal',expected:word,result:'signal',reason:kind,marker:'revision-signal-v1',targetLang:'fr',signal:{word,kind,sentence,...extra}});
+    return recordAttempt({ref:'revision:'+kind,activity:'Personal word revision',question:kind==='pronunciation'?'Requested word audio':'Word revision signal',expected:word,result:'signal',reason:kind,marker:'revision-signal-v1',targetLang:'fr',signal:{word,kind,sentence,...extra},context:extra.context||signalContext()});
   }
   function pronunciationSignal(node){
     const submitted=node.closest('.ft-answer-comparison.incorrect .ft-answer-submitted');
     const word=submitted?node.dataset.revisionTarget:wordText(node);
     if(!word)return;
     const block=node.closest('p[lang="fr"],strong[lang="fr"],.ft-choice-translation');
-    const sentence=submitted?'':block?.textContent?.trim()||word;
-    recordSignal(word,'pronunciation',sentence);
+    const current=state.page==='lesson'?guidedUI.current():null;
+    const sentence=current?.fr||(!submitted?block?.textContent?.trim()||word:word);
+    recordSignal(word,'pronunciation',sentence,{english:current?.en||'',context:signalContext(current)});
   }
   function revisionOverview(){
     const rows=revisions(),due=rows.filter(x=>x.due).length;
@@ -97,11 +118,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     cancelPendingAdvance();revision={items:due,index:0,result:null,answer:'',auto};state.page='signals';render();
     speak(due[0].word);focusTarget('#ft-revision-answer');
   }
-  function startDailyWithSignals(resuming=false){
-    const active=resuming&&unitsForTrack(state.track).some(u=>guidedStatus(u.id,state.store.getEntries()).mode==='resume');
-    if(!active&&Date.now()-autoRevisionOfferedAt>=600000&&revisions().some(x=>x.due)){autoRevisionOfferedAt=Date.now();startRevision(true);return;}
-    assessmentUI.startDaily();
-  }
+  function startDailyWithSignals(){currentSession();assessmentUI.startDaily();}
   function revisionPage(){
     if(revision){
       const item=revision.items[revision.index];
@@ -115,19 +132,21 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         '<button type="button" data-act="revision-leave">'+(revision.auto?'Continue lesson':'Back to signals')+'</button><p class="ft-small">This is targeted spelling/listening practice, not an independent sentence assessment.</p></section>';
     }
     const rows=revisions(),due=rows.filter(x=>x.due);
+    const plans=unitsForTrack(state.track).flatMap(u=>adaptivePlans(audits(),u.id)).sort((a,b)=>b.at-a.at);
     const pending=importedWords.filter(w=>!rows.some(x=>x.key===wordKey(w)&&x.dueAt!==null));
     const importBox=importedWords.length?'<section class="ft-revision-row"><strong>Words to add to this learner’s revision</strong><p lang="fr">'+importedWords.map(esc).join(' · ')+'</p><p class="ft-small">'+(pending.length?pending.length+' new words; existing scheduled words will not be duplicated.':'All these words already have a scheduled review.')+'</p><button type="button" data-act="revision-import" class="ft-primary">'+(pending.length?'Confirm and add':'Done')+'</button></section>':'';
     const date=ms=>ms===null?'No drill scheduled':ms<=Date.now()?'Ready now':new Date(ms).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
     return '<section class="ft-card ft-revision-dashboard"><p class="ft-eyebrow">PERSONAL LEARNING SIGNALS</p><h2>Your revision queue</h2><p>Each signal is a clue, not a mastery score. Repeated difficulty brings a word forward. Correct revision answers space it further apart.</p>'+
       '<div class="ft-actions"><button type="button" data-act="revision-start" class="ft-primary"'+(!due.length?' disabled':'')+'>Practise '+Math.min(5,due.length)+' due words</button><button type="button" data-act="sync">Sync</button></div>'+
       importBox+'<form id="ft-revision-add"><label for="ft-revision-add-word">Add a French word to revise</label><input id="ft-revision-add-word" name="word" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required maxlength="80"><button type="submit">Add word</button></form>'+
-      (rows.length?rows.map(x=>'<article class="ft-revision-row"><div class="ft-row"><strong lang="fr">'+spokenWords(x.word)+'</strong><span>'+esc(x.priority)+' · '+x.score+' · '+esc(date(x.dueAt))+'</span></div><p class="ft-small">'+x.counts.spelling+' spelling / form · '+x.counts.pronunciation+' word plays · '+x.counts.hesitation+' slower typing · '+x.counts.review+' reviews</p>'+
+      (rows.length?rows.map(x=>'<article class="ft-revision-row"><div class="ft-row"><strong lang="fr">'+spokenWords(x.word)+'</strong><span>'+esc(x.priority)+' · '+x.strength+'/100 · '+esc(date(x.dueAt))+'</span></div><p class="ft-small">'+x.counts.spelling+' spelling / form · '+x.counts.pronunciation+' word plays · '+x.counts.hesitation+' slower typing · '+x.counts.review+' reviews · '+(x.counts.hint+x.counts.reveal+x.counts.construction+x.counts.recognition)+' phrase / help signals · '+x.counts.success+' unaided successes</p>'+
         (x.counts.spelling?'<p class="ft-revision-errors">'+[...new Set(x.signals.filter(s=>s.kind==='spelling').map(s=>s.actual))].map(esc).join(', ')+' → <strong>'+esc(x.word)+'</strong></p>':'')+
         '<details><summary>Signal history</summary>'+x.signals.slice().reverse().map(s=>'<p class="ft-small">'+esc(new Date(s.at).toLocaleString('en-GB'))+' · '+esc(s.kind)+(s.kind==='hesitation'?' · '+s.ratio+'× your sentence baseline'+(s.mode==='before-word'?' (pause before word)':' (typing)'):s.kind==='review'?' · '+(s.correct?'correct':'incorrect'):'')+'</p>').join('')+'</details></article>').join(''):'<p>No signals recorded yet. Words you mistype, repeatedly listen to or hesitate over will appear here.</p>')+
+      (plans.length?'<details class="ft-adaptive-log"><summary>Teaching adaptations ('+plans.length+')</summary>'+plans.slice(0,40).map(p=>'<p><strong>'+esc(p.target)+'</strong> · '+esc(p.mode)+' · '+esc(p.reason)+' · '+(p.complete?'Completed':'Planned')+'<br>'+esc(p.fr)+'</p>').join('')+'</details>':'')+
       '<p class="ft-small">Timing uses only word-level aggregates from ordinary typing in answer fields, never a keystroke log. One slow word alone does not establish a difficulty.</p></section>';
   }
   function recordAttempt(audit){
-    try{if(!answerStore)throw Error('Answer history unavailable');answerStore.record({...audit,...(audit.targetLang==='fr'&&pendingTyping.length?{typing:pendingTyping}:{})});queueSync();return true;}
+    try{if(!answerStore)throw Error('Answer history unavailable');answerStore.record({...audit,context:{...signalContext(state.page==='lesson'?guidedUI.current():null),...audit.context},...(audit.targetLang==='fr'&&pendingTyping.length?{typing:pendingTyping}:{})});queueSync();return true;}
     catch(error){state.cloudStatus='Answer not saved: '+String(error.message||error)+' — please retry';updateStatus();return false;}
   }
   function record(raw){
@@ -139,11 +158,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   // The new lesson engine writes only additional evidence events to the
   // established Firebase parent/learner scope. Existing lesson records stay as-is.
   const guidedUI=createGuidedInterface({
-    getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,requestStart:unit=>assessmentUI.startUnit(unit),record,recordAttempt,speak,waitForSpeech,cancelSpeech,refresh:render,focusTarget,
+    getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,requestStart:unit=>assessmentUI.startUnit(unit),record,recordAttempt,speak,waitForSpeech,cancelSpeech,refresh:render,focusTarget,getAdaptivePlans:unit=>adaptivePlans(audits(),unit),planAdaptive,signalContext,recordSignal,
     navigate:page=>{state.page=page;render();}
   });
   const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,record,recordAttempt,speak,refresh:render,focusTarget,
-    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>guidedUI.start(unit)});
+    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>guidedUI.start(unit),onRest:()=>{const due=revisions().some(x=>x.due);if(due){startRevision(false);return true;}return false;}});
   function teach(kind){
     if(!state.store)return;
     const ref=kind==='alphabet'?'intro-alphabet':kind==='sounds'?'intro-sounds':'intro-connectives';
@@ -198,13 +217,13 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     return syncTask;
   }
   function updateStatus(){
-    const s=el().querySelector('[data-cloud-status]');if(s)s.textContent=state.cloudStatus;
+    const s=el().querySelector('[data-cloud-status]');if(s){s.textContent=state.cloudStatus;s.hidden=!!state.store&&!/attention|unavailable|wrong account|not saved|error/i.test(state.cloudStatus);}
   }
   async function attach(profile){
     if(!state.context?.auth?.currentUser)return;
     const {auth,db,firestore,ownerUid}=state.context;
     if(auth.currentUser.uid!==ownerUid){state.cloudStatus='Wrong account; no evidence will be mixed';return;}
-    state.profile=profile;state.track=preferredTrack(profile);revision=null;autoRevisionOfferedAt=0;typingSamples=new WeakMap();pendingTyping=[];
+    state.profile=profile;state.track=preferredTrack(profile);revision=null;session=null;typingSamples=new WeakMap();pendingTyping=[];
     state.soundLastResult=null;state.soundQueue=[];state.soundQuestion=0;
     state.store=createEvidenceStore({appId:APP_ID,learnerId:profile,accountId:ownerUid});
     guidedUI.reset();assessmentUI.reset();
@@ -229,7 +248,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<div class="ft-account"><label for="ft-profile">Learner</label><select id="ft-profile" data-profile>'+
       '<option value="adult"'+(state.profile==='adult'?' selected':'')+'>Adult</option>'+
       '<option value="sai"'+(state.profile==='sai'?' selected':'')+'>Sai</option></select>'+
-      '<label for="ft-track">Course</label><select id="ft-track" data-track>'+TRACKS.map(t=>'<option value="'+t.id+'"'+(state.track===t.id?' selected':'')+'>'+esc(t.name)+'</option>').join('')+'</select><small data-cloud-status role="status" aria-live="polite">'+esc(state.cloudStatus)+'</small>'+
+      '<label for="ft-track">Course</label><select id="ft-track" data-track>'+TRACKS.map(t=>'<option value="'+t.id+'"'+(state.track===t.id?' selected':'')+'>'+esc(t.name)+'</option>').join('')+'</select><small data-cloud-status role="status" aria-live="polite"'+(state.store&&!/attention|unavailable|wrong account|not saved|error/i.test(state.cloudStatus)?' hidden':'')+'>'+esc(state.cloudStatus)+'</small>'+
       (state.store?'<button type="button" class="ft-voice-settings-link" data-page="settings"'+(state.page==='settings'?' aria-current="page"':'')+'>⚙ Settings</button>':'')+'</div></div>';
   }
   function login(){
@@ -803,7 +822,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(code==='auth/requires-recent-login')return 'For security, sign in again with your Firebase password before linking Google.';
     return String(error?.message||error);
   }
-  function changeTrack(track){if(!validTrack(track)||track===state.track||!state.store)return;cancelPendingAdvance();guidedUI.reset();assessmentUI.reset();state.track=track;try{localStorage.setItem('next-french:track:'+state.profile,track);}catch{}state.page='home';render();}
+  function changeTrack(track){if(!validTrack(track)||track===state.track||!state.store)return;cancelPendingAdvance();guidedUI.reset();assessmentUI.reset();session=null;state.track=track;try{localStorage.setItem('next-french:track:'+state.profile,track);}catch{}state.page='home';render();}
   async function onClick(e){
     const action=e.target.closest('[data-word-action]');
     if(action){

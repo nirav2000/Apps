@@ -103,7 +103,7 @@ export function revisionEvents(audits,visible){
  const out=[],targets=new Map(),seen=new Set();
  function add(e){
   if(!e.word||!e.id)return;
-  const unique=e.kind==='review'||e.kind==='exposure'||e.kind==='assisted'?e.ref+':'+e.kind:e.id;
+  const unique=(e.kind==='review'||e.kind==='exposure'||e.kind==='assisted')&&e.adaptive?e.planId+':'+e.kind:e.id;
   if(seen.has(unique))return;
   // A manually launched review has a shared legacy reference, so its
   // individual immutable event ID remains the identity.
