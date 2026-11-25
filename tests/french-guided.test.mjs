@@ -194,3 +194,8 @@ test('word audio markup preserves repeated words, order, accents and punctuation
  assert.equal((learner.match(/data-gword="français"/g)||[]).length,2);
  assert.match(EXACT_ANSWER_ATTRIBUTES,/autocorrect="off"/);assert.match(EXACT_ANSWER_ATTRIBUTES,/writingsuggestions="false"/);
 });
+
+test('devoir timeline teaches obligation in past, present and future',()=>{
+ const rows=optionalVerbTimeline('devoir');assert.ok(rows.some(x=>x.fr==='je dois étudier'));assert.ok(rows.some(x=>x.fr==="j'ai dû étudier"));assert.ok(rows.some(x=>x.fr==='je devrai étudier'));
+ assert.equal(spokenWords('je dois étudier',{choice:true}).replace(/<[^>]+>/g,''),'je dois étudier');assert.doesNotMatch(spokenWords('je dois étudier',{choice:true}),/<button/);
+});

@@ -107,3 +107,8 @@ test('curated notes explain reusable chunks; tokenisation keeps original French 
  assert.equal(tokens.find(x=>x.text==="J'habite")?.info?.entry.lemma,'habiter');
  assert.deepEqual(tokenizeFrench(''),[]);
 });
+
+test('dois and étudier resolve to their real verbs and curated tense forms',()=>{
+ const must=lookupFrenchWord('dois');assert.equal(must.entry.lemma,'devoir');assert.deepEqual(must.entry.forms.slice(0,3),['dois','dois','doit']);assert.match(must.entry.note,/infinitive/);
+ const study=lookupFrenchWord('étudier');assert.equal(study.formKind,'infinitive');assert.equal(study.entry.forms[0],'étudie');assert.equal(lookupFrenchWord('étudié').entry.lemma,'étudier');assert.equal(lookupFrenchWord('dû').entry.lemma,'devoir');assert.equal(lookupFrenchWord('devrai').formKind,'simple future');
+});

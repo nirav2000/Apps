@@ -1,6 +1,7 @@
 import {ALL_UNITS,unitsForTrack,lessonRows,guidedStatus} from './guided-lessons.js';
 import {STAGES,assessmentStats,baselineFor,pendingChecks,pendingRepairs,repairRef,nextCheckDate,markAssessment,ERROR_TIPS,availableExperiment,experimentStats,experimentDeck,assessmentDeck,teachingFinishedAt,assessmentComparison} from './assessment.js';
 import {exactAudit} from './answer-history.js';
+import {spokenWords} from './guided-ui.js';
 import {firstByRef,ASSESSMENT_DAY as DAY} from '../../learning-evidence/v1/assessment.js';
 import {magicTenPhrase} from './magic10.js';
 import {trackName} from './curriculum-meta.js';
@@ -113,7 +114,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       return '<section class="ft-card ft-e-question"><p class="ft-eyebrow">TARGETED REPAIR</p><h2>'+h(labels[item.error]||'Phrase construction')+'</h2><p>'+h(ERROR_TIPS[item.error]||ERROR_TIPS.chunk)+'</p><p class="ft-e-prompt">'+h(item.en)+'</p>'+
         (state.feedback==='cover'?'<form id="ft-e-form"><label for="ft-e-answer">Now rebuild without the model</label><input id="ft-e-answer" name="answer" '+inputs+' required><button type="submit" class="ft-primary">Check</button></form>'+btn('model','Show model again'):
           state.feedback==='correct'?'<p role="status">Correct. This is practice, not retention. Another unaided practice is due tomorrow.</p>'+btn('daily','Continue',true):
-          '<p class="ft-e-prompt" lang="fr">'+h(item.fr)+'</p>'+(state.feedback==='wrong'?'<p role="status">Not yet. Listen and try the covered phrase again.</p>':'')+'<div class="ft-actions">'+btn('speak','▶ Listen and repeat')+btn('cover','Cover and reconstruct',true)+'</div>')+btn('leave','Pause')+'</section>';
+          '<p class="ft-e-prompt" lang="fr">'+spokenWords(item.fr)+'</p>'+(state.feedback==='wrong'?'<p role="status">Not yet. Listen and try the covered phrase again.</p>':'')+'<div class="ft-actions">'+btn('speak','▶ Listen and repeat')+btn('cover','Cover and reconstruct',true)+'</div>')+btn('leave','Pause')+'</section>';
     }
     if(state.mode==='experiment'){
       return '<section class="ft-card ft-e-question"><p class="ft-eyebrow">OPTIONAL TEACHING EXPERIMENT</p><h2>'+h(item.arm==='audio'?'Listen to the model':'Read the model')+'</h2><p class="ft-e-prompt">'+h(item.en)+'</p>'+
@@ -122,7 +123,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     }
     if(state.mode==='oral'){
       return '<section class="ft-card ft-e-question"><p class="ft-eyebrow">RAPID ORAL PRACTICE · '+(state.oralIndex+1)+'</p><h2>Say it in French</h2><p class="ft-e-prompt">'+h(item.en)+'</p>'+
-      (state.feedback==='spoken'?'<p class="ft-e-prompt" lang="fr">'+h(item.fr)+'</p>'+btn('speak','▶ Hear again')+btn('oral-next','Next phrase',true):btn('oral-reveal','Reveal and hear',true))+
+      (state.feedback==='spoken'?'<p class="ft-e-prompt" lang="fr">'+spokenWords(item.fr)+'</p>'+btn('speak','▶ Hear again')+btn('oral-next','Next phrase',true):btn('oral-reveal','Reveal and hear',true))+
       '<p class="ft-small">Say your answer before revealing it. Self-check only; this is not an acoustic pronunciation score.</p>'+btn('leave','Finish')+'</section>';
     }
     return '<section class="ft-card ft-e-question"><h2>Check complete</h2><p>'+h(state.feedback||'Your independent responses have been recorded.')+'</p>'+(state.doneUnit?btn('continue-unit','Start this lesson',true):btn('daily','Continue learning',true))+' <button data-page="evidence">See dashboard</button> <button data-page="history">Review answers</button></section>';

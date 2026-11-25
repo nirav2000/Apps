@@ -86,13 +86,16 @@ export function guidedHint(step,level=1){
 }
 // Render each visible French word as a small native button without altering
 // or duplicating a single character of the source. Keep elisions together.
-export function spokenWords(value){
+export function spokenWords(value,{choice=false}={}){
   const text=String(value??'');
   const tokens=/[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*/gu;
   let cursor=0,result='';
   for(const match of text.matchAll(tokens)){
     const word=match[0],start=match.index;
-    result+=html(text.slice(cursor,start))+'<button type="button" class="ft-spoken-word" lang="fr" data-gword="'+html(word)+'" aria-label="Hear '+html(word)+'" title="Hear '+html(word)+'">'+html(word)+'</button>';
+    const escaped=html(word);
+    result+=html(text.slice(cursor,start))+(choice?
+      '<span class="ft-choice-word" lang="fr" data-choice-word="'+escaped+'" title="Tap to hear; hold to explore">'+escaped+'</span>':
+      '<button type="button" class="ft-spoken-word" lang="fr" data-gword="'+escaped+'" aria-label="Hear '+escaped+'" title="Tap to hear; hold to explore">'+escaped+'</button>');
     cursor=start+word.length;
   }
   return result+html(text.slice(cursor));
@@ -256,8 +259,11 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
             const result=right?'correct':wrong?'incorrect':'';
             return '<button type="button" data-gchoice="'+i+'"'+(step.kind==='choice'?' lang="fr"':' lang="en"')+
               ' class="'+result+'" aria-label="'+html(option+(right?' — correct':wrong?' — incorrect':''))+'">'+
-              '<span>'+html(option)+'</span>'+(right&&step.kind==='listen'?'<span class="ft-choice-translation" lang="fr">'+html(step.fr)+'</span>':'')+
-              (result?'<span class="ft-choice-mark" aria-hidden="true">'+(right?'✓':'×')+'</span>':'')+'</button>';
+              '<span>'+(state.done&&step.kind==='choice'?spokenWords(option,{choice:true}):html(option))+'</span>'+
+              (right&&step.kind==='listen'?'<span class="ft-choice-translation" lang="fr">'+spokenWords(step.fr,{choice:true})+'</span>':'')+
+              (state.done?'<span class="ft-choice-end"><span data-choice-replay class="ft-choice-replay" title="Hear whole answer" aria-hidden="true">▶</span>'+
+                (result?'<span class="ft-choice-mark" aria-hidden="true">'+(right?'✓':'×')+'</span>':'')+'</span>':
+                result?'<span class="ft-choice-mark" aria-hidden="true">'+(right?'✓':'×')+'</span>':'')+'</button>';
           }).join('')+'</div>';
       }else if(!state.done&&!state.revealed){
         body+='<form id="ft-guided-form"><label for="ft-guided-input">Your French</label>'+
@@ -283,6 +289,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       (step.id.endsWith(':0')||step.id.endsWith(':3')));
     if(teachSound)body+='<aside class="ft-guided-sound"><strong>Sound &amp; spelling to notice: '+html(focus.spelling)+'</strong>'+
       '<p>'+html(focus.note)+'</p><button type="button" data-gact="focus-word">▶ Hear '+html(focus.word)+'</button></aside>';
+    if(showFrench)body+='<p class="ft-small ft-word-hint">Tap a French word to hear it. Hold it or choose Explore to learn more.</p>';
     if(state.feedback)body+='<p class="'+(isChoice(step)?'ft-sr-only':'ft-guided-feedback '+(state.result||''))+'" role="status">'+html(state.feedback)+'</p>';
     body+='</div>';
     const why=step.stage==='guided'?'These repetitions are guided practice, not independent transfer.':

@@ -99,6 +99,14 @@ export function magicTenUnitHints(){
 // The optional explorer shows irregular verbs only from explicit, reviewed
 // examples. Never infer a verb's future, past or auxiliary from spelling.
 export const CURATED_IRREGULAR_TIMELINES=Object.freeze({
+  devoir:[
+    {kind:'Present',fr:'je dois étudier',en:'I must study / I have to study'},
+    {kind:'Imperfect past',fr:'je devais étudier',en:'I had to study / used to have to study'},
+    {kind:'Completed past',fr:"j'ai dû étudier",en:'I had to study'},
+    {kind:'Near future',fr:'je vais devoir étudier',en:'I am going to have to study'},
+    {kind:'Simple future',fr:'je devrai étudier',en:'I will have to study'},
+    {kind:'Conditional',fr:'je devrais étudier',en:'I should study / I would have to study'}
+  ],
   vouloir:[
     {kind:'Present',fr:'je veux apprendre',en:'I want to learn'},
     {kind:'Imperfect past',fr:'je voulais apprendre',en:'I wanted to learn / used to want to learn'},

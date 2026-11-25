@@ -75,6 +75,9 @@ try{
   assert.equal(await page.locator('.ft-cuddle-example').count(),5);
   assert.ok(await page.locator('.ft-grid-row [data-word="veux"]').count()>=1);
   await page.locator('.ft-grid-row [data-word="veux"]').first().click();
+  await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='veux');
+  assert.equal(await page.locator('.ft-word-dialog').count(),0);
+  await page.getByRole('button',{name:'Explore veux',exact:true}).click();
   await page.locator('.ft-word-dialog').waitFor();
   const modal=page.locator('.ft-word-dialog');
   assert.match(await modal.innerText(),/vouloir/);
@@ -88,7 +91,7 @@ try{
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='vouloir',null,{timeout:2500});
   await modal.getByRole('button',{name:'Close word explanation'}).click();
   await page.locator('.ft-word-dialog').waitFor({state:'detached'});
-  await page.locator('.ft-grid-row [data-word="J\'habite"]').first().click();
+  await page.locator('.ft-grid-row [data-word="J\'habite"]').first().click({delay:650});
   await page.locator('.ft-word-dialog').waitFor();
   assert.match(await page.locator('.ft-word-dialog').innerText(),/habiter/);
   assert.match(await page.locator('.ft-word-dialog').innerText(),/dans une maison/);
@@ -100,6 +103,7 @@ try{
   // turn a supported/practised answer into novel transfer evidence.
   await page.getByRole('button',{name:'Sentence workshop'}).click();
   await page.locator('.ft-workshop-french [data-word="parce que"]').first().click();
+  await page.getByRole('button',{name:'Explore parce que',exact:true}).click();
   await page.locator('.ft-word-dialog').waitFor();
   assert.match(await page.locator('.ft-word-dialog').innerText(),/because/);
   await page.locator('.ft-word-dialog [data-close-word]').click();

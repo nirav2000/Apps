@@ -42,6 +42,9 @@ try{
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==="j'ai lu en français");
   await page.getByRole('button',{name:'Knowledge grid'}).click();
   await page.locator('.ft-grid-row [data-word="veux"]').first().click();
+  await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='veux');
+  assert.equal(await page.locator('.ft-word-dialog').count(),0);
+  await page.getByRole('button',{name:'Explore veux',exact:true}).click();
   const modal=page.locator('.ft-word-dialog');
   await modal.waitFor();
   assert.match(await modal.innerText(),/je voulais apprendre/);
@@ -52,6 +55,30 @@ try{
   await modal.locator('[data-close-word]').click();
   await modal.waitFor({state:'detached'});
 
+  // Specific user-reported vocabulary: select a word for audio, deliberately
+  // explore it, then hold a different word without an accidental second tap.
+  await page.getByRole('button',{name:'Magic 10',exact:true}).click();
+  await page.locator('[data-gverb]').selectOption('étudier');
+  const mustRow=page.locator('.ft-magic-row').filter({hasText:'je dois étudier le français'}).first();
+  const dois=mustRow.locator('[data-gword="dois"]');
+  await dois.click();
+  await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='dois');
+  assert.equal(await modal.count(),0);
+  await page.getByRole('button',{name:'Explore dois',exact:true}).click();
+  await modal.waitFor();
+  assert.match(await modal.innerText(),/devoir/);
+  assert.match(await modal.innerText(),/je devrai étudier/);
+  assert.match(await modal.innerText(),/j'ai dû étudier/);
+  await modal.locator('[data-close-word]').click();
+  await modal.waitFor({state:'detached'});
+  const study=mustRow.locator('[data-gword="étudier"]');
+  const spokenBefore=await page.evaluate(()=>window.__spoken.length);
+  await study.click({delay:650});
+  await modal.waitFor();
+  assert.match(await modal.innerText(),/to study/);
+  assert.match(await modal.innerText(),/infinitive étudier/);
+  assert.equal(await page.evaluate(()=>window.__spoken.length),spokenBefore);
+  await modal.locator('[data-close-word]').click();await modal.waitFor({state:'detached'});
   await page.getByRole('button',{name:'Overview',exact:true}).click();
   assert.equal(await page.locator('.ft-todays-lesson').count(),1);
   await page.getByRole('button',{name:'Start guided lesson'}).click();
@@ -60,6 +87,11 @@ try{
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text.includes('Écoutez bien.'));
   await page.locator('.ft-guided-french [data-gword="français"]').click();
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='français');
+  const originalStep=await page.locator('[data-guided-step]').getAttribute('data-guided-step');
+  await page.getByRole('button',{name:'Explore français',exact:true}).click();
+  await modal.waitFor();assert.match(await modal.innerText(),/French/);
+  await modal.locator('[data-close-word]').click();await modal.waitFor({state:'detached'});
+  assert.equal(await page.locator('[data-guided-step]').getAttribute('data-guided-step'),originalStep);
   await page.locator('[data-gact="focus-word"]').first().click();
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='écouter');
   const lesson=guidedLesson('speak-and-listen');
@@ -97,7 +129,11 @@ try{
   assert.equal(await page.locator('.ft-guided-options button.correct').count(),1);
   assert.equal(await page.locator('.ft-guided-model').count(),0);
   assert.equal(await page.locator('.ft-guided-options button:disabled').count(),0);
-  await page.locator('.ft-guided-options button').filter({hasText:wrong}).first().click();
+  assert.equal(await page.locator('.ft-guided-options button button').count(),0);
+  const choiceWord=page.locator('.ft-guided-options button.correct [data-choice-word]').first();
+  const word=await choiceWord.getAttribute('data-choice-word');await choiceWord.click();
+  await page.waitForFunction(w=>window.__spoken.at(-1)?.text===w,word);
+  await page.locator('.ft-guided-options button').filter({hasText:wrong}).first().locator('[data-choice-replay]').click();
   await page.waitForFunction(fr=>window.__spoken.at(-1)?.text===fr,wrong);
   assert.equal(await page.locator('.ft-guided-options button.correct').count(),1);
   await page.getByRole('button',{name:'Next phrase'}).click();

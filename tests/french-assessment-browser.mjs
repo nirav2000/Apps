@@ -13,6 +13,7 @@ try{
   assert.match(await cards.innerText(),/Not measured/);
   await page.locator('.ft-tabs [data-page="lesson"]').click();
   await page.locator('#ft-e-answer').waitFor();
+  assert.equal(await page.locator('.ft-e-question [data-gword],.ft-e-question [data-word],.ft-e-question [data-choice-word]').count(),0);
   assert.match(await page.locator('.ft-e-question').innerText(),/Before teaching/i);
   const deck=assessmentDeck(GUIDED_UNITS[0].id,'baseline');
   for(let i=0;i<deck.length;i++){

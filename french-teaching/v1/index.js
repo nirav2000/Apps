@@ -60,7 +60,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   let preferredVoice='';
   try{preferredVoice=localStorage.getItem(VOICE_KEY)||'';}catch{}
   const el=()=>target;
-  let syncTimer=0,destroyed=false,syncTask=null,pendingAgain=false,wordDialog=null;
+  let syncTimer=0,destroyed=false,syncTask=null,pendingAgain=false,wordDialog=null,wordDialogOrigin=null;
+  let selectedWord=null,wordToolbar=null,wordPress=null,suppressedWordClick=null;
   let answerStore=null,answerCloud=null,historyFilter='all',historyLimit=50;
   const historyRows=()=>visibleHistory(answerStore?.getEntries()||[],state.store?.getEntries()||[]);
   function recordAttempt(audit){
@@ -119,7 +120,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
           if(destroyed||state.cloud!==cloud)return;
           state.cloudAt=result.at;
           state.cloudStatus='Saved to Firebase';
-          if(state.page==='home'||state.page==='evidence'||state.page==='history')render();else updateStatus();
+          if(!wordDialog&&(state.page==='home'||state.page==='evidence'||state.page==='history'))render();else updateStatus();
         }while(pendingAgain&&state.cloud===cloud);
       }catch(e){
         if(destroyed)return;
@@ -221,7 +222,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function interactiveFrench(value){
     return tokenizeFrench(value).map(part=>(part.info||/^[\p{L}\p{M}]+(?:['’ -][\p{L}\p{M}]+){0,2}$/u.test(part.text))
-      ?'<button type="button" class="ft-word" lang="fr" data-word="'+esc(part.text)+'" title="Explore this word" aria-label="Explore '+esc(part.text)+'">'+esc(part.text)+'</button>'
+      ?'<button type="button" class="ft-word" lang="fr" data-word="'+esc(part.text)+'" title="Tap to hear; hold to explore" aria-label="Hear '+esc(part.text)+'">'+esc(part.text)+'</button>'
       :esc(part.text)).join('');
   }
   function alphabet(){
@@ -237,7 +238,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<div class="ft-alphabet-grid">'+ALPHABET.map(letterButton).join('')+'</div>')+
       '<div class="ft-letter"><div class="ft-letter-large" aria-live="polite">'+x.letter+'</div>'+
       '<p>French letter name: <strong lang="fr">'+esc(x.name)+'</strong> <small class="ft-pronunciation-hint">'+esc(LETTER_IPA[x.letter]||'')+'</small></p>'+
-      '<p>Example word: <strong lang="fr">'+esc(x.example)+'</strong></p>'+
+      '<p>Example word: <strong lang="fr">'+spokenWords(x.example)+'</strong></p>'+
       '<div class="ft-actions"><button data-act="hear-letter" class="ft-primary">▶ Repeat letter</button><button data-act="hear-example">▶ Hear example</button></div></div>'+
       '<div class="ft-actions ft-spread"><button data-act="alpha-prev"'+(state.lessonIndex===0?' disabled':'')+'>Previous</button>'+
       '<button data-act="alpha-next"'+(state.lessonIndex===25?' disabled':'')+'>Next letter</button></div>'+
@@ -258,11 +259,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
           '<button type="button" data-sound-play="'+esc(pattern.id)+'" data-example="0" aria-label="Hear '+esc(pattern.examples[0])+'">▶ Hear</button></div>'+
           '<p>'+esc(pattern.clue)+'</p>'+
           '<div class="ft-sound-words">'+pattern.examples.map((word,i)=>
-            '<button type="button" data-sound-play="'+esc(pattern.id)+'" data-example="'+i+'" aria-label="Hear '+esc(word)+'" lang="fr">'+esc(word)+' <span aria-hidden="true">▶</span></button>').join('')+'</div>'+
+            '<button type="button" data-sound-play="'+esc(pattern.id)+'" data-example="'+i+'" data-word="'+esc(word)+'" aria-label="Hear '+esc(word)+'" lang="fr">'+esc(word)+' <span aria-hidden="true">▶</span></button>').join('')+'</div>'+
           '<details><summary>Hear it in a full sentence</summary><p lang="fr">'+interactiveFrench(pattern.sentence)+'</p>'+
             '<button type="button" data-sound-sentence="'+esc(pattern.id)+'">▶ Hear sentence</button></details>'+
           (pattern.compare?'<div class="ft-sound-contrast"><span>Compare</span>'+
-            pattern.compare.map((w,i)=>'<button type="button" lang="fr" data-sound-compare="'+esc(pattern.id)+'" data-compare-index="'+i+'">▶ '+esc(w)+'</button>').join('')+'</div>':'')+
+            pattern.compare.map((w,i)=>'<button type="button" lang="fr" data-sound-compare="'+esc(pattern.id)+'" data-compare-index="'+i+'" data-word="'+esc(w)+'">▶ '+esc(w)+'</button>').join('')+'</div>':'')+
           '</article>';
       }).join('')+'</div>'+
       '<p class="ft-small">Audio is synthesised by your device in French. Listening choices test recognition, not your spoken accent. Some pronunciations vary by region and context.</p>'+
@@ -313,7 +314,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<p><b>Reusable:</b> '+esc(l.focus)+'</p><p><b>Notice:</b> '+esc(l.sound)+'</p></details></div>').join('');
     return '<section class="ft-card"><div class="ft-row"><div><p class="ft-eyebrow">RICH BILINGUAL KNOWLEDGE ORGANISER</p><h2>Live, learn and explain</h2></div>'+
       '<button data-act="toggle-english">'+(state.hideEnglish?'Show English':'Cover English')+'</button></div>'+
-      '<p>First understand all 14 complete sentences. Speak them aloud. Find repeated connectives. Only then remove the support. Tap an underlined word to explore its grammar if curious.</p>'+
+      '<p>First understand all 14 complete sentences. Speak them aloud. Find repeated connectives. Only then remove the support. Tap a French word to hear it. Press and hold it, or use Explore, to learn more.</p>'+
       '<div class="ft-knowledge"><div class="ft-grid-head"><span>French · read and speak</span><span>Natural English</span></div>'+rows+'</div>'+
       '<div class="ft-actions"><button data-page="practice" class="ft-primary">Start guided practice</button></div></section>'+
       '<section class="ft-card"><h2>CUDDLES · notice the written and spoken language</h2>'+
@@ -375,9 +376,76 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       (state.completed?'<div class="ft-actions"><button class="ft-primary" data-act="next-letter-question">'+(state.alphabetQuestion===25?'Finish quiz':'Next letter')+'</button></div>':'')+
       '<p class="ft-small">The audio comes from your device’s French voice and should be checked against a proficient speaker if anything sounds unclear.</p></section>';
   }
+  // All visible French word controls use the same interaction. Selection is
+  // transient UI only: never rerender a live question or write learning evidence.
+  const wordSelector='[data-gword],[data-word],[data-choice-word]';
+  const wordTarget=target=>target?.closest?.(wordSelector);
+  const wordText=node=>node?.dataset.gword??node?.dataset.word??node?.dataset.choiceWord;
+  const wordBlocked=()=>advancePending||!!el().querySelector('.ft-guided-task button[aria-busy="true"]');
+  function clearWordSelection(){
+    if(selectedWord?.node){selectedWord.node.classList.remove('ft-word-selected');if(selectedWord.node.tagName==='BUTTON')selectedWord.node.removeAttribute('aria-pressed');}
+    wordToolbar?.remove();wordToolbar=null;selectedWord=null;
+  }
+  function selectWord(node){
+    if(!node?.isConnected||wordBlocked())return false;
+    const word=wordText(node);if(!word)return false;
+    if(selectedWord?.node===node&&wordToolbar?.isConnected)return true;
+    clearWordSelection();
+    selectedWord={node,word};
+    node.classList.add('ft-word-selected');if(node.tagName==='BUTTON')node.setAttribute('aria-pressed','true');
+    const toolbar=document.createElement('div');toolbar.className='ft-word-tools';
+    toolbar.innerHTML='<span>Selected: <strong lang="fr">'+esc(word)+'</strong></span><div class="ft-word-tool-actions">'+
+      '<button type="button" data-word-action="explore" aria-label="Explore '+esc(word)+'">Explore '+esc(word)+' ↗</button>'+
+      '<button type="button" data-word-action="clear" aria-label="Clear word selection">×</button></div>';
+    const block=node.closest('.ft-answer-comparison,.ft-guided-pair,.ft-guided-options,.ft-magic-row,.ft-grid-row,.ft-sound-words,.ft-sound-contrast,.ft-workshop-french,.ft-e-prompt,.ft-word-timeline,.ft-word-example');
+    const anchor=block||node.closest('table,p,h2,h3,blockquote');
+    if(anchor)anchor.insertAdjacentElement('afterend',toolbar);
+    else (node.closest('section,article,dialog')||el()).append(toolbar);
+    wordToolbar=toolbar;
+    return true;
+  }
+  function exploreWord(node){
+    if(!selectWord(node))return;
+    openWordInfo(wordText(node),node);
+  }
+  // Open on release after 500ms. Movement, scrolling, cancellation and a
+  // fresh pointer gesture invalidate the hold. Suppress only its trailing
+  // click, so the long press does not also speak or select an answer.
+  const onWordPointerDown=e=>{
+    wordPress=null;
+    if(e.button!==0||e.isPrimary===false||wordBlocked())return;
+    const node=wordTarget(e.target);if(!node)return;
+    suppressedWordClick=null;
+    wordPress={node,id:e.pointerId,x:e.clientX,y:e.clientY,at:Date.now()};
+  };
+  const onWordPointerMove=e=>{
+    if(wordPress?.id===e.pointerId&&Math.hypot(e.clientX-wordPress.x,e.clientY-wordPress.y)>10)wordPress=null;
+  };
+  const cancelWordPress=()=>{wordPress=null;};
+  const finishWordHold=(node,e)=>{
+    if(!node?.isConnected||wordBlocked())return;
+    e.preventDefault();wordPress=null;suppressedWordClick={node,until:Date.now()+900};
+    exploreWord(node);
+  };
+  const onWordPointerUp=e=>{
+    const press=wordPress;wordPress=null;
+    if(press?.id===e.pointerId&&wordTarget(e.target)===press.node&&Date.now()-press.at>=500)finishWordHold(press.node,e);
+  };
+  const onWordContext=e=>{
+    const node=wordTarget(e.target);if(!node)return;
+    e.preventDefault();
+    if(suppressedWordClick?.node===node&&Date.now()<suppressedWordClick.until)return;
+    // On touch, a context menu can be emitted before pointerup; require
+    // an uncancelled hold. Mouse right click provides an equivalent action.
+    if(e.pointerType==='touch'&&!wordPress)return;
+    if(wordPress&&Date.now()-wordPress.at<450)return;
+    finishWordHold(node,e);
+  };
   function openWordInfo(surface,origin){
     const info=lookupFrenchWord(surface);
-    if(wordDialog){try{wordDialog.close();}catch{}wordDialog.remove();}
+    const returnTo=wordDialog?.contains(origin)?wordDialogOrigin:origin;
+    if(wordDialog){const old=wordDialog;wordDialog=null;try{old.close();}catch{}old.remove();}
+    wordDialogOrigin=returnTo;
     const dialog=document.createElement('dialog');
     dialog.className='ft-word-dialog';
     dialog.setAttribute('aria-label','Explore French word '+surface);
@@ -389,12 +457,13 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       const timeline=optionalVerbTimeline(verb.lemma);
       const timelineHTML=timeline?
         '<h3>Use it now: past, present and future</h3><div class="ft-word-timeline">'+
-          timeline.map(row=>'<div><small>'+esc(row.kind)+'</small><strong lang="fr">'+esc(row.fr)+
+          timeline.map(row=>'<div><small>'+esc(row.kind)+'</small><strong lang="fr">'+spokenWords(row.fr)+
             '</strong><span>'+esc(row.en)+'</span><button type="button" data-dialog-speak="'+esc(row.fr)+'">▶</button></div>').join('')+
           '</div><p class="ft-small">These are individually reviewed examples, not an automatic tense generator.</p>':
         '<p class="ft-small">A complete past/future phrase has not been reviewed for this verb. Consult the sourced dictionary links below.</p>';
+      const persons=verb.forms.map((form,i)=>form===info.matched?SUBJECTS[i]:null).filter(Boolean);
       const person=info.formKind==='present'&&info.personIndex!==null
-        ?SUBJECTS[info.personIndex]+' · present tense'
+        ?persons.join(' · ')+' · present tense'
         :info.formKind==='infinitive'?'Infinitive':info.formKind;
       const table=verb.forms.length?'<details><summary>Explore all present-tense endings (optional grammar)</summary>'+
         '<table class="ft-verb-table"><thead><tr><th scope="col">Subject</th><th scope="col">Verb form</th></tr></thead><tbody>'+
@@ -416,7 +485,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         '<div><small>Pattern</small><strong>'+esc(verb.group)+'</strong></div></div>'+
         (info.explain?'<p class="ft-word-tip">'+esc(info.explain)+'</p>':'')+timelineHTML+table+
         '<h3>How to use it</h3><p>'+esc(verb.note)+'</p>'+
-        '<p lang="fr" class="ft-word-example">'+esc(verb.example)+'</p>'+
+        '<p lang="fr" class="ft-word-example">'+spokenWords(verb.example)+'</p>'+
         '<div class="ft-actions"><button type="button" data-dialog-speak="'+esc(verb.lemma)+'">▶ Infinitive</button>'+
         '<button type="button" data-dialog-speak="'+esc(verb.example)+'">▶ Example</button></div>';
     }else if(info){
@@ -477,9 +546,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       if(event.target===dialog)close();
     });
     dialog.addEventListener('close',()=>{
-      if(wordDialog===dialog)wordDialog=null;
+      if(wordDialog===dialog){
+        wordDialog=null;wordDialogOrigin=null;
+        if(dialog.contains(selectedWord?.node))clearWordSelection();
+        if(returnTo?.isConnected)returnTo.focus({preventScroll:true});
+      }
       dialog.remove();
-      if(origin?.isConnected)origin.focus();
     },{once:true});
     if(typeof dialog.showModal==='function')dialog.showModal();
     else dialog.setAttribute('open','');
@@ -507,7 +579,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   function focusTarget(selector){el().querySelector(selector)?.focus();}
   function render(){
     if(destroyed)return;
-    if(wordDialog){const old=wordDialog;wordDialog=null;try{old.close();}catch{}old.remove();}
+    clearWordSelection();cancelWordPress();
+    if(wordDialog){const old=wordDialog;wordDialog=null;wordDialogOrigin=null;try{old.close();}catch{}old.remove();}
     if(state.coach){const old=state.coach;state.coach=null;Promise.resolve(old.destroy()).catch(()=>{});}
     const ready=!!state.store;
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
@@ -668,6 +741,18 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function changeTrack(track){if(!validTrack(track)||track===state.track||!state.store)return;cancelPendingAdvance();guidedUI.reset();assessmentUI.reset();state.track=track;try{localStorage.setItem('next-french:track:'+state.profile,track);}catch{}state.page='home';render();}
   async function onClick(e){
+    const action=e.target.closest('[data-word-action]');
+    if(action){
+      if(action.dataset.wordAction==='explore'&&selectedWord)exploreWord(selectedWord.node);
+      else if(action.dataset.wordAction==='clear'){const node=selectedWord?.node;clearWordSelection();node?.focus?.({preventScroll:true});}
+      return;
+    }
+    const word=wordTarget(e.target);
+    if(word){
+      if(suppressedWordClick?.node===word&&Date.now()<suppressedWordClick.until){suppressedWordClick=null;e.preventDefault();return;}
+      if(selectWord(word))speak(wordText(word));
+      return;
+    }
     const assessmentTarget=e.target.closest('[data-eact]');
     if(assessmentTarget&&assessmentUI.click(assessmentTarget))return;
     const guidedTarget=e.target.closest('[data-gword],[data-gact],[data-gchoice],[data-gspeak]');
@@ -685,7 +770,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       return;
     }
     if(b.dataset.say!==undefined){speak(PASSAGE[Number(b.dataset.say)].fr);return;}
-    if(b.dataset.word!==undefined){speak(b.dataset.word);openWordInfo(b.dataset.word,b);return;}
+    // French word controls were handled above, before answer/page actions.
     if(b.dataset.cuddleWord!==undefined){
       const example=CUDDLES_DEMOS.find(d=>d.id===b.dataset.cuddleWord);
       if(example)speak(example.word);return;
@@ -887,10 +972,22 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   // held-down Enter repeats so they never skip an unseen question.
   // Do not turn an IME/composition confirmation or a held key into a lesson
   // submission. Exact input fields disable browser spelling substitutions.
-  const onKeyDown=e=>{if(e.key==='Enter'&&(e.repeat||e.isComposing||e.keyCode===229))e.preventDefault();};
+  const onKeyDown=e=>{
+    if(e.key==='Enter'&&(e.repeat||e.isComposing||e.keyCode===229)){e.preventDefault();return;}
+    const node=wordTarget(e.target);
+    if(node&&((e.altKey&&e.key==='Enter')||(e.shiftKey&&e.key==='F10')||e.key==='ContextMenu')){
+      e.preventDefault();exploreWord(node);
+    }
+  };
   const onVoicesChanged=()=>{if(!destroyed&&state.page==='settings')render();};
   window.speechSynthesis?.addEventListener?.('voiceschanged',onVoicesChanged);
   el().addEventListener('keydown',onKeyDown);
+  el().addEventListener('pointerdown',onWordPointerDown);
+  el().addEventListener('pointermove',onWordPointerMove);
+  el().addEventListener('pointerup',onWordPointerUp);
+  el().addEventListener('pointercancel',cancelWordPress);
+  el().addEventListener('contextmenu',onWordContext);
+  window.addEventListener('scroll',cancelWordPress,true);
   el().addEventListener('click',onClick);
   el().addEventListener('submit',onSubmit);
   el().addEventListener('change',onChange);
@@ -908,6 +1005,13 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     window.removeEventListener('online',onOnline);
     document.removeEventListener('visibilitychange',onVisible);
     el().removeEventListener('keydown',onKeyDown);
+    el().removeEventListener('pointerdown',onWordPointerDown);
+    el().removeEventListener('pointermove',onWordPointerMove);
+    el().removeEventListener('pointerup',onWordPointerUp);
+    el().removeEventListener('pointercancel',cancelWordPress);
+    el().removeEventListener('contextmenu',onWordContext);
+    window.removeEventListener('scroll',cancelWordPress,true);
+    cancelWordPress();clearWordSelection();
     el().removeEventListener('click',onClick);el().removeEventListener('submit',onSubmit);el().removeEventListener('change',onChange);
     if(wordDialog){try{wordDialog.close();}catch{}wordDialog.remove();wordDialog=null;}
     cancelPendingAdvance();
