@@ -134,7 +134,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
   const evidence=()=>getEntries()||[];
   const cancelAdvance=()=>{navigation++;state.advancing=false;cancelSpeech();};
   const currentStatus=()=>guidedStatus(state.unitId||recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id,evidence());
-  const chooseNext=()=>{const status=currentStatus();const plan=planAdaptive(status);return plan?adaptiveStep(plan):status.next;};
+  const chooseNext=()=>{const status=currentStatus();if(status.teaching.completed===status.teaching.total&&restForUnit(status.unit.id,evidence()))return null;const plan=planAdaptive(status);return plan?adaptiveStep(plan):status.next;};
   const hintRef=step=>step.id+':hint';
   const resetStep=()=>{
     state.step=null;state.answer='';state.result=null;state.feedback='';state.wrong=false;
@@ -165,9 +165,10 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const id=state.unitId||recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id;
     const status=guidedStatus(id,evidence());
     const plans=getAdaptivePlans(id);
-    const current=state.step||status.next;
+    const rest=status.teaching.completed===status.teaching.total?restForUnit(id,evidence()):null;
+    const current=state.step||(rest?null:status.next);
     if(current&&!state.step){state.step=current;if(has(evidence(),hintRef(current)))state.hint=1;}
-    return {id,status,current,plans};
+    return {id,status,current,plans,rest};
   };
   // Keep the old phrase on screen until its speech ends. Explicit navigation
   // invalidates pending advances, including learner/unit changes.
@@ -213,7 +214,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
   };
   const isChoice=step=>step?.kind==='choice'||step?.kind==='listen';
   const page=()=>{
-    const {id,status,current,plans}=context();
+    const {id,status,current,plans,rest}=context();
     if(!status.unit)return '';
     const unit=status.unit;
     const rows=guidedLesson(id).steps;
@@ -238,8 +239,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       '<div class="ft-guided-progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="'+completed+
       '" aria-valuemin="0" aria-valuemax="'+total+'"><span style="width:'+pct+'%"></span></div>'+
       '<p class="ft-small ft-progress-count"><strong>'+completed+'/'+total+'</strong> '+(status.mode==='review'?'day '+status.reviewDay+' review completed':'teaching steps completed')+' · '+html(breakdown)+'</p>';
-    const rest=restForUnit(id,evidence());
-    if(rest||(!current&&status.mode==='complete')){
+    if(!current&&(rest||status.mode==='complete')){
       const next=status.nextReviewAt?new Date(status.nextReviewAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'none scheduled';
       return head+'<div class="ft-guided-congrats"><h3>Excellent. Now leave it for a while.</h3>'+
         (rest?restMarkup(rest):unit.track?'<p>You have completed the guided teaching. Continue to the independent check and scheduled reviews.</p>':'<p>You have completed the guided teaching. The next retrieval opportunity is <strong>'+html(next)+'</strong>. This is a schedule, not proof of retention.</p>')+

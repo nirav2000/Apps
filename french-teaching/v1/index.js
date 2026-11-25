@@ -1085,6 +1085,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
   }
   async function onSubmit(e){
+    if(!['ft-revision-add','ft-login-form','ft-reset-form'].includes(e.target.id)&&state.page!=='lesson'&&breakForCourse()){e.preventDefault();enforceBreak();return;}
     if(e.target.id==='ft-revision-add'){
       e.preventDefault();const value=e.target.querySelector('[name="word"]')?.value.trim();
       if(value&&/^[\p{L}\p{M}]+(?:['’\- ][\p{L}\p{M}]+)*$/u.test(value)&&recordSignal(value,'manual'))render();

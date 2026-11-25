@@ -27,7 +27,9 @@ const dueTime=(anchor,w)=>anchor+(w.id==='immediate'?MINIMUM_REST_MS:w.from*DAY)
 export function scheduledPractice(entries,now=Date.now(),track='michaela'){
  const due=[];
  let next=null;
+ const touched=new Set(entries.filter(e=>e.source?.ref?.startsWith('guided-v2:')&&e.source.ref.endsWith(':complete')).map(e=>e.source.ref.split(':')[1]));
  for(const u of unitsForTrack(track)){
+  if(!touched.has(u.id))continue;
   const anchor=teachingFinishedAt(u.id,entries,now);
   if(anchor===null||now<anchor)continue;
   const current=CHECK_WINDOWS.find(w=>now>=dueTime(anchor,w)&&now<anchor+w.to*DAY)||(now<anchor+MINIMUM_REST_MS&&checkResult(u.id,'immediate',entries,now).attempted.length?CHECK_WINDOWS[0]:null);
@@ -67,7 +69,7 @@ export function restMarkup(rest,now=Date.now()){
  if(!rest)return '';
  const active=now<rest.readyAt;
  const ticks=Array.from({length:60},(_,i)=>'<line x1="60" y1="'+(i%5===0?7:9)+'" x2="60" y2="13" transform="rotate('+(i*6)+' 60 60)" stroke="currentColor" stroke-width="'+(i%5===0?1.8:.8)+'" opacity="'+(i%5===0?.7:.25)+'"/>').join('');
- return '<div class="ft-rest-clock" data-rest-until="'+rest.readyAt+'" data-rest-anchor="'+rest.anchor+'"><svg class="ft-rest-dial" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54" class="ft-rest-track"/><circle cx="60" cy="60" r="54" class="ft-rest-ring" data-rest-ring transform="rotate(-90 60 60)"/>'+ticks+'<line x1="60" y1="60" x2="60" y2="19" data-rest-hand class="ft-rest-hand"/><circle cx="60" cy="60" r="3.4" fill="currentColor"/><text x="60" y="80" text-anchor="middle" data-rest-time>'+countdownText(rest.readyAt-now)+'</text></svg>'+
+ return '<div class="ft-rest-clock" data-rest-until="'+rest.readyAt+'" data-rest-anchor="'+rest.anchor+'" role="timer" aria-label="Learning break: '+countdownText(rest.readyAt-now)+' remaining"><svg class="ft-rest-dial" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54" class="ft-rest-track"/><circle cx="60" cy="60" r="54" class="ft-rest-ring" data-rest-ring transform="rotate(-90 60 60)"/>'+ticks+'<line x1="60" y1="60" x2="60" y2="19" data-rest-hand class="ft-rest-hand"/><circle cx="60" cy="60" r="3.4" fill="currentColor"/><text x="60" y="80" text-anchor="middle" data-rest-time>'+countdownText(rest.readyAt-now)+'</text></svg>'+
  '<div class="ft-rest-copy"><strong data-rest-label>'+(active?'Take a five-minute break':'Ready for independent recall')+'</strong><p data-rest-description>'+(active?'Leave the French alone for now. Walk away, get a drink or do something unrelated.':'The minimum break has elapsed. Try to recall the French without reviewing it first.')+'</p><small>Resume '+esc(shortDate(rest.readyAt))+'</small><div class="ft-rest-live" aria-live="polite" data-rest-live></div></div></div>';
 }
 export function updateStudyClocks(root,now=Date.now()){
@@ -92,7 +94,7 @@ export function updateStudyClocks(root,now=Date.now()){
 export function noticeMarkup(schedule,words,rest,{enabled=false,supported=false}={}){
  const n=schedule.overdue.length+words.length;
  if(!n&&!schedule.due.length&&!rest&&!schedule.next&&!supported)return '';
- const earliest=schedule.overdue[0],oldest=Math.min(earliest?.at??Infinity,words[0]?.at??Infinity),late=Number.isFinite(oldest)?lateText(Date.now()-oldest):'';
+ const earliest=schedule.overdue[0],oldest=Math.min(...schedule.overdue.map(x=>x.at),words[0]?.at??Infinity),late=Number.isFinite(oldest)?lateText(Date.now()-oldest):'';
  const title=n?'Practice overdue':rest?'Learning break in progress':schedule.due.length?'Practice ready':schedule.next?'Next scheduled practice':'Practice reminders';
  const message=n?(schedule.overdue.length?schedule.overdue.length+' lesson check'+(schedule.overdue.length===1?'':'s')+' overdue. ':'')+(words.length?words.length+' personal revision item'+(words.length===1?'':'s')+' overdue. ':'')+(late?'Oldest shown: '+late+' since due.':'')+(earliest?.missed.length?' An earlier check was missed; do the current check rather than backdating it.':''):
  rest?'Your next independent check unlocks at '+shortDate(rest.readyAt)+'.':
