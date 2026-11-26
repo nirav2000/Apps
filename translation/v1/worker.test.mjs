@@ -42,3 +42,12 @@ test("Firebase owner-proof fallback requires positive, exact, authenticated docu
  for(const value of ["missing","denied","wrong"]){mode=value;const r=await handler.fetch(req({action:"status"},headers),env);assert.equal(r.status,401)}
  }finally{globalThis.fetch=old}
 });
+
+test("passkey binding accepts only verified unexpired WebAuthn session",async()=>{
+ const session="a".repeat(48);let mode="valid";
+ const e={...env,APP_MONITOR_AUTH:{fetch:async r=>{assert.equal(r.headers.get("X-App-Monitor-Session"),session);if(mode==="denied")return new Response(null,{status:401});return Response.json({ok:true,method:mode==="recovery"?"recovery":"passkey",expiresAt:new Date(Date.now()+(mode==="expired"?-10000:100000)).toISOString()})}}};
+ const h={"X-App-Monitor-Session":session};
+ assert.equal((await handler.fetch(req({action:"status"},h),e)).status,200);
+ for(const x of ["denied","recovery","expired"]){mode=x;assert.equal((await handler.fetch(req({action:"status"},h),e)).status,401)}
+ assert.equal((await handler.fetch(req({action:"status"},{"X-App-Monitor-Session":"invalid"}),e)).status,401);
+});
