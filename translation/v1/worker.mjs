@@ -1,16 +1,23 @@
 // Shared isolated translation gateway. Do NOT install in apps-monitor-api.
 // Secrets: GOOGLE_TRANSLATE_KEY, DEEPL_AUTH_KEY, FIREBASE_WEB_API_KEY, OWNER_UID.
 // Bindings: AI (optional), LIMITS (Durable Object for atomic daily quota).
-export const BUILD="translation-gateway-v1.1.2";
+export const BUILD="translation-gateway-v1.1.3";
 const ORIGIN="https://nirav2000.github.io";
 const PROJECT="kk-syllabus";
-const cors={"Access-Control-Allow-Origin":ORIGIN,"Access-Control-Allow-Methods":"POST, OPTIONS","Access-Control-Allow-Headers":"Authorization, Content-Type","Cache-Control":"no-store","Vary":"Origin"};
+const cors={"Access-Control-Allow-Origin":ORIGIN,"Access-Control-Allow-Methods":"POST, OPTIONS","Access-Control-Allow-Headers":"Authorization, Content-Type, X-App-Monitor-Session","Cache-Control":"no-store","Vary":"Origin"};
 const json=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:{"Content-Type":"application/json; charset=utf-8",...cors}});
 const bounded=(v,n)=>typeof v==="string"&&v.trim()&&v.length<=n;
 async function upstream(url,options,timeout=18000){const r=await fetch(url,{...options,redirect:"error",signal:AbortSignal.timeout(timeout)});if(!r.ok)throw Error("Provider request failed ("+r.status+")");return r.json()}
 const decodeJwt=s=>{const b=s.replace(/-/g,"+").replace(/_/g,"/");return Uint8Array.from(atob(b.padEnd(Math.ceil(b.length/4)*4,"=")),c=>c.charCodeAt(0))};
 const jwksUrl="https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
+async function verifyPasskey(session,env){
+  if(!/^[A-Za-z0-9._-]{32,160}$/.test(session)||typeof env.APP_MONITOR_AUTH?.fetch!=="function")throw Error("AUTH_PASSKEY_REQUIRED");
+  const r=await env.APP_MONITOR_AUTH.fetch(new Request("https://apps-monitor-api.nirav2000-github.workers.dev/app-monitor/auth/session",{method:"GET",headers:{"X-App-Monitor-Session":session,"Origin":ORIGIN,"Accept":"application/json"},redirect:"manual"}));
+  if(!r.ok)throw Error("AUTH_PASSKEY_DENIED");
+  const body=await r.json();if(body?.ok!==true||body.method!=="passkey"||!Number.isFinite(Date.parse(body.expiresAt))||Date.parse(body.expiresAt)<=Date.now())throw Error("AUTH_PASSKEY_DENIED");
+}
 async function verify(request,env){
+  const session=request.headers.get("X-App-Monitor-Session");if(session)return verifyPasskey(session,env);
   const token=request.headers.get("Authorization")?.match(/^Bearer ([A-Za-z0-9._-]+)$/)?.[1];
   if(!token||token.length>10000||!env.OWNER_UID)throw Error("AUTH_REQUIRED");
   const parts=token.split(".");if(parts.length!==3||parts.some(x=>!x))throw Error("AUTH_FORMAT");
@@ -33,7 +40,7 @@ async function verify(request,env){
   if(explicitInvalid)throw Error("AUTH_SIGNATURE");
   if(trusted)return;
   const probeName="projects/"+PROJECT+"/databases/(default)/documents/families/"+encodeURIComponent(env.OWNER_UID)+"/learners/translation-lab-ci/progress/gateway-auth-v1";
-  const probe=await fetch("https://firestore.googleapis.com/v1/"+probeName,{headers:{Authorization:"Bearer "+token,Accept:"application/json"},redirect:"error",signal:AbortSignal.timeout(10000),cache:"no-store"});
+  const probe=await fetch("https://firestore.googleapis.com/v1/"+probeName,{headers:{Authorization:"Bearer "+token,Accept:"application/json"},redirect:"error",signal:AbortSignal.timeout(10000)});
   if(!probe.ok)throw Error("AUTH_FIREBASE_DENIED");
   const doc=await probe.json();
   if(doc.name!==probeName||doc.fields?.app?.stringValue!=="translation-lab"||doc.fields?.kind?.stringValue!=="owner-auth-probe"||doc.fields?.schema?.integerValue!=="1")throw Error("AUTH_PROBE");
@@ -56,7 +63,12 @@ function decode(s){return s.replace(/&(?:amp|lt|gt|quot|apos|#39|#\d+|#x[\da-fA-
 async function google(env,q,from,to){await charge(env,"google",Array.from(q).length);const r=await upstream("https://translation.googleapis.com/language/translate/v2?key="+encodeURIComponent(env.GOOGLE_TRANSLATE_KEY),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q,source:from,target:to,format:"text",model:"nmt"})});const value=r.data?.translations?.[0]?.translatedText;if(typeof value!=="string"||!value.trim())throw Error("Google returned no translation.");return decode(value);}
 async function deepl(env,q,from,to){await charge(env,"deepl",Array.from(q).length);const r=await upstream("https://api-free.deepl.com/v2/translate",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"DeepL-Auth-Key "+env.DEEPL_AUTH_KEY},body:JSON.stringify({text:[q],source_lang:from.toUpperCase(),target_lang:to==="en"?"EN-GB":"FR"})});const value=r.translations?.[0]?.text;if(typeof value!=="string"||!value.trim())throw Error("DeepL returned no translation.");return value;}
 export default {async fetch(request,env){
-  if(request.method==="GET"&&new URL(request.url).pathname==="/health")return json({ok:true,build:BUILD,authConfigured:!!env.OWNER_UID,quotaConfigured:!!env.LIMITS,googleConfigured:!!env.GOOGLE_TRANSLATE_KEY,deeplConfigured:!!env.DEEPL_AUTH_KEY,aiConfigured:!!env.AI});
+  if(request.method==="GET"&&new URL(request.url).pathname==="/health"){
+    const binding=typeof env.APP_MONITOR_AUTH?.fetch==="function";
+    let authServiceReachable=null;
+    if(binding&&new URL(request.url).searchParams.get("checkAuth")==="1"){try{const r=await env.APP_MONITOR_AUTH.fetch(new Request("https://apps-monitor-api.nirav2000-github.workers.dev/health"));const x=await r.json();authServiceReachable=r.ok&&x.ok===true&&x.service==="apps-monitor-api"&&x.r2Bound===true}catch{authServiceReachable=false}}
+    return json({ok:true,build:BUILD,authConfigured:!!env.OWNER_UID,passkeyBindingReady:binding,authServiceReachable,quotaConfigured:!!env.LIMITS,googleConfigured:!!env.GOOGLE_TRANSLATE_KEY,deeplConfigured:!!env.DEEPL_AUTH_KEY,aiConfigured:!!env.AI});
+  }
   if(request.headers.get("Origin")!==ORIGIN)return json({error:"Origin not permitted."},403);
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
   if(request.method!=="POST")return json({error:"POST required."},405);
