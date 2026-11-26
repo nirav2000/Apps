@@ -123,7 +123,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       adaptive:['Recall a repaired phrase','Try an earlier correction independently.'],
       repair:['Repair a weak spot',labels[plan.item?.error]||'Rebuild a phrase with help.'],
       revision:['Personal revision',plan.count+' priority words or phrases · short targeted practice'],
-      patterns:['Revisit patterns & grammar',plan.count+' short rule-retrieval questions · spaced review'],
+      patterns:['Revisit patterns & grammar',plan.count+' short French expressions · spaced review'],
       guided:['Guided teaching',unit?.name||'Continue the selected lesson'],
       oral:['Rapid oral practice','Optional · '+plan.count+' familiar expressions, then finish this session.'],
       complete:['Session complete',plan.nextReview?'Next scheduled review: '+when:when],

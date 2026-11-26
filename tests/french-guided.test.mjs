@@ -414,7 +414,7 @@ test('learning-history lookup distinguishes starting check from recorded teachin
 });
 
 
-import {grammarPatternsFor,patternsForModel,patternQuestion,patternReviewSchedule,PATTERN_DAY} from '../french-teaching/v1/unlocking-builder.js';
+import {grammarPatternsFor,patternsForModel,patternQuestion,patternQuestions,patternIntroQuestion,patternReviewSchedule,PATTERN_DAY,PATTERN_CONTENT_VERSION,ALL_LANGUAGE_PATTERNS,UNLOCKING_BUILDER_UNITS} from '../french-teaching/v1/unlocking-builder.js';
 import {patternCardMarkup,wordPatternMarkup} from '../french-teaching/v1/guided-ui.js';
 test('interesting gets its relevant English ending pattern; agreement and order are explicit',()=>{
  assert.deepEqual(wordPatternsFor('intéressant').map(p=>p.id),['ing-ant']);
@@ -425,7 +425,7 @@ test('interesting gets its relevant English ending pattern; agreement and order 
  assert.match(box,/un repas important/);assert.match(box,/une invitation importante/);assert.match(box,/ft-pattern-order/);
  assert.match(wordPatternMarkup('intéressant'),/-ing → sometimes -ant/);
  assert.ok(!wordPatternMarkup('intéressant').includes('-ant / -ent → often unchanged'));
- assert.equal(patternQuestion('gender-agreement',0).fr,'important');assert.equal(patternQuestion('gender-agreement',1).fr,'importante');
+ assert.equal(patternQuestion('gender-agreement',0).fr,'un repas important');assert.equal(patternQuestion('gender-agreement',1).fr,'une invitation importante');
  assert.ok(!patternQuestion('adjective-order',0).prompt.includes('noun-first'));
  assert.ok(!patternQuestion('noun-gender',0).clue.includes('feminine'));
 });
@@ -433,8 +433,8 @@ test('pattern recall is learner-scoped, after completed models, spaced, and neve
  const t=1000000,track='unlocking',step={id:'guided-v2:unlock2-cognates:present:41',unitId:'unlock2-cognates',track,stage:'present',kind:'model',fr:'importante'},steps=[step];
  const evidence=[{at:t,source:{ref:step.id+':complete'}}];
  const run=(now,audits=[],es=evidence)=>patternReviewSchedule({steps,evidence:es,audits,track,now}).find(x=>x.id==='gender-agreement');
- const audit=(at,support='none',result='correct',track='unlocking')=>({id:String(at)+support+track,at,answerAudit:{marker:'pattern-practice-v1',context:{track,patternId:'gender-agreement'},support,result}});
- const intro={id:'intro',at:t+600000,answerAudit:{marker:'pattern-intro-v1',result:'model',support:'worked-example',context:{track,patternId:'gender-agreement'}}};
+ const audit=(at,support='none',result='correct',track='unlocking')=>({id:String(at)+support+track,at,answerAudit:{marker:'pattern-practice-v1',context:{track,patternId:'gender-agreement',patternContentVersion:PATTERN_CONTENT_VERSION},support,result}});
+ const intro={id:'intro',at:t+600000,answerAudit:{marker:'pattern-intro-v1',result:'model',support:'worked-example',context:{track,patternId:'gender-agreement',patternContentVersion:PATTERN_CONTENT_VERSION}}};
  assert.equal(run(t,[],[]),undefined);
  assert.equal(run(t).dueAt,t+600000);
  assert.equal(run(t).needsIntro,true);
@@ -451,4 +451,40 @@ test('pattern recall is learner-scoped, after completed models, spaced, and neve
  assert.equal(run(day1,[intro,audit(due),audit(day1,'small-prompt')]).level,0);
  assert.equal(run(day1,[intro,audit(due),audit(day1,'small-prompt')]).dueAt,day1+600000);
  assert.equal(run(due,[intro,audit(due,'none','correct','sai')]).level,0);
+});
+
+test('pattern questions distinguish direct translation from intentional French word-building',()=>{
+ const p=ALL_LANGUAGE_PATTERNS.find(p=>p.id==='past-e'),qs=patternQuestions('past-e');
+ assert.equal(qs.find(q=>q.en==='decoration').fr,'décoration');
+ assert.equal(qs.find(q=>q.en==='decorated').fr,'décoré');
+ assert.equal(qs.find(q=>q.en==='I decorated the table').fr,'J’ai décoré la table');
+ const intro=patternIntroQuestion('past-e');
+ assert.equal(intro.mode,'conversion');assert.equal(intro.sourceFr,'confirmation');assert.equal(intro.targetEn,'confirmed');assert.equal(intro.fr,'confirmé');
+ const card=patternCardMarkup(p,{reference:true});
+ assert.match(card,/FRENCH · same meaning/);assert.match(card,/ENGLISH · new meaning/);assert.match(card,/Optional grammar explanation/);assert.match(card,/ft-pattern-accent">é<\/span>cor/);
+ const technical=/\b(?:past participle|infinitive|conjugate|auxiliary|inversion|adjective agreement|grammatical gender)\b/i;
+ for(const p of ALL_LANGUAGE_PATTERNS){
+  assert.ok(!technical.test([p.title,p.rule,p.note,p.tryEn].join(' ')),p.id);
+  for(const q of patternQuestions(p.id)){
+   assert.equal(q.mode,'translation');assert.ok(q.en&&q.fr&&!technical.test(q.prompt+' '+q.en+' '+q.clue),p.id);
+   assert.ok(p.examples.some(([en,fr])=>en===q.en&&fr===q.fr)||p.conversions?.some(([en,fr,action,af])=>en===q.en&&fr===q.fr||action===q.en&&af===q.fr),p.id+': '+q.en+' not introduced');
+  }
+ }
+ for(const u of UNLOCKING_BUILDER_UNITS){
+  assert.ok(!technical.test(u.goal),u.id);
+  for(const s of u.sequence)assert.ok(!technical.test([s.en,s.prompt,s.note].filter(Boolean).join(' ')),s.id);
+ }
+});
+test('old misleading pattern answers cannot advance revised review and guided conversion is not delayed recall',()=>{
+ const t=1000000,track='unlocking',step={id:'guided-v2:unlock2-past:present:1',unitId:'unlock2-past',track,stage:'present',kind:'model',fr:'préparé'},steps=[step],evidence=[{at:t,source:{ref:step.id+':complete'}}];
+ const mk=(at,marker,extra={})=>({id:marker+at,at,answerAudit:{marker,result:marker==='pattern-intro-v1'?'model':'correct',support:'none',context:{track,patternId:'past-e',...extra}}});
+ const old=[mk(t+1,'pattern-intro-v1'),mk(t+600001,'pattern-practice-v1')];
+ const run=(now,audits)=>patternReviewSchedule({steps,evidence,audits,track,now}).find(x=>x.id==='past-e');
+ assert.equal(run(t+700000,old).needsIntro,true);
+ const intro=mk(t+700000,'pattern-intro-v1',{patternContentVersion:PATTERN_CONTENT_VERSION});
+ const guided=mk(t+700001,'pattern-practice-v1',{patternContentVersion:PATTERN_CONTENT_VERSION,guidedIntro:true});
+ const due=intro.at+600000,before=run(due,[...old,intro,guided]);
+ assert.equal(before.level,0);assert.equal(before.practiceIndex,0);assert.equal(before.dueAt,due);
+ assert.equal(run(due,[...old,intro,guided,mk(due,'pattern-practice-v1',{patternContentVersion:PATTERN_CONTENT_VERSION})]).level,1);
+ assert.equal(old.length,2);
 });

@@ -29,11 +29,11 @@ export function answerFeedback(input,expected){
   if(!got)return 'Say the full phrase first, then try typing it.';
   const negative=s=>/(?:^|\s)(?:ne\s|n')[^.!?;]*?\bpas\b/u.test(s);
   if(negative(want)&&!negative(got))return 'Check the negative: ne (or n’) goes before the verb, and pas after it.';
-  if(want.includes('je vais ')&&got.includes("j'ai "))return 'Je vais + infinitive is a future plan. J’ai + past participle is a completed action.';
-  if(want.includes("j'ai ")&&got.includes('je vais '))return 'For the completed past, use j’ai + the correct past participle.';
+  if(want.includes('je vais ')&&got.includes("j'ai "))return 'Je vais means I am going to: a future plan. J’ai starts these expressions about things you did.';
+  if(want.includes("j'ai ")&&got.includes('je vais '))return 'For the completed past, start with j’ai (I have), then use the action word for what you did.';
   const strip=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   if(strip(got)===strip(want))return correctionSummary(input,expected);
-  if(want.includes('parce que')&&!got.includes('parce que'))return 'To explain why, join the two clauses with parce que.';
+  if(want.includes('parce que')&&!got.includes('parce que'))return 'To explain why, join the two ideas with parce que.';
   if(want.includes(' mais ')&&!got.includes(' mais '))return 'To contrast two ideas, use mais.';
   if(want.startsWith("j'")&&got.startsWith('je '))return 'Before a vowel sound, je normally contracts to j’.';
   return correctionSummary(input,expected);
@@ -89,10 +89,10 @@ export function guidedHint(step,level=1){
     can:'Start with the French for “I can”, then use the dictionary form of the action.',
     must:'Start with the French for “I must”, then use the dictionary form of the action.',
     'near-future':'Build “I am going to” first, then the unchanged action phrase.',
-    past:'For this completed action, use the “I have” form followed by the past participle.',
+    past:'Start with the French for “I have”, then say the action word for what you did.',
     polite:'Start with the French for “I would like”, then add the action.'
   };
-  return (clues[step.structure]||'Break the meaning into a subject, an action and any extra details.')+
+  return (clues[step.structure]||'Say who is doing something, then the action and any extra details.')+
     (v&&['present','negative','past'].includes(step.structure)?' Think of the action “'+v.english+'”.':'');
 }
 // Render each visible French word as a small native button without altering
@@ -199,16 +199,19 @@ export function listeningRepairMarkup({answer='',fr,en='',components=[],prefix='
     (retry?'<button type="button" '+attr+'="'+prefix+'listen-rebuild">Rebuild without the model</button>':'')+'</div></aside>';
 }
 
-const suffixMark=(value,suffixes)=>{const s=String(value),match=suffixes.find(x=>s.toLowerCase().endsWith(x));return match?html(s.slice(0,-match.length))+'<span class="ft-pattern-ending">'+html(s.slice(-match.length))+'</span>':html(s);};
+const accentMark=value=>Array.from(String(value).normalize('NFC')).map(ch=>/\p{M}/u.test(ch.normalize('NFD'))?'<span class="ft-pattern-accent">'+html(ch)+'</span>':html(ch)).join('');
+const suffixMark=(value,suffixes,{accents=false}={})=>{const s=String(value),match=suffixes.find(x=>s.toLowerCase().endsWith(x)),root=accents?accentMark:html;return match?root(s.slice(0,-match.length))+'<span class="ft-pattern-ending">'+html(s.slice(-match.length))+'</span>':root(s);};
 function orderDiagram(){
- return '<div class="ft-pattern-order"><p class="ft-small">ENGLISH · adjective before noun</p><div class="ft-pattern-order-row"><span>an</span><span class="ft-order-adj">important</span><span class="ft-order-noun">invitation</span></div><div class="ft-order-arrow" aria-hidden="true">↓</div><p class="ft-small">FRENCH · noun before adjective</p><div class="ft-pattern-order-row"><span>une</span><span class="ft-order-noun" lang="fr">invitation</span><span class="ft-order-adj" lang="fr">important<span class="ft-pattern-ending">e</span></span></div></div>';
+ return '<div class="ft-pattern-order"><p class="ft-small">ENGLISH · describing word first</p><div class="ft-pattern-order-row"><span>an</span><span class="ft-order-adj">important</span><span class="ft-order-noun">invitation</span></div><div class="ft-order-arrow" aria-hidden="true">↓</div><p class="ft-small">FRENCH · thing first, then describing word</p><div class="ft-pattern-order-row"><span>une</span><span class="ft-order-noun" lang="fr">invitation</span><span class="ft-order-adj" lang="fr">important<span class="ft-pattern-ending">e</span></span></div></div>';
 }
 export function patternCardMarkup(p,{compact=false,reference=false}={}){
  const ending=p.id==='ing-ant'?{en:['ing'],fr:['ante','ant']}:p.id==='ant-ent'?{en:['ant','ent'],fr:['ante','ente','ant','ent']}:p.id==='ique'?{en:['ical','ic'],fr:['ique']}:null;
- const pairs=p.examples.map(([en,fr])=>'<span><small>'+ (ending?suffixMark(en,ending.en):html(en))+'</small><b lang="fr">'+ (ending?suffixMark(fr,ending.fr):spokenWords(fr))+'</b><button type="button" class="ft-pattern-audio" data-act="pattern-audio" data-pattern-audio="'+html(fr)+'" aria-label="Hear '+html(fr)+'">▶</button></span>').join('');
- const heading=p.grammar?'GRAMMAR · NOTICE THE CHANGE':'WORD PATTERNS · BORROW FROM ENGLISH';
- const content='<strong>'+html(p.rule)+'</strong><p>'+html(p.note)+'</p>'+(p.id==='adjective-order'?orderDiagram():'')+'<div class="ft-word-pattern-pairs">'+pairs+'</div><details><summary>Try another example: '+html(p.tryEn)+'</summary><p lang="fr">'+spokenWords(p.tryFr)+'</p><p class="ft-small">Optional discovery practice — not a scored recall check.</p></details>';
- return compact?'<aside class="ft-word-pattern ft-pattern-compact"><p class="ft-eyebrow">REMEMBER THE PATTERN</p><strong>'+html(p.rule)+'</strong><div class="ft-pattern-reminder">'+html(p.examples[0][0])+' → <b lang="fr">'+spokenWords(p.examples[0][1])+'</b></div><details><summary>Explanation &amp; more examples</summary>'+content+'</details></aside>':'<aside class="ft-word-pattern"><p class="ft-eyebrow">'+heading+'</p>'+content+(reference?'':'<p class="ft-small">You will revisit this in Patterns &amp; grammar and scheduled practice.</p>')+'</aside>';
+ const audio=fr=>'<button type="button" class="ft-pattern-audio" data-act="pattern-audio" data-pattern-audio="'+html(fr)+'" aria-label="Hear '+html(fr)+'">▶</button>';
+ const pairs=p.examples.map(([en,fr])=>'<span><small><span class="ft-pattern-lang">ENGLISH</span> '+(ending?suffixMark(en,ending.en):html(en))+'</small><b lang="fr"><span class="ft-pattern-lang">FRENCH</span> '+(ending?suffixMark(fr,ending.fr,{accents:true}):(!fr.includes(' ')&&fr.normalize('NFD')!==fr?accentMark(fr):spokenWords(fr)))+'</b>'+audio(fr)+'</span>').join('');
+ const conversion=p.conversions?'<div class="ft-pattern-conversions"><h4>Same meaning first, then a different word</h4><p class="ft-small">Blue letters show accents in the French spelling. Underlined endings show the word-building change.</p>'+p.conversions.map(([en,fr,action,actionFr])=>'<div class="ft-pattern-conversion"><div><small>ENGLISH</small><b>'+html(en)+'</b><small>FRENCH · same meaning</small><b lang="fr">'+suffixMark(fr,['ation'],{accents:true})+' '+audio(fr)+'</b></div><div class="ft-convert-arrow"><span>Change the ending</span><strong aria-hidden="true">→</strong></div><div><small>ENGLISH · new meaning</small><b>'+html(action)+'</b><small>FRENCH · new word</small><b lang="fr">'+suffixMark(actionFr,['é'],{accents:true})+' '+audio(actionFr)+'</b></div></div>').join('')+'</div>':'';
+ const heading=p.grammar?'NOTICE HOW THE FRENCH CHANGES':'WORD PATTERNS · BORROW FROM ENGLISH';
+ const content='<strong>'+html(p.rule)+'</strong><p>'+html(p.note)+'</p>'+conversion+(p.id==='adjective-order'?orderDiagram():'')+'<div class="ft-word-pattern-pairs">'+pairs+'</div><details><summary>Try saying: '+html(p.tryEn)+'</summary><p lang="fr">'+spokenWords(p.tryFr)+'</p><p class="ft-small">Optional practice — say it aloud before revealing.</p></details>'+(p.technical?'<details class="ft-optional-grammar"><summary>Optional grammar explanation</summary><p>'+html(p.technical)+'</p></details>':'');
+ return compact?'<aside class="ft-word-pattern ft-pattern-compact"><p class="ft-eyebrow">REMEMBER THE PATTERN</p><strong>'+html(p.rule)+'</strong><div class="ft-pattern-reminder"><span class="ft-pattern-lang">ENGLISH</span> '+html(p.examples[0][0])+' → <span class="ft-pattern-lang">FRENCH</span> <b lang="fr">'+spokenWords(p.examples[0][1])+'</b></div><details><summary>Explanation &amp; more examples</summary>'+content+'</details></aside>':'<aside class="ft-word-pattern"><p class="ft-eyebrow">'+heading+'</p>'+content+(reference?'':'<p class="ft-small">You will use this again in later practice. The full explanation is in Patterns &amp; grammar.</p>')+'</aside>';
 }
 export function wordPatternMarkup(fr,{compact=false,grammarOnly=false}={}){
  const patterns=grammarOnly?grammarPatternsFor(fr):patternsForModel(fr);

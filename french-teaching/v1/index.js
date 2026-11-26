@@ -4,7 +4,7 @@ import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
 import {browserAuthContext} from './auth-context.js';
 import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES,learningAudioText,AUDIO_WAIT_LABEL,audioWaitMarkup,LISTEN_SLOW_RATE,listeningChunks,listeningSteps,listeningContext,listeningHintMarkup,listeningRepairMarkup,verifiedListeningEnglish,listeningHelpName,wordPatternMarkup,patternCardMarkup} from './guided-ui.js';
-import {ALL_LANGUAGE_PATTERNS,patternReviewSchedule} from './unlocking-builder.js';
+import {ALL_LANGUAGE_PATTERNS,patternReviewSchedule,patternIntroQuestion,PATTERN_CONTENT_VERSION} from './unlocking-builder.js';
 import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
@@ -114,25 +114,26 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
     const rows=patternId?patternSchedule().filter(x=>x.id===patternId):duePatterns().slice(0,3);
     if(!rows.length){if(auto)assessmentUI.startDaily();return;}
-    cancelPendingAdvance();revision=null;patternReview={auto,items:rows,index:0,result:null,answer:'',hint:false,draft:''};state.page='patterns';render();focusTarget('#ft-pattern-answer,[data-act="pattern-intro"]');
+    cancelPendingAdvance();revision=null;patternReview={auto,items:rows,index:0,result:null,answer:'',hint:false,guided:false,draft:''};state.page='patterns';render();focusTarget('#ft-pattern-answer,[data-act="pattern-intro"]');
   }
   function patternPage(){
     if(patternReview){
       const p=patternReview.items[patternReview.index],q=p.question;
-      if(p.needsIntro)return '<section class="ft-card ft-pattern-task"><p class="ft-eyebrow">PATTERNS &amp; GRAMMAR · LEARN THE RULE</p><h2>'+esc(p.title)+'</h2><p>Look at the contrasting examples, listen to the French and say them aloud. Earlier vocabulary progress alone does not show you have learnt this rule.</p>'+patternCardMarkup(p,{reference:true})+'<button type="button" class="ft-primary" data-act="pattern-intro" data-ft-advance>I have reviewed it → Try a question</button><div class="ft-pause-row"><button type="button" data-act="pattern-leave">Pause · return to reference</button></div></section>';
+      if(p.needsIntro)return '<section class="ft-card ft-pattern-task"><p class="ft-eyebrow">PATTERNS &amp; GRAMMAR · LEARN BY EXAMPLE</p><h2>'+esc(p.title)+'</h2><p>Listen to the examples and say them aloud. Notice how the French changes. Then try one yourself, with the answer covered.</p>'+patternCardMarkup(p,{reference:true})+'<button type="button" class="ft-primary" data-act="pattern-intro" data-ft-advance>I have said them → Try one</button><div class="ft-pause-row"><button type="button" data-act="pattern-leave">Pause · return to reference</button></div></section>';
       const status=patternReview.result;
       const answer=patternReview.answer||'';
-      return '<section class="ft-card ft-pattern-task"><p class="ft-eyebrow">PATTERNS &amp; GRAMMAR · '+(patternReview.index+1)+'/'+patternReview.items.length+'</p><h2>Recall the French</h2><p class="ft-small">Recall the rule using the vocabulary supplied. Optional help is tracked separately from unprompted rule recall. This is not a formal translation assessment.</p><h3>'+esc(q.prompt)+'</h3>'+(q.clue?'<p class="ft-pattern-clue">'+esc(q.clue)+'</p>':'')+
+      const question=q.mode==='conversion'?'<div class="ft-pattern-question"><p class="ft-small">English starting word</p><h3>'+esc(q.en)+'</h3><p class="ft-small">French word with the same meaning</p><h3 lang="fr">'+esc(q.sourceFr)+'</h3><p>Change the French ending -ation to -é to make the French for <strong>'+esc(q.targetEn)+'</strong>. This is a different word with a different meaning.</p></div>':'<div class="ft-pattern-question"><p class="ft-small">ENGLISH</p><h3>'+esc(q.en)+'</h3></div>';
+      return '<section class="ft-card ft-pattern-task"><p class="ft-eyebrow">PATTERNS &amp; GRAMMAR · '+(patternReview.index+1)+'/'+patternReview.items.length+'</p><h2>'+esc(q.prompt)+'</h2><p class="ft-small">'+(patternReview.guided?'Try this with the answer covered. Ask for help if needed.':'Work out the French and say it aloud before typing.')+'</p>'+question+
         (status?answerComparison({answer,expected:q.fr,result:status,replay:'<button type="button" data-act="pattern-audio" data-pattern-audio="'+esc(q.fr)+'" aria-label="Hear the answer">▶</button>'})+
-          '<p role="status">'+(status==='correct'&&!patternReview.hint?(p.due?'Correct. The next recall interval is scheduled.':'Correct. Early extra practice does not move the scheduled review.'):'Review the explanation. A supported or missed answer does not advance the recall interval.')+'</p>'+patternCardMarkup(p,{reference:true})+
+          '<p role="status">'+(status==='correct'&&!patternReview.hint&&!patternReview.guided?(p.due?'Correct. The next recall interval is scheduled.':'Correct. Early extra practice does not move the scheduled review.'):(patternReview.guided?'Guided practice completed. You will try again later without help.':'Review the examples. We will return to this sooner.'))+'</p>'+patternCardMarkup(p,{reference:true})+
           '<button type="button" class="ft-primary" data-act="pattern-next" data-ft-advance>Next →</button>':
-          '<form id="ft-pattern-form"><label for="ft-pattern-answer">Your French</label><input id="ft-pattern-answer" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' value="'+esc(patternReview.draft)+'" required><div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button><button type="button" data-act="pattern-hint">I need help</button><button type="button" data-act="pattern-reveal">Show answer</button></div></form>'+(patternReview.hint?patternCardMarkup(p,{reference:true}):''))+
+          '<form id="ft-pattern-form"><label for="ft-pattern-answer">Your French</label><input id="ft-pattern-answer" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' value="'+esc(patternReview.draft)+'" required><div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button><button type="button" data-act="pattern-hint">I need help</button><button type="button" data-act="pattern-reveal">Show answer</button></div></form>'+(patternReview.hint?(q.clue?'<p class="ft-pattern-clue">'+esc(q.clue)+'</p>':'')+patternCardMarkup(p,{reference:true}):''))+
         '<div class="ft-pause-row"><button type="button" data-act="pattern-leave">Pause · return to reference</button></div></section>';
     }
     const rows=patternSchedule(),byId=new Map(rows.map(x=>[x.id,x])),due=rows.filter(x=>x.due),query=patternQuery.toLowerCase().trim();
     const shown=ALL_LANGUAGE_PATTERNS.filter(p=>!query||[p.title,p.rule,p.note,...p.examples.flat()].join(' ').toLowerCase().includes(query));
     const section=(p)=>{const r=byId.get(p.id);return '<article class="ft-pattern-reference-row"><div class="ft-row"><strong>'+esc(p.title)+'</strong><span class="ft-small">'+(r?r.needsIntro?'First guided recap '+(r.due?'due':'· '+esc(revisionDate(r.dueAt))):r.due?'Review due':'Next '+esc(revisionDate(r.dueAt)):'Reference only · not yet taught')+'</span></div>'+patternCardMarkup(p,{reference:true})+(r?'<p class="ft-small">'+r.attempts+' practice attempt'+(r.attempts===1?'':'s')+' · '+(r.needsIntro?'Guided recap not yet completed':r.level?'Recall interval step '+r.level:'Initial learning / repair')+'</p><button type="button" data-act="pattern-practise" data-pattern-id="'+esc(p.id)+'">Practise this pattern</button>':'')+'</article>';};
-    return '<section class="ft-card"><p class="ft-eyebrow">YOUR LANGUAGE TOOLKIT</p><h2>Patterns &amp; grammar</h2><p>Find the rules you have met, compare examples and hear the French. After the first guided recap, rule recall is due around 10 minutes later, then after 1, 3, 7 and 28 days from successful due recall, and monthly thereafter. Reviews appear automatically in Today. Incorrect or supported recall returns sooner. Reading the reference does not count as a review.</p>'+
+    return '<section class="ft-card"><p class="ft-eyebrow">YOUR LANGUAGE TOOLKIT</p><h2>Patterns &amp; grammar</h2><p>Find patterns you have met, compare English and French examples and hear the French. After the first guided recap, practise using the French again around 10 minutes later, then after 1, 3, 7 and 28 days from successful scheduled practice, and monthly thereafter. Reviews appear automatically in Today. Incorrect or supported recall returns sooner. Reading the reference does not count as a review.</p>'+
       (due.length?'<button type="button" class="ft-primary" data-act="pattern-start">Practise '+Math.min(3,due.length)+' due patterns →</button>':'<p class="ft-small">No pattern reviews due in this course.</p>')+
       '<form id="ft-pattern-search"><label for="ft-pattern-search-input">Find a rule or word</label><input id="ft-pattern-search-input" name="query" value="'+esc(patternQuery)+'" placeholder="e.g. important, feminine, -ing"><button type="submit">Find</button></form>'+
       '<h3>Already encountered in completed teaching</h3>'+(shown.filter(p=>byId.has(p.id)).map(section).join('')||'<p class="ft-small">No matching completed models yet.</p>')+
@@ -144,8 +145,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(p.needsIntro)return;
     if(!reveal&&!String(value).trim())return;
     if(prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
-    const correct=!reveal&&markAnswer(value,q.fr),support=reveal?'worked-example':patternReview.hint?'small-prompt':'none';
-    const audit=exactAudit(value,q.fr,correct,{ref:'pattern:'+p.id,activity:'Patterns & grammar',question:q.prompt+(q.clue?' · '+q.clue:''),marker:'pattern-practice-v1',targetLang:'fr',support,context:{patternId:p.id,patternQuestion:p.attempts,kind:'pattern-practice',providedVocabulary:q.clue||'',measure:'rule-retrieval'},signal:{kind:'pattern-review',patternId:p.id}});
+    const correct=!reveal&&markAnswer(value,q.fr),support=reveal||patternReview.guided?'worked-example':patternReview.hint?'small-prompt':'none';
+    const audit=exactAudit(value,q.fr,correct,{ref:'pattern:'+p.id,activity:'Patterns & grammar',question:q.mode==='conversion'?'Build French for “'+q.targetEn+'” from the French word “'+q.sourceFr+'”':q.en,marker:'pattern-practice-v1',targetLang:'fr',support,context:{patternId:p.id,patternContentVersion:PATTERN_CONTENT_VERSION,patternQuestion:p.practiceIndex,kind:'pattern-practice',guidedIntro:patternReview.guided,questionMode:q.mode,providedVocabulary:patternReview.hint?q.clue||'':'',measure:'usable-french'},signal:{kind:'pattern-review',patternId:p.id}});
     if(reveal){audit.result='revealed';audit.reason='Model requested. No unaided recall credit.';}
     if(!recordAttempt(audit))return;
     patternReview.answer=value;patternReview.result=reveal?'revealed':correct?'correct':'incorrect';render();speak(q.fr);focusTarget('[data-act="pattern-next"]');
@@ -1219,9 +1220,9 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         if(!patternReview||patternReview.result||state.page!=='patterns')return;
         const p=patternReview.items[patternReview.index];if(!p.needsIntro)return;
         if(prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
-        if(!recordAttempt({ref:'pattern:intro:'+p.id,activity:'Patterns & grammar · guided recap',question:p.title,answer:null,expected:p.rule,result:'model',reason:'Rule and examples reviewed; no independent recall credit.',support:'worked-example',marker:'pattern-intro-v1',targetLang:'fr',context:{patternId:p.id,kind:'pattern-intro'},signal:{kind:'pattern-review',patternId:p.id}}))return;
-        patternReview.items[patternReview.index]={...p,needsIntro:false,due:false};
-        patternReview.hint=true;render();focusTarget('#ft-pattern-answer');
+        if(!recordAttempt({ref:'pattern:intro:'+p.id,activity:'Patterns & grammar · guided recap',question:p.title,answer:null,expected:p.rule,result:'model',reason:'Rule and examples reviewed; no independent recall credit.',support:'worked-example',marker:'pattern-intro-v1',targetLang:'fr',context:{patternId:p.id,patternContentVersion:PATTERN_CONTENT_VERSION,kind:'pattern-intro'},signal:{kind:'pattern-review',patternId:p.id}}))return;
+        patternReview.items[patternReview.index]={...p,needsIntro:false,due:false,question:patternIntroQuestion(p.id)};
+        patternReview.hint=false;patternReview.guided=true;render();focusTarget('#ft-pattern-answer');
       });break;
       case 'pattern-start':startPatternReview();break;
       case 'pattern-practise':startPatternReview(false,b.dataset.patternId);break;
@@ -1231,7 +1232,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       case 'pattern-next':await afterSpeech(b,()=>{
         if(!patternReview||!patternReview.result)return;
         if(++patternReview.index>=patternReview.items.length){const auto=patternReview.auto;patternReview=null;if(auto){assessmentUI.startDaily();return;}}
-        else Object.assign(patternReview,{result:null,answer:'',hint:false,draft:''});
+        else Object.assign(patternReview,{result:null,answer:'',hint:false,guided:false,draft:''});
         render();if(patternReview)focusTarget('#ft-pattern-answer,[data-act="pattern-intro"]');
       });break;
       case 'pattern-leave':patternReview=null;cancelPendingAdvance();state.page='patterns';render();break;

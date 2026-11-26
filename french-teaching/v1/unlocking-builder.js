@@ -5,16 +5,402 @@
 
 // Original, curated word-family teaching, not automatic word generation.
 // Surface the relationship alongside the relevant model, never before a test.
+export const PATTERN_CONTENT_VERSION=2;
 export const WORD_PATTERNS=Object.freeze([
- {id:'past-e',title:'A familiar noun can lead to an action',rule:'-ation → -é (related regular -er verbs)',note:'For some families, take away -ation and add -é to form the past participle. Add j’ai for “I did / I have done”. Not every noun has a matching regular verb.',words:['préparé','réservé','invité'],examples:[['décoration','décoré'],['organisation','organisé']],tryEn:'confirmation → past participle',tryFr:'confirmé'},
- {id:'visit',title:'A familiar English root',rule:'visit → visiter → visité',note:'The regular French verb keeps the familiar root. The infinitive -er and past participle -é sound alike, but their grammatical roles differ.',words:['visité','visiter'],examples:[['repair (verb)','réparer'],['repaired','réparé']],tryEn:'to repair → repaired (in French)',tryFr:'réparer → réparé'},
- {id:'er-e',title:'One sound, two verb endings',rule:'-er (infinitive) ↔ -é (past participle)',note:'These endings normally sound /e/. After je veux or je vais use the infinitive; after j’ai use the past participle for these regular verbs.',words:['réserver','préparer','répéter'],examples:[['to organise','organiser'],['organised','organisé']],tryEn:'to decorate → decorated (in French)',tryFr:'décorer → décoré'},
- {id:'ique',title:'Recognise the word family',rule:'-ic / -ical → often -ique',note:'Look for a familiar English root and a French -ique ending (/ik/). Practical is pratique, not a mechanical substitution of every English letter. Check spelling and meaning.',words:['pratique','typique','logique','musique'],examples:[['economic','économique'],['historic','historique']],tryEn:'scientific',tryFr:'scientifique'},
- {id:'able',title:'Same spelling, French sound',rule:'-able / -ible → often unchanged',note:'Many cognates keep these endings. French vowels and final syllables may sound quite different from English; possible ends in /ibl/.',words:['possible'],examples:[['visible','visible'],['acceptable','acceptable']],tryEn:'portable',tryFr:'portable'},
- {id:'ant-ent',title:'Spot the familiar adjective',rule:'-ant / -ent → often unchanged',note:'Check accents and meaning: different becomes différent, urgent remains urgent. In these masculine adjectives the final t is silent and the ending is nasal /ɑ̃/. The pattern does not apply to verb -ent endings. Add a final e where feminine agreement requires it, as in importante.',words:['différent','urgent','important','importante','intelligent'],examples:[['constant','constant'],['elegant','élégant']],tryEn:'evident',tryFr:'évident'},
- {id:'ing-ant',title:'A related adjective, not the same ending',rule:'-ing → sometimes -ant',note:'Interesting does not end in -ant or -ent in English. Some English -ing adjectives have related French -ant adjectives; check the root and spelling. This is a vocabulary relationship, not a rule for translating every English -ing verb.',words:['intéressant','intéressante','amusant','amusante','rassurant','rassurante','fatigant','fatigante'],examples:[['interesting','intéressant'],['amusing','amusant'],['reassuring','rassurant'],['tiring','fatigant']],tryEn:'amusing',tryFr:'amusant'},
- {id:'ion',title:'Recognise a familiar noun',rule:'-ion / -tion → often unchanged',note:'Many nouns share a familiar ending. Check accents, gender and meaning. French -tion normally sounds /sjɔ̃/; learn the article with the noun.',words:['invitation','information','réservation','préparation','situation'],examples:[['discussion','une discussion'],['protection','une protection']],tryEn:'a reaction',tryFr:'une réaction'},
- {id:'normal',title:'Recognise familiar spellings',rule:'Some English and French words share the same spelling',note:'Normal is a cognate; pronounce it in French, and remember that feminine adjectives may change: normale.',words:['normal'],examples:[['original (masculine)','original'],['final (masculine)','final']],tryEn:'local (masculine)',tryFr:'local'}
+ {
+  "id": "past-e",
+  "title": "From a familiar word to something you did",
+  "rule": "French -ation → -é: a word-building trick",
+  "note": "First find the French word that has the same meaning as the English word. For some French word families, replace -ation with -é to make a different word describing what was done. Add j’ai (I have) to talk about what you did. This is a word-building trick, not a direct translation rule for every word ending in -ation. Notice that decoration has no accent in English, but décoration already has é in French; keep that first é when making décoré.",
+  "words": [
+   "préparé",
+   "réservé",
+   "invité"
+  ],
+  "examples": [
+   [
+    "I prepared",
+    "J’ai préparé"
+   ],
+   [
+    "I booked a table",
+    "J’ai réservé une table"
+   ],
+   [
+    "I decorated the table",
+    "J’ai décoré la table"
+   ],
+   [
+    "I organised",
+    "J’ai organisé"
+   ],
+   [
+    "I confirmed",
+    "J’ai confirmé"
+   ]
+  ],
+  "tryEn": "I decorated",
+  "tryFr": "J’ai décoré",
+  "technical": "The -é form is the past participle of a related regular -er verb, not of a noun. J’ai + that form makes the passé composé. Some verbs use other forms or être.",
+  "conversions": [
+   [
+    "preparation",
+    "préparation",
+    "prepared",
+    "préparé"
+   ],
+   [
+    "reservation",
+    "réservation",
+    "reserved / booked",
+    "réservé"
+   ],
+   [
+    "decoration",
+    "décoration",
+    "decorated",
+    "décoré"
+   ],
+   [
+    "organisation",
+    "organisation",
+    "organised",
+    "organisé"
+   ],
+   [
+    "confirmation",
+    "confirmation",
+    "confirmed",
+    "confirmé"
+   ]
+  ]
+ },
+ {
+  "id": "visit",
+  "title": "Talk about a visit",
+  "rule": "visited → visité",
+  "note": "Listen to the ending of visité. It sounds like the last vowel of café. Put it after j’ai to say I visited.",
+  "words": [
+   "visité"
+  ],
+  "examples": [
+   [
+    "visited",
+    "visité"
+   ],
+   [
+    "I visited",
+    "J’ai visité"
+   ],
+   [
+    "I visited the museum",
+    "J’ai visité le musée"
+   ],
+   [
+    "I have visited",
+    "J’ai visité"
+   ]
+  ],
+  "tryEn": "I visited",
+  "tryFr": "J’ai visité",
+  "technical": "Visité is the past participle of visiter."
+ },
+ {
+  "id": "er-e",
+  "title": "Two endings that sound alike",
+  "rule": "to book → réserver · booked → réservé",
+  "note": "These two French words sound alike, but the English meanings are different. Compare I want to book with I booked. For these words, write -er for the 'to book' form and -é for the 'booked' form.",
+  "words": [
+   "réserver",
+   "préparer",
+   "répéter",
+   "visiter"
+  ],
+  "examples": [
+   [
+    "to book",
+    "réserver"
+   ],
+   [
+    "I booked",
+    "J’ai réservé"
+   ],
+   [
+    "I want to book",
+    "Je veux réserver"
+   ],
+   [
+    "I am going to visit",
+    "Je vais visiter"
+   ],
+   [
+    "I visited",
+    "J’ai visité"
+   ],
+   [
+    "I want to visit",
+    "Je veux visiter"
+   ]
+  ],
+  "tryEn": "booked",
+  "tryFr": "réservé",
+  "technical": "-er is the infinitive ending and -é the past participle ending of these regular verbs. Both normally sound /e/."
+ },
+ {
+  "id": "ique",
+  "title": "Borrow words ending in -ic or -ical",
+  "rule": "-ic / -ical → often -ique",
+  "note": "Try the French ending -ique, which sounds like 'eek'. Some words also need an accent or spelling change. Practical becomes pratique; do not simply replace the last letters of every word.",
+  "words": [
+   "pratique",
+   "typique",
+   "logique",
+   "musique"
+  ],
+  "examples": [
+   [
+    "practical",
+    "pratique"
+   ],
+   [
+    "It is historic",
+    "C’est historique"
+   ],
+   [
+    "scientific",
+    "scientifique"
+   ],
+   [
+    "It is practical",
+    "C’est pratique"
+   ],
+   [
+    "economic",
+    "économique"
+   ],
+   [
+    "historic",
+    "historique"
+   ]
+  ],
+  "tryEn": "It is scientific",
+  "tryFr": "C’est scientifique",
+  "technical": "These are cognates, not a universal translation rule."
+ },
+ {
+  "id": "able",
+  "title": "Recognise words with familiar endings",
+  "rule": "-able / -ible → often unchanged",
+  "note": "Possible looks the same in English and French, but listen to the French sound. Try visible and acceptable too. Check the meaning and pronunciation.",
+  "words": [
+   "possible"
+  ],
+  "examples": [
+   [
+    "possible",
+    "possible"
+   ],
+   [
+    "It is possible",
+    "C’est possible"
+   ],
+   [
+    "visible",
+    "visible"
+   ],
+   [
+    "It is acceptable",
+    "C’est acceptable"
+   ],
+   [
+    "portable",
+    "portable"
+   ],
+   [
+    "acceptable",
+    "acceptable"
+   ]
+  ],
+  "tryEn": "It is visible",
+  "tryFr": "C’est visible",
+  "technical": "Many cognates share these suffixes."
+ },
+ {
+  "id": "ant-ent",
+  "title": "Recognise urgent and different",
+  "rule": "-ant / -ent → often unchanged",
+  "note": "Urgent keeps its spelling. Different becomes différent: notice the accent. Listen to the endings: the final t is silent in urgent and différent. When describing something that goes with une, some words gain e, as in importante.",
+  "words": [
+   "différent",
+   "urgent",
+   "important",
+   "importante",
+   "intelligent"
+  ],
+  "examples": [
+   [
+    "urgent",
+    "urgent"
+   ],
+   [
+    "different",
+    "différent"
+   ],
+   [
+    "It is urgent",
+    "C’est urgent"
+   ],
+   [
+    "It is different",
+    "C’est différent"
+   ],
+   [
+    "It is important",
+    "C’est important"
+   ],
+   [
+    "elegant",
+    "élégant"
+   ],
+   [
+    "It is elegant",
+    "C’est élégant"
+   ]
+  ],
+  "tryEn": "It is elegant",
+  "tryFr": "C’est élégant",
+  "technical": "The masculine singular adjective endings -ant and -ent often sound nasal /ɑ̃/. The feminine form may add e; verb endings -ent follow a different rule."
+ },
+ {
+  "id": "ing-ant",
+  "title": "Recognise interesting and related describing words",
+  "rule": "-ing → sometimes -ant",
+  "note": "Interesting becomes intéressant: English -ing sometimes corresponds to French -ant. Amusing becomes amusant. Learn the French spelling and sound. This works for some words, not all.",
+  "words": [
+   "intéressant",
+   "intéressante",
+   "amusant",
+   "amusante",
+   "rassurant",
+   "rassurante",
+   "fatigant",
+   "fatigante"
+  ],
+  "examples": [
+   [
+    "interesting",
+    "intéressant"
+   ],
+   [
+    "It is interesting",
+    "C’est intéressant"
+   ],
+   [
+    "amusing",
+    "amusant"
+   ],
+   [
+    "reassuring",
+    "rassurant"
+   ],
+   [
+    "It is reassuring",
+    "C’est rassurant"
+   ],
+   [
+    "tiring",
+    "fatigant"
+   ]
+  ],
+  "tryEn": "It is amusing",
+  "tryFr": "C’est amusant",
+  "technical": "These are related adjectives; it is not a rule for translating every English -ing form."
+ },
+ {
+  "id": "ion",
+  "title": "Borrow words ending in -ion",
+  "rule": "-ion / -tion → often unchanged",
+  "note": "Invitation is also invitation in French. Notice the French pronunciation and learn une invitation together. Some words need an accent: reaction becomes réaction. Do not change the meaning unless you are deliberately making a new word.",
+  "words": [
+   "invitation",
+   "information",
+   "réservation",
+   "préparation",
+   "situation",
+   "décoration"
+  ],
+  "examples": [
+   [
+    "invitation",
+    "invitation"
+   ],
+   [
+    "an invitation",
+    "une invitation"
+   ],
+   [
+    "decoration",
+    "décoration"
+   ],
+   [
+    "a reaction",
+    "une réaction"
+   ],
+   [
+    "It is an invitation",
+    "C’est une invitation"
+   ],
+   [
+    "a discussion",
+    "une discussion"
+   ],
+   [
+    "a protection",
+    "une protection"
+   ]
+  ],
+  "tryEn": "an invitation",
+  "tryFr": "une invitation",
+  "technical": "Most French nouns ending in -tion are feminine, with exceptions. Learn the article with each noun."
+ },
+ {
+  "id": "normal",
+  "title": "Recognise familiar spellings",
+  "rule": "Some words are written the same",
+  "note": "Normal, original and final look the same here. Say them with French pronunciation. Some forms change, as in une journée normale.",
+  "words": [
+   "normal"
+  ],
+  "examples": [
+   [
+    "normal",
+    "normal"
+   ],
+   [
+    "It is normal",
+    "C’est normal"
+   ],
+   [
+    "original",
+    "original"
+   ],
+   [
+    "It is original",
+    "C’est original"
+   ],
+   [
+    "local",
+    "local"
+   ],
+   [
+    "final",
+    "final"
+   ]
+  ],
+  "tryEn": "It is normal",
+  "tryFr": "C’est normal",
+  "technical": "These examples use the masculine singular form. A feminine adjective may have a different ending."
+ }
 ]);
 export function wordPatternsFor(fr){
  const tokens=String(fr??'').normalize('NFC').toLowerCase().match(/[\p{L}\p{M}]+/gu)||[];
@@ -26,9 +412,114 @@ export function wordPatternsFor(fr){
 // assessment banks. Practice prompts use explicit constraints, not an
 // unverified automatic suffix converter.
 export const GRAMMAR_PATTERNS=Object.freeze([
- {id:'gender-agreement',title:'Masculine and feminine adjective agreement',rule:'important (masculine) → importante (feminine)',note:'The adjective agrees with the noun, not with the speaker. Un repas is masculine, so important stays important; une invitation is feminine, so add e: importante. The final t is silent in important but pronounced in importante. Some adjectives do not change, e.g. pratique. Other adjectives have irregular forms.',examples:[['masculine: important','important'],['feminine: important','importante'],['a masculine noun: an important meal','un repas important'],['a feminine noun: an important invitation','une invitation importante'],['an interesting museum (masculine)','un musée intéressant'],['an interesting invitation (feminine)','une invitation intéressante']],tryEn:'an urgent invitation (une invitation + urgent)',tryFr:'une invitation urgente',grammar:true},
- {id:'adjective-order',title:'Where the adjective goes',rule:'Many French adjectives follow the noun',note:'English usually puts the adjective before the noun. For a neutral description, French commonly puts adjectives such as important, différent and intéressant after it. Short common adjectives such as petit and grand often precede the noun. Position sometimes changes meaning; this is a tendency, not an absolute rule.',examples:[['an important meal','un repas important'],['an interesting museum','un musée intéressant'],['a small museum','un petit musée']],tryEn:'an important table (use noun before adjective)',tryFr:'une table importante',grammar:true},
- {id:'noun-gender',title:'Learn nouns with their article',rule:'un = masculine · une = feminine',note:'Nouns have grammatical gender. Learn each with its article. Le and un go with masculine singular nouns; la and une with feminine singular nouns. L’ alone does not tell you the gender. Gender is not determined by the English meaning.',examples:[['a meal (masculine)','un repas'],['an invitation (feminine)','une invitation'],['a museum (masculine)','un musée'],['a table (feminine)','une table']],tryEn:'a room (chambre is feminine)',tryFr:'une chambre',grammar:true}
+ {
+  "id": "gender-agreement",
+  "title": "Why important sometimes gains an e",
+  "rule": "important (with un) → importante (with une)",
+  "note": "Compare un repas important with une invitation importante. Repas goes with un, so important stays the same. Invitation goes with une, so here important gains e. Listen: the final t is silent in important but heard in importante. Some words, such as pratique, already end in e and do not change.",
+  "examples": [
+   [
+    "an important meal",
+    "un repas important"
+   ],
+   [
+    "an important invitation",
+    "une invitation importante"
+   ],
+   [
+    "an urgent invitation",
+    "une invitation urgente"
+   ],
+   [
+    "an interesting museum",
+    "un musée intéressant"
+   ],
+   [
+    "an interesting invitation",
+    "une invitation intéressante"
+   ],
+   [
+    "a different table",
+    "une table différente"
+   ],
+   [
+    "a practical invitation",
+    "une invitation pratique"
+   ],
+   [
+    "an urgent meal",
+    "un repas urgent"
+   ]
+  ],
+  "tryEn": "an urgent invitation",
+  "tryFr": "une invitation urgente",
+  "grammar": true,
+  "technical": "An adjective agrees with the grammatical gender of its noun, not the speaker. These are masculine and feminine singular forms; other adjectives may be irregular."
+ },
+ {
+  "id": "adjective-order",
+  "title": "Putting French words in the right order",
+  "rule": "an important invitation → une invitation importante",
+  "note": "English puts important before invitation. French normally puts important, different and interesting after the thing being described. Compare a small museum: petit usually goes first. Learn the usual order through examples; other orders can sometimes change the meaning.",
+  "examples": [
+   [
+    "an important invitation",
+    "une invitation importante"
+   ],
+   [
+    "an important meal",
+    "un repas important"
+   ],
+   [
+    "an interesting museum",
+    "un musée intéressant"
+   ],
+   [
+    "a small museum",
+    "un petit musée"
+   ],
+   [
+    "a different table",
+    "une table différente"
+   ]
+  ],
+  "tryEn": "an important invitation",
+  "tryFr": "une invitation importante",
+  "grammar": true,
+  "technical": "Many descriptive adjectives follow the noun. Some frequent short adjectives such as petit and grand precede it. Position can change meaning or emphasis."
+ },
+ {
+  "id": "noun-gender",
+  "title": "When to say un and when to say une",
+  "rule": "a meal → un repas · an invitation → une invitation",
+  "note": "Un and une both mean a or an. Learn each French word with the little word that goes with it: un repas, une invitation, un musée, une table. Le and la mean the. You cannot always tell from English which French word to use.",
+  "examples": [
+   [
+    "an invitation",
+    "une invitation"
+   ],
+   [
+    "a meal",
+    "un repas"
+   ],
+   [
+    "a table",
+    "une table"
+   ],
+   [
+    "a museum",
+    "un musée"
+   ],
+   [
+    "a room",
+    "une chambre"
+   ]
+  ],
+  "tryEn": "a room",
+  "tryFr": "une chambre",
+  "grammar": true,
+  "technical": "French nouns have grammatical gender: un/le are masculine and une/la feminine singular articles. L’ alone does not reveal gender."
+ }
 ]);
 const patternText=fr=>String(fr??'').normalize('NFC').toLowerCase().replace(/[’‘]/g,"'");
 export function grammarPatternsFor(fr){
@@ -41,45 +532,335 @@ export function grammarPatternsFor(fr){
 }
 export const ALL_LANGUAGE_PATTERNS=Object.freeze([...WORD_PATTERNS,...GRAMMAR_PATTERNS]);
 export const patternsForModel=fr=>[...wordPatternsFor(fr),...grammarPatternsFor(fr)];
-const exercise=(prompt,fr,clue='')=>({prompt,fr,clue});
+// Review only bilingual meanings explicitly shown in the guided recap.
 const PATTERN_EXERCISES={
- 'past-e':[exercise('French past participle of décoration','décoré'),exercise('French past participle of organisation','organisé'),exercise('French past participle of confirmation','confirmé'),exercise('French past participle of préparation','préparé')],
- visit:[exercise('to visit','visiter'),exercise('visited','visité'),exercise('to repair','réparer'),exercise('repaired','réparé')],
- 'er-e':[exercise('I want to book','je veux réserver','Use réserver or réservé.'),exercise('I booked','j’ai réservé','Use réserver or réservé.'),exercise('I am going to prepare','je vais préparer','Use préparer or préparé.'),exercise('I prepared','j’ai préparé','Use préparer or préparé.')],
- ique:[exercise('economic','économique'),exercise('historic','historique'),exercise('scientific','scientifique'),exercise('practical','pratique')],
- able:[exercise('visible','visible'),exercise('acceptable','acceptable'),exercise('portable','portable'),exercise('possible','possible')],
- 'ant-ent':[exercise('constant (masculine)','constant'),exercise('elegant (masculine)','élégant'),exercise('evident (masculine)','évident'),exercise('different (masculine)','différent'),exercise('urgent (masculine)','urgent')],
- 'ing-ant':[exercise('interesting (masculine)','intéressant'),exercise('amusing (masculine)','amusant'),exercise('reassuring (masculine)','rassurant'),exercise('tiring (masculine)','fatigant')],
- ion:[exercise('a discussion','une discussion','The noun is feminine.'),exercise('a protection','une protection','The noun is feminine.'),exercise('a reaction','une réaction','The noun is feminine.'),exercise('an invitation','une invitation','The noun is feminine.')],
- normal:[exercise('normal (masculine)','normal'),exercise('original (masculine)','original'),exercise('final (masculine)','final'),exercise('local (masculine)','local')],
- 'gender-agreement':[
-   exercise('Complete the adjective: un repas ___ (important)','important'),
-   exercise('Complete the adjective: une invitation ___ (important)','importante'),
-   exercise('Complete the adjective: une invitation ___ (urgent)','urgente'),
-   exercise('Complete the adjective: un musée ___ (intéressant)','intéressant'),
-   exercise('Complete the adjective: une invitation ___ (intéressant)','intéressante'),
-   exercise('Complete the adjective: une table ___ (différent)','différente'),
-   exercise('Complete the adjective: une invitation ___ (pratique)','pratique'),
-   exercise('Complete the adjective: un repas ___ (urgent)','urgent')
+ "past-e": [
+  {
+   "en": "I prepared",
+   "fr": "J’ai préparé"
+  },
+  {
+   "en": "decoration",
+   "fr": "décoration",
+   "clue": "Translate the English word for the decoration itself, not the action decorated."
+  },
+  {
+   "en": "I booked a table",
+   "fr": "J’ai réservé une table"
+  },
+  {
+   "en": "decorated",
+   "fr": "décoré",
+   "clue": "The French word décoration can help. Replace -ation with -é."
+  },
+  {
+   "en": "I decorated the table",
+   "fr": "J’ai décoré la table"
+  },
+  {
+   "en": "I organised",
+   "fr": "J’ai organisé"
+  },
+  {
+   "en": "I confirmed",
+   "fr": "J’ai confirmé"
+  }
  ],
- 'adjective-order':[
-   exercise('An important invitation — use the ordinary descriptive word order','une invitation importante','Reorder: importante / une / invitation'),
-   exercise('An important meal — use the ordinary descriptive word order','un repas important','Reorder: important / repas / un'),
-   exercise('An interesting museum — use the ordinary descriptive word order','un musée intéressant','Reorder: intéressant / un / musée'),
-   exercise('A small museum — use the ordinary descriptive word order','un petit musée','Reorder: musée / petit / un'),
-   exercise('A different table — use the ordinary descriptive word order','une table différente','Reorder: différente / une / table')
+ "visit": [
+  {
+   "en": "visited",
+   "fr": "visité"
+  },
+  {
+   "en": "I visited",
+   "fr": "J’ai visité"
+  },
+  {
+   "en": "I visited the museum",
+   "fr": "J’ai visité le musée"
+  },
+  {
+   "en": "I have visited",
+   "fr": "J’ai visité"
+  }
  ],
- 'noun-gender':[
-   exercise('An invitation — add the correct French article','une invitation','Noun: invitation'),
-   exercise('A meal — add the correct French article','un repas','Noun: repas'),
-   exercise('A table — add the correct French article','une table','Noun: table'),
-   exercise('A museum — add the correct French article','un musée','Noun: musée'),
-   exercise('A room — add the correct French article','une chambre','Noun: chambre')
+ "er-e": [
+  {
+   "en": "to book",
+   "fr": "réserver"
+  },
+  {
+   "en": "I booked",
+   "fr": "J’ai réservé"
+  },
+  {
+   "en": "I want to book",
+   "fr": "Je veux réserver"
+  },
+  {
+   "en": "I am going to visit",
+   "fr": "Je vais visiter"
+  },
+  {
+   "en": "I visited",
+   "fr": "J’ai visité"
+  },
+  {
+   "en": "I want to visit",
+   "fr": "Je veux visiter"
+  }
+ ],
+ "ique": [
+  {
+   "en": "practical",
+   "fr": "pratique"
+  },
+  {
+   "en": "It is historic",
+   "fr": "C’est historique"
+  },
+  {
+   "en": "scientific",
+   "fr": "scientifique"
+  },
+  {
+   "en": "It is practical",
+   "fr": "C’est pratique"
+  },
+  {
+   "en": "economic",
+   "fr": "économique"
+  },
+  {
+   "en": "historic",
+   "fr": "historique"
+  }
+ ],
+ "able": [
+  {
+   "en": "possible",
+   "fr": "possible"
+  },
+  {
+   "en": "It is possible",
+   "fr": "C’est possible"
+  },
+  {
+   "en": "visible",
+   "fr": "visible"
+  },
+  {
+   "en": "It is acceptable",
+   "fr": "C’est acceptable"
+  },
+  {
+   "en": "portable",
+   "fr": "portable"
+  },
+  {
+   "en": "acceptable",
+   "fr": "acceptable"
+  }
+ ],
+ "ant-ent": [
+  {
+   "en": "urgent",
+   "fr": "urgent"
+  },
+  {
+   "en": "different",
+   "fr": "différent"
+  },
+  {
+   "en": "It is urgent",
+   "fr": "C’est urgent"
+  },
+  {
+   "en": "It is different",
+   "fr": "C’est différent"
+  },
+  {
+   "en": "It is important",
+   "fr": "C’est important"
+  },
+  {
+   "en": "elegant",
+   "fr": "élégant"
+  },
+  {
+   "en": "It is elegant",
+   "fr": "C’est élégant"
+  }
+ ],
+ "ing-ant": [
+  {
+   "en": "interesting",
+   "fr": "intéressant"
+  },
+  {
+   "en": "It is interesting",
+   "fr": "C’est intéressant"
+  },
+  {
+   "en": "amusing",
+   "fr": "amusant"
+  },
+  {
+   "en": "reassuring",
+   "fr": "rassurant"
+  },
+  {
+   "en": "It is reassuring",
+   "fr": "C’est rassurant"
+  },
+  {
+   "en": "tiring",
+   "fr": "fatigant"
+  }
+ ],
+ "ion": [
+  {
+   "en": "invitation",
+   "fr": "invitation"
+  },
+  {
+   "en": "an invitation",
+   "fr": "une invitation"
+  },
+  {
+   "en": "decoration",
+   "fr": "décoration"
+  },
+  {
+   "en": "a reaction",
+   "fr": "une réaction"
+  },
+  {
+   "en": "It is an invitation",
+   "fr": "C’est une invitation"
+  },
+  {
+   "en": "a discussion",
+   "fr": "une discussion"
+  },
+  {
+   "en": "a protection",
+   "fr": "une protection"
+  }
+ ],
+ "normal": [
+  {
+   "en": "normal",
+   "fr": "normal"
+  },
+  {
+   "en": "It is normal",
+   "fr": "C’est normal"
+  },
+  {
+   "en": "original",
+   "fr": "original"
+  },
+  {
+   "en": "It is original",
+   "fr": "C’est original"
+  },
+  {
+   "en": "local",
+   "fr": "local"
+  },
+  {
+   "en": "final",
+   "fr": "final"
+  }
+ ],
+ "gender-agreement": [
+  {
+   "en": "an important meal",
+   "fr": "un repas important"
+  },
+  {
+   "en": "an important invitation",
+   "fr": "une invitation importante"
+  },
+  {
+   "en": "an urgent invitation",
+   "fr": "une invitation urgente"
+  },
+  {
+   "en": "an interesting museum",
+   "fr": "un musée intéressant"
+  },
+  {
+   "en": "an interesting invitation",
+   "fr": "une invitation intéressante"
+  },
+  {
+   "en": "a different table",
+   "fr": "une table différente"
+  },
+  {
+   "en": "a practical invitation",
+   "fr": "une invitation pratique"
+  },
+  {
+   "en": "an urgent meal",
+   "fr": "un repas urgent"
+  }
+ ],
+ "adjective-order": [
+  {
+   "en": "an important invitation",
+   "fr": "une invitation importante"
+  },
+  {
+   "en": "an important meal",
+   "fr": "un repas important"
+  },
+  {
+   "en": "an interesting museum",
+   "fr": "un musée intéressant"
+  },
+  {
+   "en": "a small museum",
+   "fr": "un petit musée"
+  },
+  {
+   "en": "a different table",
+   "fr": "une table différente"
+  }
+ ],
+ "noun-gender": [
+  {
+   "en": "an invitation",
+   "fr": "une invitation"
+  },
+  {
+   "en": "a meal",
+   "fr": "un repas"
+  },
+  {
+   "en": "a table",
+   "fr": "une table"
+  },
+  {
+   "en": "a museum",
+   "fr": "un musée"
+  },
+  {
+   "en": "a room",
+   "fr": "une chambre"
+  }
  ]
 };
+export function patternQuestions(patternId){return (PATTERN_EXERCISES[patternId]||[]).map(q=>({...q,prompt:'How would you say this in French?',mode:'translation',clue:q.clue||''}));}
+export function patternIntroQuestion(patternId){
+ if(patternId==='past-e')return {prompt:'Build a new French word',mode:'conversion',en:'confirmation',sourceFr:'confirmation',targetEn:'confirmed',fr:'confirmé',clue:'Replace the French ending -ation with -é. You are making a new word, not translating the original word.'};
+ return patternQuestion(patternId,0);
+}
 export const PATTERN_DAY=86400000;
 export function patternQuestion(patternId,index=0){
- const qs=PATTERN_EXERCISES[patternId]||[];return qs.length?qs[((index%qs.length)+qs.length)%qs.length]:null;
+ const qs=patternQuestions(patternId);return qs.length?qs[((index%qs.length)+qs.length)%qs.length]:null;
 }
 // Derive schedules from immutable, learner-scoped teaching completion and
 // answer audits. Reading the reference or opening a hint does not create
@@ -96,28 +877,30 @@ export function patternReviewSchedule({steps=[],evidence=[],audits=[],track='unl
  const intervals=[1,3,7,28,28],out=[];
  for(const p of ALL_LANGUAGE_PATTERNS){
   const taughtAt=first.get(p.id);if(taughtAt===undefined)continue;
-  const samePattern=r=>r.answerAudit?.context?.track===track&&r.answerAudit?.context?.patternId===p.id&&r.at>=taughtAt&&r.at<=now;
+  const samePattern=r=>r.answerAudit?.context?.track===track&&r.answerAudit?.context?.patternId===p.id&&r.answerAudit?.context?.patternContentVersion===PATTERN_CONTENT_VERSION&&r.at>=taughtAt&&r.at<=now;
   const intro=audits.filter(r=>r.answerAudit?.marker==='pattern-intro-v1'&&r.answerAudit?.result==='model'&&samePattern(r)).sort((a,b)=>a.at-b.at)[0];
   const introAt=intro?.at??null,needsIntro=introAt===null;
-  let level=0,dueAt=(introAt??taughtAt)+10*60000,attempts=0,lastAt=null,lastCorrect=null;
+  let level=0,dueAt=(introAt??taughtAt)+10*60000,attempts=0,practiceIndex=0,lastAt=null,lastCorrect=null;
   const rows=needsIntro?[]:audits.filter(r=>r.answerAudit?.marker==='pattern-practice-v1'&&samePattern(r)&&r.at>=introAt).sort((a,b)=>a.at-b.at||String(a.id).localeCompare(String(b.id)));
   for(const r of rows){
    const a=r.answerAudit;attempts++;lastAt=r.at;lastCorrect=a.result==='correct';
+   if(a.context?.guidedIntro)continue;
+   practiceIndex++;
    const correct=lastCorrect&&a.support==='none';
    if(!correct){level=0;dueAt=r.at+10*60000;continue;}
    if(r.at<dueAt)continue;
    dueAt=r.at+intervals[Math.min(level,intervals.length-1)]*PATTERN_DAY;
    level=Math.min(level+1,intervals.length);
   }
-  out.push({...p,taughtAt,introAt,needsIntro,level,dueAt,due:dueAt<=now,attempts,lastAt,lastCorrect,question:patternQuestion(p.id,attempts)});
+  out.push({...p,taughtAt,introAt,needsIntro,level,dueAt,due:dueAt<=now,attempts,practiceIndex,lastAt,lastCorrect,question:patternQuestion(p.id,practiceIndex)});
  }
  return out.sort((a,b)=>a.dueAt-b.dueAt||a.id.localeCompare(b.id));
 }
 
 const block=(definition,...builds)=>({definition,builds});
 const chapters=[
- ['past','Talk about what you did','Build the completed past from a helper and action. Learn one component, say it, cover it, and assemble the next phrase.',[
-  block("have|I have (helper)|j’ai|/ʒe/|This is the helper for these completed actions."),
+ ['past','Talk about what you did','Learn to talk about things you did. Hear one small piece, say it, cover it and use it in a new phrase.',[
+  block("have|I have|j’ai|/ʒe/|Use j’ai to start these expressions about things you did."),
   block("prepared|prepared|préparé|/pʁepaʁe/|The ending é sounds like the vowel in café.","I have prepared|have prepared","I prepared|have prepared"),
   block("meal|the meal|le repas|/lə ʁəpa/|The final s is silent.","I prepared the meal|have prepared meal"),
   block("lunch|lunch (literally the lunch)|le déjeuner|/lə deʒœne/","I have prepared lunch|have prepared lunch","I prepared the meal|have prepared meal"),
@@ -151,8 +934,8 @@ const chapters=[
   block("but|but|mais|/mɛ/","It is possible but different|it possible but different"),
   block("normal|normal|normal|/nɔʁmal/","It is normal|it normal"),
   block("urgent|urgent|urgent|/yʁʒɑ̃/","It is urgent|it urgent"),
-  block("invitation|an invitation|une invitation|/yn ɛ̃vitasjɔ̃/|Learn the article with the noun; English -tion often has a similar French word.","It is an invitation|it invitation"),
-  block("important|important (feminine)|importante|/ɛ̃pɔʁtɑ̃t/|Invitation is feminine (une), so important becomes importante. With a masculine noun, such as un repas, it remains important. Here the adjective follows the noun.","It is an important invitation|it invitation important")
+  block("invitation|an invitation|une invitation|/yn ɛ̃vitasjɔ̃/|Learn invitation together with une. Many English -tion words have a familiar French equivalent.","It is an invitation|it invitation"),
+  block("important|important (the form used with une)|importante|/ɛ̃pɔʁtɑ̃t/|Invitation goes with une, so here important gains e: une invitation importante. Compare un repas important. In both phrases the describing word goes after the thing.","It is an important invitation|it invitation important")
  ],[
  "It is normal and practical|it normal and practical","It is urgent but possible|it urgent but possible",
  "It is different and interesting|it different and interesting","It is possible and practical|it possible and practical",
@@ -161,32 +944,32 @@ const chapters=[
  "It is interesting and possible|it interesting and possible","It is different but practical|it different but practical",
  "It is possible but urgent|it possible but urgent","It is normal and interesting|it normal and interesting"
  ]],
- ['people','Talk about other people','Keep the past action unchanged and swap the helper to say who did it.',[
-  block("i|I have (helper)|j’ai|/ʒe/"),
+ ['people','Talk about other people','Keep the action word the same and change the beginning to say who did it.',[
+  block("i|I have|j’ai|/ʒe/"),
   block("prepared|prepared|préparé|/pʁepaʁe/","I prepared|i prepared"),
   block("dinner|dinner (literally the dinner)|le dîner|/lə dine/","I prepared dinner|i prepared dinner"),
-  block("you|you have (informal singular helper)|tu as|/ty a/","You prepared dinner (informal)|you prepared dinner"),
-  block("he|he has (helper)|il a|/il a/","He prepared dinner|he prepared dinner"),
-  block("she|she has (helper)|elle a|/ɛl a/","She prepared dinner|she prepared dinner"),
+  block("you|you have (to one person you know well)|tu as|/ty a/","You prepared dinner (informal)|you prepared dinner"),
+  block("he|he has|il a|/il a/","He prepared dinner|he prepared dinner"),
+  block("she|she has|elle a|/ɛl a/","She prepared dinner|she prepared dinner"),
   block("booked|booked|réservé|/ʁezɛʁve/","She booked|she booked"),
   block("room|a room|une chambre|/yn ʃɑ̃bʁ/","She booked a room|she booked room","You booked a room (informal)|you booked room"),
-  block("we|we have (helper)|nous avons|/nuz avɔ̃/|Hear the z liaison.","We booked a room|we booked room"),
-  block("vous|you have (polite or plural helper)|vous avez|/vuz ave/","You booked a room (formal or plural)|vous booked room"),
-  block("they|they have (masculine or mixed helper)|ils ont|/ilz ɔ̃/","They booked a room (masculine/mixed)|they booked room"),
-  block("elles|they have (all female helper)|elles ont|/ɛlz ɔ̃/","They prepared dinner (all female)|elles prepared dinner"),
+  block("we|we have|nous avons|/nuz avɔ̃/|Listen to the z sound linking nous and avons.","We booked a room|we booked room"),
+  block("vous|you have (polite or to several people)|vous avez|/vuz ave/","You booked a room (formal or plural)|vous booked room"),
+  block("they|they have (men or a mixed group)|ils ont|/ilz ɔ̃/","They booked a room (men or a mixed group)|they booked room"),
+  block("elles|they have (women or girls)|elles ont|/ɛlz ɔ̃/","They prepared dinner (all female)|elles prepared dinner"),
   block("and|and|et|/e/","He prepared dinner and she booked a room|he prepared dinner and she booked room")
  ],[
  "He booked a room|he booked room","We prepared dinner|we prepared dinner",
  "They booked a room (all female)|elles booked room","You prepared dinner (formal or plural)|vous prepared dinner",
- "I booked a room|i booked room","They prepared dinner (masculine/mixed)|they prepared dinner",
+ "I booked a room|i booked room","They prepared dinner (men or a mixed group)|they prepared dinner",
  "She prepared dinner and he booked a room|she prepared dinner and he booked room",
  "We booked a room and you prepared dinner (informal)|we booked room and you prepared dinner",
  "You booked a room (formal or plural) and I prepared dinner|vous booked room and i prepared dinner",
  "They booked a room (all female) and we prepared dinner|elles booked room and we prepared dinner",
  "He booked a room and I prepared dinner|he booked room and i prepared dinner",
- "She prepared dinner and they booked a room (masculine/mixed)|she prepared dinner and they booked room"
+ "She prepared dinner and they booked a room (men or a mixed group)|she prepared dinner and they booked room"
  ]],
- ['plans','Plans, wishes and possibilities','Keep the action in its dictionary form and change the beginning to express what you want, can, must or plan to do.',[
+ ['plans','Plans, wishes and possibilities','Keep the action word the same (for example visiter, to visit) and change the beginning to say what you want, can, must or plan to do.',[
   block("want|I want|je veux|/ʒə vø/"),
   block("visit|to visit|visiter|/vizite/","I want to visit|want visit"),
   block("museum|the museum|le musée|/lə myze/","I want to visit the museum|want visit museum"),
@@ -212,8 +995,8 @@ const chapters=[
  "I am going to book a room but I do not want to wait|future book room but notwant wait"
  ]],
  ['help','Questions and everyday needs','Build requests, needs and questions from short reusable chunks.',[
-  block("need|I need (something)|j’ai besoin de|/ʒe bəzwɛ̃ də/|De joins a noun; use d’ before a vowel."),
-  block("help|help (noun)|aide|/ɛd/","I need help|need help"), // contracted below
+  block("need|I need (something)|j’ai besoin de|/ʒe bəzwɛ̃ də/|Use de before the thing you need; before a vowel sound it becomes d’."),
+  block("help|help (the thing you need)|aide|/ɛd/","I need help|need help"), // contracted below
   block("wish|I would like|je voudrais|/ʒə vudʁɛ/"),
   block("water|a glass of water|un verre d’eau|/œ̃ vɛʁ do/","I would like a glass of water|wish water"),
   block("ticket|a ticket|un billet|/œ̃ bijɛ/","I would like a ticket|wish ticket","I need a ticket|need ticket"),
@@ -223,8 +1006,8 @@ const chapters=[
   block("museum|the museum|le musée|/lə myze/","Where is the museum?|where museum","I am looking for the museum|looking museum"),
   block("late|I am late|je suis en retard|/ʒə sɥi ɑ̃ ʁətaʁ/"),
   block("understand|I do not understand|je ne comprends pas|/ʒə nə kɔ̃pʁɑ̃ pa/"),
-  block("can|can you (polite, inversion)|pouvez-vous|/puve vu/"),
-  block("repeat|to repeat|répéter|/ʁepete/","Can you repeat? (polite, inversion)|can repeat"),
+  block("can|can you (polite question form)|pouvez-vous|/puve vu/"),
+  block("repeat|to repeat|répéter|/ʁepete/","Can you repeat? (polite question form)|can repeat"),
   block("and|and|et|/e/","I am late and I need help|late and need help")
  ],[
  "I need a glass of water|need water","I would like a ticket and I need help|wish ticket and need help",
@@ -241,10 +1024,10 @@ const chapters=[
   block("when|when|quand|/kɑ̃/"),
   block("called|you called (informal)|tu as téléphoné|/ty a telefɔne/","I was going to leave when you called (informal)|going leave when called"),
   block("ongoing|I was in the middle of|j’étais en train de|/ʒetɛ ɑ̃ tʁɛ̃ də/"),
-  block("work|working (infinitive)|travailler|/tʁavaje/","I was in the middle of working|ongoing work","I was in the middle of working when you called (informal)|ongoing work when called"),
-  block("prepare|preparing (infinitive)|préparer|/pʁepaʁe/","I was going to prepare|going prepare"),
+  block("work|working|travailler|/tʁavaje/","I was in the middle of working|ongoing work","I was in the middle of working when you called (informal)|ongoing work when called"),
+  block("prepare|preparing|préparer|/pʁepaʁe/","I was going to prepare|going prepare"),
   block("dinner|dinner (literally the dinner)|le dîner|/lə dine/","I was in the middle of preparing dinner|ongoing prepare dinner"),
-  block("arrived|you arrived (informal, male)|tu es arrivé|/ty ɛ aʁive/|Arriver uses être here."),
+  block("arrived|you arrived (informal, male)|tu es arrivé|/ty ɛ aʁive/|For you arrived, use tu es arrivé, not tu as arrivé."),
   block("arrivedf|you arrived (informal, female)|tu es arrivée|/ty ɛ aʁive/|The extra e is written, not heard.","I was in the middle of preparing dinner when you arrived (female, informal)|ongoing prepare dinner when arrivedf"),
   block("but|but|mais|/mɛ/","I was going to leave but you called (informal)|going leave but called")
  ],[
@@ -257,14 +1040,14 @@ const chapters=[
  ]],
  ['school-ready','Getting Ready for School','May companion chapter rebuilt for a familiar morning routine: get ready, find your things, and encourage each other.',[
   block("youare|you are (informal)|tu es|/ty ɛ/"),
-  block("ready|ready (male)|prêt|/pʁɛ/","You are ready (male, informal)|youare ready","Are you ready? (male, informal, rising intonation)|youare ready"),
+  block("ready|ready (male)|prêt|/pʁɛ/","You are ready (male, informal)|youare ready","Are you ready? (male, informal, raise your voice at the end)|youare ready"),
   block("notyet|not yet|pas encore|/pa zɑ̃kɔʁ/"),
   block("iam|I am|je suis|/ʒə sɥi/","I am ready (male)|iam ready"),
   block("almost|almost|presque|/pʁɛsk/","I am almost ready (male)|iam almost ready"),
   block("hurry|hurry up (informal)|dépêche-toi|/depɛʃ twa/"),
   block("coming|I’m coming|j’arrive|/ʒaʁiv/"),
   block("youhave|you have (informal)|tu as|/ty a/"),
-  block("bag|your bag (informal)|ton sac|/tɔ̃ sak/","Do you have your bag? (informal, rising intonation)|youhave bag"),
+  block("bag|your bag (informal)|ton sac|/tɔ̃ sak/","Do you have your bag? (informal, raise your voice at the end)|youhave bag"),
   block("forgot|I forgot / I have forgotten|j’ai oublié|/ʒe ublije/"),
   block("mybag|my bag|mon sac|/mɔ̃ sak/","I forgot my bag|forgot mybag"),
   block("bottle|your water bottle (informal)|ta gourde|/ta ɡuʁd/","Do you have your water bottle? (informal)|youhave bottle"),
@@ -293,7 +1076,7 @@ const chapters=[
   block("hello|good morning, sir|bonjour monsieur|/bɔ̃ʒuʁ məsjø/"),
   block("money|some money|de l’argent|/də laʁʒɑ̃/","I have some money|have money"),
   block("snack|a snack|un goûter|/œ̃ ɡute/","I have a snack|have snack"),
-  block("went|did it go well? (rising intonation)|ça s’est bien passé|/sa sɛ bjɛ̃ pase/|With rising intonation, ask whether it went well."),
+  block("went|did it go well? (raise your voice at the end)|ça s’est bien passé|/sa sɛ bjɛ̃ pase/|With raise your voice at the end, ask whether it went well."),
   block("maths|in maths|en maths|/ɑ̃ mat/","Did it go well in maths?|went maths"),
   block("english|in English|en anglais|/ɑ̃ nɑ̃ɡlɛ/","Did it go well in English?|went english"),
   block("school|at school|à l’école|/a lekɔl/","Did it go well at school?|went school")
@@ -389,7 +1172,7 @@ const chapters=[
   block("dog|a dog|un chien|/œ̃ ʃjɛ̃/","I have a dog|have dog"),
   block("red|red|rouge|/ʁuʒ/","I have a red dog (imaginary animal)|have dog red"),
   block("small|a small dog|un petit chien|/œ̃ pəti ʃjɛ̃/|Petit normally goes before chien.","I have a small dog|have small"),
-  block("clever|clever (masculine)|intelligent|/ɛ̃teliʒɑ̃/","I have a clever dog|have dog clever"),
+  block("clever|clever (the form used with un chien)|intelligent|/ɛ̃teliʒɑ̃/","I have a clever dog|have dog clever"),
   block("like|I like|j’aime|/ʒɛm/"),
   block("dogs|dogs (in general)|les chiens|/le ʃjɛ̃/|Use les for animals in general, un/une for one pet.","I like dogs|like dogs"),
   block("cats|cats (in general)|les chats|/le ʃa/","I like cats|like cats"),
