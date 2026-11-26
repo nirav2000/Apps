@@ -18,10 +18,12 @@ try{
  });
  await page.goto('http://127.0.0.1:8898/tests/french-browser-harness.html');
  await page.locator('.ft-tabs').waitFor();
- await page.getByRole('button',{name:'Revision signals',exact:true}).click();
+ await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
  await page.locator('#ft-revision-add-word').fill('école');
  await page.locator('#ft-revision-add button').click();
- await page.getByRole('button',{name:'Overview',exact:true}).click();
+ await page.locator('.ft-tabs [data-page="home"]').click();
+ await page.locator('.ft-tabs [data-page="explore"]').click();
  await page.getByRole('button',{name:'Start guided lesson',exact:true}).click();
  const deck=guidedLesson('speak-and-listen').steps;
  for(let i=0;i<3;i++){
@@ -36,7 +38,8 @@ try{
  assert.doesNotMatch(await page.locator('.ft-guided-shell').innerText(),/saved to Firebase|first attempt is saved/i);
  await page.waitForFunction(id=>[...window.__testEvidence.values()].some(x=>x.event?.answerAudit?.signal?.plan?.id===id),inserted,{timeout:12000});
  await page.reload();await page.locator('.ft-tabs').waitFor();
- await page.getByRole('button',{name:"Today's lesson",exact:true}).click();
+ await page.locator('.ft-tabs [data-page="home"]').click();
+  await page.locator('[data-learning-path] [data-eact="daily"]').click();
  await page.locator('[data-guided-step="'+inserted+'"]').waitFor();
  assert.equal(await stepId(),inserted);
  await page.locator('#ft-guided-input').fill('école');
@@ -49,13 +52,15 @@ try{
  const answer=rows.find(x=>x.answerAudit?.ref===inserted+':first').answerAudit;
  assert.equal(answer.signal.kind,'review');assert.equal(answer.signal.correct,true);
  assert.equal(answer.signal.mode,'dictation');assert.ok(answer.context.sessionId);assert.equal(answer.context.unitId,'speak-and-listen');
- await page.getByRole('button',{name:'Revision signals',exact:true}).click();
+ await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
  assert.match(await page.locator('.ft-adaptive-log').innerText(),/Teaching adaptations/);
  assert.equal((await local()).filter(x=>x.answerAudit?.signal?.kind==='adaptive-plan').length,1);
  await page.waitForFunction(id=>[...window.__testEvidence.values()].some(x=>x.event?.answerAudit?.signal?.planId===id),inserted,{timeout:12000});
  assert.equal(await page.evaluate(id=>[...window.__testEvidence.values()].filter(x=>x.event?.source?.ref===id+':first'&&x.event?.score?.total>0).length,inserted),0);
  await page.locator('[data-profile]').selectOption('sai');
- await page.getByRole('button',{name:'Revision signals',exact:true}).click();
+ await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
  assert.equal(await page.locator('.ft-revision-row').count(),0);
  assert.deepEqual(errors,[]);
  console.log('Adaptive browser: inserted dictation, durable plan, reload, core resume, private outcome, clean screen and learner isolation');

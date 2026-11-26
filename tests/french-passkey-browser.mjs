@@ -13,7 +13,8 @@ try{
   assert.equal(await page.evaluate(()=>window.__testAuth.calls.google),0);
   assert.equal(await page.evaluate(()=>window.__testAuth.calls.email),0);
   assert.equal(await page.evaluate(()=>window.__testAuth.auth.currentUser.uid),'test-owner');
-  await page.getByRole('button',{name:'Alphabet',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Alphabet',exact:true}).click();
   await page.locator('[data-letter="1"]').click();
   await page.waitForFunction(()=>window.__testAuth.docs.size>0,null,{timeout:9000});
   const documents=await page.evaluate(()=>[...window.__testAuth.docs.entries()]);
@@ -23,6 +24,7 @@ try{
   assert.equal(await page.locator('[data-cloud-status]').isVisible(),false);
   await page.locator('[data-profile]').selectOption('sai');
   await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).waitFor({state:'attached',timeout:9000});
+  await page.locator('.ft-tabs [data-page="evidence"]').click();
   assert.match(await page.locator('.ft-e-dashboard .ft-e-metrics').first().innerText(),/Not measured/);
   assert.deepEqual(errors,[]);
   console.log('French passkey browser smoke: authenticated owner, live Firebase sync, isolated learners');

@@ -35,7 +35,8 @@ await page.route('https://api.wiktapi.dev/**',async route=>{
 try{
   await page.goto('http://127.0.0.1:8898/tests/french-browser-harness.html',{waitUntil:'domcontentloaded'});
   await page.locator('.ft-tabs').waitFor();
-  await page.getByRole('button',{name:'Knowledge grid',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Knowledge grid',exact:true}).click();
   // Curated verb explanation stays available without a network request.
   await page.locator('.ft-grid-row [data-word="veux"]').first().click();
   assert.equal(await page.locator(".ft-word-dialog").count(),0);

@@ -9,9 +9,11 @@ page.on('pageerror',e=>errors.push(String(e)));
 try{
   await page.goto('http://127.0.0.1:8898/tests/french-browser-harness.html');
   await page.locator('.ft-tabs').waitFor();
+  await page.locator('.ft-tabs [data-page="evidence"]').click();
   const cards=page.locator('.ft-e-dashboard .ft-e-metrics').first();
   assert.match(await cards.innerText(),/Not measured/);
-  await page.locator('.ft-tabs [data-page="lesson"]').click();
+  await page.locator('.ft-tabs [data-page="home"]').click();
+  await page.locator('[data-learning-path] [data-eact="daily"]').click();
   await page.locator('#ft-e-answer').waitFor();
   assert.equal(await page.locator('.ft-e-question [data-gword],.ft-e-question [data-word],.ft-e-question [data-choice-word]').count(),0);
   assert.match(await page.locator('.ft-e-question').innerText(),/Before teaching/i);
@@ -45,9 +47,11 @@ try{
   assert.match(await page.locator('.ft-e-dashboard .ft-e-metrics').first().innerText(),/Not measured/);
   await page.locator('[data-profile]').selectOption('sai');
   await page.locator('.ft-e-today').waitFor();
+  await page.locator('.ft-tabs [data-page="evidence"]').click();
   assert.equal(await page.locator('.ft-e-chart circle').count(),0);
   await page.locator('.ft-tabs [data-page="history"]').click();assert.equal(await page.locator('.ft-audit-row').count(),0);
-  await page.locator('.ft-tabs [data-page="lesson"]').click();
+  await page.locator('.ft-tabs [data-page="home"]').click();
+  await page.locator('[data-learning-path] [data-eact="daily"]').click();
   assert.match(await page.locator('.ft-e-question').innerText(),/Before teaching/i);
   const dims=await page.evaluate(()=>({w:document.documentElement.scrollWidth,v:document.documentElement.clientWidth}));
   assert.ok(dims.w<=dims.v+2,JSON.stringify(dims));

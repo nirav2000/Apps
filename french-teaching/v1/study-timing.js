@@ -84,14 +84,14 @@ export function updateStudyClocks(root,now=Date.now()){
   clock.querySelector('[data-rest-hand]').setAttribute('transform','rotate('+(fraction*360)+' 60 60)');
   clock.querySelector('[data-rest-label]').textContent=active?'Take a five-minute break':'Ready for independent recall';
   clock.querySelector('[data-rest-description]').textContent=active?'Leave the French alone for now. Walk away, get a drink or do something unrelated.':'The minimum break has elapsed. Try to recall the French without reviewing it first.';
-  const area=clock.closest('.ft-guided-congrats')||clock.parentElement;
+  const area=clock.closest('.ft-guided-congrats,.ft-path-next')||clock.parentElement;
   const button=area.querySelector('[data-rest-continue]');
   if(button){button.disabled=active;button.setAttribute('aria-disabled',String(active));button.textContent=active?'Continue when the break finishes':'Start independent recall';}
   if(clock.dataset.restRunning==='true'&&!active)clock.querySelector('[data-rest-live]').textContent='Break complete. You can continue.';
   clock.dataset.restRunning=String(active);
  }
 }
-export function noticeMarkup(schedule,words,rest,{enabled=false,supported=false}={}){
+export function noticeMarkup(schedule,words,rest,{enabled=false,supported=false,actions=true}={}){
  const n=schedule.overdue.length+words.length;
  if(!n&&!schedule.due.length&&!rest&&!schedule.next&&!supported)return '';
  const earliest=schedule.overdue[0],oldest=Math.min(...schedule.overdue.map(x=>x.at),words[0]?.at??Infinity),late=Number.isFinite(oldest)?lateText(Date.now()-oldest):'';
@@ -101,7 +101,7 @@ export function noticeMarkup(schedule,words,rest,{enabled=false,supported=false}
  schedule.due.length?schedule.due[0].name+' · '+schedule.due[0].label+' check is ready.':
  schedule.next?schedule.next.name+' · '+shortDate(schedule.next.at)+'.':'No practice is currently scheduled.';
  return '<aside class="ft-timing-notice'+(n?' overdue':'')+'" aria-label="Practice schedule"><div><strong>'+esc(title)+'</strong><p>'+esc(message)+'</p></div><div class="ft-actions">'+
- (rest||schedule.due.length?'<button type="button" data-eact="daily" class="ft-primary">'+(rest?'View countdown':'Practise now')+'</button>':words.length?'<button type="button" data-act="revision-start" class="ft-primary">Review words</button>':'')+
+ (actions&&(rest||schedule.due.length)?'<button type="button" data-eact="daily" class="ft-primary">'+(rest?'View countdown':'Practise now')+'</button>':actions&&words.length?'<button type="button" data-act="revision-start" class="ft-primary">Review words</button>':'')+
  (supported?'<button type="button" data-act="practice-alerts">'+(enabled?'Turn off device alerts':'Enable device alerts')+'</button>':'')+
  '</div>'+(supported?'<small>Device alerts work while Next is running; reopen the app to see missed practice. No background push schedule is installed.</small>':'')+'</aside>';
 }

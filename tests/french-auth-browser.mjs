@@ -11,6 +11,7 @@ try{
   await page.getByRole('button',{name:'Continue with Google'}).click();
   await page.locator('.ft-tabs').waitFor();
   assert.equal(await page.evaluate(()=>window.__testAuth.calls.google),1);
+  await page.locator('[data-page="settings"]').click();
   assert.match(await page.locator('.ft-identity').innerText(),/parent@example.test/);
   await page.getByRole('button',{name:'Link Google to this account'}).click();
   await page.locator('.ft-identity').getByText('Google sign-in linked to this Firebase account.').waitFor();

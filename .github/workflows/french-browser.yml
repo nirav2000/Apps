@@ -9,6 +9,7 @@ on:
       - 'tests/french-assessment-browser.mjs'
       - 'tests/french-curriculum-browser.mjs'
       - 'tests/french-study-timing-browser.mjs'
+      - 'tests/french-learning-path-browser.mjs'
       - 'tests/french-extensions-browser.mjs'
       - 'tests/french-dictionary-browser.mjs'
       - 'tests/french-ios-auth-browser.mjs'
@@ -23,6 +24,7 @@ on:
       - 'tests/french-assessment-browser.mjs'
       - 'tests/french-curriculum-browser.mjs'
       - 'tests/french-study-timing-browser.mjs'
+      - 'tests/french-learning-path-browser.mjs'
       - '.github/workflows/french-browser.yml'
   workflow_dispatch:
 permissions:
@@ -54,3 +56,4 @@ jobs:
           node tests/french-assessment-browser.mjs
           node tests/french-curriculum-browser.mjs
           node tests/french-study-timing-browser.mjs
+          node tests/french-learning-path-browser.mjs

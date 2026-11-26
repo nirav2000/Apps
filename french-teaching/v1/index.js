@@ -10,7 +10,7 @@ import {TRACKS,validTrack} from './curriculum-meta.js';
 import {unitsForTrack,guidedStatus} from './guided-lessons.js';
 import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget} from './revision-signals.js';
 import {adaptivePlans,chooseAdaptivePlan} from './adaptive-teaching.js';
-import {activeRest,scheduledPractice,overdueWords,noticeMarkup,updateStudyClocks,alertKeys} from './study-timing.js';
+import {activeRest,scheduledPractice,prioritizedChecks,overdueWords,noticeMarkup,updateStudyClocks,alertKeys} from './study-timing.js';
 import {ANSWER_APP,createAnswerHistory,exactAudit,visibleHistory,answerHistoryPage} from './answer-history.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
@@ -69,13 +69,20 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   const historyRows=()=>visibleHistory(answerStore?.getEntries()||[],state.store?.getEntries()||[]);
   let typingSamples=new WeakMap(),pendingTyping=[],revision=null,session=null;
   const audits=()=>answerStore?.getEntries()||[];
-  function currentSession(){
-    const now=Date.now(),key='next-french:session:'+state.store?.scope?.accountId+':'+state.profile+':'+state.track;
+  const sessionKey=()=>'next-french:session:'+state.store?.scope?.accountId+':'+state.profile+':'+state.track;
+  function readSession(){
+    const key=sessionKey(),now=Date.now();
     if(!session||session.key!==key){try{session=JSON.parse(localStorage.getItem(key)||'null');}catch{session=null;}}
-    if(!session||session.key!==key||!Number.isFinite(session.lastAt)||now-session.lastAt>30*60000)session={id:id(),key,lastAt:now};
+    return session?.key===key&&Number.isFinite(session.lastAt)&&now-session.lastAt<=30*60000?session:null;
+  }
+  function currentSession(){
+    const now=Date.now(),key=sessionKey();
+    if(!readSession())session={id:id(),key,lastAt:now,revisionDone:false,oralDone:false,completedUnit:null};
     session.lastAt=now;try{localStorage.setItem(key,JSON.stringify(session));}catch{}
     return session.id;
   }
+  function updateSession(patch){currentSession();Object.assign(session,patch);try{localStorage.setItem(session.key,JSON.stringify(session));}catch{}}
+  function newLearningSession(){session=null;try{localStorage.removeItem(sessionKey());}catch{}currentSession();}
   function signalContext(step=state.page==='lesson'?guidedUI.current():null){
     const unitId=step?.unitId||'',status=unitId?guidedStatus(unitId,state.store?.getEntries()||[]):null;
     return {sessionId:currentSession(),track:state.track,unitId,stepId:step?.id||'',stage:step?.stage||state.page,position:status?status.teaching.completed:0};
@@ -89,6 +96,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   let importedWords=revisionImport(window.location.hash);
   const revisions=()=>revisionQueue(revisionEvents(answerStore?.getEntries()||[],historyRows()));
+  const dailyRevisionItems=()=>revisions().filter(x=>x.due&&x.signals.some(e=>!e.context?.track||e.context.track===state.track));
   const answerField=node=>node?.matches?.('#ft-guided-input,#ft-answer-text,#ft-e-answer')?node:null;
   const onTypingFocus=e=>{const input=answerField(e.target);if(!input)return;const old=typingSamples.get(input);if(old)old.invalidate();else typingSamples.set(input,createTypingSample(input.value));};
   const onTypingInput=e=>{
@@ -115,12 +123,13 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function startRevision(auto=false){
     if(enforceBreak())return;
-    const due=revisions().filter(x=>x.due).slice(0,5);
-    if(!due.length){if(auto)assessmentUI.startDaily();return;}
+    if(prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
+    const due=(auto?dailyRevisionItems():revisions().filter(x=>x.due)).slice(0,5);
+    if(!due.length){if(auto){updateSession({revisionDone:true});assessmentUI.startDaily();}return;}
     cancelPendingAdvance();revision={items:due,index:0,result:null,answer:'',auto};state.page='signals';render();
     speak(due[0].word);focusTarget('#ft-revision-answer');
   }
-  function startDailyWithSignals(){currentSession();assessmentUI.startDaily();}
+  function startDailyWithSignals(){currentSession();cancelPendingAdvance();revision=null;assessmentUI.startDaily();}
   function revisionPage(){
     if(revision){
       const item=revision.items[revision.index];
@@ -131,7 +140,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         (revision.result?answerComparison({answer:revision.answer,expected:item.word,result:revision.result,replay:'<button type="button" data-act="revision-hear">▶</button>'})+
           '<p role="status">'+(revision.result==='correct'?'Correct. A later recall is scheduled.':'Compare the spelling. We will revisit it sooner.')+'</p><button type="button" class="ft-primary" data-act="revision-next">Next word →</button>':
           '<form id="ft-revision-form"><label for="ft-revision-answer">Your French</label><input id="ft-revision-answer" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required><button type="submit" class="ft-primary">Check answer</button></form>')+
-        '<button type="button" data-act="revision-leave">'+(revision.auto?'Continue lesson':'Back to signals')+'</button><p class="ft-small">This is targeted spelling/listening practice, not an independent sentence assessment.</p></section>';
+        '<button type="button" data-act="revision-leave">'+(revision.auto?'Skip remaining revision · continue':'Back to signals')+'</button><p class="ft-small">This is targeted spelling/listening practice, not an independent sentence assessment.</p></section>';
     }
     const rows=revisions(),due=rows.filter(x=>x.due);
     const plans=unitsForTrack(state.track).flatMap(u=>adaptivePlans(audits(),u.id)).sort((a,b)=>b.at-a.at);
@@ -164,7 +173,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     navigate:page=>{state.page=page;render();}
   });
   const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,record,recordAttempt,speak,refresh:render,focusTarget,
-    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>guidedUI.start(unit),onRest:()=>{const due=revisions().some(x=>x.due);if(due){startRevision(false);return true;}return false;}});
+    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>guidedUI.start(unit),getRevisionItems:dailyRevisionItems,getSession:()=>readSession()||{},onRevision:()=>startRevision(true),onCheckComplete:unit=>updateSession({completedUnit:unit,oralDone:false}),onOralComplete:()=>updateSession({oralDone:true}),onOralDifficulty:item=>recordSignal(item.fr,'manual',item.fr,{english:item.en,targetKind:'phrase'}),onNewSession:newLearningSession});
   // The five-minute policy is scoped to this learner/course and anchored to
   // immutable teaching completion evidence. Leaving for the overview is safe.
   const breakForCourse=()=>state.store?activeRest(state.store.getEntries(),Date.now(),state.track):null;
@@ -207,10 +216,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const slot=el().querySelector('[data-study-notice]');
     if(slot){
       const show=['home','evidence','signals','settings'].includes(state.page)&&!revision;
-      const markup=show?noticeMarkup(schedule,words,rest,{enabled:alertsEnabled(),supported:alertSupported()}):'';
+      const markup=show?noticeMarkup(schedule,words,rest,{enabled:alertsEnabled(),supported:state.page==='settings'&&alertSupported(),actions:false}):'';
       const message=show&&alertNotice?'<p class="ft-small" role="status">'+esc(alertNotice)+'</p>':'';
       if(slot.dataset.markup!==markup+message){slot.innerHTML=markup+message;slot.dataset.markup=markup+message;}
     }
+    const path=el().querySelector('[data-learning-path]');
+    if(path){const running=path.querySelector('[data-rest-until]');if(!(running&&rest&&Number(running.dataset.restUntil)===rest.readyAt)){const markup=assessmentUI.overview();if(path.dataset.markup!==markup){path.innerHTML=markup;path.dataset.markup=markup;updateStudyClocks(path,now);}}}
     void notifyOverdue(alertKeys(schedule,words));
   }
   function teach(kind){
@@ -251,7 +262,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
           if(destroyed||state.cloud!==cloud)return;
           state.cloudAt=result.at;
           state.cloudStatus='Saved to Firebase';
-          if(!wordDialog&&(state.page==='home'||state.page==='evidence'||state.page==='history'))render();else updateStatus();
+          if(!wordDialog&&['home','evidence','history','explore','settings'].includes(state.page)&&!revision)render();else updateStatus();
         }while(pendingAgain&&state.cloud===cloud);
       }catch(e){
         if(destroyed)return;
@@ -287,10 +298,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(importedWords.length)state.page='signals';
   }
   function nav(){
-    const tabs=[['home','Overview'],['lesson',"Today's lesson"],['evidence','Learning dashboard'],['history','Answer history'],['signals','Revision signals'],['magic','Magic 10'],['alphabet','Alphabet'],
-      ['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],
-      ['practice','Sentence practice'],['review','Review'],['pronunciation','Speak']];
-    return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p||(p==='sounds'&&state.page==='sound-quiz')?'active':'')+'">'+t+'</button>').join('')+'</nav>';
+    const tabs=[['home','Today'],['evidence','Learning dashboard'],['history','Answer history'],['explore','Explore']];
+    return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p||(p==='home'&&['lesson','assessment'].includes(state.page))||(p==='explore'&&['signals','magic','alphabet','alphabet-quiz','sounds','sound-quiz','knowledge','workshop','practice','review','pronunciation'].includes(state.page))?'active':'')+'">'+t+'</button>').join('')+'</nav>';
   }
   function top(){
     return '<div class="ft-top"><div><p class="ft-eyebrow">NEXT LEARNING · FRENCH</p><h1>French, built to be useful.</h1>'+
@@ -333,24 +342,26 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   function tracks(){
     return '<section class="ft-card ft-track-picker"><p class="ft-eyebrow">LEARNING TRACKS</p><h2>Choose your French course</h2><div class="ft-track-grid">'+TRACKS.filter(t=>t.id!=='unlocking-archive').map(t=>'<button type="button" class="ft-track-option'+(state.track===t.id?' selected':'')+'" data-act="track:'+t.id+'" aria-pressed="'+(state.track===t.id)+'"><strong>'+esc(t.name)+'</strong><small>'+unitsForTrack(t.id).length+' lessons</small><span>'+esc(t.summary)+'</span></button>').join('')+'</div><p class="ft-small"><button type="button" data-act="track:unlocking-archive">Earlier Unlocking lessons &amp; progress</button></p></section>';
   }
-  function overview(){
+  function overview(){return '<div data-learning-path>'+assessmentUI.overview()+'</div>';}
+  const explorePages=[['signals','Revision signals'],['magic','Magic 10'],['alphabet','Alphabet'],['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],['practice','Sentence practice'],['review','Manual review'],['pronunciation','Speak']];
+  function exploreNav(){
+    return '<nav class="ft-explore-nav" aria-label="Optional French activities">'+explorePages.map(([p,t])=>'<button type="button" data-page="'+p+'"'+(state.page===p?' aria-current="page"':'')+'>'+t+'</button>').join('')+'</nav>';
+  }
+  function explore(){
+    return '<section class="ft-card ft-explore-intro"><p class="ft-eyebrow">OPTIONAL ACTIVITIES</p><h2>Explore French</h2><p>Today is your recommended learning path. Use this area only when you want to choose an activity yourself. Complete due independent checks before looking at the answers.</p>'+exploreNav()+'</section>'+
+      tracks()+guidedUI.dashboard()+revisionOverview()+
+      '<section class="ft-card"><h2>Additional spoken practice</h2><p>Say familiar French before revealing the answer. This is optional, unscored practice, not a retention test.</p><button type="button" data-eact="oral">Rapid oral practice</button>'+(state.track==='michaela'?'<button type="button" data-eact="experiment">Open teaching experiment</button>':'')+'</section>';
+  }
+  function accountSettings(){
     const active=state.context?.auth?.currentUser;
     const googleLinked=active?.providerData?.some(provider=>provider.providerId==='google.com')===true;
-    return tracks()+assessmentUI.overview()+revisionOverview()+guidedUI.dashboard()+
-      '<section class="ft-hero ft-card"><p class="ft-eyebrow">REFERENCE &amp; FREE EXPLORATION</p><h2>Explore the words behind your lessons.</h2>'+
-      '<p>Use the guided lessons as your default. The alphabet, sound library, bilingual passage and sentence workshop remain available for optional exploration.</p>'+
-      '<div class="ft-actions"><button data-page="alphabet">Learn the alphabet</button><button data-page="sounds">Hear French sounds</button>'+
-      '<button data-page="knowledge">Explore the knowledge grid</button><button data-page="practice">Practise sentences</button></div></section>'+
-      assessmentUI.dashboard()+
-      '<section class="ft-card"><div class="ft-actions"><button data-act="sync">Sync with Firebase</button><button data-act="export">Export evidence</button><button data-page="review">Manual review</button></div></section>'+
+    return '<section class="ft-card"><div class="ft-actions"><button data-act="sync">Sync with Firebase</button><button data-act="export">Export evidence</button></div></section>'+
       '<section class="ft-card ft-identity"><h2>Your learning account</h2><p class="ft-small">'+(active?.email?'Signed in as <strong>'+esc(active.email)+'</strong>. ':'Signed in with your existing parent account. ')+(googleLinked?'Google sign-in linked to this Firebase account.':'Linking Google lets you use the same account without entering the Firebase password on other devices.')+'</p>'+
       (state.authNotice?'<p role="status">'+esc(state.authNotice)+'</p>':'')+
       (!googleLinked&&typeof linkGoogle==='function'&&authCapabilities.allowGooglePopup
   ?'<button data-act="link-google" type="button">Link Google to this account</button>'
   :(!googleLinked&&authCapabilities.iosStandalone
-    ?'<p class="ft-small">Google account linking is available when you open the course in Safari, not from the installed iPhone app.</p>':''))+'</section>'+
-      '<section class="ft-card"><h2>How the course works</h2><p>Real French audio → bilingual understanding → CUDDLES noticing → guided translation → controlled substitution → independent unseen sentences → review on days 1, 3, 7 and 28.</p>'+
-      '<p class="ft-small">PROFS: Past, Reasons, Opinions, Future, Subjunctive. This pilot introduces useful past, reason, opinion and future structures, plus a supported subjunctive example.</p></section>';
+    ?'<p class="ft-small">Google account linking is available when you open the course in Safari, not from the installed iPhone app.</p>':''))+'</section>';
   }
   function interactiveFrench(value){
     return tokenizeFrench(value).map(part=>(part.info||/^[\p{L}\p{M}]+(?:['’ -][\p{L}\p{M}]+){0,2}$/u.test(part.text))
@@ -700,7 +711,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<label for="ft-voice">French voice<select id="ft-voice" data-french-voice>'+options+'</select></label>'+
       '<div class="ft-actions"><button type="button" class="ft-primary" data-act="preview-french-voice">▶ Preview voice</button><button type="button" data-page="home">Done</button></div>'+
       '<p class="ft-small">'+(!voices.length?'No French voices listed yet. The automatic voice may become available after the browser loads its voices.':!available&&preferredVoice?'The saved voice is unavailable here. A device French voice will be used until it is available.':'Your selection is saved on this device. Available voices depend on your operating system and browser.')+'</p>'+
-      '<p class="ft-small">On iPad or iPhone, additional system voices may be available under Settings → Accessibility → Read &amp; Speak or Spoken Content. Safari may expose only some installed voices. The separate pronunciation coach uses its own reference audio.</p></section>';
+      '<p class="ft-small">On iPad or iPhone, additional system voices may be available under Settings → Accessibility → Read &amp; Speak or Spoken Content. Safari may expose only some installed voices. The separate pronunciation coach uses its own reference audio.</p></section>'+accountSettings();
   }
   function pronounce(){
     return '<section class="ft-card"><p class="ft-eyebrow">OPTIONAL PRONUNCIATION COACH</p><h2>Listen and repeat aloud</h2>'+
@@ -717,9 +728,9 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const ready=!!state.store;
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
       (!ready?login():nav()+'<div data-study-notice></div>'+
-      (state.page==='home'?overview():state.page==='evidence'?assessmentUI.dashboard():state.page==='history'?answerHistoryPage(historyRows(),historyFilter,historyLimit):state.page==='signals'?revisionPage():state.page==='assessment'?assessmentUI.page():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
+      (state.page==='home'?overview():state.page==='explore'?explore():state.page==='evidence'?assessmentUI.dashboard():state.page==='history'?answerHistoryPage(historyRows(),historyFilter,historyLimit):state.page==='signals'?revisionPage():state.page==='assessment'?assessmentUI.page():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
        state.page==='alphabet'?alphabet():state.page==='sounds'?sounds():state.page==='sound-quiz'?soundQuiz():state.page==='knowledge'?knowledge():
-       state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())))+
+       state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())+(explorePages.some(([p])=>state.page===p)||['alphabet-quiz','sound-quiz'].includes(state.page)?exploreNav():'')))+
       '<p class="ft-foot">Original lessons informed by Barry Smith, Jessica Lund’s published Michaela work, and general repeat-and-build principles described by Paul Noble. Not affiliated with or a reproduction of their courses. <a href="https://jlmfl.wordpress.com/2022/11/27/teaching-grammar-rote-vs-rules/">Lund on rote &amp; rules</a> · <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES</a></p>';
     if(ready&&state.page==='pronunciation')mountPronunciation();
     if(ready)timingTick(true);
@@ -835,7 +846,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function setPage(page){
     if(!state.store){render();return;}
-    if(!['home','evidence','history','signals','settings'].includes(page)&&enforceBreak())return;
+    if(!['home','evidence','history','signals','settings','explore'].includes(page)&&enforceBreak())return;
+    if(explorePages.some(([p])=>p===page)&&prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
     cancelPendingAdvance();
     if(page==='lesson'){revision=null;startDailyWithSignals(true);return;}
     revision=null;
@@ -874,7 +886,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(code==='auth/requires-recent-login')return 'For security, sign in again with your Firebase password before linking Google.';
     return String(error?.message||error);
   }
-  function changeTrack(track){if(!validTrack(track)||track===state.track||!state.store)return;cancelPendingAdvance();guidedUI.reset();assessmentUI.reset();session=null;state.track=track;try{localStorage.setItem('next-french:track:'+state.profile,track);}catch{}state.page='home';render();}
+  function changeTrack(track){if(!validTrack(track)||track===state.track||!state.store)return;cancelPendingAdvance();guidedUI.reset();assessmentUI.reset();revision=null;session=null;state.track=track;try{localStorage.setItem('next-french:track:'+state.profile,track);}catch{}state.page='home';render();}
   async function onClick(e){
     const action=e.target.closest('[data-word-action]');
     if(action){
@@ -892,6 +904,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(assessmentTarget?.dataset.eact==='daily'){startDailyWithSignals(true);return;}
     if(assessmentTarget&&assessmentUI.click(assessmentTarget))return;
     const guidedTarget=e.target.closest('[data-gword],[data-gact],[data-gchoice],[data-gspeak]');
+    if(guidedTarget?.dataset.gact==='start'&&prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
     if(guidedTarget?.dataset.gact==='next-unit'){if(enforceBreak())return;const unit=guidedTarget.dataset.restUnit;if(unit)assessmentUI.startUnit(unit);else startDailyWithSignals();return;}
     if(guidedTarget&&guidedUI.click(guidedTarget))return;
     const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say],[data-word],[data-sound-group],[data-sound-play],[data-sound-compare],[data-sound-sentence],[data-sound-answer],[data-cuddle-word]');
@@ -1013,11 +1026,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       case 'revision-next':await afterSpeech(b,()=>{
         if(!revision)return;
         const auto=revision.auto;
-        if(++revision.index>=revision.items.length){revision=null;if(auto){assessmentUI.startDaily();return;}}
+        if(++revision.index>=revision.items.length){revision=null;if(auto){updateSession({revisionDone:true});assessmentUI.startDaily();return;}}
         else{revision.result=null;revision.answer='';}
         render();if(revision){speak(revision.items[revision.index].word);focusTarget('#ft-revision-answer');}
       });break;
-      case 'revision-leave':{const auto=revision?.auto;revision=null;cancelPendingAdvance();if(auto)assessmentUI.startDaily();else render();break;}
+      case 'revision-leave':{const auto=revision?.auto;revision=null;cancelPendingAdvance();if(auto){updateSession({revisionDone:true});assessmentUI.startDaily();}else render();break;}
       case 'sync':await syncNow();if(state.page==='signals'&&!revision&&!wordDialog)render();break;
       case 'more-answers':historyLimit+=50;render();break;
       case 'export-answers':{
@@ -1093,6 +1106,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
     if(e.target.id==='ft-revision-form'){
       e.preventDefault();if(!revision||revision.result)return;
+      if(prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
       const value=e.target.querySelector('[name="answer"]')?.value||'',item=revision.items[revision.index];
       if(!value.trim())return;
       const correct=wordKey(value)===item.key;
