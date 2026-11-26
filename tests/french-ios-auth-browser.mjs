@@ -37,6 +37,7 @@ try{
   assert.equal(await pwa.evaluate(()=>window.__testAuth.calls.email),1);
   assert.equal(await pwa.evaluate(()=>window.__testAuth.auth.currentUser.uid),'test-owner');
   assert.equal(await pwa.getByRole('button',{name:'Link Google to this account'}).count(),0);
+  await pwa.locator('[data-page="settings"]').click();
   assert.match(await pwa.locator('.ft-identity').innerText(),/linking is available when you open the course in Safari/i);
   assert.deepEqual(errors,[]);
   await context.close();

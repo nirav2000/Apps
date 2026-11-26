@@ -6,10 +6,13 @@ const b=await chromium.launch({headless:true}),page=await b.newPage({viewport:{w
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 try{
  await page.goto('http://127.0.0.1:8898/tests/french-browser-harness.html');
+ await page.locator('.ft-tabs').waitFor();
+ await page.locator('.ft-tabs [data-page="explore"]').click();
  await page.locator('.ft-track-grid').waitFor();
  assert.equal(await page.locator('.ft-track-option').count(),3);
  assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),4);
  await page.locator('[data-track]').selectOption('unlocking');
+ await page.locator('.ft-tabs [data-page="explore"]').click();
  assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),12);
  await page.locator('[data-eact="unit:unlock2-past"]').click();
  await page.locator('[data-eact="skip-baseline"]').click();
@@ -26,6 +29,7 @@ try{
  await page.locator('[data-unlock-action="introduce"]').waitFor();
  assert.match(await page.locator('.ft-unlock-task').innerText(),/prepared/);
  await page.locator('[data-track]').selectOption('unlocking-archive');
+ await page.locator('.ft-tabs [data-page="explore"]').click();
  assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),6);
  await page.locator('[data-eact="unit:unlock-cognates"]').click();
  const deck=assessmentDeck('unlock-cognates','baseline');
@@ -37,19 +41,25 @@ try{
  assert.match(await page.locator('.ft-e-question').innerText(),/Starting knowledge recorded/);
  await page.locator('.ft-tabs [data-page="history"]').click();
  assert.equal(await page.locator('.ft-audit-row.correct').count(),deck.length);
- await page.locator('.ft-tabs [data-page="lesson"]').click();
+ await page.locator('.ft-tabs [data-page="home"]').click();
+ await page.locator('[data-learning-path] [data-eact="daily"]').click();
  assert.match(await page.locator('.ft-guided-head').innerText(),/Recognise familiar words/);
  assert.equal(await page.locator('[data-guided-step]').getAttribute('data-guided-step'),guidedLesson('unlock-cognates').steps[0].id);
  await page.locator('[data-track]').selectOption('michaela');
+ await page.locator('.ft-tabs [data-page="explore"]').click();
  assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),4);
+ await page.locator('.ft-tabs [data-page="evidence"]').click();
  assert.equal(await page.locator('.ft-e-chart circle').count(),0);
  await page.locator('[data-track]').selectOption('unlocking-archive');
+ await page.locator('.ft-tabs [data-page="evidence"]').click();
  assert.equal(await page.locator('.ft-e-chart circle').count(),1);
  await page.locator('[data-profile]').selectOption('sai');
  await page.locator('.ft-track-grid').waitFor();
  assert.equal(await page.locator('[data-track]').inputValue(),'sai');
  assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),13);
+ await page.locator('.ft-tabs [data-page="evidence"]').click();
  assert.equal(await page.locator('.ft-e-chart circle').count(),0);
+ await page.locator('.ft-tabs [data-page="explore"]').click();
  await page.locator('[data-eact="unit:sai-months"]').click();
  assert.equal(await page.locator('.ft-e-prompt').innerText(),'January');
  assert.match(await page.locator('.ft-e-question').innerText(),/1\/15/);
@@ -57,7 +67,7 @@ try{
  await page.locator('#ft-e-form button[type=submit]').click();
  await page.locator('.ft-tabs [data-page="history"]').click();
  assert.equal(await page.locator('.ft-audit-row.withheld').count(),1);
- await page.locator('.ft-tabs [data-page="home"]').click();
+ await page.locator('.ft-tabs [data-page="explore"]').click();
  await page.locator('[data-eact="unit:sai-months"]').click();
  const months=assessmentDeck('sai-months','baseline');
  for(const item of months.slice(1)){
@@ -71,6 +81,7 @@ try{
  await page.locator('[data-profile]').selectOption('adult');
  await page.locator('.ft-track-grid').waitFor();
  assert.equal(await page.locator('[data-track]').inputValue(),'unlocking-archive');
+ await page.locator('.ft-tabs [data-page="evidence"]').click();
  assert.equal(await page.locator('.ft-e-chart circle').count(),1);
  const dims=await page.evaluate(()=>({w:document.documentElement.scrollWidth,v:document.documentElement.clientWidth}));
  assert.ok(dims.w<=dims.v+2,JSON.stringify(dims));assert.deepEqual(errors,[]);

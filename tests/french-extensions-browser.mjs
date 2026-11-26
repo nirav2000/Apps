@@ -31,7 +31,8 @@ try{
   assert.equal(await page.evaluate(()=>window.__ttsReady),true,'French audio should be simulatable in Chromium');
 
   // Alphabet: one tap selects the letter AND plays its French name.
-  await page.getByRole('button',{name:'Alphabet',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Alphabet',exact:true}).click();
   await page.locator('[data-letter="1"]').click();
   assert.equal(await page.locator('.ft-letter-large').innerText(),'B');
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='bé',null,{timeout:2500});
@@ -46,7 +47,8 @@ try{
   assert.equal(await page.locator('[data-letter]').count(),26);
 
   // Phonics: groups, common graphemes, audible sample and a graded recognition attempt.
-  await page.getByRole('button',{name:'Sounds',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Sounds',exact:true}).click();
   assert.ok(await page.locator('.ft-sound-card').count()>=5);
   await page.locator('[data-sound-group="nasal-vowels"]').click();
   assert.equal(await page.locator('.ft-sound-card').count(),4);
@@ -70,7 +72,8 @@ try{
   assert.equal(await page.evaluate(()=>[...window.__testEvidence.values()].filter(x=>x.event?.score?.total===1&&x.event?.concept?.startsWith('french:phonics:')).length),1);
 
   // Knowledge first, then optional grammar on-demand: verbs and the sans-dans explanation.
-  await page.getByRole('button',{name:'Knowledge grid'}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Knowledge grid',exact:true}).click();
   assert.equal(await page.locator('.ft-word-dialog').count(),0);
   assert.equal(await page.locator('.ft-cuddle-example').count(),5);
   assert.ok(await page.locator('.ft-grid-row [data-word="veux"]').count()>=1);
@@ -101,7 +104,8 @@ try{
 
   // Word explorer also works in the sentence workshop; its visibility does not
   // turn a supported/practised answer into novel transfer evidence.
-  await page.getByRole('button',{name:'Sentence workshop'}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Sentence workshop',exact:true}).click();
   await page.locator('.ft-workshop-french [data-word="parce que"]').first().click();
   await page.getByRole('button',{name:'Explore parce que',exact:true}).click();
   await page.locator('.ft-word-dialog').waitFor();

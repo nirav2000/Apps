@@ -53,7 +53,8 @@ try{
   assert.equal(await page.locator('[data-french-voice]').inputValue(),'test-ca');
   await page.locator('[data-french-voice]').selectOption('test-fr');
   // The Magic Ten shows full usable phrases and no mandatory grammar.
-  await page.getByRole('button',{name:'Magic 10',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Magic 10',exact:true}).click();
   assert.equal(await page.locator('.ft-magic-row').count(),10);
   assert.equal(await page.locator('.ft-guided-grammar').evaluate(x=>x.open),false);
   assert.match(await page.locator('.ft-magic-rows').innerText(),/je vais parler français/);
@@ -61,7 +62,8 @@ try{
   await page.locator('[data-gverb]').selectOption('lire');
   await page.locator('[data-gspeak="8"]').click();
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==="j'ai lu en français");
-  await page.getByRole('button',{name:'Knowledge grid'}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Knowledge grid',exact:true}).click();
   await page.locator('.ft-grid-row [data-word="veux"]').first().click();
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='veux');
   assert.equal(await page.locator('.ft-word-dialog').count(),0);
@@ -78,7 +80,8 @@ try{
 
   // Specific user-reported vocabulary: select a word for audio, deliberately
   // explore it, then hold a different word without an accidental second tap.
-  await page.getByRole('button',{name:'Magic 10',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Magic 10',exact:true}).click();
   await page.locator('[data-gverb]').selectOption('étudier');
   const mustRow=page.locator('.ft-magic-row').filter({hasText:'je dois étudier le français'}).first();
   const dois=mustRow.locator('[data-gword="dois"]');
@@ -101,11 +104,13 @@ try{
   assert.equal(await page.evaluate(()=>window.__spoken.length),spokenBefore);
   await modal.locator('[data-close-word]').click();await modal.waitFor({state:'detached'});
   // The single deliberate word request is saved separately from scoring.
-  await page.getByRole('button',{name:'Revision signals',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
   const signalRow=page.locator('.ft-revision-row').filter({has:page.locator('[data-gword="dois"]')});
   assert.match(await signalRow.innerText(),/1 word plays/);
   assert.match(await signalRow.innerText(),/Low/);
-  await page.getByRole('button',{name:'Overview',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="home"]').click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
   assert.equal(await page.locator('.ft-todays-lesson').count(),1);
   await page.getByRole('button',{name:'Start guided lesson'}).click();
   await page.locator('.ft-guided-task').waitFor();
@@ -174,7 +179,8 @@ try{
   // Durable progress survives navigation and page reload via scoped evidence.
   await page.reload();
   await page.locator('.ft-tabs').waitFor();
-  await page.getByRole('button',{name:"Today's lesson",exact:true}).click();
+  await page.locator('.ft-tabs [data-page="home"]').click();
+  await page.locator('[data-learning-path] [data-eact="daily"]').click();
   assert.ok((await page.locator('.ft-guided-progress').getAttribute('aria-valuenow'))>=20);
   assert.match(await page.locator('.ft-guided-head').innerText(),/Speak and listen/);
   // Exercise inline French feedback and progressive hints.
@@ -228,7 +234,8 @@ try{
   await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref&&x.event?.score?.total===1&&x.event?.score?.correct===0),wrongBuild.id+':first',{timeout:12000});
   await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref),build.id+':hint',{timeout:12000});
   // Manual additions enter the private queue and trigger actual practice.
-  await page.getByRole('button',{name:'Revision signals',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
   await page.locator('#ft-revision-add-word').fill('école');
   await page.locator('#ft-revision-add button[type="submit"],#ft-revision-add button:not([type])').click();
   await page.locator('.ft-revision-row').filter({has:page.locator('[data-gword="école"]')}).waitFor();
@@ -242,9 +249,11 @@ try{
   await page.locator('[data-act="revision-leave"]').click();
   // Adult/Sai scope changes reset current lesson (no accidental merged records).
   await page.locator('[data-profile]').selectOption('sai');
+  await page.locator('.ft-tabs [data-page="explore"]').click();
   await page.locator('.ft-todays-lesson').waitFor();
   assert.match(await page.locator('.ft-todays-lesson').innerText(),/Start guided lesson/);
-  await page.getByRole('button',{name:'Revision signals',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
   assert.equal(await page.locator('.ft-revision-row').count(),0);
 
   const dims=await page.evaluate(()=>({w:document.documentElement.scrollWidth,v:document.documentElement.clientWidth}));

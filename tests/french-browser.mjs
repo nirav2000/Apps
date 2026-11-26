@@ -13,19 +13,22 @@ try{
   assert.match(await page.locator('h1').first().innerText(),/French, built to be useful/);
   assert.equal(await page.locator('[data-cloud-status]').isVisible(),false);
 
-  await page.getByRole('button',{name:'Alphabet',exact:true}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Alphabet',exact:true}).click();
   assert.equal(await page.locator('[data-letter]').count(),26);
   await page.locator('[data-letter="25"]').click();
   assert.match(await page.locator('.ft-letter-large').innerText(),/Z/);
   await page.getByRole('button',{name:'Test all 26'}).click();
   assert.match(await page.locator('h2').last().innerText(),/Which letter did you hear/);
 
-  await page.getByRole('button',{name:'Knowledge grid'}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Knowledge grid',exact:true}).click();
   assert.equal(await page.locator('.ft-grid-row').count(),14);
   await page.getByRole('button',{name:'Cover English'}).click();
   assert.match(await page.locator('.ft-covered').first().innerText(),/English hidden/);
 
-  await page.getByRole('button',{name:'Sentence workshop'}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Sentence workshop',exact:true}).click();
   assert.match(await page.locator('.ft-card').first().innerText(),/80 distinct sentences/);
   await page.locator('[data-workshop-key="mode"]').selectOption('1');
   assert.match(await page.locator('.ft-workshop-french').innerText(),/mais/);
@@ -37,7 +40,8 @@ try{
   await page.waitForFunction(()=>window.__testEvidence.size>=2,null,{timeout:8000});
   const adultRows=await page.evaluate(()=>[...window.__testEvidence.keys()].filter(k=>k.includes('/learners/adult/')).length);
   assert.ok(adultRows>=2);
-  await page.getByRole('button',{name:'Sentence workshop'}).click();
+  await page.locator('.ft-tabs [data-page="explore"]').click();
+  await page.locator('.ft-explore-nav').getByRole('button',{name:'Sentence workshop',exact:true}).click();
   // A model-visible answer is correct with support, not independent.
   await page.getByRole('button',{name:'Reveal French'}).click();
   await page.getByRole('button',{name:'Type from English'}).click();
@@ -58,9 +62,11 @@ try{
 
   await page.locator('[data-profile]').selectOption('sai');
   await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).waitFor({state:'attached',timeout:16000});
+  await page.locator('.ft-tabs [data-page="evidence"]').click();
   assert.match(await page.locator('.ft-e-dashboard .ft-e-metrics').first().innerText(),/Not measured/);
   await page.locator('[data-profile]').selectOption('adult');
   await page.locator('[data-cloud-status]').filter({hasText:'Saved to Firebase'}).waitFor({state:'attached',timeout:16000});
+  await page.locator('.ft-tabs [data-page="evidence"]').click();
   assert.match(await page.locator('.ft-e-dashboard .ft-e-metrics').first().innerText(),/100%/);
 
   assert.deepEqual(errors,[]);
