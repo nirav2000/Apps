@@ -238,7 +238,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(slot){
       const show=SAFE_BREAK_PAGES.has(state.page)&&!revision;
       const clock=rest&&show&&state.page!=='home'?'<section class="ft-card ft-global-rest"><h2>Learning break</h2>'+restMarkup(rest,now)+'<button type="button" data-eact="daily" data-ft-advance data-rest-continue disabled aria-disabled="true">Continue when the break finishes</button></section>':'';
-      const markup=clock||(show&&['home','evidence','signals','settings'].includes(state.page)?noticeMarkup(schedule,words,rest,{enabled:alertsEnabled(),supported:['home','settings'].includes(state.page)&&alertSupported(),actions:state.page==='home'}):'');
+      const markup=clock+(show&&['home','evidence','signals','settings'].includes(state.page)?noticeMarkup(schedule,words,rest,{enabled:alertsEnabled(),supported:['home','settings'].includes(state.page)&&alertSupported(),actions:state.page==='home'}):'');
       const message=show&&alertNotice?'<p class="ft-small" role="status">'+esc(alertNotice)+'</p>':'';
       const existing=slot.querySelector('[data-rest-until]');if(!(existing&&rest&&Number(existing.dataset.restUntil)===rest.readyAt)&&slot.dataset.markup!==markup+message){slot.innerHTML=markup+message;slot.dataset.markup=markup+message;updateStudyClocks(slot,now);}
     }

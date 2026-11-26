@@ -1,6 +1,6 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
-import {GUIDED_UNITS,guidedLesson,guidedCompletionRefs,guidedTeachingRef} from '../french-teaching/v1/guided-lessons.js';
+import {GUIDED_UNITS,ALL_UNITS,guidedLesson,guidedCompletionRefs,guidedTeachingRef} from '../french-teaching/v1/guided-lessons.js';
 import {normalizeEvidence} from '../learning-evidence/v1/index.js';
 const b=await chromium.launch({headless:true}),page=await b.newPage({viewport:{width:390,height:844}});
 const errors=[];page.on('pageerror',e=>errors.push(String(e)));
@@ -73,5 +73,44 @@ try{
  assert.equal(await page.locator('.ft-timing-notice.overdue').count(),0);
  const dims=await page.evaluate(()=>({w:document.documentElement.scrollWidth,v:document.documentElement.clientWidth}));
  assert.ok(dims.w<=dims.v+2);assert.deepEqual(errors,[]);
- console.log('French timed rest browser: countdown, locked alternate routes, reload, exact unlock, overdue notification, deduplication and learner scope');
+ // Complete an actual Unlocking French chapter rather than only seeding an
+ // already finished lesson. The last Enter must reach the genuine timer.
+ const live=await b.newPage({viewport:{width:834,height:1112}});
+ const liveErrors=[];live.on('pageerror',e=>liveErrors.push(String(e)));
+ const chapter=ALL_UNITS.find(u=>u.incremental),chapterSteps=guidedLesson(chapter.id).steps,last=chapterSteps.at(-1);
+ const liveNow=Date.now();
+ const seed=[event(guidedTeachingRef(chapter.id),liveNow-1200000,0),
+  ...chapterSteps.slice(0,-1).map((s,i)=>event(guidedCompletionRefs(s.id).complete,liveNow-120000+i,i+1))];
+ await live.clock.install({time:new Date(liveNow)});
+ await live.addInitScript(seed=>{
+  localStorage.setItem('next-french:track:adult','unlocking');
+  localStorage.setItem('apps-learning-evidence-v1:next-french:test-owner:adult',JSON.stringify({schema:1,entries:seed}));
+  window.__audio=[];
+  Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{getVoices:()=>[],cancel(){},speak(u){window.__audio.push(u.text);setTimeout(()=>u.onend?.(),25);}}});
+  Object.defineProperty(window,'SpeechSynthesisUtterance',{configurable:true,value:class{constructor(text){this.text=text;}}});
+ },seed);
+ await live.goto('http://127.0.0.1:8898/tests/french-browser-harness.html');
+ await live.locator('.ft-unified-path').waitFor();
+ await live.locator('[data-learning-path] [data-eact="daily"]').click();
+ await live.locator('[data-guided-step="'+last.id+'"]').waitFor();
+ await live.locator('#ft-guided-input').fill(last.fr);
+ await live.keyboard.press('Enter');
+ await live.locator('.ft-answer-comparison.correct').waitFor();
+ assert.equal(await live.evaluate(()=>document.activeElement?.dataset.gact),'next');
+ await live.keyboard.press('Enter');
+ await live.locator('.ft-guided-congrats [data-rest-until]').waitFor();
+ const end=Number(await live.locator('[data-rest-until]').getAttribute('data-rest-until'));
+ const actual=await live.evaluate(ref=>JSON.parse(localStorage.getItem('apps-learning-evidence-v1:next-french:test-owner:adult')).entries.find(e=>e.source.ref===ref).at,last.id+':complete');
+ assert.equal(end,actual+300000);
+ assert.equal(await live.locator('[data-gunit]').isDisabled(),true);
+ assert.equal(await live.locator('[data-rest-continue]').isDisabled(),true);
+ await live.clock.setSystemTime(end);
+ await live.clock.runFor(1000);
+ assert.equal(await live.locator('[data-rest-continue]').isDisabled(),false);
+ assert.equal(await live.locator('[data-gunit]').isDisabled(),false);
+ await live.locator('[data-rest-continue]').click();
+ await live.locator('#ft-e-answer').waitFor();
+ assert.match(await live.locator('.ft-e-question').innerText(),/After teaching/);
+ assert.deepEqual(liveErrors,[]);await live.close();
+ console.log('French timed rest browser: actual chapter completion, countdown, locked alternate routes, reload, exact unlock, overdue notification, deduplication and learner scope');
 }finally{await b.close();}
