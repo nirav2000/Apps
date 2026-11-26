@@ -5,6 +5,7 @@ import {spokenWords} from './guided-ui.js';
 import {firstByRef,ASSESSMENT_DAY as DAY} from '../../learning-evidence/v1/assessment.js';
 import {magicTenPhrase} from './magic10.js';
 import {trackName} from './curriculum-meta.js';
+import {activeRest,prioritizedChecks} from './study-timing.js';
 
 const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const btn=(action,label,primary=false)=>'<button type="button" data-eact="'+h(action)+'"'+(primary?' class="ft-primary"':'')+'>'+h(label)+'</button>';
@@ -51,7 +52,9 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     navigate('assessment');focusTarget('#ft-e-answer');
   };
   const dailyPlan=()=>{
-    const es=entries(),now=Date.now(),due=pendingChecks(es,now,getTrack())[0];
+    const es=entries(),now=Date.now(),rest=activeRest(es,now,getTrack());
+    if(rest)return {mode:'break',unitId:rest.unitId,label:'Time to let it settle',sub:'Your independent recall unlocks at '+new Date(rest.readyAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})};
+    const due=prioritizedChecks(es,now,getTrack())[0];
     if(due)return {mode:'check',due,label:due.label+' check',sub:due.unit.name+' · '+(due.items.length-due.attempted.length)+' questions'};
     const adaptive=extraRecall(es,now,getTrack())[0];
     if(adaptive)return {mode:'adaptive',item:adaptive,label:'Recall a repaired phrase',sub:'Short unaided practice after a day'};
@@ -71,13 +74,15 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     if(plan.mode==='check'){
       const d=plan.due,item=d.items.find(x=>!x.row);
       pick('check',item,{unitId:d.unitId,stage:d.stage,anchor:d.anchor});
-    }else if(plan.mode==='guided')startGuided(plan.unitId);
+    }else if(plan.mode==='guided'||plan.mode==='break')startGuided(plan.unitId);
     else if(plan.mode==='repair'||plan.mode==='adaptive')pick(plan.mode,plan.item);
     else if(!onRest())navigate('evidence');
   };
   const startUnit=unitId=>{
     if(!unitsForTrack(getTrack()).some(u=>u.id===unitId))return;
-    const es=entries(),due=pendingChecks(es,Date.now(),getTrack()).find(d=>d.unitId===unitId)||baselineFor(unitId,es);
+    const es=entries(),rest=activeRest(es,Date.now(),getTrack());
+    if(rest){startGuided(rest.unitId);return;}
+    const due=prioritizedChecks(es,Date.now(),getTrack()).find(d=>d.unitId===unitId)||baselineFor(unitId,es);
     if(due){pick('check',due.items.find(x=>!x.row),{unitId,stage:due.stage,anchor:due.anchor});return;}
     startGuided(unitId);
   };
@@ -88,7 +93,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   };
   const dashboard=()=>{
     const es=entries(),s=assessmentStats(es,Date.now(),state.range,getTrack()),exp=experimentStats(es);
-    const next=nextCheckDate(es,Date.now(),getTrack()),due=pendingChecks(es,Date.now(),getTrack()).length,repair=pendingRepairs(es,Date.now(),getTrack()).length;
+    const next=nextCheckDate(es,Date.now(),getTrack()),due=prioritizedChecks(es,Date.now(),getTrack()).length,repair=pendingRepairs(es,Date.now(),getTrack()).length;
     return '<section class="ft-card ft-e-dashboard"><div class="ft-e-header"><div><p class="ft-eyebrow">LEARNING EVIDENCE · V1</p><h2>French learning effectiveness</h2><p class="ft-small">'+h(trackName(getTrack()))+'</p></div><div class="ft-e-period" aria-label="Dashboard time period">'+[28,36500].map(d=>'<button type="button" data-eact="range-'+d+'" aria-pressed="'+(state.range===d)+'">'+(d===28?'28 days':'All time')+'</button>').join('')+'</div></div>'+
       '<div class="ft-e-metrics">'+metricCard('Practice accuracy',s.practice)+metricCard('Independent accuracy',s.independent)+metricCard('7-day retention',s.retention)+metricCard('Unseen transfer',s.transfer)+'</div>'+(getTrack()!=='michaela'?'<div class="ft-e-metrics ft-e-two">'+metricCard('Application in new contexts',s.application)+'</div>':'')+
       '<div class="ft-e-section"><h3>Knowledge retained over time</h3><p class="ft-small">Observed recall, not predictions. Different completed units may contribute to each point.</p>'+chart(s.chart)+'</div>'+
@@ -137,6 +142,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   };
   const finishAnswer=value=>{
     const item=state.item;if(!item)return;
+    const rest=activeRest(entries(),Date.now(),getTrack());if(rest){startGuided(rest.unitId);return;}
     if(state.mode==='repair'){
       if(state.feedback!=='cover')return;
       const r=markAssessment(value,item);
@@ -152,7 +158,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     if(map.has(sourceRef)){startDaily();return;}
     // Do not allow a stale page to claim a check in the wrong time window.
     if(!adaptive){
-      const valid=state.stage==='baseline'?baselineFor(state.unitId,es):pendingChecks(es,Date.now(),getTrack()).find(x=>x.unitId===state.unitId&&x.stage===state.stage);
+      const valid=state.stage==='baseline'?baselineFor(state.unitId,es):prioritizedChecks(es,Date.now(),getTrack()).find(x=>x.unitId===state.unitId&&x.stage===state.stage);
       if(!valid){startDaily();return;}
     }
     const result=markAssessment(value,item);
@@ -164,7 +170,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     if(adaptive){
       state.mode='done';state.feedback=result.correct?'Correct. Your repaired phrase was recalled independently.':'Not recalled yet. Use guided practice and try again at the next scheduled check.';refresh();return;
     }
-    const current=stage==='baseline'?baselineFor(state.unitId,entries()):pendingChecks(entries(),Date.now(),getTrack()).find(x=>x.unitId===state.unitId&&x.stage===stage);
+    const current=stage==='baseline'?baselineFor(state.unitId,entries()):prioritizedChecks(entries(),Date.now(),getTrack()).find(x=>x.unitId===state.unitId&&x.stage===stage);
     if(current){pick('check',current.items.find(x=>!x.row),{unitId:current.unitId,stage,anchor:current.anchor});return;}
     state.mode='done';state.doneUnit=stage==='baseline'?state.unitId:null;state.feedback=stage==='baseline'?'Starting knowledge recorded. Now learn the phrases.':'Check complete.';refresh();
   };
@@ -180,6 +186,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     const a=target.dataset.eact;if(!a)return false;
     if(a.startsWith('unit:')){startUnit(a.slice(5));return true;}
     if(a.startsWith('range-')){state.range=Number(a.slice(6))===36500?36500:28;refresh();return true;}
+    const rest=activeRest(entries(),Date.now(),getTrack());if(rest&&a!=='leave'){startGuided(rest.unitId);return true;}
     switch(a){
       case 'daily':startDaily();break;
       case 'skip-baseline':if(state.mode==='check'&&state.stage==='baseline'&&ALL_UNITS.find(u=>u.id===state.unitId)?.incremental)startGuided(state.unitId);break;
