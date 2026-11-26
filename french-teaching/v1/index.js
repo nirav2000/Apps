@@ -3,14 +3,14 @@ import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,so
 import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
 import {browserAuthContext} from './auth-context.js';
-import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES} from './guided-ui.js';
+import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES,learningAudioText} from './guided-ui.js';
 import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
 import {unitsForTrack,guidedStatus} from './guided-lessons.js';
 import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget} from './revision-signals.js';
 import {adaptivePlans,chooseAdaptivePlan} from './adaptive-teaching.js';
-import {activeRest,scheduledPractice,prioritizedChecks,overdueWords,noticeMarkup,updateStudyClocks,alertKeys} from './study-timing.js';
+import {activeRest,scheduledPractice,prioritizedChecks,overdueWords,noticeMarkup,updateStudyClocks,alertKeys,restMarkup} from './study-timing.js';
 import {ANSWER_APP,createAnswerHistory,exactAudit,visibleHistory,answerHistoryPage} from './answer-history.js';
 import {createEvidenceStore} from '../../learning-evidence/v1/index.js';
 import {createFirestoreEvidenceCloud} from '../../learning-evidence/v1/firestore-cloud.js';
@@ -129,7 +129,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     cancelPendingAdvance();revision={items:due,index:0,result:null,answer:'',auto};state.page='signals';render();
     speak(due[0].word);focusTarget('#ft-revision-answer');
   }
-  function startDailyWithSignals(){currentSession();cancelPendingAdvance();revision=null;assessmentUI.startDaily();}
+  function startDailyWithSignals(){if(enforceBreak())return;currentSession();cancelPendingAdvance();revision=null;assessmentUI.startDaily();}
   function revisionPage(){
     if(revision){
       const item=revision.items[revision.index];
@@ -138,9 +138,9 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         (context?'<p class="ft-guided-english" lang="fr">'+esc(context)+'</p>':'')+
         '<button type="button" data-act="revision-hear">▶ Hear the word</button>'+
         (revision.result?answerComparison({answer:revision.answer,expected:item.word,result:revision.result,replay:'<button type="button" data-act="revision-hear">▶</button>'})+
-          '<p role="status">'+(revision.result==='correct'?'Correct. A later recall is scheduled.':'Compare the spelling. We will revisit it sooner.')+'</p><button type="button" class="ft-primary" data-act="revision-next">Next word →</button>':
+          '<p role="status">'+(revision.result==='correct'?'Correct. A later recall is scheduled.':'Compare the spelling. We will revisit it sooner.')+'</p><button type="button" class="ft-primary" data-act="revision-next" data-ft-advance>Next word →</button>':
           '<form id="ft-revision-form"><label for="ft-revision-answer">Your French</label><input id="ft-revision-answer" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required><button type="submit" class="ft-primary">Check answer</button></form>')+
-        '<button type="button" data-act="revision-leave">'+(revision.auto?'Skip remaining revision · continue':'Back to signals')+'</button><p class="ft-small">This is targeted spelling/listening practice, not an independent sentence assessment.</p></section>';
+        '<div class="ft-pause-row"><button type="button" class="ft-pause-control" data-act="revision-leave">'+(revision.auto?'Skip remaining revision · continue':'Back to signals')+'</button></div><p class="ft-small">This is targeted spelling/listening practice, not an independent sentence assessment.</p></section>';
     }
     const rows=revisions(),due=rows.filter(x=>x.due);
     const plans=unitsForTrack(state.track).flatMap(u=>adaptivePlans(audits(),u.id)).sort((a,b)=>b.at-a.at);
@@ -183,15 +183,22 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   // The new lesson engine writes only additional evidence events to the
   // established Firebase parent/learner scope. Existing lesson records stay as-is.
   const guidedUI=createGuidedInterface({
-    getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,requestStart:unit=>assessmentUI.startUnit(unit),record,recordAttempt,speak,waitForSpeech,cancelSpeech,refresh:render,focusTarget,getAdaptivePlans:unit=>adaptivePlans(audits(),unit),planAdaptive,signalContext,recordSignal,
+    getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,requestStart:unit=>assessmentUI.startUnit(unit),record,recordAttempt,speak,playAudio,waitForSpeech,cancelSpeech,refresh:render,focusTarget,getAdaptivePlans:unit=>adaptivePlans(audits(),unit),planAdaptive,signalContext,recordSignal,
     navigate:page=>{state.page=page;render();}
   });
-  const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,record,recordAttempt,speak,refresh:render,focusTarget,
-    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>guidedUI.start(unit),getRevisionItems:dailyRevisionItems,getSession:()=>readSession()||{},onRevision:()=>startRevision(true),onCheckComplete:unit=>updateSession({completedUnit:unit,oralDone:false}),onOralComplete:()=>updateSession({oralDone:true}),onOralDifficulty:item=>recordSignal(item.fr,'manual',item.fr,{english:item.en,targetKind:'phrase'}),onNewSession:newLearningSession});
-  // The five-minute policy is scoped to this learner/course and anchored to
-  // immutable teaching completion evidence. Leaving for the overview is safe.
-  const breakForCourse=()=>state.store?activeRest(state.store.getEntries(),Date.now(),state.track):null;
-  function enforceBreak(){const rest=breakForCourse();if(!rest)return false;revision=null;cancelPendingAdvance();guidedUI.start(rest.unitId);return true;}
+  const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,record,recordAttempt,speak,playAudio,refresh:render,focusTarget,
+    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>{const rest=breakForCourse();if(rest)showBreak(rest);else guidedUI.start(unit);},getRevisionItems:dailyRevisionItems,getSession:()=>readSession()||{},onRevision:()=>startRevision(true),onCheckComplete:unit=>updateSession({completedUnit:unit,oralDone:false}),onOralComplete:()=>updateSession({oralDone:true}),onOralDifficulty:item=>recordSignal(item.fr,'manual',item.fr,{english:item.en,targetKind:'phrase'}),onNewSession:newLearningSession});
+  // The break belongs to the learner across French tracks and is anchored
+  // to completion evidence. Safe dashboard/settings navigation remains open.
+  const SAFE_BREAK_PAGES=new Set(['home','evidence','history','signals','settings','explore']);
+  const breakForCourse=()=>state.store?activeRest(state.store.getEntries(),Date.now(),null):null;
+  const finishingLesson=rest=>state.page==='lesson'&&guidedUI.current()?.unitId===rest?.unitId&&guidedUI.finishing();
+  function showBreak(rest){
+    revision=null;cancelPendingAdvance();
+    if(rest.track!==state.track){state.track=rest.track;session=null;try{localStorage.setItem('next-french:track:'+state.profile,state.track);}catch{}}
+    guidedUI.start(rest.unitId);
+  }
+  function enforceBreak(){const rest=breakForCourse();if(!rest)return false;showBreak(rest);return true;}
   const alertSupported=()=>typeof window.Notification!=='undefined'&&!!navigator.serviceWorker;
   const alertScope=()=>state.store?'next-french:practice-alerts:'+state.store.scope.accountId+':'+state.profile:'';
   function alertsEnabled(){try{return !!alertScope()&&localStorage.getItem(alertScope())==='1'&&window.Notification?.permission==='granted';}catch{return false;}}
@@ -226,13 +233,14 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const now=Date.now();updateStudyClocks(el(),now);
     if(!state.store||state.loading||(!force&&now-lastTimingPoll<15000))return;
     lastTimingPoll=now;
-    const entries=state.store.getEntries(),schedule=scheduledPractice(entries,now,state.track),words=overdueWords(revisions(),now),rest=activeRest(entries,now,state.track);
+    const entries=state.store.getEntries(),schedule=scheduledPractice(entries,now,state.track),words=overdueWords(revisions(),now),rest=activeRest(entries,now,null);
     const slot=el().querySelector('[data-study-notice]');
     if(slot){
-      const show=['home','evidence','signals','settings'].includes(state.page)&&!revision;
-      const markup=show?noticeMarkup(schedule,words,rest,{enabled:alertsEnabled(),supported:['home','settings'].includes(state.page)&&alertSupported(),actions:state.page==='home'}):'';
+      const show=SAFE_BREAK_PAGES.has(state.page)&&!revision;
+      const clock=rest&&show&&state.page!=='home'?'<section class="ft-card ft-global-rest"><h2>Learning break</h2>'+restMarkup(rest,now)+'<button type="button" data-eact="daily" data-ft-advance data-rest-continue disabled aria-disabled="true">Continue when the break finishes</button></section>':'';
+      const markup=clock||(show&&['home','evidence','signals','settings'].includes(state.page)?noticeMarkup(schedule,words,rest,{enabled:alertsEnabled(),supported:['home','settings'].includes(state.page)&&alertSupported(),actions:state.page==='home'}):'');
       const message=show&&alertNotice?'<p class="ft-small" role="status">'+esc(alertNotice)+'</p>':'';
-      if(slot.dataset.markup!==markup+message){slot.innerHTML=markup+message;slot.dataset.markup=markup+message;}
+      const existing=slot.querySelector('[data-rest-until]');if(!(existing&&rest&&Number(existing.dataset.restUntil)===rest.readyAt)&&slot.dataset.markup!==markup+message){slot.innerHTML=markup+message;slot.dataset.markup=markup+message;updateStudyClocks(slot,now);}
     }
     const path=el().querySelector('[data-learning-path]');
     if(path){const running=path.querySelector('[data-rest-until]');if(!(running&&rest&&Number(running.dataset.restUntil)===rest.readyAt)){const markup=assessmentUI.overview();if(path.dataset.markup!==markup){path.innerHTML=markup;path.dataset.markup=markup;updateStudyClocks(path,now);}}}
@@ -276,7 +284,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
           if(destroyed||state.cloud!==cloud)return;
           state.cloudAt=result.at;
           state.cloudStatus='Saved to Firebase';
-          if(!wordDialog&&['home','evidence','history','explore','settings'].includes(state.page)&&!revision)render();else updateStatus();
+          const locked=breakForCourse();
+          if(locked&&!SAFE_BREAK_PAGES.has(state.page)&&state.page!=='lesson')showBreak(locked);
+          else if(locked&&state.page==='lesson'&&guidedUI.current()&&!finishingLesson(locked))showBreak(locked);
+          else if(!wordDialog&&['home','evidence','history','explore','settings'].includes(state.page)&&!revision)render();else{updateStatus();timingTick(true);}
         }while(pendingAgain&&state.cloud===cloud);
       }catch(e){
         if(destroyed)return;
@@ -459,7 +470,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       }).join('')+'</div>'+
       (state.soundFeedback?'<div class="ft-sr-only" role="status">'+esc(state.soundFeedback)+'</div>':'')+
       (state.soundAnswered?'<div class="ft-model"><strong lang="fr">'+esc(item.correct)+'</strong> — '+esc(item.why)+'</div>'+
-        '<button type="button" data-act="next-sound-question" class="ft-primary">'+(state.soundQuestion===state.soundQueue.length-1?'Finish listening check':'Next word')+'</button>':'')+
+        '<button type="button" data-act="next-sound-question" data-ft-advance class="ft-primary">'+(state.soundQuestion===state.soundQueue.length-1?'Finish listening check':'Next word')+'</button>':'')+
       '</section>';
   }
   function startSoundQuiz(){
@@ -539,7 +550,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button><button type="button" data-act="hint"'+(state.hint!=='none'||!x.hint?' disabled':'')+'>Give me a hint</button><button type="button" data-act="model">Show model</button><button type="button" data-act="dictate">🎤 Dictate</button></div></form>')+
       (state.hint!=='none'?'<p class="ft-hint">Hint: '+esc(x.hint)+'</p>':'')+
       (state.feedback?'<div class="ft-feedback '+(state.answerResult||'')+'" role="status">'+esc(state.feedback)+'</div>':'')+
-      (state.completed?'<div class="ft-actions"><button class="ft-primary" data-act="next-question">'+(state.question===state.queue.length-1?'See results':'Next question')+'</button></div>':'')+
+      (state.completed?'<div class="ft-actions"><button class="ft-primary" data-act="next-question" data-ft-advance>'+(state.question===state.queue.length-1?'See results':'Next question')+'</button></div>':'')+
       '<p class="ft-small">Exact model answers are checked for words and spelling; valid alternative wording may need a teacher to review. Speech recognition is not a pronunciation score.</p></section>'+
       (state.page==='practice'?patterns():'');
   }
@@ -551,7 +562,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<form id="ft-letter-answer"><label for="ft-quiz-input">Letter (A–Z)</label><input id="ft-quiz-input" name="answer" class="'+(state.answerResult==='incorrect'?'ft-input-incorrect':'')+'" value="'+esc(state.lastInput)+'" type="text" maxlength="1" autocomplete="off" autocapitalize="characters" required '+(state.completed?'disabled':'')+'>'+
       (state.completed?'':'<button class="ft-primary" type="submit">Check</button>')+'</form>'+
       (state.feedback?'<div class="ft-feedback '+(state.answerResult||'')+'" role="status">'+esc(state.feedback)+'</div>':'')+
-      (state.completed?'<div class="ft-actions"><button class="ft-primary" data-act="next-letter-question">'+(state.alphabetQuestion===25?'Finish quiz':'Next letter')+'</button></div>':'')+
+      (state.completed?'<div class="ft-actions"><button class="ft-primary" data-act="next-letter-question" data-ft-advance>'+(state.alphabetQuestion===25?'Finish quiz':'Next letter')+'</button></div>':'')+
       '<p class="ft-small">The audio comes from your device’s French voice and should be checked against a proficient speaker if anything sounds unclear.</p></section>';
   }
   // All visible French word controls use the same interaction. Selection is
@@ -559,7 +570,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   const wordSelector='[data-gword],[data-word],[data-choice-word]';
   const wordTarget=target=>target?.closest?.(wordSelector);
   const wordText=node=>node?.dataset.gword??node?.dataset.word??node?.dataset.choiceWord;
-  const wordBlocked=()=>advancePending||!!el().querySelector('.ft-guided-task button[aria-busy="true"]');
+  const wordBlocked=()=>!!(breakForCourse()&&!finishingLesson(breakForCourse()))||advancePending||!!el().querySelector('.ft-guided-task button[aria-busy="true"]');
   function clearWordSelection(){
     if(selectedWord?.node){selectedWord.node.classList.remove('ft-word-selected');if(selectedWord.node.tagName==='BUTTON')selectedWord.node.removeAttribute('aria-pressed');}
     wordToolbar?.remove();wordToolbar=null;selectedWord=null;
@@ -754,7 +765,19 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<label for="ft-target">Sentence<select id="ft-target" data-target>'+PASSAGE.map((p,i)=>'<option value="'+i+'"'+(i===state.pronunciationIndex?' selected':'')+'>'+esc(p.fr)+'</option>').join('')+'</select></label>'+
       '<div id="ft-pronounce-host"></div></section>';
   }
-  function focusTarget(selector){el().querySelector(selector)?.focus();}
+  function focusTarget(selector){
+    for(const part of selector.split(',')){
+      const target=el().querySelector(part.trim());
+      if(target&&!target.disabled&&!target.closest('[hidden]')){target.focus();return target;}
+    }
+    return null;
+  }
+  function defaultAdvance(){
+    if(wordDialog||advancePending||!['lesson','assessment','practice','review','alphabet-quiz','sound-quiz','signals'].includes(state.page))return null;
+    const task=el().querySelector('.ft-guided-shell,.ft-e-question,.ft-revision-task')||el();
+    return [...task.querySelectorAll('[data-ft-advance]')].find(b=>!b.disabled&&!b.closest('[hidden]')&&b.getClientRects().length)||null;
+  }
+  function focusDefaultAdvance(){defaultAdvance()?.focus({preventScroll:true});}
   function render(){
     if(destroyed)return;
     clearWordSelection();cancelWordPress();
@@ -805,6 +828,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }catch{task.finish(false);}
     return promise;
   }
+  function playAudio(event,text,lang='fr-FR'){
+    const spoken=learningAudioText(event,text);
+    return spoken?speak(spoken,lang):Promise.resolve(false);
+  }
   function cancelPendingAdvance(){
     advanceEpoch++;advancePending=false;guidedUI.leave();
   }
@@ -814,7 +841,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     button.disabled=true;button.setAttribute('aria-busy','true');
     await waitForSpeech();
     if(epoch!==advanceEpoch||destroyed)return;
-    advancePending=false;action();
+    advancePending=false;if(button.isConnected){button.disabled=false;button.removeAttribute('aria-busy');}action();
   }
   async function mountPronunciation(){
     const host=el().querySelector('#ft-pronounce-host');
@@ -851,11 +878,16 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(correct)state.feedback=state.failed||state.hint!=='none'||x.guided?'Correct with support. We will check independent recall later.':'Correct independently. Well done.';
     else{state.failed=true;state.feedback=x.kind==='toEnglish'?'Not quite. Compare your answer with the correct model.':correctionSummary(state.lastInput,x.answer);}
     render();
-    if(x.kind!=='toEnglish')speak(x.answer);
+    playAudio('correction',x.kind==='toEnglish'?x.prompt:x.answer);
     focusTarget('[data-act="next-question"]');
   }
+  function practiceEntryAudio(){
+    const x=state.queue[state.question];
+    if(x?.kind==='toEnglish')playAudio('visible-french',x.prompt);
+    else if(x?.kind==='find')playAudio('visible-french',PASSAGE[x.line]?.fr);
+  }
   function finishQuestion(){
-    if(state.question+1<state.queue.length){state.question++;resetQuestion();render();focusTarget('#ft-answer-text');}
+    if(state.question+1<state.queue.length){state.question++;resetQuestion();render();practiceEntryAudio();focusTarget('#ft-answer-text');}
     else{state.page='home';state.question=0;resetQuestion();render();}
   }
   function quizLetter(input){
@@ -881,7 +913,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function setPage(page){
     if(!state.store){render();return;}
-    if(!['home','evidence','history','signals','settings','explore'].includes(page)&&enforceBreak())return;
+    if(!SAFE_BREAK_PAGES.has(page)&&enforceBreak())return;
     cancelPendingAdvance();
     if(page==='lesson'){revision=null;startDailyWithSignals(true);return;}
     revision=null;
@@ -898,7 +930,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       state.question=0;resetQuestion();state.page=page;
     }else state.page=page;
     render();
-    if(page==='workshop'&&state.builder.showFrench)speak(assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);
+    if(page==='workshop'&&state.builder.showFrench)playAudio('reference-change',assembleWorkshop(state.builder.mode,state.builder.left,state.builder.right).fr);
+    if(page==='practice'||page==='review'){practiceEntryAudio();focusTarget('#ft-answer-text');}
   }
   function dictate(){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -920,8 +953,15 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(code==='auth/requires-recent-login')return 'For security, sign in again with your Firebase password before linking Google.';
     return String(error?.message||error);
   }
-  function changeTrack(track){if(!validTrack(track)||track===state.track||!state.store)return;cancelPendingAdvance();guidedUI.reset();assessmentUI.reset();revision=null;session=null;state.track=track;try{localStorage.setItem('next-french:track:'+state.profile,track);}catch{}state.page='home';render();}
+  function changeTrack(track){if(!validTrack(track)||track===state.track||!state.store)return;if(enforceBreak())return;cancelPendingAdvance();guidedUI.reset();assessmentUI.reset();revision=null;session=null;state.track=track;try{localStorage.setItem('next-french:track:'+state.profile,track);}catch{}state.page='home';render();}
   async function onClick(e){
+    const rest=breakForCourse();
+    if(rest){
+      const control=e.target.closest('[data-page],[data-eact],[data-gact],[data-act]');
+      const safe=control&&(SAFE_BREAK_PAGES.has(control.dataset.page)||['sync','export','export-answers','more-answers','practice-alerts','revision-import','link-google','sign-out','reset-password','preview-french-voice'].includes(control.dataset.act)||control.dataset.eact?.startsWith('range-')||control.dataset.eact==='leave'||control.dataset.gact==='pause');
+      const lastStep=finishingLesson(rest)&&(e.target.closest('[data-gword],[data-word],[data-choice-word]')||['next','finish-revealed','finish-model','speak','focus-word'].includes(control?.dataset.gact));
+      if(!safe&&!lastStep&&e.target.closest('button,[data-word],[data-gword],[data-choice-word]')){e.preventDefault();showBreak(rest);return;}
+    }
     const action=e.target.closest('[data-word-action]');
     if(action){
       if(action.dataset.wordAction==='explore'&&selectedWord)exploreWord(selectedWord.node);
@@ -931,7 +971,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const word=wordTarget(e.target);
     if(word){
       if(suppressedWordClick?.node===word&&Date.now()<suppressedWordClick.until){suppressedWordClick=null;e.preventDefault();return;}
-      if(selectWord(word)){if(!revision)pronunciationSignal(word);speak(wordText(word));}
+      if(selectWord(word)){if(!revision)pronunciationSignal(word);speak(wordText(word));if(e.detail>0)focusDefaultAdvance();}
       return;
     }
     const assessmentTarget=e.target.closest('[data-eact]');
@@ -940,11 +980,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       else startDailyWithSignals(true);
       return;
     }
-    if(assessmentTarget?.dataset.eact==='cover'&&state.page==='assessment'){await afterSpeech(assessmentTarget,()=>assessmentUI.click(assessmentTarget));return;}
-    if(assessmentTarget&&assessmentUI.click(assessmentTarget))return;
+    if(['cover','oral-next','oral-difficulty','oral-finish','experiment-next','continue-unit'].includes(assessmentTarget?.dataset.eact)&&state.page==='assessment'){await afterSpeech(assessmentTarget,()=>assessmentUI.click(assessmentTarget));return;}
+    if(assessmentTarget&&assessmentUI.click(assessmentTarget)){if(e.detail>0&&assessmentTarget.dataset.eact==='speak')focusDefaultAdvance();return;}
     const guidedTarget=e.target.closest('[data-gword],[data-gact],[data-gchoice],[data-gspeak]');
     if(guidedTarget?.dataset.gact==='next-unit'){if(enforceBreak())return;const unit=guidedTarget.dataset.restUnit;if(unit)assessmentUI.startUnit(unit);else startDailyWithSignals();return;}
-    if(guidedTarget&&guidedUI.click(guidedTarget))return;
+    if(guidedTarget&&guidedUI.click(guidedTarget)){if(e.detail>0&&guidedTarget.dataset.gact==='speak')focusDefaultAdvance();return;}
     const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say],[data-word],[data-sound-group],[data-sound-play],[data-sound-compare],[data-sound-sentence],[data-sound-answer],[data-cuddle-word]');
     if(!b)return;
     if(b.dataset.act==='practice-alerts'){await togglePracticeAlerts();return;}
@@ -1060,7 +1100,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         break;
       }
       case 'revision-start':startRevision();break;
-      case 'revision-hear':if(revision)speak(revision.items[revision.index].word);break;
+      case 'revision-hear':if(revision){speak(revision.items[revision.index].word);if(e.detail>0)focusDefaultAdvance();}break;
       case 'revision-next':await afterSpeech(b,()=>{
         if(!revision)return;
         const auto=revision.auto;
@@ -1127,16 +1167,16 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         if(draft)state.lastInput=draft.value;
         if(!recordAttempt({ref:x.id,activity:'Sentence practice',question:x.prompt,answer:state.lastInput,expected:x.answer,result:'revealed',reason:'Model shown, not scored as correct.',support:'worked-example',marker:'unscored'}))break;
         noteAnswer(false,x,true);
-        state.answerResult='revealed';state.completed=true;state.feedback='Model revealed: not scored as a correct answer.';render();if(x.kind!=='toEnglish')speak(x.answer);focusTarget('[data-act="next-question"]');break;
+        state.answerResult='revealed';state.completed=true;state.feedback='Model revealed: not scored as a correct answer.';render();playAudio('reveal',x.kind==='toEnglish'?x.prompt:x.answer);focusTarget('[data-act="next-question"]');break;
       }
-      case 'hear-practice-model':{const x=state.queue[state.question];if(x&&state.completed&&x.kind!=='toEnglish')speak(x.answer);break;}
+      case 'hear-practice-model':{const x=state.queue[state.question];if(x&&state.completed){speak(x.kind==='toEnglish'?x.prompt:x.answer);if(e.detail>0)focusDefaultAdvance();}break;
       case 'dictate':dictate();break;
       case 'next-question':await afterSpeech(b,finishQuestion);break;
-      case 'restart':state.question=0;resetQuestion();render();break;
+      case 'restart':state.question=0;resetQuestion();render();practiceEntryAudio();focusTarget('#ft-answer-text');break;
     }
   }
   async function onSubmit(e){
-    if(!['ft-revision-add','ft-login-form','ft-reset-form'].includes(e.target.id)&&state.page!=='lesson'&&breakForCourse()){e.preventDefault();enforceBreak();return;}
+    if(!['ft-revision-add','ft-login','ft-login-form','ft-reset-form'].includes(e.target.id)&&breakForCourse()){e.preventDefault();enforceBreak();return;}
     if(e.target.id==='ft-revision-add'){
       e.preventDefault();const value=e.target.querySelector('[name="word"]')?.value.trim();
       if(value&&/^[\p{L}\p{M}]+(?:['’\- ][\p{L}\p{M}]+)*$/u.test(value)&&recordSignal(value,'manual'))render();
@@ -1175,6 +1215,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       try{localStorage.setItem(VOICE_KEY,preferredVoice);}catch{}
       cancelSpeech();return;
     }
+    if(e.target.matches('[data-gunit],[data-gverb],[data-workshop-key],[data-target]')&&enforceBreak())return;
     if(guidedUI.change(e.target))return;
     if(e.target.matches('[data-workshop-key]')){
       const key=e.target.dataset.workshopKey,v=Number(e.target.value);
@@ -1200,15 +1241,20 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   // Do not turn an IME/composition confirmation or a held key into a lesson
   // submission. Exact input fields disable browser spelling substitutions.
   const onKeyDown=e=>{
+    if(!el().contains(e.target)&&e.target!==document.body&&e.target!==document.documentElement)return;
     if(e.key==='Enter'&&(e.repeat||e.isComposing||e.keyCode===229)){e.preventDefault();return;}
     const node=wordTarget(e.target);
     if(node&&((e.altKey&&e.key==='Enter')||(e.shiftKey&&e.key==='F10')||e.key==='ContextMenu')){
-      e.preventDefault();exploreWord(node);
+      e.preventDefault();exploreWord(node);return;
     }
+    if(e.key!=='Enter'||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey||wordDialog||e.defaultPrevented)return;
+    if(e.target.closest?.('input,textarea,select,button,a,[contenteditable],summary,[role="button"]'))return;
+    const next=defaultAdvance();
+    if(next){e.preventDefault();next.click();}
   };
   const onVoicesChanged=()=>{if(!destroyed&&state.page==='settings')render();};
   window.speechSynthesis?.addEventListener?.('voiceschanged',onVoicesChanged);
-  el().addEventListener('keydown',onKeyDown);
+  document.addEventListener('keydown',onKeyDown);
   el().addEventListener('focusin',onTypingFocus);
   el().addEventListener('input',onTypingInput);
   el().addEventListener('pointerdown',onWordPointerDown);
@@ -1234,7 +1280,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     window.speechSynthesis?.removeEventListener?.('voiceschanged',onVoicesChanged);
     window.removeEventListener('online',onOnline);
     document.removeEventListener('visibilitychange',onVisible);
-    el().removeEventListener('keydown',onKeyDown);
+    document.removeEventListener('keydown',onKeyDown);
     el().removeEventListener('focusin',onTypingFocus);
     el().removeEventListener('input',onTypingInput);
     el().removeEventListener('pointerdown',onWordPointerDown);

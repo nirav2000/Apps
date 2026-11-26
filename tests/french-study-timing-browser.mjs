@@ -35,8 +35,15 @@ try{
  const deadline=await page.locator('[data-rest-until]').getAttribute('data-rest-until');
  assert.equal(Number(deadline),finish+300000);
  // Attempt to move ahead via another chapter and manual practice.
- await page.locator('[data-gunit]').selectOption(GUIDED_UNITS[1].id);
+ assert.equal(await page.locator('[data-gunit]').isDisabled(),true);
+ await page.locator('[data-gunit]').evaluate((el,id)=>{el.value=id;el.dispatchEvent(new Event('change',{bubbles:true}));},GUIDED_UNITS[1].id);
  assert.equal(await page.locator('[data-rest-until]').getAttribute('data-rest-until'),deadline);
+ await page.locator('.ft-tabs [data-page="history"]').click();
+ await page.locator('.ft-global-rest [data-rest-until]').waitFor();
+ assert.equal(await page.locator('.ft-global-rest [data-rest-until]').getAttribute('data-rest-until'),deadline);
+ await page.locator('[data-track]').selectOption('unlocking');
+ await page.locator('.ft-guided-congrats [data-rest-until]').waitFor();
+ assert.equal(await page.locator('[data-track]').inputValue(),'michaela');
  await page.locator('.ft-tabs [data-page="explore"]').click();
  await page.locator('.ft-explore-nav [data-page="practice"]').click();
  assert.equal(await page.locator('[data-rest-continue]').isDisabled(),true);

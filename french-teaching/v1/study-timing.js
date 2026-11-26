@@ -88,6 +88,8 @@ export function updateStudyClocks(root,now=Date.now()){
   const area=clock.closest('.ft-guided-congrats,.ft-path-next,.ft-global-rest')||clock.parentElement;
   const button=area.querySelector('[data-rest-continue]');
   if(button){button.disabled=active;button.setAttribute('aria-disabled',String(active));button.textContent=active?'Continue when the break finishes':'Start independent recall';}
+  const unitSelector=clock.closest('.ft-guided-shell')?.querySelector('[data-gunit]');
+  if(unitSelector){unitSelector.disabled=active;if(!active)unitSelector.removeAttribute('aria-label');}
   if(clock.dataset.restRunning==='true'&&!active)clock.querySelector('[data-rest-live]').textContent='Break complete. You can continue.';
   clock.dataset.restRunning=String(active);
  }
