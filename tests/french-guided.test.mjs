@@ -370,3 +370,45 @@ test('assisted dictation schedules a retry rather than advancing unassisted revi
  const row=revisionQueue([{id:'hinted',at,word,kind:'assisted',mode:'dictation',correct:true}],at)[0];
  assert.equal(row.level,0);assert.equal(row.dueAt,at+600000);assert.equal(row.needsRecall,true);
 });
+
+
+import {revisionEligibility} from '../french-teaching/v1/revision-signals.js';
+import {wordPatternsFor} from '../french-teaching/v1/unlocking-builder.js';
+test('revision requires learner-specific prior teaching or demonstrated knowledge, not diagnostic exposure',()=>{
+ const track='unlocking',past={id:'guided-v2:unlock2-past:present:2',unitId:'unlock2-past',unitName:'Past',track,stage:'present',fr:'J’ai préparé le repas'};
+ const later={id:'guided-v2:unlock2-cognates:guided:25',unitId:'unlock2-cognates',unitName:'Cognates',track,stage:'guided',fr:'C’est urgent'};
+ const context={track,unitId:later.unitId};
+ const events=[
+  {id:'diagnostic',word:'C’est urgent',kind:'construction',at:50,ref:'assess-v1:unlock2-cognates:baseline:4:recall',context:{...context,stage:'baseline'}},
+  {id:'old-review',word:'C’est urgent',kind:'review',at:60,correct:true,context},
+  {id:'past',word:'préparé',kind:'spelling',at:200,context:{track,unitId:past.unitId}},
+  {id:'other-track',word:'préparé',kind:'manual',at:210,context:{track:'sai'}},
+  {id:'new-sentence',word:'C’est différent',kind:'manual',at:220,context},
+ ];
+ const evidence=[{at:100,source:{ref:past.id+':complete'}}];
+ const a=revisionEligibility({events,history:[],evidence,steps:[past,later],track,now:300});
+ assert.deepEqual(a.rows.map(r=>r.word),['préparé']);assert.equal(a.rows[0].learningProof.at,100);assert.equal(a.rows[0].counts.manual,0);
+ assert.ok(a.deferred.some(r=>r.word==='C’est urgent'));assert.ok(a.deferred.some(r=>r.word==='C’est différent'));
+ const b=revisionEligibility({events,history:[],evidence:[...evidence,{at:150,source:{ref:later.id+':complete'}}],steps:[past,later],track,now:300});
+ assert.deepEqual(b.rows.map(r=>r.word),['préparé']); // old diagnostic and invalid review do not revive
+ const after={id:'after',word:'C’est urgent',kind:'recognition',at:250,context};
+ const d=revisionEligibility({events:[...events,after],history:[],evidence:[...evidence,{at:150,source:{ref:later.id+':complete'}}],steps:[past,later],track,now:300});
+ assert.ok(d.rows.some(r=>r.word==='C’est urgent'&&r.learningProof.at===150));
+});
+test('cognate explanations are tied to the model actually introduced',()=>{
+ assert.ok(wordPatternsFor('préparé').some(p=>p.id==='past-e'));
+ assert.ok(wordPatternsFor('pratique').some(p=>p.id==='ique'));
+ assert.ok(wordPatternsFor('urgent').some(p=>p.id==='ant-ent'));
+ assert.ok(wordPatternsFor('C’est différent').some(p=>p.id==='ant-ent'));
+ assert.ok(wordPatternsFor('une invitation').some(p=>p.id==='ion'));
+ assert.deepEqual(wordPatternsFor('bonjour'),[]);
+});
+
+test('learning-history lookup distinguishes starting check from recorded teaching',()=>{
+ const track='unlocking',step={id:'guided-v2:unlock2-cognates:present:1',unitId:'unlock2-cognates',unitName:'Recognise familiar words',track,stage:'present',fr:'urgent'};
+ const baseline={id:'b',at:100,ref:'assess-v1:unlock2-cognates:baseline:1:recall',targetLang:'fr',support:'none',result:'unknown',answer:'',expected:'urgent',context:{track,unitId:step.unitId,stage:'baseline',fr:'urgent'}};
+ const before=revisionEligibility({history:[baseline],steps:[step],track,now:300}).lookup('urgent');
+ assert.equal(before.firstTaught,null);assert.equal(before.diagnosticCount,1);assert.equal(before.eligible,false);
+ const after=revisionEligibility({history:[baseline],evidence:[{at:200,source:{ref:step.id+':complete'}}],steps:[step],track,now:300}).lookup('urgent');
+ assert.equal(after.firstTaught.at,200);assert.equal(after.eligible,false);
+});

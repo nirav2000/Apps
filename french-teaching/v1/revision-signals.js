@@ -180,6 +180,72 @@ export function revisionEvents(audits,visible){
  }
  return out;
 }
+
+// Personal revision is a view of recorded learning, never of the entire
+// curriculum. Diagnostic errors and old revision-only attempts cannot seed it.
+export function revisionEligibility({events=[],history=[],evidence=[],steps=[],track,now=Date.now()}={}){
+ const selected=steps.filter(s=>(s.track||'michaela')===track);
+ const units=new Set(selected.map(s=>s.unitId));
+ const byStep=new Map(selected.map(s=>[s.id,s]));
+ const byRef=new Map(selected.map(s=>[s.id+':complete',s]));
+ const learned=[];
+ const baseline=(context,ref)=>context?.stage==='baseline'||/^assess-v1:[^:]+:baseline:/.test(ref||'');
+ const inTrack=(context={},ref='')=>{
+   if(context.track&&context.track!==track)return false;
+   if(context.unitId&&!units.has(context.unitId))return false;
+   const unit=String(ref).match(/^(?:guided-v2|assess-v1|adaptive-v1):([^:]+):/)?.[1];
+   return !unit||units.has(unit);
+ };
+ for(const row of evidence){
+   const ref=row.source?.ref,step=byRef.get(ref),at=Number(row.at);
+   if(!step||!Number.isFinite(at)||at>now||['independent','transfer','review'].includes(step.stage))continue;
+   learned.push({fr:step.fr,at,stepId:step.id,unitId:step.unitId,unitName:step.unitName||'',type:'teaching',ref});
+ }
+ for(const x of history){
+   const ctx=x.context||{},at=Number(x.at);
+   // A genuinely correct pre-test can establish prior knowledge, but not
+   // teaching. No prompted, listening-only, revision or reveal can do so.
+   if(x.result!=='correct'||x.support!=='none'||x.targetLang!=='fr'||x.legacy||x.signal||
+      /^revision:/.test(x.ref||'')||['transcribe','listen','model'].includes(ctx.kind)||
+      !inTrack(ctx,x.ref)||!Number.isFinite(at)||at>now||!x.answer?.trim()||!x.expected||!markAnswer(x.answer,x.expected))continue;
+   learned.push({fr:x.expected,at,stepId:ctx.stepId||'',unitId:ctx.unitId||'',unitName:x.activity||'',type:'prior-correct',ref:x.ref});
+ }
+ learned.sort((a,b)=>a.at-b.at);
+ const matchCache=new Map();
+ function proof(word){
+   const key=wordKey(word);if(!key)return [];
+   if(!matchCache.has(key))matchCache.set(key,learned.filter(x=>containsTarget(x.fr,word)));
+   return matchCache.get(key);
+ }
+ const allowed=[],deferred=[],seeded=new Set();
+ const derivedKinds=new Set(['review','assisted','exposure','success']);
+ for(const e of [...events].sort((a,b)=>a.at-b.at||String(a.id).localeCompare(String(b.id)))){
+   const context=e.context||{},key=wordKey(e.word);
+   if(!key||!inTrack(context,e.ref)||!Number.isFinite(e.at)||e.at>now)continue;
+   if(baseline(context,e.ref)){deferred.push({...e,reason:'starting check — not yet evidence of forgotten learning'});continue;}
+   const available=proof(e.word),sameStep=context.stepId&&byStep.has(context.stepId);
+   const first=available.find(p=>p.at<=e.at||(sameStep&&p.stepId===context.stepId));
+   if(!first){deferred.push({...e,reason:available.length?'signal predates recorded learning':'no completed teaching or correct independent answer recorded'});continue;}
+   if(derivedKinds.has(e.kind)&&!seeded.has(key)){deferred.push({...e,reason:'no eligible original revision signal'});continue;}
+   if(!derivedKinds.has(e.kind))seeded.add(key);
+   allowed.push({...e,learningProof:first});
+ }
+ const rows=revisionQueue(allowed,now).map(row=>{
+   const proofs=proof(row.word),first=proofs[0];
+   return {...row,learningProof:first,firstTaught:proofs.find(p=>p.type==='teaching')||null,firstCorrect:proofs.find(p=>p.type==='prior-correct')||null};
+ });
+ // Keep all historical records intact; only the derived scheduling view changes.
+ const active=new Set(rows.map(x=>x.key)),pending=new Map();
+ for(const e of deferred){const key=wordKey(e.word);if(!active.has(key))pending.set(key,{word:e.word,key,reason:e.reason,at:e.at,firstTaught:proof(e.word).find(p=>p.type==='teaching')||null,firstCorrect:proof(e.word).find(p=>p.type==='prior-correct')||null});}
+ return {rows,deferred:[...pending.values()],excludedSignals:deferred.length,lookup:word=>{
+   const key=wordKey(word),matches=proof(word),row=rows.find(r=>r.key===key);
+   const related=history.filter(x=>!x.legacy&&x.result!=='withheld'&&inTrack(x.context||{},x.ref)&&containsTarget(x.context?.fr||x.expected||'',word));
+   const diagnostic=related.filter(x=>baseline(x.context,x.ref));
+   return {word,firstTaught:matches.find(p=>p.type==='teaching')||null,firstCorrect:matches.find(p=>p.type==='prior-correct')||null,diagnosticCount:diagnostic.length,attemptCount:related.length,revisionCount:related.filter(x=>/^revision:/.test(x.ref||'')).length,eligible:!!row,reason:row?'Eligible prior learning and a later revision signal':pending.get(key)?.reason||'No eligible revision signal recorded'};
+ }};
+
+}
+
 export function revisionQueue(events,now=Date.now()){
  const map=new Map(),seen=new Set();
  for(const e of [...events].sort((a,b)=>a.at-b.at||String(a.id).localeCompare(String(b.id)))){

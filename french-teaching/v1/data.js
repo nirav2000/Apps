@@ -1,6 +1,6 @@
 // Human-reviewed pilot content. Original material inspired by documented Michaela routines.
 // These are not verbatim Michaela knowledge organisers or official Barry Smith materials.
-export const COURSE_VERSION='1.0.2';
+export const COURSE_VERSION='1.0.3';
 const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const names=['a','bé','cé','dé','e','effe','gé','ache','i','ji','ka','elle','emme','enne','o','pé','cu','erre','esse','té','u','vé','double vé','iks','i grec','zède'];
 const examples=['ami','bonjour','chat','demain','école','français','grand','hôtel','ici','je','kilo','livre','maison','non','oui','parce que','question','rue','salut','toujours','utile','ville','wagon','exemple','yeux','zéro'];

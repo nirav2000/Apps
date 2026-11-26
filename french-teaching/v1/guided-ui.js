@@ -13,6 +13,7 @@ import {compareFrench,correctionSummary,phraseTarget,frenchTokens,differenceSegm
 import {adaptiveStep,adaptiveOutcome} from './adaptive-teaching.js';
 import {curriculumVariants,curriculumNormalize} from './curriculum-meta.js';
 import {activeRest,restForUnit,restMarkup} from './study-timing.js';
+import {wordPatternsFor} from './unlocking-builder.js';
 
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const marker=row=>guidedCompletionRefs(row.id);
@@ -198,6 +199,10 @@ export function listeningRepairMarkup({answer='',fr,en='',components=[],prefix='
     (retry?'<button type="button" '+attr+'="'+prefix+'listen-rebuild">Rebuild without the model</button>':'')+'</div></aside>';
 }
 
+export function wordPatternMarkup(fr){
+ const patterns=wordPatternsFor(fr);
+ return patterns.map(p=>'<aside class="ft-word-pattern"><p class="ft-eyebrow">WORD PATTERNS · BORROW FROM ENGLISH</p><strong>'+html(p.rule)+'</strong><p>'+html(p.note)+'</p><div class="ft-word-pattern-pairs">'+p.examples.map(([en,french])=>'<span><small>'+html(en)+'</small><b lang="fr">'+spokenWords(french)+'</b></span>').join('')+'</div><details><summary>Try another example: '+html(p.tryEn)+'</summary><p lang="fr">'+spokenWords(p.tryFr)+'</p><p class="ft-small">Optional discovery practice — not a scored recall check.</p></details></aside>').join('');
+}
 export const EXACT_ANSWER_ATTRIBUTES='spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" writingsuggestions="false" inputmode="text"';
 export function answerComparison({answer='',expected,result,lang='fr',replay=''}) {
   const status=result==='correct'?'correct':result==='incorrect'?'incorrect':'revealed';
@@ -367,6 +372,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
         if(showFrench){
           if(step.pronunciation)body+='<p class="ft-unlock-pron" aria-label="Pronunciation">'+html(step.pronunciation)+' · tap the French to listen</p>';
           if(step.note)body+='<details class="ft-unlock-note"><summary>Notice the pattern</summary><p>'+html(step.note)+'</p></details>';
+          if(step.unlockAction==='introduce')body+=wordPatternMarkup(step.fr);
           if(step.components?.length>1)body+='<div class="ft-unlock-components" aria-label="How the sentence is built">'+step.components.map(c=>'<span><small>'+html(c.en)+'</small><strong lang="fr">'+spokenWords(c.fr)+'</strong></span>').join('')+'</div>';
         }
         body+='<div class="ft-actions">'+(!showFrench?advanceButton('reveal',reverse?'Reveal English':'Reveal French'):

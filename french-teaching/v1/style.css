@@ -383,3 +383,13 @@
 .ft-app .ft-listening-repair-chunks button{white-space:normal;text-align:left}
 .ft-app .ft-listening-repair-chunks .ft-listening-difficult{border-color:#b99261;background:#fff7e7;color:#624820}
 @media(max-width:520px){.ft-app .ft-listening-next{align-items:flex-start;flex-direction:column}.ft-app .ft-listening-next small{min-width:0}}
+
+.ft-app .ft-revision-why{border:1px solid #d7e3da;background:#f8faf7;border-radius:10px;padding:10px 13px;margin:10px 0;color:#25473b}
+.ft-app .ft-revision-why summary,.ft-app .ft-word-pattern summary{font-weight:650;cursor:pointer}
+.ft-app .ft-revision-why p{font-size:14px;margin:8px 0;line-height:1.45}
+.ft-app .ft-word-pattern{background:#edf4ef;border:1px solid #cfdfd3;border-radius:14px;padding:16px;margin:12px 0;color:#18392f}
+.ft-app .ft-word-pattern>strong{font-size:clamp(18px,2.3vw,23px)}
+.ft-app .ft-word-pattern p{margin:8px 0;line-height:1.5}
+.ft-app .ft-word-pattern-pairs{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+.ft-app .ft-word-pattern-pairs>span{display:grid;gap:4px;padding:8px 12px;background:#fff;border:1px solid #d5e1d9;border-radius:9px}
+.ft-app .ft-word-pattern-pairs small{color:#51685a}

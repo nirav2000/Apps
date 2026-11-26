@@ -49,10 +49,10 @@ export function adaptivePlans(audits,unitId){
 function taughtPairs(evidence,track){
  const done=new Set(evidence.filter(e=>e.source?.ref?.endsWith(':complete')).map(e=>e.source.ref));
  const out=[];
- // Previously encountered material across the learner's courses is eligible;
- // current course phrases rank higher. Never take a future uncompleted block.
- for(const u of ALL_UNITS)for(const s of guidedLesson(u.id).steps){
-  if(!done.has(s.id+':complete'))continue;
+ // Use completed models from the selected course only.
+ // Never take a future uncompleted block or an independent transfer item.
+ for(const u of ALL_UNITS.filter(u=>(u.track||'michaela')===track))for(const s of guidedLesson(u.id).steps){
+  if(!done.has(s.id+':complete')||['independent','transfer','review'].includes(s.stage))continue;
   if(s.fr&&s.en)out.push({...pair(s.fr,s.en),unitId:u.id,track:u.track||'michaela',stage:s.stage});
  }
  return out;
@@ -85,7 +85,7 @@ function sentenceChoices(row,known,planHistory,current,track){
 }
 export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track,now=Date.now()}){
  if(!status?.unit||!['new','resume'].includes(status.mode))return null;
- const unitId=status.unit.id,plans=adaptivePlans(audits,unitId),pending=plans.find(p=>!p.complete);
+ const unitId=status.unit.id,eligibleKeys=new Set(queue.map(r=>r.key)),plans=adaptivePlans(audits,unitId).filter(p=>p.complete||eligibleKeys.has(p.key)),pending=plans.find(p=>!p.complete&&eligibleKeys.has(p.key));
  if(pending&&status.next&&!['independent','transfer','review'].includes(status.next.stage))return {...pending,resume:true};
  const counts=status.teaching,position=counts.coreCompleted+counts.repairCompleted;
  const next=status.next;
@@ -97,7 +97,7 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
  if(plans.length>=max)return null;
  const sessionPlans=audits.filter(a=>a.answerAudit?.signal?.kind==='adaptive-plan'&&a.answerAudit.signal.plan?.sessionId===sessionId);
  if(sessionPlans.length>=6)return null;
- const allPlans=ALL_UNITS.flatMap(u=>adaptivePlans(audits,u.id));
+ const allPlans=ALL_UNITS.filter(u=>(u.track||'michaela')===track).flatMap(u=>adaptivePlans(audits,u.id)).filter(p=>p.complete||eligibleKeys.has(p.key));
  const eligible=queue.filter(row=>{
   if(row.dueAt===null)return false;
   const difficulty=row.lastDifficulty,action=row.lastAction;
@@ -123,7 +123,7 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
  const upcoming=status.steps.filter(s=>!s.completed&&s.stage!=='repair').slice(0,2);
  for(const row of eligible){
   const targetTaught=frenchTokens(row.word).every(t=>taughtWords.has(t.key));
-  if(!targetTaught&&!row.counts.manual&&!row.counts.pronunciation)continue;
+  if(!targetTaught&&!row.learningProof)continue;
   if(upcoming.some(s=>s.kind==='write'&&containsTarget(s.fr,row.word)))continue;
   const previous=allPlans.filter(p=>p.key===row.key);
   const candidates=sentenceChoices(row,known,previous,next,track);

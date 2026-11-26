@@ -2,6 +2,24 @@
 // Noble's cover/retrieve/recombine approach; no publisher script is reproduced.
 // A block is one new word or useful grammatical chunk. A build may only use
 // blocks already introduced in THIS chapter. This also supports direct entry.
+
+// Original, curated word-family teaching, not automatic word generation.
+// Surface the relationship alongside the relevant model, never before a test.
+const WORD_PATTERNS=Object.freeze([
+ {id:'past-e',title:'A familiar noun can lead to an action',rule:'-ation → -é (related regular -er verbs)',note:'For some families, take away -ation and add -é to form the past participle. Add j’ai for “I did / I have done”. Not every noun has a matching regular verb.',words:['préparé','réservé','invité'],examples:[['décoration','décoré'],['organisation','organisé']],tryEn:'confirmation → past participle',tryFr:'confirmé'},
+ {id:'visit',title:'A familiar English root',rule:'visit → visiter → visité',note:'The regular French verb keeps the familiar root. The infinitive -er and past participle -é sound alike, but their grammatical roles differ.',words:['visité','visiter'],examples:[['repair (verb)','réparer'],['repaired','réparé']],tryEn:'to repair → repaired (in French)',tryFr:'réparer → réparé'},
+ {id:'er-e',title:'One sound, two verb endings',rule:'-er (infinitive) ↔ -é (past participle)',note:'These endings normally sound /e/. After je veux or je vais use the infinitive; after j’ai use the past participle for these regular verbs.',words:['réserver','préparer','répéter'],examples:[['to organise','organiser'],['organised','organisé']],tryEn:'to decorate → decorated (in French)',tryFr:'décorer → décoré'},
+ {id:'ique',title:'Recognise the word family',rule:'-ic / -ical → often -ique',note:'Look for a familiar English root and a French -ique ending (/ik/). Practical is pratique, not a mechanical substitution of every English letter. Check spelling and meaning.',words:['pratique','typique','logique','musique'],examples:[['economic','économique'],['historic','historique']],tryEn:'scientific',tryFr:'scientifique'},
+ {id:'able',title:'Same spelling, French sound',rule:'-able / -ible → often unchanged',note:'Many cognates keep these endings. French vowels and final syllables may sound quite different from English; possible ends in /ibl/.',words:['possible'],examples:[['visible','visible'],['acceptable','acceptable']],tryEn:'portable',tryFr:'portable'},
+ {id:'ant-ent',title:'Spot the familiar adjective',rule:'-ant / -ent → often unchanged',note:'Check accents and meaning: different becomes différent, urgent remains urgent. In these masculine adjectives the final t is silent and the ending is nasal /ɑ̃/. The pattern does not apply to verb -ent endings, and English interesting corresponds to French intéressant rather than a direct spelling conversion.',words:['différent','urgent','important','importante','intéressant','intelligent'],examples:[['constant','constant'],['elegant','élégant']],tryEn:'evident',tryFr:'évident'},
+ {id:'ion',title:'Recognise a familiar noun',rule:'-ion / -tion → often unchanged',note:'Many nouns share a familiar ending. Check accents, gender and meaning. French -tion normally sounds /sjɔ̃/; learn the article with the noun.',words:['invitation','information','réservation','préparation','situation'],examples:[['discussion','une discussion'],['protection','une protection']],tryEn:'a reaction',tryFr:'une réaction'},
+ {id:'normal',title:'Recognise familiar spellings',rule:'Some English and French words share the same spelling',note:'Normal is a cognate; pronounce it in French, and remember that feminine adjectives may change: normale.',words:['normal'],examples:[['original (masculine)','original'],['final (masculine)','final']],tryEn:'local (masculine)',tryFr:'local'}
+]);
+export function wordPatternsFor(fr){
+ const tokens=String(fr??'').normalize('NFC').toLowerCase().match(/[\p{L}\p{M}]+/gu)||[];
+ return WORD_PATTERNS.filter(p=>p.words.some(w=>tokens.includes(w)));
+}
+
 const block=(definition,...builds)=>({definition,builds});
 const chapters=[
  ['past','Talk about what you did','Build the completed past from a helper and action. Learn one component, say it, cover it, and assemble the next phrase.',[
