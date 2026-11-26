@@ -5,19 +5,113 @@
 
 // Original, curated word-family teaching, not automatic word generation.
 // Surface the relationship alongside the relevant model, never before a test.
-const WORD_PATTERNS=Object.freeze([
+export const WORD_PATTERNS=Object.freeze([
  {id:'past-e',title:'A familiar noun can lead to an action',rule:'-ation → -é (related regular -er verbs)',note:'For some families, take away -ation and add -é to form the past participle. Add j’ai for “I did / I have done”. Not every noun has a matching regular verb.',words:['préparé','réservé','invité'],examples:[['décoration','décoré'],['organisation','organisé']],tryEn:'confirmation → past participle',tryFr:'confirmé'},
  {id:'visit',title:'A familiar English root',rule:'visit → visiter → visité',note:'The regular French verb keeps the familiar root. The infinitive -er and past participle -é sound alike, but their grammatical roles differ.',words:['visité','visiter'],examples:[['repair (verb)','réparer'],['repaired','réparé']],tryEn:'to repair → repaired (in French)',tryFr:'réparer → réparé'},
  {id:'er-e',title:'One sound, two verb endings',rule:'-er (infinitive) ↔ -é (past participle)',note:'These endings normally sound /e/. After je veux or je vais use the infinitive; after j’ai use the past participle for these regular verbs.',words:['réserver','préparer','répéter'],examples:[['to organise','organiser'],['organised','organisé']],tryEn:'to decorate → decorated (in French)',tryFr:'décorer → décoré'},
  {id:'ique',title:'Recognise the word family',rule:'-ic / -ical → often -ique',note:'Look for a familiar English root and a French -ique ending (/ik/). Practical is pratique, not a mechanical substitution of every English letter. Check spelling and meaning.',words:['pratique','typique','logique','musique'],examples:[['economic','économique'],['historic','historique']],tryEn:'scientific',tryFr:'scientifique'},
  {id:'able',title:'Same spelling, French sound',rule:'-able / -ible → often unchanged',note:'Many cognates keep these endings. French vowels and final syllables may sound quite different from English; possible ends in /ibl/.',words:['possible'],examples:[['visible','visible'],['acceptable','acceptable']],tryEn:'portable',tryFr:'portable'},
- {id:'ant-ent',title:'Spot the familiar adjective',rule:'-ant / -ent → often unchanged',note:'Check accents and meaning: different becomes différent, urgent remains urgent. In these masculine adjectives the final t is silent and the ending is nasal /ɑ̃/. The pattern does not apply to verb -ent endings, and English interesting corresponds to French intéressant rather than a direct spelling conversion.',words:['différent','urgent','important','importante','intéressant','intelligent'],examples:[['constant','constant'],['elegant','élégant']],tryEn:'evident',tryFr:'évident'},
+ {id:'ant-ent',title:'Spot the familiar adjective',rule:'-ant / -ent → often unchanged',note:'Check accents and meaning: different becomes différent, urgent remains urgent. In these masculine adjectives the final t is silent and the ending is nasal /ɑ̃/. The pattern does not apply to verb -ent endings. Add a final e where feminine agreement requires it, as in importante.',words:['différent','urgent','important','importante','intelligent'],examples:[['constant','constant'],['elegant','élégant']],tryEn:'evident',tryFr:'évident'},
+ {id:'ing-ant',title:'A related adjective, not the same ending',rule:'-ing → sometimes -ant',note:'Interesting does not end in -ant or -ent in English. Some English -ing adjectives have related French -ant adjectives; check the root and spelling. This is a vocabulary relationship, not a rule for translating every English -ing verb.',words:['intéressant','intéressante','amusant','amusante','rassurant','rassurante','fatigant','fatigante'],examples:[['interesting','intéressant'],['amusing','amusant'],['reassuring','rassurant'],['tiring','fatigant']],tryEn:'amusing',tryFr:'amusant'},
  {id:'ion',title:'Recognise a familiar noun',rule:'-ion / -tion → often unchanged',note:'Many nouns share a familiar ending. Check accents, gender and meaning. French -tion normally sounds /sjɔ̃/; learn the article with the noun.',words:['invitation','information','réservation','préparation','situation'],examples:[['discussion','une discussion'],['protection','une protection']],tryEn:'a reaction',tryFr:'une réaction'},
  {id:'normal',title:'Recognise familiar spellings',rule:'Some English and French words share the same spelling',note:'Normal is a cognate; pronounce it in French, and remember that feminine adjectives may change: normale.',words:['normal'],examples:[['original (masculine)','original'],['final (masculine)','final']],tryEn:'local (masculine)',tryFr:'local'}
 ]);
 export function wordPatternsFor(fr){
  const tokens=String(fr??'').normalize('NFC').toLowerCase().match(/[\p{L}\p{M}]+/gu)||[];
  return WORD_PATTERNS.filter(p=>p.words.some(w=>tokens.includes(w)));
+}
+
+
+// A separate concept catalogue preserves all existing guided step IDs and
+// assessment banks. Practice prompts use explicit constraints, not an
+// unverified automatic suffix converter.
+export const GRAMMAR_PATTERNS=Object.freeze([
+ {id:'gender-agreement',title:'Masculine and feminine adjective agreement',rule:'important (masculine) → importante (feminine)',note:'The adjective agrees with the noun, not with the speaker. Un repas is masculine, so important stays important; une invitation is feminine, so add e: importante. The final t is silent in important but pronounced in importante. Some adjectives do not change, e.g. pratique. Other adjectives have irregular forms.',examples:[['masculine: important','important'],['feminine: important','importante'],['a masculine noun: an important meal','un repas important'],['a feminine noun: an important invitation','une invitation importante'],['an interesting museum (masculine)','un musée intéressant'],['an interesting invitation (feminine)','une invitation intéressante']],tryEn:'an urgent invitation (une invitation + urgent)',tryFr:'une invitation urgente',grammar:true},
+ {id:'adjective-order',title:'Where the adjective goes',rule:'Many French adjectives follow the noun',note:'English usually puts the adjective before the noun. For a neutral description, French commonly puts adjectives such as important, différent and intéressant after it. Short common adjectives such as petit and grand often precede the noun. Position sometimes changes meaning; this is a tendency, not an absolute rule.',examples:[['an important meal','un repas important'],['an interesting museum','un musée intéressant'],['a small museum','un petit musée']],tryEn:'an important table (use noun before adjective)',tryFr:'une table importante',grammar:true},
+ {id:'noun-gender',title:'Learn nouns with their article',rule:'un = masculine · une = feminine',note:'Nouns have grammatical gender. Learn each with its article. Le and un go with masculine singular nouns; la and une with feminine singular nouns. L’ alone does not tell you the gender. Gender is not determined by the English meaning.',examples:[['a meal (masculine)','un repas'],['an invitation (feminine)','une invitation'],['a museum (masculine)','un musée'],['a table (feminine)','une table']],tryEn:'a room (chambre is feminine)',tryFr:'une chambre',grammar:true}
+]);
+const patternText=fr=>String(fr??'').normalize('NFC').toLowerCase().replace(/[’‘]/g,"'");
+export function grammarPatternsFor(fr){
+ const text=patternText(fr),out=[];
+ // Teach gender with a displayed noun phrase, not with a hidden answer.
+ if(/(?:^|\s)(?:un|une|le|la)\s+(?:repas|déjeuner|dîner|musée|table|invitation|chambre|chien|chat|gare|billet|radio)\b/u.test(text))out.push(GRAMMAR_PATTERNS[2]);
+ if(/\b(?:important|importante)\b/u.test(text)||/\b(?:un|une|le|la)\s+\p{L}+\s+(?:différent|différente|intéressant|intéressante|urgent|urgente|intelligent|intelligente|rouge)\b/u.test(text))out.push(GRAMMAR_PATTERNS[0]);
+ if(/\b(?:un|une|le|la)\s+(?:(?:petit|petite|grand|grande)\s+\p{L}+|\p{L}+\s+(?:important|importante|différent|différente|intéressant|intéressante|urgent|urgente|intelligent|intelligente|rouge))\b/u.test(text)||text==='importante')out.push(GRAMMAR_PATTERNS[1]);
+ return out;
+}
+export const ALL_LANGUAGE_PATTERNS=Object.freeze([...WORD_PATTERNS,...GRAMMAR_PATTERNS]);
+export const patternsForModel=fr=>[...wordPatternsFor(fr),...grammarPatternsFor(fr)];
+const exercise=(prompt,fr,clue='')=>({prompt,fr,clue});
+const PATTERN_EXERCISES={
+ 'past-e':[exercise('French past participle of décoration','décoré'),exercise('French past participle of organisation','organisé'),exercise('French past participle of confirmation','confirmé'),exercise('French past participle of préparation','préparé')],
+ visit:[exercise('to visit','visiter'),exercise('visited','visité'),exercise('to repair','réparer'),exercise('repaired','réparé')],
+ 'er-e':[exercise('I want to book','je veux réserver','Use réserver or réservé.'),exercise('I booked','j’ai réservé','Use réserver or réservé.'),exercise('I am going to prepare','je vais préparer','Use préparer or préparé.'),exercise('I prepared','j’ai préparé','Use préparer or préparé.')],
+ ique:[exercise('economic','économique'),exercise('historic','historique'),exercise('scientific','scientifique'),exercise('practical','pratique')],
+ able:[exercise('visible','visible'),exercise('acceptable','acceptable'),exercise('portable','portable'),exercise('possible','possible')],
+ 'ant-ent':[exercise('constant (masculine)','constant'),exercise('elegant (masculine)','élégant'),exercise('evident (masculine)','évident'),exercise('different (masculine)','différent'),exercise('urgent (masculine)','urgent')],
+ 'ing-ant':[exercise('interesting (masculine)','intéressant'),exercise('amusing (masculine)','amusant'),exercise('reassuring (masculine)','rassurant'),exercise('tiring (masculine)','fatigant')],
+ ion:[exercise('a discussion','une discussion','The noun is feminine.'),exercise('a protection','une protection','The noun is feminine.'),exercise('a reaction','une réaction','The noun is feminine.'),exercise('an invitation','une invitation','The noun is feminine.')],
+ normal:[exercise('normal (masculine)','normal'),exercise('original (masculine)','original'),exercise('final (masculine)','final'),exercise('local (masculine)','local')],
+ 'gender-agreement':[
+   exercise('Complete the adjective: un repas ___ (important)','important'),
+   exercise('Complete the adjective: une invitation ___ (important)','importante'),
+   exercise('Complete the adjective: une invitation ___ (urgent)','urgente'),
+   exercise('Complete the adjective: un musée ___ (intéressant)','intéressant'),
+   exercise('Complete the adjective: une invitation ___ (intéressant)','intéressante'),
+   exercise('Complete the adjective: une table ___ (différent)','différente'),
+   exercise('Complete the adjective: une invitation ___ (pratique)','pratique'),
+   exercise('Complete the adjective: un repas ___ (urgent)','urgent')
+ ],
+ 'adjective-order':[
+   exercise('An important invitation — use the ordinary descriptive word order','une invitation importante','Reorder: importante / une / invitation'),
+   exercise('An important meal — use the ordinary descriptive word order','un repas important','Reorder: important / repas / un'),
+   exercise('An interesting museum — use the ordinary descriptive word order','un musée intéressant','Reorder: intéressant / un / musée'),
+   exercise('A small museum — use the ordinary descriptive word order','un petit musée','Reorder: musée / petit / un'),
+   exercise('A different table — use the ordinary descriptive word order','une table différente','Reorder: différente / une / table')
+ ],
+ 'noun-gender':[
+   exercise('An invitation — add the correct French article','une invitation','Noun: invitation'),
+   exercise('A meal — add the correct French article','un repas','Noun: repas'),
+   exercise('A table — add the correct French article','une table','Noun: table'),
+   exercise('A museum — add the correct French article','un musée','Noun: musée'),
+   exercise('A room — add the correct French article','une chambre','Noun: chambre')
+ ]
+};
+export const PATTERN_DAY=86400000;
+export function patternQuestion(patternId,index=0){
+ const qs=PATTERN_EXERCISES[patternId]||[];return qs.length?qs[((index%qs.length)+qs.length)%qs.length]:null;
+}
+// Derive schedules from immutable, learner-scoped teaching completion and
+// answer audits. Reading the reference or opening a hint does not create
+// independent mastery. An early optional practice cannot advance a due date.
+export function patternReviewSchedule({steps=[],evidence=[],audits=[],track='unlocking',now=Date.now()}={}){
+ const completed=new Map();
+ for(const e of evidence){const ref=e.source?.ref,at=Number(e.at);if(ref&&Number.isFinite(at)&&at<=now&&(!completed.has(ref)||at<completed.get(ref)))completed.set(ref,at);}
+ const first=new Map();
+ for(const s of steps){
+  if((s.track||'michaela')!==track||s.kind!=='model'||['independent','transfer','review','adaptive'].includes(s.stage))continue;
+  const at=completed.get(s.id+':complete');if(at===undefined)continue;
+  for(const p of patternsForModel(s.fr)){if(!first.has(p.id)||at<first.get(p.id))first.set(p.id,at);}
+ }
+ const intervals=[1,3,7,28,28],out=[];
+ for(const p of ALL_LANGUAGE_PATTERNS){
+  const taughtAt=first.get(p.id);if(taughtAt===undefined)continue;
+  const samePattern=r=>r.answerAudit?.context?.track===track&&r.answerAudit?.context?.patternId===p.id&&r.at>=taughtAt&&r.at<=now;
+  const intro=audits.filter(r=>r.answerAudit?.marker==='pattern-intro-v1'&&r.answerAudit?.result==='model'&&samePattern(r)).sort((a,b)=>a.at-b.at)[0];
+  const introAt=intro?.at??null,needsIntro=introAt===null;
+  let level=0,dueAt=(introAt??taughtAt)+10*60000,attempts=0,lastAt=null,lastCorrect=null;
+  const rows=needsIntro?[]:audits.filter(r=>r.answerAudit?.marker==='pattern-practice-v1'&&samePattern(r)&&r.at>=introAt).sort((a,b)=>a.at-b.at||String(a.id).localeCompare(String(b.id)));
+  for(const r of rows){
+   const a=r.answerAudit;attempts++;lastAt=r.at;lastCorrect=a.result==='correct';
+   const correct=lastCorrect&&a.support==='none';
+   if(!correct){level=0;dueAt=r.at+10*60000;continue;}
+   if(r.at<dueAt)continue;
+   dueAt=r.at+intervals[Math.min(level,intervals.length-1)]*PATTERN_DAY;
+   level=Math.min(level+1,intervals.length);
+  }
+  out.push({...p,taughtAt,introAt,needsIntro,level,dueAt,due:dueAt<=now,attempts,lastAt,lastCorrect,question:patternQuestion(p.id,attempts)});
+ }
+ return out.sort((a,b)=>a.dueAt-b.dueAt||a.id.localeCompare(b.id));
 }
 
 const block=(definition,...builds)=>({definition,builds});
@@ -58,7 +152,7 @@ const chapters=[
   block("normal|normal|normal|/nɔʁmal/","It is normal|it normal"),
   block("urgent|urgent|urgent|/yʁʒɑ̃/","It is urgent|it urgent"),
   block("invitation|an invitation|une invitation|/yn ɛ̃vitasjɔ̃/|Learn the article with the noun; English -tion often has a similar French word.","It is an invitation|it invitation"),
-  block("important|important (feminine)|importante|/ɛ̃pɔʁtɑ̃t/|Invitation is feminine, so importante has a final e.","It is an important invitation|it invitation important")
+  block("important|important (feminine)|importante|/ɛ̃pɔʁtɑ̃t/|Invitation is feminine (une), so important becomes importante. With a masculine noun, such as un repas, it remains important. Here the adjective follows the noun.","It is an important invitation|it invitation important")
  ],[
  "It is normal and practical|it normal and practical","It is urgent but possible|it urgent but possible",
  "It is different and interesting|it different and interesting","It is possible and practical|it possible and practical",

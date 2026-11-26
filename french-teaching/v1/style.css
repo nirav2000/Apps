@@ -393,3 +393,25 @@
 .ft-app .ft-word-pattern-pairs{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
 .ft-app .ft-word-pattern-pairs>span{display:grid;gap:4px;padding:8px 12px;background:#fff;border:1px solid #d5e1d9;border-radius:9px}
 .ft-app .ft-word-pattern-pairs small{color:#51685a}
+
+/* Contextual language rules and a durable searchable reference. */
+.ft-app .ft-pattern-ending{color:#23664b;font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.ft-app .ft-pattern-audio{align-self:center;min-width:32px;padding:4px 9px;font-size:13px;line-height:1.2}
+.ft-app .ft-word-pattern-pairs>span{grid-template-columns:minmax(0,1fr) auto;align-items:center}
+.ft-app .ft-word-pattern-pairs>span>small,.ft-app .ft-word-pattern-pairs>span>b{grid-column:1}
+.ft-app .ft-word-pattern-pairs>span>button{grid-column:2;grid-row:1/3}
+.ft-app .ft-pattern-compact{padding:10px 14px}
+.ft-app .ft-pattern-compact>summary{color:#245f4b}
+.ft-app .ft-pattern-order{padding:12px;background:#fff;border:1px solid #d5e1d9;border-radius:10px}
+.ft-app .ft-pattern-order-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.ft-app .ft-pattern-order-row span{border-radius:7px;padding:7px 10px;background:#f0f3f2;font-weight:650}
+.ft-app .ft-pattern-order-row .ft-order-adj{background:#dce8f7;color:#244c76}
+.ft-app .ft-pattern-order-row .ft-order-noun{background:#f9ecd6;color:#73501e}
+.ft-app .ft-pattern-order-row .ft-pattern-ending{background:transparent;padding:0}
+.ft-app .ft-order-arrow{font-size:23px;line-height:1.4;color:#64796e;text-align:center}
+.ft-app .ft-pattern-reference-row{border-top:1px solid #d7e1da;padding:14px 0}
+.ft-app .ft-pattern-task .ft-pattern-clue{padding:12px;border:1px solid #d7e1da;border-radius:10px;background:#f7faf7}
+.ft-app .ft-current-audio{margin:0 0 9px;color:#405d51}
+
+.ft-app .ft-pattern-reminder{margin:6px 0 9px;font-size:15px;color:#294f40;line-height:1.45}
+.ft-app .ft-pattern-compact>strong{font-size:17px}

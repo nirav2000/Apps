@@ -3,7 +3,8 @@ import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,so
 import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
 import {browserAuthContext} from './auth-context.js';
-import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES,learningAudioText,AUDIO_WAIT_LABEL,audioWaitMarkup,LISTEN_SLOW_RATE,listeningChunks,listeningSteps,listeningContext,listeningHintMarkup,listeningRepairMarkup,verifiedListeningEnglish,listeningHelpName,wordPatternMarkup} from './guided-ui.js';
+import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES,learningAudioText,AUDIO_WAIT_LABEL,audioWaitMarkup,LISTEN_SLOW_RATE,listeningChunks,listeningSteps,listeningContext,listeningHintMarkup,listeningRepairMarkup,verifiedListeningEnglish,listeningHelpName,wordPatternMarkup,patternCardMarkup} from './guided-ui.js';
+import {ALL_LANGUAGE_PATTERNS,patternReviewSchedule} from './unlocking-builder.js';
 import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
@@ -94,7 +95,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(!recordAttempt({ref:plan.id,activity:'Personal teaching',question:plan.en,expected:plan.fr,result:'signal',marker:'adaptive-plan-v1',reason:plan.reason,signal:{kind:'adaptive-plan',plan},context:{sessionId:plan.sessionId,track:plan.track,unitId:plan.unitId,position:plan.position}}))return null;
     return plan;
   }
-  let importedWords=revisionImport(window.location.hash),revisionLookup='';
+  let importedWords=revisionImport(window.location.hash),revisionLookup='',patternReview=null,patternQuery='';
   const revisionProfile=()=>{
     const history=historyRows(),evidence=state.store?.getEntries()||[];
     const steps=unitsForTrack(state.track).flatMap(u=>guidedLesson(u.id).steps.map(s=>({...s,unitName:u.name})));
@@ -102,6 +103,53 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   };
   const revisions=()=>revisionProfile().rows;
   const dailyRevisionItems=()=>revisions().filter(x=>x.due);
+  const patternSchedule=()=>state.track==='unlocking'?patternReviewSchedule({
+    steps:unitsForTrack(state.track).flatMap(u=>guidedLesson(u.id).steps),
+    evidence:state.store?.getEntries()||[],audits:audits(),track:state.track
+  }):[];
+  const duePatterns=()=>patternSchedule().filter(x=>x.due);
+  const nextPatternReview=()=>patternSchedule().find(x=>!x.due)?.dueAt??null;
+  function startPatternReview(auto=false,patternId=''){
+    if(enforceBreak())return;
+    if(prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
+    const rows=patternId?patternSchedule().filter(x=>x.id===patternId):duePatterns().slice(0,3);
+    if(!rows.length){if(auto)assessmentUI.startDaily();return;}
+    cancelPendingAdvance();revision=null;patternReview={auto,items:rows,index:0,result:null,answer:'',hint:false,draft:''};state.page='patterns';render();focusTarget('#ft-pattern-answer,[data-act="pattern-intro"]');
+  }
+  function patternPage(){
+    if(patternReview){
+      const p=patternReview.items[patternReview.index],q=p.question;
+      if(p.needsIntro)return '<section class="ft-card ft-pattern-task"><p class="ft-eyebrow">PATTERNS &amp; GRAMMAR · LEARN THE RULE</p><h2>'+esc(p.title)+'</h2><p>Look at the contrasting examples, listen to the French and say them aloud. Earlier vocabulary progress alone does not show you have learnt this rule.</p>'+patternCardMarkup(p,{reference:true})+'<button type="button" class="ft-primary" data-act="pattern-intro" data-ft-advance>I have reviewed it → Try a question</button><div class="ft-pause-row"><button type="button" data-act="pattern-leave">Pause · return to reference</button></div></section>';
+      const status=patternReview.result;
+      const answer=patternReview.answer||'';
+      return '<section class="ft-card ft-pattern-task"><p class="ft-eyebrow">PATTERNS &amp; GRAMMAR · '+(patternReview.index+1)+'/'+patternReview.items.length+'</p><h2>Recall the French</h2><p class="ft-small">Recall the rule using the vocabulary supplied. Optional help is tracked separately from unprompted rule recall. This is not a formal translation assessment.</p><h3>'+esc(q.prompt)+'</h3>'+(q.clue?'<p class="ft-pattern-clue">'+esc(q.clue)+'</p>':'')+
+        (status?answerComparison({answer,expected:q.fr,result:status,replay:'<button type="button" data-act="pattern-audio" data-pattern-audio="'+esc(q.fr)+'" aria-label="Hear the answer">▶</button>'})+
+          '<p role="status">'+(status==='correct'&&!patternReview.hint?(p.due?'Correct. The next recall interval is scheduled.':'Correct. Early extra practice does not move the scheduled review.'):'Review the explanation. A supported or missed answer does not advance the recall interval.')+'</p>'+patternCardMarkup(p,{reference:true})+
+          '<button type="button" class="ft-primary" data-act="pattern-next" data-ft-advance>Next →</button>':
+          '<form id="ft-pattern-form"><label for="ft-pattern-answer">Your French</label><input id="ft-pattern-answer" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' value="'+esc(patternReview.draft)+'" required><div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button><button type="button" data-act="pattern-hint">I need help</button><button type="button" data-act="pattern-reveal">Show answer</button></div></form>'+(patternReview.hint?patternCardMarkup(p,{reference:true}):''))+
+        '<div class="ft-pause-row"><button type="button" data-act="pattern-leave">Pause · return to reference</button></div></section>';
+    }
+    const rows=patternSchedule(),byId=new Map(rows.map(x=>[x.id,x])),due=rows.filter(x=>x.due),query=patternQuery.toLowerCase().trim();
+    const shown=ALL_LANGUAGE_PATTERNS.filter(p=>!query||[p.title,p.rule,p.note,...p.examples.flat()].join(' ').toLowerCase().includes(query));
+    const section=(p)=>{const r=byId.get(p.id);return '<article class="ft-pattern-reference-row"><div class="ft-row"><strong>'+esc(p.title)+'</strong><span class="ft-small">'+(r?r.needsIntro?'First guided recap '+(r.due?'due':'· '+esc(revisionDate(r.dueAt))):r.due?'Review due':'Next '+esc(revisionDate(r.dueAt)):'Reference only · not yet taught')+'</span></div>'+patternCardMarkup(p,{reference:true})+(r?'<p class="ft-small">'+r.attempts+' practice attempt'+(r.attempts===1?'':'s')+' · '+(r.needsIntro?'Guided recap not yet completed':r.level?'Recall interval step '+r.level:'Initial learning / repair')+'</p><button type="button" data-act="pattern-practise" data-pattern-id="'+esc(p.id)+'">Practise this pattern</button>':'')+'</article>';};
+    return '<section class="ft-card"><p class="ft-eyebrow">YOUR LANGUAGE TOOLKIT</p><h2>Patterns &amp; grammar</h2><p>Find the rules you have met, compare examples and hear the French. After the first guided recap, rule recall is due around 10 minutes later, then after 1, 3, 7 and 28 days from successful due recall, and monthly thereafter. Reviews appear automatically in Today. Incorrect or supported recall returns sooner. Reading the reference does not count as a review.</p>'+
+      (due.length?'<button type="button" class="ft-primary" data-act="pattern-start">Practise '+Math.min(3,due.length)+' due patterns →</button>':'<p class="ft-small">No pattern reviews due in this course.</p>')+
+      '<form id="ft-pattern-search"><label for="ft-pattern-search-input">Find a rule or word</label><input id="ft-pattern-search-input" name="query" value="'+esc(patternQuery)+'" placeholder="e.g. important, feminine, -ing"><button type="submit">Find</button></form>'+
+      '<h3>Already encountered in completed teaching</h3>'+(shown.filter(p=>byId.has(p.id)).map(section).join('')||'<p class="ft-small">No matching completed models yet.</p>')+
+      '<details class="ft-revision-why"'+(query?' open':'')+'><summary>Other reference patterns (not yet scheduled)</summary>'+shown.filter(p=>!byId.has(p.id)).map(section).join('')+'</details></section>';
+  }
+  function submitPattern(value,reveal=false){
+    if(!patternReview||patternReview.result||state.page!=='patterns'||enforceBreak())return;
+    const p=patternReview.items[patternReview.index],q=p.question;
+    if(p.needsIntro)return;
+    if(!reveal&&!String(value).trim())return;
+    if(prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
+    const correct=!reveal&&markAnswer(value,q.fr),support=reveal?'worked-example':patternReview.hint?'small-prompt':'none';
+    const audit=exactAudit(value,q.fr,correct,{ref:'pattern:'+p.id,activity:'Patterns & grammar',question:q.prompt+(q.clue?' · '+q.clue:''),marker:'pattern-practice-v1',targetLang:'fr',support,context:{patternId:p.id,patternQuestion:p.attempts,kind:'pattern-practice',providedVocabulary:q.clue||'',measure:'rule-retrieval'},signal:{kind:'pattern-review',patternId:p.id}});
+    if(reveal){audit.result='revealed';audit.reason='Model requested. No unaided recall credit.';}
+    if(!recordAttempt(audit))return;
+    patternReview.answer=value;patternReview.result=reveal?'revealed':correct?'correct':'incorrect';render();speak(q.fr);focusTarget('[data-act="pattern-next"]');
+  }
   const answerField=node=>node?.matches?.('#ft-guided-input,#ft-answer-text,#ft-e-answer')?node:null;
   const onTypingFocus=e=>{const input=answerField(e.target);if(!input)return;const old=typingSamples.get(input);if(old)old.invalidate();else typingSamples.set(input,createTypingSample(input.value));};
   const onTypingInput=e=>{
@@ -158,7 +206,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     cancelPendingAdvance();revision={items:due,index:0,result:null,answer:'',draft:'',level:0,rebuilding:false,rebuilt:false,rebuildFeedback:null,auto};state.page='signals';render();
     speak(due[0].word);focusTarget('#ft-revision-answer');
   }
-  function startDailyWithSignals(){if(enforceBreak())return;currentSession();cancelPendingAdvance();revision=null;assessmentUI.startDaily();}
+  function startDailyWithSignals(){if(enforceBreak())return;currentSession();cancelPendingAdvance();revision=null;patternReview=null;assessmentUI.startDaily();}
   const revisionDate=at=>new Date(at).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   function revisionWhy(item,{after=false}={}){
     const proof=item.learningProof;if(!proof)return '';
@@ -243,14 +291,14 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     navigate:page=>{state.page=page;render();}
   });
   const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,record,recordAttempt,speak,playAudio,refresh:render,focusTarget,
-    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>{const rest=breakForCourse();if(rest)showBreak(rest);else guidedUI.start(unit);},getRevisionItems:dailyRevisionItems,getSession:()=>readSession()||{},onRevision:()=>startRevision(true),onCheckComplete:unit=>updateSession({completedUnit:unit,oralDone:false}),onOralComplete:()=>updateSession({oralDone:true}),onOralDifficulty:item=>recordSignal(item.fr,'manual',item.fr,{english:item.en,targetKind:'phrase'}),onNewSession:newLearningSession});
+    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>{const rest=breakForCourse();if(rest)showBreak(rest);else guidedUI.start(unit);},getRevisionItems:dailyRevisionItems,getPatternItems:duePatterns,getNextPatternReview:nextPatternReview,getSession:()=>readSession()||{},onRevision:()=>startRevision(true),onPatterns:()=>startPatternReview(true),onCheckComplete:unit=>updateSession({completedUnit:unit,oralDone:false}),onOralComplete:()=>updateSession({oralDone:true}),onOralDifficulty:item=>recordSignal(item.fr,'manual',item.fr,{english:item.en,targetKind:'phrase'}),onNewSession:newLearningSession});
   // The break belongs to the learner across French tracks and is anchored
   // to completion evidence. Safe dashboard/settings navigation remains open.
   const SAFE_BREAK_PAGES=new Set(['home','evidence','history','signals','settings','explore']);
   const breakForCourse=()=>state.store?activeRest(state.store.getEntries(),Date.now(),null):null;
   const finishingLesson=rest=>state.page==='lesson'&&guidedUI.current()?.unitId===rest?.unitId&&guidedUI.finishing();
   function showBreak(rest){
-    revision=null;cancelPendingAdvance();
+    revision=null;patternReview=null;cancelPendingAdvance();
     if(rest.track!==state.track){state.track=rest.track;session=null;try{localStorage.setItem('next-french:track:'+state.profile,state.track);}catch{}}
     guidedUI.start(rest.unitId);
   }
@@ -365,7 +413,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(!state.context?.auth?.currentUser)return;
     const {auth,db,firestore,ownerUid}=state.context;
     if(auth.currentUser.uid!==ownerUid){state.cloudStatus='Wrong account; no evidence will be mixed';return;}
-    state.profile=profile;state.track=preferredTrack(profile);revisionLookup='';revision=null;session=null;alertNotice='';typingSamples=new WeakMap();pendingTyping=[];
+    state.profile=profile;state.track=preferredTrack(profile);revisionLookup='';patternReview=null;patternQuery='';revision=null;session=null;alertNotice='';typingSamples=new WeakMap();pendingTyping=[];
     state.soundLastResult=null;state.soundQueue=[];state.soundQuestion=0;
     state.store=createEvidenceStore({appId:APP_ID,learnerId:profile,accountId:ownerUid});
     guidedUI.reset();assessmentUI.reset();
@@ -379,7 +427,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(importedWords.length)state.page='signals';
   }
   function nav(){
-    const tabs=[['home','Today'],['lesson',"Today's lesson"],['evidence','Learning dashboard'],['history','Answer history'],['signals','Revision signals'],['magic','Magic 10'],['alphabet','Alphabet'],
+    const tabs=[['home','Today'],['lesson',"Today's lesson"],['evidence','Learning dashboard'],['history','Answer history'],['signals','Revision signals'],['patterns','Patterns & grammar'],['magic','Magic 10'],['alphabet','Alphabet'],
       ['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],
       ['practice','Sentence practice'],['review','Review'],['pronunciation','Speak'],['explore','Explore']];
     return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p||(p==='lesson'&&state.page==='assessment')||(p==='sounds'&&state.page==='sound-quiz')||(p==='alphabet'&&state.page==='alphabet-quiz')?'active':'')+'">'+t+'</button>').join('')+'</nav>';
@@ -432,7 +480,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<section class="ft-hero ft-card"><p class="ft-eyebrow">REFERENCE &amp; FREE EXPLORATION</p><h2>Explore the words behind your lessons.</h2>'+
       '<p>Use the guided lessons as your default. The alphabet, sound library, bilingual passage and sentence workshop remain available for optional exploration.</p>'+
       '<div class="ft-actions"><button data-page="alphabet">Learn the alphabet</button><button data-page="sounds">Hear French sounds</button>'+
-      '<button data-page="knowledge">Explore the knowledge grid</button><button data-page="practice">Practise sentences</button></div></section>'+
+      '<button data-page="knowledge">Explore the knowledge grid</button><button data-page="patterns">Patterns &amp; grammar</button><button data-page="practice">Practise sentences</button></div></section>'+
       oralPracticeCard()+
       '<section class="ft-card"><div class="ft-actions"><button data-act="sync">Sync with Firebase</button><button data-act="export">Export evidence</button><button data-page="review">Manual review</button></div></section>'+
       '<section class="ft-card ft-identity"><h2>Your learning account</h2><p class="ft-small">'+(active?.email?'Signed in as <strong>'+esc(active.email)+'</strong>. ':'Signed in with your existing parent account. ')+(googleLinked?'Google sign-in linked to this Firebase account.':'Linking Google lets you use the same account without entering the Firebase password on other devices.')+'</p>'+
@@ -445,7 +493,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       '<p class="ft-small">PROFS: Past, Reasons, Opinions, Future, Subjunctive. This pilot introduces useful past, reason, opinion and future structures, plus a supported subjunctive example.</p></section>';
   }
   function oralPracticeCard(){return '<section class="ft-card"><h2>Rapid oral practice</h2><p>Retrieve familiar expressions in this track and self-check against spoken French.</p><div class="ft-actions"><button type="button" data-eact="oral">Rapid oral practice</button>'+(state.track==='michaela'?'<button type="button" data-eact="experiment">Open teaching experiment</button>':'')+'</div></section>';}
-  const explorePages=[['signals','Revision signals'],['magic','Magic 10'],['alphabet','Alphabet'],['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],['practice','Sentence practice'],['review','Manual review'],['pronunciation','Speak']];
+  const explorePages=[['signals','Revision signals'],['patterns','Patterns & grammar'],['magic','Magic 10'],['alphabet','Alphabet'],['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],['practice','Sentence practice'],['review','Manual review'],['pronunciation','Speak']];
   function exploreNav(){
     return '<nav class="ft-explore-nav" aria-label="Optional French activities">'+explorePages.map(([p,t])=>'<button type="button" data-page="'+p+'"'+(state.page===p?' aria-current="page"':'')+'>'+t+'</button>').join('')+'</nav>';
   }
@@ -829,7 +877,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     return null;
   }
   function defaultAdvance(){
-    if(wordDialog||advancePending||!['lesson','assessment','practice','review','alphabet-quiz','sound-quiz','signals'].includes(state.page))return null;
+    if(wordDialog||advancePending||!['lesson','assessment','practice','review','alphabet-quiz','sound-quiz','signals','patterns'].includes(state.page))return null;
     const task=el().querySelector('.ft-guided-shell,.ft-e-question,.ft-revision-task')||el();
     return [...task.querySelectorAll('[data-ft-advance]')].find(b=>!b.disabled&&!b.closest('[hidden]')&&b.getClientRects().length)||null;
   }
@@ -842,7 +890,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const ready=!!state.store;
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
       (!ready?login():nav()+'<div data-study-notice></div>'+
-      (state.page==='home'?overview():state.page==='explore'?explore():state.page==='evidence'?assessmentUI.dashboard():state.page==='history'?answerHistoryPage(historyRows(),historyFilter,historyLimit):state.page==='signals'?revisionPage():state.page==='assessment'?assessmentUI.page():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
+      (state.page==='home'?overview():state.page==='explore'?explore():state.page==='evidence'?assessmentUI.dashboard():state.page==='history'?answerHistoryPage(historyRows(),historyFilter,historyLimit):state.page==='signals'?revisionPage():state.page==='patterns'?patternPage():state.page==='assessment'?assessmentUI.page():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
        state.page==='alphabet'?alphabet():state.page==='sounds'?sounds():state.page==='sound-quiz'?soundQuiz():state.page==='knowledge'?knowledge():
        state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())+(explorePages.some(([p])=>state.page===p)||['alphabet-quiz','sound-quiz'].includes(state.page)?exploreNav():'')))+
       '<p class="ft-foot">Original lessons informed by Barry Smith, Jessica Lund’s published Michaela work, and general repeat-and-build principles described by Paul Noble. Not affiliated with or a reproduction of their courses. <a href="https://jlmfl.wordpress.com/2022/11/27/teaching-grammar-rote-vs-rules/">Lund on rote &amp; rules</a> · <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES</a></p>';
@@ -981,7 +1029,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   function setPage(page){
     if(!state.store){render();return;}
     if(!SAFE_BREAK_PAGES.has(page)&&enforceBreak())return;
-    cancelPendingAdvance();
+    cancelPendingAdvance();patternReview=null;
     if(page==='lesson'){revision=null;startDailyWithSignals(true);return;}
     revision=null;
     if(page==='alphabet'){teach('alphabet');state.page=page;}
@@ -1020,7 +1068,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(code==='auth/requires-recent-login')return 'For security, sign in again with your Firebase password before linking Google.';
     return String(error?.message||error);
   }
-  function changeTrack(track){if(!validTrack(track)||track===state.track||!state.store)return;if(enforceBreak())return;cancelPendingAdvance();guidedUI.reset();assessmentUI.reset();revision=null;session=null;revisionLookup='';state.track=track;try{localStorage.setItem('next-french:track:'+state.profile,track);}catch{}state.page='home';render();}
+  function changeTrack(track){if(!validTrack(track)||track===state.track||!state.store)return;if(enforceBreak())return;cancelPendingAdvance();guidedUI.reset();assessmentUI.reset();revision=null;patternReview=null;patternQuery='';session=null;revisionLookup='';state.track=track;try{localStorage.setItem('next-french:track:'+state.profile,track);}catch{}state.page='home';render();}
   async function onClick(e){
     const rest=breakForCourse();
     if(rest){
@@ -1166,6 +1214,27 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         }
         break;
       }
+      case 'pattern-audio':{const value=b.dataset.patternAudio;if(value)speak(value);break;}
+      case 'pattern-intro':await afterSpeech(b,()=>{
+        if(!patternReview||patternReview.result||state.page!=='patterns')return;
+        const p=patternReview.items[patternReview.index];if(!p.needsIntro)return;
+        if(prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
+        if(!recordAttempt({ref:'pattern:intro:'+p.id,activity:'Patterns & grammar · guided recap',question:p.title,answer:null,expected:p.rule,result:'model',reason:'Rule and examples reviewed; no independent recall credit.',support:'worked-example',marker:'pattern-intro-v1',targetLang:'fr',context:{patternId:p.id,kind:'pattern-intro'},signal:{kind:'pattern-review',patternId:p.id}}))return;
+        patternReview.items[patternReview.index]={...p,needsIntro:false,due:false};
+        patternReview.hint=true;render();focusTarget('#ft-pattern-answer');
+      });break;
+      case 'pattern-start':startPatternReview();break;
+      case 'pattern-practise':startPatternReview(false,b.dataset.patternId);break;
+      case 'pattern-hint':
+        if(patternReview&&!patternReview.result){patternReview.draft=el().querySelector('#ft-pattern-answer')?.value||'';patternReview.hint=true;render();focusTarget('#ft-pattern-answer');}break;
+      case 'pattern-reveal':submitPattern(el().querySelector('#ft-pattern-answer')?.value||'',true);break;
+      case 'pattern-next':await afterSpeech(b,()=>{
+        if(!patternReview||!patternReview.result)return;
+        if(++patternReview.index>=patternReview.items.length){const auto=patternReview.auto;patternReview=null;if(auto){assessmentUI.startDaily();return;}}
+        else Object.assign(patternReview,{result:null,answer:'',hint:false,draft:''});
+        render();if(patternReview)focusTarget('#ft-pattern-answer,[data-act="pattern-intro"]');
+      });break;
+      case 'pattern-leave':patternReview=null;cancelPendingAdvance();state.page='patterns';render();break;
       case 'revision-start':startRevision();break;
       case 'revision-hear':if(revision){speak(revision.items[revision.index].word);if(e.detail>0)focusDefaultAdvance();}break;
       case 'revision-listen-help':
@@ -1274,6 +1343,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   async function onSubmit(e){
     if(!['ft-revision-add','ft-revision-lookup','ft-login','ft-login-form','ft-reset-form'].includes(e.target.id)&&breakForCourse()){e.preventDefault();enforceBreak();return;}
+    if(e.target.id==='ft-pattern-search'){
+      e.preventDefault();patternQuery=e.target.querySelector('[name="query"]')?.value||'';render();return;
+    }
+    if(e.target.id==='ft-pattern-form'){
+      e.preventDefault();submitPattern(e.target.querySelector('[name="answer"]')?.value||'');return;
+    }
     if(e.target.id==='ft-revision-lookup'){
       e.preventDefault();const value=e.target.querySelector('[name="word"]')?.value.trim();if(value){revisionLookup=value;render();}return;
     }

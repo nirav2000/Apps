@@ -13,7 +13,7 @@ import {compareFrench,correctionSummary,phraseTarget,frenchTokens,differenceSegm
 import {adaptiveStep,adaptiveOutcome} from './adaptive-teaching.js';
 import {curriculumVariants,curriculumNormalize} from './curriculum-meta.js';
 import {activeRest,restForUnit,restMarkup} from './study-timing.js';
-import {wordPatternsFor} from './unlocking-builder.js';
+import {patternsForModel,grammarPatternsFor} from './unlocking-builder.js';
 
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const marker=row=>guidedCompletionRefs(row.id);
@@ -199,9 +199,20 @@ export function listeningRepairMarkup({answer='',fr,en='',components=[],prefix='
     (retry?'<button type="button" '+attr+'="'+prefix+'listen-rebuild">Rebuild without the model</button>':'')+'</div></aside>';
 }
 
-export function wordPatternMarkup(fr){
- const patterns=wordPatternsFor(fr);
- return patterns.map(p=>'<aside class="ft-word-pattern"><p class="ft-eyebrow">WORD PATTERNS · BORROW FROM ENGLISH</p><strong>'+html(p.rule)+'</strong><p>'+html(p.note)+'</p><div class="ft-word-pattern-pairs">'+p.examples.map(([en,french])=>'<span><small>'+html(en)+'</small><b lang="fr">'+spokenWords(french)+'</b></span>').join('')+'</div><details><summary>Try another example: '+html(p.tryEn)+'</summary><p lang="fr">'+spokenWords(p.tryFr)+'</p><p class="ft-small">Optional discovery practice — not a scored recall check.</p></details></aside>').join('');
+const suffixMark=(value,suffixes)=>{const s=String(value),match=suffixes.find(x=>s.toLowerCase().endsWith(x));return match?html(s.slice(0,-match.length))+'<span class="ft-pattern-ending">'+html(s.slice(-match.length))+'</span>':html(s);};
+function orderDiagram(){
+ return '<div class="ft-pattern-order"><p class="ft-small">ENGLISH · adjective before noun</p><div class="ft-pattern-order-row"><span>an</span><span class="ft-order-adj">important</span><span class="ft-order-noun">invitation</span></div><div class="ft-order-arrow" aria-hidden="true">↓</div><p class="ft-small">FRENCH · noun before adjective</p><div class="ft-pattern-order-row"><span>une</span><span class="ft-order-noun" lang="fr">invitation</span><span class="ft-order-adj" lang="fr">important<span class="ft-pattern-ending">e</span></span></div></div>';
+}
+export function patternCardMarkup(p,{compact=false,reference=false}={}){
+ const ending=p.id==='ing-ant'?{en:['ing'],fr:['ante','ant']}:p.id==='ant-ent'?{en:['ant','ent'],fr:['ante','ente','ant','ent']}:p.id==='ique'?{en:['ical','ic'],fr:['ique']}:null;
+ const pairs=p.examples.map(([en,fr])=>'<span><small>'+ (ending?suffixMark(en,ending.en):html(en))+'</small><b lang="fr">'+ (ending?suffixMark(fr,ending.fr):spokenWords(fr))+'</b><button type="button" class="ft-pattern-audio" data-act="pattern-audio" data-pattern-audio="'+html(fr)+'" aria-label="Hear '+html(fr)+'">▶</button></span>').join('');
+ const heading=p.grammar?'GRAMMAR · NOTICE THE CHANGE':'WORD PATTERNS · BORROW FROM ENGLISH';
+ const content='<strong>'+html(p.rule)+'</strong><p>'+html(p.note)+'</p>'+(p.id==='adjective-order'?orderDiagram():'')+'<div class="ft-word-pattern-pairs">'+pairs+'</div><details><summary>Try another example: '+html(p.tryEn)+'</summary><p lang="fr">'+spokenWords(p.tryFr)+'</p><p class="ft-small">Optional discovery practice — not a scored recall check.</p></details>';
+ return compact?'<aside class="ft-word-pattern ft-pattern-compact"><p class="ft-eyebrow">REMEMBER THE PATTERN</p><strong>'+html(p.rule)+'</strong><div class="ft-pattern-reminder">'+html(p.examples[0][0])+' → <b lang="fr">'+spokenWords(p.examples[0][1])+'</b></div><details><summary>Explanation &amp; more examples</summary>'+content+'</details></aside>':'<aside class="ft-word-pattern"><p class="ft-eyebrow">'+heading+'</p>'+content+(reference?'':'<p class="ft-small">You will revisit this in Patterns &amp; grammar and scheduled practice.</p>')+'</aside>';
+}
+export function wordPatternMarkup(fr,{compact=false,grammarOnly=false}={}){
+ const patterns=grammarOnly?grammarPatternsFor(fr):patternsForModel(fr);
+ return patterns.map(p=>patternCardMarkup(p,{compact})).join('');
 }
 export const EXACT_ANSWER_ATTRIBUTES='spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" writingsuggestions="false" inputmode="text"';
 export function answerComparison({answer='',expected,result,lang='fr',replay=''}) {
@@ -282,13 +293,19 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     await waitForSpeech();
     if(token!==navigation)return;
     const next=chooseNext();
+    // Unlocking oral models are already spoken on entry or reveal. A Next
+    // click completes that model; never replay it while changing question.
     const same=next&&normaliseAnswer(next.fr)===normaliseAnswer(reinforce);
-    const safeRepeat=same&&!guidedEntryAudio(next)?'':reinforce;
+    const safeRepeat=getTrack()==='unlocking'||same&&!guidedEntryAudio(next)?'':reinforce;
     if(safeRepeat)await playAudio('reinforce',safeRepeat);
     if(token!==navigation)return;
     state.advancing=false;resetStep();state.step=next;
     if(next)state.hint=next.adaptivePlan?.hintLevel||Number(has(evidence(),hintRef(next)));
     announce();
+    // Let the newly rendered question become visible before playing it.
+    // The navigation token prevents stale audio after another navigation.
+    if(typeof requestAnimationFrame==='function')await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    if(token!==navigation)return;
     const intro=guidedEntryAudio(context().current);
     if(intro)playAudio('model',intro);
     focusTarget('#ft-guided-input,[data-ft-advance],[data-gchoice]');
@@ -362,21 +379,26 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       (french?'<div class="ft-pair-french"><p lang="fr" class="ft-guided-french">'+spokenWords(french)+'</p><button type="button" data-gact="speak" aria-label="Hear the French again">▶</button></div>':
         covered?'<span class="ft-pair-placeholder">Say it from memory, then reveal.</span>':'')+'</div>';
     let body='<div class="ft-guided-task'+(unit.incremental?' ft-unlock-task':'')+'" data-guided-step="'+html(step.id)+'"'+(step.unlockAction?' data-unlock-action="'+html(step.unlockAction)+'"':'')+'><p class="ft-eyebrow">'+html(step.unlockAction?({introduce:'NEW BUILDING BLOCK',recall:'COVER & RECALL',build:'BUILD A SENTENCE',reverse:'FRENCH → ENGLISH',write:'INDEPENDENT WRITING'}[step.unlockAction]||style):style+phase)+'</p>'+
-      '<h3>'+html(step.prompt)+'</h3>';
+      '<h3>'+html(unit.incremental&&step.kind==='model'&&state.revealed&&step.unlockAction==='build'?'Compare your spoken answer with the model':step.prompt)+'</h3>';
     const showFrench=step.kind==='model'?Boolean(step.modelInitiallyShown||state.revealed):state.done||state.revealed;
     if(step.kind==='model'){
       if(unit.incremental&&!step.adaptivePlan){
         const reverse=step.unlockAction==='reverse';
+        if(showFrench&&!reverse)body+='<p class="ft-small ft-current-audio"><strong>Listen and repeat this answer.</strong> When you have said it aloud, press Next to start a new exercise.</p>';
         body+=reverse?'<div class="ft-guided-pair"><div class="ft-pair-french"><p lang="fr" class="ft-guided-french">'+spokenWords(step.fr)+'</p><button type="button" data-gact="speak">▶</button></div>'+
           (showFrench?'<p class="ft-guided-english">'+html(step.en)+'</p>':'<p class="ft-pair-placeholder">Work out the English meaning first.</p>')+'</div>':pair(step.en,showFrench?step.fr:'',!showFrench);
         if(showFrench){
           if(step.pronunciation)body+='<p class="ft-unlock-pron" aria-label="Pronunciation">'+html(step.pronunciation)+' · tap the French to listen</p>';
           if(step.note)body+='<details class="ft-unlock-note"><summary>Notice the pattern</summary><p>'+html(step.note)+'</p></details>';
+          // Show the relevant rule with the first model and reinforce it
+          // after covered retrieval, without revealing any hidden answer.
           if(step.unlockAction==='introduce')body+=wordPatternMarkup(step.fr);
+          else if(step.unlockAction==='build')body+=wordPatternMarkup(step.fr,{compact:!grammarPatternsFor(step.fr).some(p=>p.id==='adjective-order')});
+          else if(step.unlockAction==='recall'||step.unlockAction==='reverse')body+=wordPatternMarkup(step.fr,{compact:true});
           if(step.components?.length>1)body+='<div class="ft-unlock-components" aria-label="How the sentence is built">'+step.components.map(c=>'<span><small>'+html(c.en)+'</small><strong lang="fr">'+spokenWords(c.fr)+'</strong></span>').join('')+'</div>';
         }
         body+='<div class="ft-actions">'+(!showFrench?advanceButton('reveal',reverse?'Reveal English':'Reveal French'):
-          advanceButton('finish-model',step.unlockAction==='introduce'?'I have said it → Next':'Got it → Next')+
+          advanceButton('finish-model',reverse?'I checked the meaning → Next':'I have said it → Next')+
           (step.unlockAction!=='introduce'&&step.stage!=='repair'?'<button type="button" data-gact="oral-retry"'+busy+'>Needed help · revisit later</button>':''))+'</div>';
       }else body+=pair(step.en,showFrench?step.fr:'',!showFrench)+
         '<div class="ft-actions">'+
@@ -415,6 +437,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       }
       if(!isChoice(step)&&showFrench)body+=answerComparison({answer:state.answer,expected:step.fr,result:state.result,
         replay:'<button type="button" data-gact="speak" aria-label="Hear the correct French again">▶</button>'});
+      if(showFrench&&unit.incremental&&!isChoice(step)&&!['transfer','review'].includes(step.stage))body+=wordPatternMarkup(step.fr,{compact:true});
       if(!isListening(step)&&state.hint&&!state.done&&!state.revealed)body+='<p class="ft-guided-hint" role="status">'+
         html(guidedHint(step,1))+(state.hint>=2?'<br><strong>'+html(guidedHint(step,2))+'</strong>':'')+'</p>';
       if(isListening(step)&&(state.revealed||state.done)&&(state.revealed||state.wrong||listenSupported()))body+=listeningRepairMarkup({...listenInfo(step),answer:step.kind==='listen'?'':state.answer,prefix:'',attr:'data-gact'});

@@ -92,7 +92,7 @@ export function createTypingSample(initial=''){
   }
  };
 }
-const frenchWritten=x=>!x.signal&&x.marker!=='listening-rebuild-v1'&&(x.targetLang==='fr'||!x.targetLang&&['guided-exact-v1','curriculum-v1','assessment-v1'].includes(x.marker));
+const frenchWritten=x=>!x.signal&&!['listening-rebuild-v1','pattern-practice-v1'].includes(x.marker)&&(x.targetLang==='fr'||!x.targetLang&&['guided-exact-v1','curriculum-v1','assessment-v1'].includes(x.marker));
 export function auditSignals(x){
  if(!frenchWritten(x)||!['correct','incorrect'].includes(x.result)||!x.answer||!x.expected)return [];
  const pairs=compareFrench(x.answer,x.expected),out=[];
@@ -118,7 +118,7 @@ export function containsTarget(sentence,target){
  return b.length>0&&a.some((_,i)=>b.every((w,j)=>a[i+j]===w));
 }
 export function revisionEvents(audits,visible){
- const explicit=audits.filter(x=>x.answerAudit?.signal&&!['adaptive-plan'].includes(x.answerAudit.signal.kind)).map(x=>{
+ const explicit=audits.filter(x=>x.answerAudit?.signal&&!['adaptive-plan','pattern-review'].includes(x.answerAudit.signal.kind)).map(x=>{
   const a=x.answerAudit,s=a.signal;
   // Reinterpret legacy manual review false negatives for scheduling only.
   // The immutable original audit is retained for transparency.
@@ -145,7 +145,7 @@ export function revisionEvents(audits,visible){
  for(const item of timeline){
   if(item.event){add(item.event);continue;}
   const x=item.audit;
-  if(x.marker==='listening-rebuild-v1')continue;
+  if(x.marker==='listening-rebuild-v1'||x.marker==='pattern-practice-v1')continue;
   if(x.signal){
    // In a personalised sentence, a second word can also reveal a spelling
    // difficulty. Record it, but do not double-count the targeted outcome.

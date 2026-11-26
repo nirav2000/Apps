@@ -412,3 +412,43 @@ test('learning-history lookup distinguishes starting check from recorded teachin
  const after=revisionEligibility({history:[baseline],evidence:[{at:200,source:{ref:step.id+':complete'}}],steps:[step],track,now:300}).lookup('urgent');
  assert.equal(after.firstTaught.at,200);assert.equal(after.eligible,false);
 });
+
+
+import {grammarPatternsFor,patternsForModel,patternQuestion,patternReviewSchedule,PATTERN_DAY} from '../french-teaching/v1/unlocking-builder.js';
+import {patternCardMarkup,wordPatternMarkup} from '../french-teaching/v1/guided-ui.js';
+test('interesting gets its relevant English ending pattern; agreement and order are explicit',()=>{
+ assert.deepEqual(wordPatternsFor('intéressant').map(p=>p.id),['ing-ant']);
+ assert.ok(wordPatternsFor('différent').some(p=>p.id==='ant-ent'));
+ const patterns=grammarPatternsFor('C’est une invitation importante').map(p=>p.id);
+ assert.ok(patterns.includes('gender-agreement'));assert.ok(patterns.includes('adjective-order'));assert.ok(patterns.includes('noun-gender'));
+ const box=wordPatternMarkup('C’est une invitation importante');
+ assert.match(box,/un repas important/);assert.match(box,/une invitation importante/);assert.match(box,/ft-pattern-order/);
+ assert.match(wordPatternMarkup('intéressant'),/-ing → sometimes -ant/);
+ assert.ok(!wordPatternMarkup('intéressant').includes('-ant / -ent → often unchanged'));
+ assert.equal(patternQuestion('gender-agreement',0).fr,'important');assert.equal(patternQuestion('gender-agreement',1).fr,'importante');
+ assert.ok(!patternQuestion('adjective-order',0).prompt.includes('noun-first'));
+ assert.ok(!patternQuestion('noun-gender',0).clue.includes('feminine'));
+});
+test('pattern recall is learner-scoped, after completed models, spaced, and never advanced by early or assisted success',()=>{
+ const t=1000000,track='unlocking',step={id:'guided-v2:unlock2-cognates:present:41',unitId:'unlock2-cognates',track,stage:'present',kind:'model',fr:'importante'},steps=[step];
+ const evidence=[{at:t,source:{ref:step.id+':complete'}}];
+ const run=(now,audits=[],es=evidence)=>patternReviewSchedule({steps,evidence:es,audits,track,now}).find(x=>x.id==='gender-agreement');
+ const audit=(at,support='none',result='correct',track='unlocking')=>({id:String(at)+support+track,at,answerAudit:{marker:'pattern-practice-v1',context:{track,patternId:'gender-agreement'},support,result}});
+ const intro={id:'intro',at:t+600000,answerAudit:{marker:'pattern-intro-v1',result:'model',support:'worked-example',context:{track,patternId:'gender-agreement'}}};
+ assert.equal(run(t,[],[]),undefined);
+ assert.equal(run(t).dueAt,t+600000);
+ assert.equal(run(t).needsIntro,true);
+ assert.equal(run(t+600001,[audit(t+600001)]).level,0);
+ assert.equal(run(t+600001,[intro]).needsIntro,false);
+ const due=intro.at+600000;
+ assert.equal(run(due,[intro]).dueAt,due);
+ assert.equal(run(due-1,[intro,audit(due-1)]).level,0);
+ assert.equal(run(due,[intro,audit(due)]).dueAt,due+PATTERN_DAY);
+ const day1=due+PATTERN_DAY;
+ assert.equal(run(day1,[intro,audit(due),audit(day1)]).dueAt,day1+3*PATTERN_DAY);
+ const day3=day1+3*PATTERN_DAY;
+ assert.equal(run(day3,[intro,audit(due),audit(day1),audit(day3)]).dueAt,day3+7*PATTERN_DAY);
+ assert.equal(run(day1,[intro,audit(due),audit(day1,'small-prompt')]).level,0);
+ assert.equal(run(day1,[intro,audit(due),audit(day1,'small-prompt')]).dueAt,day1+600000);
+ assert.equal(run(due,[intro,audit(due,'none','correct','sai')]).level,0);
+});

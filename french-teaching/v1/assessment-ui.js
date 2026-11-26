@@ -47,11 +47,12 @@ function extraRecall(entries,now,track){
   return items.sort((a,b)=>map.get(repairRef(a)).at-map.get(repairRef(b)).at);
 }
 // Single priority policy; separate from the renderer so the sequence can be tested.
-export function chooseLearningActivity({rest=null,checks=[],adaptive=null,repair=null,revisionCount=0,session={},guided=null,baseline=null,oralCount=0,nextReview=null}={}){
+export function chooseLearningActivity({rest=null,checks=[],adaptive=null,repair=null,revisionCount=0,patternCount=0,session={},guided=null,baseline=null,oralCount=0,nextReview=null}={}){
   if(rest)return {mode:'break',unitId:rest.unitId,rest,step:'break'};
   if(checks.length){const due=checks[0];return {mode:'check',due,step:due.stage==='immediate'?'after':'recall'};}
   if(adaptive)return {mode:'adaptive',item:adaptive,step:'recall'};
   if(repair)return {mode:'repair',item:repair,step:'revision'};
+  if(patternCount>0)return {mode:'patterns',count:Math.min(3,patternCount),step:'revision'};
   // A paused teaching sequence retains its position, including adaptive inserts.
   if(guided?.mode==='resume')return {mode:'guided',unitId:guided.unit.id,step:'teaching'};
   if(revisionCount>0&&!session.revisionDone)return {mode:'revision',count:Math.min(5,revisionCount),step:'revision'};
@@ -67,7 +68,7 @@ export function chooseLearningActivity({rest=null,checks=[],adaptive=null,repair
 }
 const LEARNING_SEQUENCE=[
  {id:'recall',name:'Recall previous learning',description:'Independent checks before any revision.'},
- {id:'revision',name:'Personal revision',description:'Target mistakes and words you find difficult.'},
+ {id:'revision',name:'Personal revision',description:'Revisit difficult words, grammar and word patterns.'},
  {id:'teaching',name:'Learn something new',description:'Guided teaching, at your own pace.'},
  {id:'break',name:'Let it settle',description:'Five minutes away from this course.'},
  {id:'after',name:'After teaching check',description:'Recall the new French without help.'},
@@ -78,7 +79,7 @@ export function sequenceStatus(plan,{checks=[],revisionCount=0,repair=false,adap
  return LEARNING_SEQUENCE.map(s=>{
    if(s.id===plan.step)return {...s,status:'Now',kind:'current'};
    if(s.id==='recall')return {...s,status:checks.some(c=>c.stage!=='immediate')||adaptive?'Due':'Up to date',kind:checks.some(c=>c.stage!=='immediate')||adaptive?'next':'quiet'};
-   if(s.id==='revision')return {...s,status:session.revisionDone?'Done this session':revisionCount||repair?'When due':'None due',kind:session.revisionDone?'done':'quiet'};
+   if(s.id==='revision')return {...s,status:revisionCount||repair?'When due':session.revisionDone?'Done this session':'None due',kind:revisionCount||repair?'next':session.revisionDone?'done':'quiet'};
    if(s.id==='teaching')return {...s,status:progress?'Teaching finished':plan.mode==='rest'?'When available':'Next when ready',kind:progress?'done':'next'};
    if(s.id==='break')return {...s,status:plan.step==='after'||session.completedUnit?'Elapsed':'After teaching',kind:'quiet'};
    if(s.id==='after')return {...s,status:session.completedUnit?'Done this session':'After the break',kind:session.completedUnit?'done':'quiet'};
@@ -86,7 +87,7 @@ export function sequenceStatus(plan,{checks=[],revisionCount=0,repair=false,adap
  });
 }
 
-export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),refresh,navigate,startGuided,focusTarget=()=>{},getRevisionItems=()=>[],getSession=()=>({}),onRevision=()=>{},onCheckComplete=()=>{},onOralComplete=()=>{},onOralDifficulty=()=>{},onNewSession=()=>{}}){
+export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),refresh,navigate,startGuided,focusTarget=()=>{},getRevisionItems=()=>[],getPatternItems=()=>[],getNextPatternReview=()=>null,getSession=()=>({}),onRevision=()=>{},onPatterns=()=>{},onCheckComplete=()=>{},onOralComplete=()=>{},onOralDifficulty=()=>{},onNewSession=()=>{}}){
   let state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};
   const entries=()=>getEntries()||[];
   const reset=()=>{state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};};
@@ -107,13 +108,14 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   const dailyPlan=()=>{
     const es=entries(),now=Date.now(),session=getSession(),rest=activeRest(es,now,null);
     const checks=prioritizedChecks(es,now,getTrack()),adaptive=extraRecall(es,now,getTrack())[0],repair=pendingRepairs(es,now,getTrack())[0];
-    const revisionCount=getRevisionItems().length;
+    const revisionCount=getRevisionItems().length,patternCount=getPatternItems().length;
     const guided=unitsForTrack(getTrack()).map(u=>guidedStatus(u.id,es,now));
     const next=guided.find(x=>x.mode==='resume')||guided.find(x=>x.mode==='new');
     const baseline=next?baselineFor(next.unit.id,es,now):null;
-    const nextReview=scheduledPractice(es,now,getTrack()).next?.at||nextCheckDate(es,now,getTrack());
+    const upcoming=[scheduledPractice(es,now,getTrack()).next?.at,nextCheckDate(es,now,getTrack()),getNextPatternReview()].filter(t=>Number.isFinite(t)&&t>now);
+    const nextReview=upcoming.length?Math.min(...upcoming):null;
     const oralCount=session.completedUnit&&!session.oralDone?taughtOralDeck(session.completedUnit,3).length:0;
-    const plan=chooseLearningActivity({rest,checks,adaptive,repair,revisionCount,session,guided:next,baseline,oralCount,nextReview});
+    const plan=chooseLearningActivity({rest,checks,adaptive,repair,revisionCount,patternCount,session,guided:next,baseline,oralCount,nextReview});
     const unit=unitsForTrack(getTrack()).find(u=>u.id===plan.unitId);
     const when=plan.nextReview?new Date(plan.nextReview).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'No further review scheduled';
     const details={
@@ -121,13 +123,14 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       adaptive:['Recall a repaired phrase','Try an earlier correction independently.'],
       repair:['Repair a weak spot',labels[plan.item?.error]||'Rebuild a phrase with help.'],
       revision:['Personal revision',plan.count+' priority words or phrases · short targeted practice'],
+      patterns:['Revisit patterns & grammar',plan.count+' short rule-retrieval questions · spaced review'],
       guided:['Guided teaching',unit?.name||'Continue the selected lesson'],
       oral:['Rapid oral practice','Optional · '+plan.count+' familiar expressions, then finish this session.'],
       complete:['Session complete',plan.nextReview?'Next scheduled review: '+when:when],
       rest:['All caught up',plan.nextReview?'Next scheduled review: '+when:when]
     };
     const [label,sub]=plan.mode==='check'?[plan.due.stage==='baseline'?'Quick starting check':plan.due.label+' check',plan.due.unit.name+' · '+(plan.due.items.length-plan.due.attempted.length)+' questions · '+(plan.due.stage==='baseline'?'check what you know before teaching':'recall without hints')]:details[plan.mode];
-    return {...plan,label,sub,sequence:sequenceStatus(plan,{checks,revisionCount,repair:!!repair,adaptive:!!adaptive,session})};
+    return {...plan,label,sub,sequence:sequenceStatus(plan,{checks,revisionCount:revisionCount+patternCount,repair:!!repair,adaptive:!!adaptive,session})};
   };
   const startDaily=()=>{
     const plan=dailyPlan();
@@ -137,6 +140,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     }else if(plan.mode==='guided'||plan.mode==='break')startGuided(plan.unitId);
     else if(plan.mode==='repair'||plan.mode==='adaptive')pick(plan.mode,plan.item);
     else if(plan.mode==='revision')onRevision();
+    else if(plan.mode==='patterns')onPatterns();
     else if(plan.mode==='oral')startOral(true);
     else if(plan.mode==='complete'&&plan.hasMore){onNewSession();startDaily();}
     else navigate('evidence');
