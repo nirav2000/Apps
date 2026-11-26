@@ -1,22 +1,31 @@
 // Shared isolated translation gateway. Do NOT install in apps-monitor-api.
 // Secrets: GOOGLE_TRANSLATE_KEY, DEEPL_AUTH_KEY, FIREBASE_WEB_API_KEY, OWNER_UID.
 // Bindings: AI (optional), LIMITS (Durable Object for atomic daily quota).
-export const BUILD="translation-gateway-v1.1.0";
+export const BUILD="translation-gateway-v1.1.1";
 const ORIGIN="https://nirav2000.github.io";
 const PROJECT="kk-syllabus";
 const cors={"Access-Control-Allow-Origin":ORIGIN,"Access-Control-Allow-Methods":"POST, OPTIONS","Access-Control-Allow-Headers":"Authorization, Content-Type","Cache-Control":"no-store","Vary":"Origin"};
 const json=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:{"Content-Type":"application/json; charset=utf-8",...cors}});
 const bounded=(v,n)=>typeof v==="string"&&v.trim()&&v.length<=n;
 async function upstream(url,options,timeout=18000){const r=await fetch(url,{...options,redirect:"error",signal:AbortSignal.timeout(timeout)});if(!r.ok)throw Error("Provider request failed ("+r.status+")");return r.json()}
+const decodeJwt=s=>{const b=s.replace(/-/g,"+").replace(/_/g,"/");return Uint8Array.from(atob(b.padEnd(Math.ceil(b.length/4)*4,"=")),c=>c.charCodeAt(0))};
+const jwksUrl="https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 async function verify(request,env){
   const token=request.headers.get("Authorization")?.match(/^Bearer ([A-Za-z0-9._-]+)$/)?.[1];
-  if(!token||token.length>10000||!env.OWNER_UID||!env.FIREBASE_WEB_API_KEY)throw Error("Authorised Firebase sign-in required.");
-  const r=await upstream("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key="+encodeURIComponent(env.FIREBASE_WEB_API_KEY),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({idToken:token})});
-  if(!r.users?.some(x=>x.localId===env.OWNER_UID&&!x.disabled))throw Error("Account not authorised.");
-  // Google Identity Toolkit verifies the token for the key's Firebase project.
-  // Also pin issuer and audience after verification to prevent project misconfiguration.
-  const raw=token.split(".")[1];let decoded;try{const b=raw.replace(/-/g,"+").replace(/_/g,"/");decoded=JSON.parse(atob(b.padEnd(Math.ceil(b.length/4)*4,"=")))}catch{throw Error("Invalid token.");}
-  if(decoded.aud!==PROJECT||decoded.iss!=="https://securetoken.google.com/"+PROJECT||decoded.sub!==env.OWNER_UID||!Number.isFinite(decoded.exp)||decoded.exp<=Date.now()/1000)throw Error("Invalid Firebase project or identity.");
+  if(!token||token.length>10000||!env.OWNER_UID)throw Error("Owner sign-in required");
+  const parts=token.split(".");if(parts.length!==3||parts.some(x=>!x))throw Error("Invalid token");
+  const decoder=new TextDecoder();
+  const h=JSON.parse(decoder.decode(decodeJwt(parts[0]))),p=JSON.parse(decoder.decode(decodeJwt(parts[1])));
+  const now=Date.now()/1000;
+  if(h.alg!=="RS256"||typeof h.kid!=="string"||!h.kid||p.aud!==PROJECT||p.iss!=="https://securetoken.google.com/"+PROJECT||p.sub!==env.OWNER_UID||!Number.isFinite(p.exp)||p.exp<=now||!Number.isFinite(p.iat)||p.iat>now+30||!Number.isFinite(p.auth_time)||p.auth_time>now+30)throw Error("Invalid Firebase claims");
+  // Firebase public signing keys, same trust root as the existing Comprehension AI service.
+  // No admin key is installed in this Worker. Signed tokens expire naturally within an hour.
+  const certs=await fetch(jwksUrl,{redirect:"error",signal:AbortSignal.timeout(8000),cf:{cacheTtl:3600}});
+  if(!certs.ok)throw Error("Signing keys unavailable");
+  const jwk=(await certs.json()).keys?.find(k=>k.kid===h.kid&&k.kty==="RSA");
+  if(!jwk)throw Error("Unknown signing key");
+  const key=await crypto.subtle.importKey("jwk",jwk,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["verify"]);
+  if(!await crypto.subtle.verify("RSASSA-PKCS1-v1_5",key,decodeJwt(parts[2]),new TextEncoder().encode(parts[0]+"."+parts[1])))throw Error("Invalid signature");
 }
 export class Limits {
   constructor(state){this.state=state;}
@@ -36,7 +45,7 @@ function decode(s){return s.replace(/&(?:amp|lt|gt|quot|apos|#39|#\d+|#x[\da-fA-
 async function google(env,q,from,to){await charge(env,"google",Array.from(q).length);const r=await upstream("https://translation.googleapis.com/language/translate/v2?key="+encodeURIComponent(env.GOOGLE_TRANSLATE_KEY),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q,source:from,target:to,format:"text",model:"nmt"})});const value=r.data?.translations?.[0]?.translatedText;if(typeof value!=="string"||!value.trim())throw Error("Google returned no translation.");return decode(value);}
 async function deepl(env,q,from,to){await charge(env,"deepl",Array.from(q).length);const r=await upstream("https://api-free.deepl.com/v2/translate",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"DeepL-Auth-Key "+env.DEEPL_AUTH_KEY},body:JSON.stringify({text:[q],source_lang:from.toUpperCase(),target_lang:to==="en"?"EN-GB":"FR"})});const value=r.translations?.[0]?.text;if(typeof value!=="string"||!value.trim())throw Error("DeepL returned no translation.");return value;}
 export default {async fetch(request,env){
-  if(request.method==="GET"&&new URL(request.url).pathname==="/health")return json({ok:true,build:BUILD,authConfigured:!!(env.OWNER_UID&&env.FIREBASE_WEB_API_KEY),quotaConfigured:!!env.LIMITS,googleConfigured:!!env.GOOGLE_TRANSLATE_KEY,deeplConfigured:!!env.DEEPL_AUTH_KEY,aiConfigured:!!env.AI});
+  if(request.method==="GET"&&new URL(request.url).pathname==="/health")return json({ok:true,build:BUILD,authConfigured:!!env.OWNER_UID,quotaConfigured:!!env.LIMITS,googleConfigured:!!env.GOOGLE_TRANSLATE_KEY,deeplConfigured:!!env.DEEPL_AUTH_KEY,aiConfigured:!!env.AI});
   if(request.headers.get("Origin")!==ORIGIN)return json({error:"Origin not permitted."},403);
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
   if(request.method!=="POST")return json({error:"POST required."},405);
