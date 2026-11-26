@@ -221,7 +221,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       if(slot.dataset.markup!==markup+message){slot.innerHTML=markup+message;slot.dataset.markup=markup+message;}
     }
     const path=el().querySelector('[data-learning-path]');
-    if(path){const markup=assessmentUI.overview();if(path.dataset.markup!==markup){path.innerHTML=markup;path.dataset.markup=markup;updateStudyClocks(path,now);}}
+    if(path){const running=path.querySelector('[data-rest-until]');if(!(running&&rest&&Number(running.dataset.restUntil)===rest.readyAt)){const markup=assessmentUI.overview();if(path.dataset.markup!==markup){path.innerHTML=markup;path.dataset.markup=markup;updateStudyClocks(path,now);}}}
     void notifyOverdue(alertKeys(schedule,words));
   }
   function teach(kind){
@@ -262,7 +262,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
           if(destroyed||state.cloud!==cloud)return;
           state.cloudAt=result.at;
           state.cloudStatus='Saved to Firebase';
-          if(!wordDialog&&(state.page==='home'||state.page==='evidence'||state.page==='history'))render();else updateStatus();
+          if(!wordDialog&&['home','evidence','history','explore','settings'].includes(state.page)&&!revision)render();else updateStatus();
         }while(pendingAgain&&state.cloud===cloud);
       }catch(e){
         if(destroyed)return;
@@ -847,7 +847,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   function setPage(page){
     if(!state.store){render();return;}
     if(!['home','evidence','history','signals','settings','explore'].includes(page)&&enforceBreak())return;
-    if(explorePages.some(([p])=>p===page)&&page!=='signals'&&prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
+    if(explorePages.some(([p])=>p===page)&&prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
     cancelPendingAdvance();
     if(page==='lesson'){revision=null;startDailyWithSignals(true);return;}
     revision=null;
@@ -904,6 +904,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(assessmentTarget?.dataset.eact==='daily'){startDailyWithSignals(true);return;}
     if(assessmentTarget&&assessmentUI.click(assessmentTarget))return;
     const guidedTarget=e.target.closest('[data-gword],[data-gact],[data-gchoice],[data-gspeak]');
+    if(guidedTarget?.dataset.gact==='start'&&prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
     if(guidedTarget?.dataset.gact==='next-unit'){if(enforceBreak())return;const unit=guidedTarget.dataset.restUnit;if(unit)assessmentUI.startUnit(unit);else startDailyWithSignals();return;}
     if(guidedTarget&&guidedUI.click(guidedTarget))return;
     const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say],[data-word],[data-sound-group],[data-sound-play],[data-sound-compare],[data-sound-sentence],[data-sound-answer],[data-cuddle-word]');
@@ -1105,6 +1106,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
     if(e.target.id==='ft-revision-form'){
       e.preventDefault();if(!revision||revision.result)return;
+      if(prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
       const value=e.target.querySelector('[name="answer"]')?.value||'',item=revision.items[revision.index];
       if(!value.trim())return;
       const correct=wordKey(value)===item.key;

@@ -50,6 +50,8 @@ export function chooseLearningActivity({rest=null,checks=[],adaptive=null,repair
   if(checks.length){const due=checks[0];return {mode:'check',due,step:due.stage==='immediate'?'after':'recall'};}
   if(adaptive)return {mode:'adaptive',item:adaptive,step:'recall'};
   if(repair)return {mode:'repair',item:repair,step:'revision'};
+  // A paused teaching sequence retains its position, including adaptive inserts.
+  if(guided?.mode==='resume')return {mode:'guided',unitId:guided.unit.id,step:'teaching'};
   if(revisionCount>0&&!session.revisionDone)return {mode:'revision',count:Math.min(5,revisionCount),step:'revision'};
   if(session.completedUnit){
     if(!session.oralDone&&oralCount>0)return {mode:'oral',count:Math.min(3,oralCount),step:'oral'};
@@ -261,6 +263,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     if(a.startsWith('unit:')){startUnit(a.slice(5));return true;}
     if(a.startsWith('range-')){state.range=Number(a.slice(6))===36500?36500:28;refresh();return true;}
     const rest=activeRest(entries(),Date.now(),getTrack());if(rest&&a!=='leave'){startGuided(rest.unitId);return true;}
+    if(['oral','oral-reveal','oral-next','oral-difficulty','experiment','experiment-audio','experiment-next'].includes(a)&&prioritizedChecks(entries(),Date.now(),getTrack()).length){startDaily();return true;}
     switch(a){
       case 'daily':startDaily();break;
       case 'skip-baseline':if(state.mode==='check'&&state.stage==='baseline'&&ALL_UNITS.find(u=>u.id===state.unitId)?.incremental)startGuided(state.unitId);break;
