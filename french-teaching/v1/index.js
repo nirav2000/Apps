@@ -285,7 +285,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
           state.cloudAt=result.at;
           state.cloudStatus='Saved to Firebase';
           const locked=breakForCourse();
-          if(locked&&!SAFE_BREAK_PAGES.has(state.page)&&state.page!=='lesson')showBreak(locked);
+          if(locked&&(revision||!SAFE_BREAK_PAGES.has(state.page)&&state.page!=='lesson'))showBreak(locked);
           else if(locked&&state.page==='lesson'&&guidedUI.current()&&!finishingLesson(locked))showBreak(locked);
           else if(!wordDialog&&['home','evidence','history','explore','settings'].includes(state.page)&&!revision)render();else{updateStatus();timingTick(true);}
         }while(pendingAgain&&state.cloud===cloud);
@@ -1169,7 +1169,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
         noteAnswer(false,x,true);
         state.answerResult='revealed';state.completed=true;state.feedback='Model revealed: not scored as a correct answer.';render();playAudio('reveal',x.kind==='toEnglish'?x.prompt:x.answer);focusTarget('[data-act="next-question"]');break;
       }
-      case 'hear-practice-model':{const x=state.queue[state.question];if(x&&state.completed){speak(x.kind==='toEnglish'?x.prompt:x.answer);if(e.detail>0)focusDefaultAdvance();}break;
+      case 'hear-practice-model':{const x=state.queue[state.question];if(x&&state.completed){speak(x.kind==='toEnglish'?x.prompt:x.answer);if(e.detail>0)focusDefaultAdvance();}break;}
       case 'dictate':dictate();break;
       case 'next-question':await afterSpeech(b,finishQuestion);break;
       case 'restart':state.question=0;resetQuestion();render();practiceEntryAudio();focusTarget('#ft-answer-text');break;
