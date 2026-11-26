@@ -54,6 +54,8 @@ try{
  await page.locator('.ft-tabs [data-page="evidence"]').click();
  assert.equal(await page.locator('.ft-e-chart circle').count(),1);
  await page.locator('[data-profile]').selectOption('sai');
+ await page.locator('.ft-unified-path').waitFor();
+ await page.locator('.ft-tabs [data-page="explore"]').click();
  await page.locator('.ft-track-grid').waitFor();
  assert.equal(await page.locator('[data-track]').inputValue(),'sai');
  assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),13);
@@ -79,6 +81,8 @@ try{
  assert.match(await page.locator('.ft-guided-head').innerText(),/Months/);
  assert.equal(await page.locator('[data-guided-step]').getAttribute('data-guided-step'),guidedLesson('sai-months').steps[0].id);
  await page.locator('[data-profile]').selectOption('adult');
+ await page.locator('.ft-unified-path').waitFor();
+ await page.locator('.ft-tabs [data-page="explore"]').click();
  await page.locator('.ft-track-grid').waitFor();
  assert.equal(await page.locator('[data-track]').inputValue(),'unlocking-archive');
  await page.locator('.ft-tabs [data-page="evidence"]').click();
