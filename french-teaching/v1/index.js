@@ -3,7 +3,7 @@ import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,so
 import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
 import {browserAuthContext} from './auth-context.js';
-import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES,learningAudioText} from './guided-ui.js';
+import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES,learningAudioText,AUDIO_WAIT_LABEL,audioWaitMarkup} from './guided-ui.js';
 import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
@@ -838,10 +838,21 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   async function afterSpeech(button,action){
     if(advancePending)return;
     advancePending=true;const epoch=++advanceEpoch;
-    button.disabled=true;button.setAttribute('aria-busy','true');
+    const original={html:button.innerHTML,label:button.getAttribute('aria-label')};
+    if(speechTask){
+      button.disabled=true;button.setAttribute('aria-busy','true');
+      button.setAttribute('data-audio-wait','');button.setAttribute('aria-label',AUDIO_WAIT_LABEL);
+      button.innerHTML=audioWaitMarkup();
+    }
     await waitForSpeech();
     if(epoch!==advanceEpoch||destroyed)return;
-    advancePending=false;if(button.isConnected){button.disabled=false;button.removeAttribute('aria-busy');}action();
+    advancePending=false;
+    if(button.isConnected){
+      button.disabled=false;button.removeAttribute('aria-busy');button.removeAttribute('data-audio-wait');
+      if(original.label===null)button.removeAttribute('aria-label');else button.setAttribute('aria-label',original.label);
+      button.innerHTML=original.html;
+    }
+    action();
   }
   async function mountPronunciation(){
     const host=el().querySelector('#ft-pronounce-host');

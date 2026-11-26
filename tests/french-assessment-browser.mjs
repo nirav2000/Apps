@@ -90,6 +90,8 @@ try{
   await repair.evaluate(()=>document.activeElement.blur());
   await repair.keyboard.press('Enter');
   assert.equal(await repair.locator('[data-eact="daily"]').isDisabled(),true);
+  assert.match(await repair.locator('[data-eact="daily"]').innerText(),/Waiting for audio to finish/);
+  assert.equal(await repair.locator('[data-eact="daily"] .ft-audio-wait-dots>span').count(),3);
   assert.equal(await repair.locator('.ft-answer-comparison.correct').count(),1);
   await repair.evaluate(()=>{window.__hold=false;window.__finish();});
   await repair.locator('.ft-answer-comparison.correct').waitFor({state:'detached'});

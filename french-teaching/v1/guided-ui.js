@@ -39,6 +39,9 @@ export function answerFeedback(input,expected){
 }
 
 // Only explicit learning transitions request speech, not CSS or rerender.
+// Identical visual status for guided lessons and all other continuation buttons.
+export const AUDIO_WAIT_LABEL='Waiting for audio to finish…';
+export const audioWaitMarkup=()=>'<span class="ft-audio-wait-text">Waiting for audio to finish</span><span class="ft-audio-wait-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span>';
 const SPEECH_EVENTS=new Set(['model','listening-prompt','visible-french','reveal','correction','choice','reinforce','reference-change','replay']);
 export function learningAudioText(event,text,{protectedCheck=false}={}){
   return !protectedCheck&&SPEECH_EVENTS.has(event)?String(text??'').trim():'';
@@ -255,7 +258,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const step=current,style=stageLabels[step.stage]||step.stage;
     const phase=step.stage==='review'?' · Day '+status.reviewDay:'';
     const busy=state.advancing?' disabled aria-busy="true"':'';
-    const advanceButton=(act,label,defaultAction=true)=>'<button type="button" data-gact="'+act+'"'+(defaultAction?' data-ft-advance':'')+' class="ft-primary"'+busy+'>'+html(state.advancing?'Listening…':label)+'</button>';
+    const advanceButton=(act,label,defaultAction=true)=>'<button type="button" data-gact="'+act+'"'+(defaultAction?' data-ft-advance':'')+' class="ft-primary"'+busy+(state.advancing&&defaultAction?' data-audio-wait aria-label="'+AUDIO_WAIT_LABEL+'"':'')+'>'+(state.advancing&&defaultAction?audioWaitMarkup():html(label))+'</button>';
     const pair=(english,french,covered=false)=>'<div class="ft-guided-pair'+(covered?' ft-pair-covered':'')+'"><p class="ft-guided-english">'+html(english)+'</p>'+
       (french?'<div class="ft-pair-french"><p lang="fr" class="ft-guided-french">'+spokenWords(french)+'</p><button type="button" data-gact="speak" aria-label="Hear the French again">▶</button></div>':
         covered?'<span class="ft-pair-placeholder">Say it from memory, then reveal.</span>':'')+'</div>';

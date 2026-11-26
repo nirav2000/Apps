@@ -9,6 +9,10 @@ export const MINIMUM_REST_MS=5*MINUTE;
 export const GRACE_MS=Object.freeze({immediate:30*MINUTE,day1:12*60*MINUTE,day3:DAY,day7:2*DAY,day28:7*DAY});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const shortDate=ms=>new Date(ms).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+const REST_TITLE='Time to let it settle';
+const REST_COPY='Do something unrelated. Return and see what you can remember without looking.';
+const LOCK_ICON='<svg class="ft-rest-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg>';
+export const restButtonContent=active=>active?LOCK_ICON+'<span>Continue when the break finishes</span>':'Start independent recall';
 export function restForUnit(unitId,entries,now=Date.now()){
  const anchor=teachingFinishedAt(unitId,entries,now);
  if(anchor===null||now<anchor||now>=anchor+DAY)return null;
@@ -70,8 +74,8 @@ export function restMarkup(rest,now=Date.now()){
  if(!rest)return '';
  const active=now<rest.readyAt;
  const ticks=Array.from({length:60},(_,i)=>'<line x1="60" y1="'+(i%5===0?7:9)+'" x2="60" y2="13" transform="rotate('+(i*6)+' 60 60)" stroke="currentColor" stroke-width="'+(i%5===0?1.8:.8)+'" opacity="'+(i%5===0?.7:.25)+'"/>').join('');
- return '<div class="ft-rest-clock" data-rest-until="'+rest.readyAt+'" data-rest-anchor="'+rest.anchor+'" role="timer" aria-label="Learning break: '+countdownText(rest.readyAt-now)+' remaining"><svg class="ft-rest-dial" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54" class="ft-rest-track"/><circle cx="60" cy="60" r="54" class="ft-rest-ring" data-rest-ring transform="rotate(-90 60 60)"/>'+ticks+'<line x1="60" y1="60" x2="60" y2="19" data-rest-hand class="ft-rest-hand"/><circle cx="60" cy="60" r="3.4" fill="currentColor"/><text x="60" y="80" text-anchor="middle" data-rest-time>'+countdownText(rest.readyAt-now)+'</text></svg>'+
- '<div class="ft-rest-copy"><strong data-rest-label>'+(active?'Take a five-minute break':'Ready for independent recall')+'</strong><p data-rest-description>'+(active?'Leave the French alone for now. Walk away, get a drink or do something unrelated.':'The minimum break has elapsed. Try to recall the French without reviewing it first.')+'</p><small>Resume '+esc(shortDate(rest.readyAt))+'</small><div class="ft-rest-live" aria-live="polite" data-rest-live></div></div></div>';
+ return '<div class="ft-rest-clock" data-rest-until="'+rest.readyAt+'" data-rest-anchor="'+rest.anchor+'" role="timer" aria-label="Learning break: '+countdownText(rest.readyAt-now)+' remaining"><svg class="ft-rest-dial" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54" class="ft-rest-track"/><circle cx="60" cy="60" r="54" class="ft-rest-ring" data-rest-ring transform="rotate(-90 60 60)"/>'+ticks+'<line x1="60" y1="60" x2="60" y2="19" data-rest-hand class="ft-rest-hand"/><circle cx="60" cy="60" r="3.4" class="ft-rest-pivot"/><text x="60" y="43" text-anchor="middle" data-rest-time>'+countdownText(rest.readyAt-now)+'</text></svg>'+
+ '<div class="ft-rest-copy"><strong data-rest-label>'+(active?REST_TITLE:'Ready for independent recall')+'</strong><p data-rest-description>'+(active?REST_COPY:'The minimum break has elapsed. Try to recall the French without reviewing it first.')+'</p><small>Minimum break: '+Math.round((rest.readyAt-rest.anchor)/MINUTE)+' minutes</small><small class="ft-rest-resume">Resume '+esc(shortDate(rest.readyAt))+'</small><div class="ft-rest-live" aria-live="polite" data-rest-live></div></div></div>';
 }
 export function updateStudyClocks(root,now=Date.now()){
  for(const clock of root.querySelectorAll('[data-rest-until]')){
@@ -83,11 +87,11 @@ export function updateStudyClocks(root,now=Date.now()){
   clock.setAttribute('aria-label','Learning break: '+countdownText(remaining)+' remaining');
   clock.querySelector('[data-rest-ring]').setAttribute('stroke-dasharray',(fraction*c)+' '+c);
   clock.querySelector('[data-rest-hand]').setAttribute('transform','rotate('+(fraction*360)+' 60 60)');
-  clock.querySelector('[data-rest-label]').textContent=active?'Take a five-minute break':'Ready for independent recall';
-  clock.querySelector('[data-rest-description]').textContent=active?'Leave the French alone for now. Walk away, get a drink or do something unrelated.':'The minimum break has elapsed. Try to recall the French without reviewing it first.';
+  clock.querySelector('[data-rest-label]').textContent=active?REST_TITLE:'Ready for independent recall';
+  clock.querySelector('[data-rest-description]').textContent=active?REST_COPY:'The minimum break has elapsed. Try to recall the French without reviewing it first.';
   const area=clock.closest('.ft-guided-congrats,.ft-path-next,.ft-global-rest')||clock.parentElement;
   const button=area.querySelector('[data-rest-continue]');
-  if(button){button.disabled=active;button.setAttribute('aria-disabled',String(active));button.textContent=active?'Continue when the break finishes':'Start independent recall';}
+  if(button){button.disabled=active;button.setAttribute('aria-disabled',String(active));if(button.dataset.restLocked!==String(active)){button.innerHTML=restButtonContent(active);button.dataset.restLocked=String(active);}}
   const unitSelector=clock.closest('.ft-guided-shell')?.querySelector('[data-gunit]');
   if(unitSelector){unitSelector.disabled=active;if(!active)unitSelector.removeAttribute('aria-label');}
   if(clock.dataset.restRunning==='true'&&!active)clock.querySelector('[data-rest-live]').textContent='Break complete. You can continue.';

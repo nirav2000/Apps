@@ -135,6 +135,9 @@ try{
   await page.waitForFunction(fr=>window.__spoken.at(-1)?.text===fr,models[0].fr);
   assert.equal(await page.locator('[data-guided-step]').getAttribute('data-guided-step'),firstStep);
   assert.equal(await page.locator('[data-gact="finish-model"]').isDisabled(),true);
+  assert.match(await page.locator('[data-gact="finish-model"]').innerText(),/Waiting for audio to finish/);
+  assert.equal(await page.locator('[data-gact="finish-model"] .ft-audio-wait-dots>span').count(),3);
+  assert.equal(await page.locator('[data-gact="finish-model"]').getAttribute('aria-busy'),'true');
   await page.evaluate(()=>{window.__holdSpeech=false;window.__finishSpeech();});
   await waitCore(models[1].id);
   await page.waitForFunction(step=>window.__spoken.at(-1)?.step===step,models[1].id);

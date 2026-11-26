@@ -54,3 +54,11 @@ test('learner-wide rest includes every French track, while track queries stay sc
  assert.equal(activeRest(taught,finish+1000,'unlocking'),null);
  assert.equal(activeRest(taught,finish+MINIMUM_REST_MS,null),null);
 });
+
+test('rest clock uses the approved text and a true five-minute deadline',()=>{
+ const rest=restForUnit(unit.id,taught,finish+2*MINUTE);
+ const markup=restMarkup(rest,finish+2*MINUTE);
+ assert.match(markup,/03:00/);assert.match(markup,/Time to let it settle/);
+ assert.match(markup,/Minimum break: 5 minutes/);
+ assert.match(markup,/data-rest-anchor="/);
+});

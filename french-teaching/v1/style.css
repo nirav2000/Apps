@@ -331,3 +331,33 @@
 
 /* Separate pause/skip from the main answer controls. */
 .ft-app .ft-pause-row{display:flex;justify-content:flex-end;align-items:center;gap:8px;border-top:1px solid var(--ft-line);padding-top:12px;margin-top:22px}.ft-app .ft-pause-row button{color:#4b6257;background:transparent;border-color:#c7d4cc;font-weight:500}.ft-app .ft-pause-row button:hover{background:#f2f5f2}.ft-app [data-ft-advance]:focus-visible{outline:2px solid #245f4b;outline-offset:4px}.ft-app .ft-global-rest{margin-bottom:16px}.ft-app .ft-global-rest .ft-rest-clock{margin:10px 0 16px}.ft-app select[data-gunit]:disabled{opacity:.7;cursor:not-allowed}
+
+/* Stable audio-wait label; the three dots pulse in sequence, never cause layout shift. */
+.ft-app button[data-audio-wait]{cursor:wait;opacity:1;background:#285c4c;color:#fff;border-color:#285c4c;white-space:normal;text-align:center}
+.ft-app .ft-audio-wait-dots{display:inline-flex;white-space:nowrap}
+.ft-app .ft-audio-wait-dots>span{animation:ft-audio-dot 1.2s infinite both}
+.ft-app .ft-audio-wait-dots>span:nth-child(2){animation-delay:.2s}
+.ft-app .ft-audio-wait-dots>span:nth-child(3){animation-delay:.4s}
+@keyframes ft-audio-dot{0%,65%,100%{opacity:.35}25%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.ft-app .ft-audio-wait-dots>span{animation:none;opacity:1}}
+/* The learner-approved dark rest card, even when the teaching surface is light. */
+.ft-app .ft-guided-congrats:has(.ft-rest-clock),.ft-app .ft-path-next:has(.ft-rest-clock),.ft-app .ft-global-rest:has(.ft-rest-clock){background:#1c1c1c;color:#f5f5f5;border:1px solid #393939;border-radius:20px;padding:clamp(16px,3vw,28px);box-shadow:none}
+.ft-app .ft-guided-congrats:has(.ft-rest-clock) h3,.ft-app .ft-path-next:has(.ft-rest-clock) h3,.ft-app .ft-global-rest:has(.ft-rest-clock) h2{color:#f5f5f5;font-size:clamp(21px,3.3vw,30px);letter-spacing:-.025em}
+.ft-app .ft-path-next:has(.ft-rest-clock)>.ft-eyebrow,.ft-app .ft-path-next:has(.ft-rest-clock)>p{color:#bdbdbd}
+.ft-app .ft-rest-clock,.ft-app .ft-path-next .ft-rest-clock,.ft-app .ft-global-rest .ft-rest-clock{display:flex;flex-wrap:nowrap;gap:clamp(16px,4vw,34px);align-items:center;background:transparent;color:#f5f5f5;padding:0;border:0;margin:22px 0 24px}
+.ft-app .ft-rest-dial{width:clamp(125px,23vw,205px);max-width:100%;flex-shrink:0}
+.ft-app .ft-rest-track{fill:transparent;stroke:#3b4140;stroke-width:4}
+.ft-app .ft-rest-ring{stroke:#398b7a;stroke-width:4}
+.ft-app .ft-rest-hand{stroke:#398b7a;stroke-width:2.5}
+.ft-app .ft-rest-pivot{fill:#398b7a}
+.ft-app .ft-rest-dial text{font-size:17px;font-weight:700;fill:#fafafa}
+.ft-app .ft-rest-copy{flex:1;min-width:0}
+.ft-app .ft-rest-copy strong{font-size:clamp(19px,2.8vw,26px);color:#fafafa;font-weight:650}
+.ft-app .ft-rest-copy p,.ft-app .ft-path-next .ft-rest-copy p{color:#f2f2f2;font-size:clamp(15px,2.3vw,21px);line-height:1.5;margin:9px 0 12px}
+.ft-app .ft-rest-copy small{display:block;font-size:clamp(13px,1.7vw,16px);color:#bdbdbd;line-height:1.45}
+.ft-app .ft-rest-copy .ft-rest-resume{font-size:12px;margin-top:5px;color:#a9a9a9}
+.ft-app .ft-rest-live:empty{display:none}
+.ft-app [data-rest-continue]{width:100%;min-height:50px;display:flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;background:#347e6d;color:#fff;border:1px solid #347e6d;font-size:clamp(14px,1.9vw,17px);font-weight:650}
+.ft-app [data-rest-continue]:disabled{background:#282828;color:#999;border-color:#282828;opacity:1;cursor:not-allowed}
+.ft-app .ft-rest-lock{width:19px;height:19px;flex-shrink:0}
+@media(max-width:480px){.ft-app .ft-rest-clock,.ft-app .ft-path-next .ft-rest-clock,.ft-app .ft-global-rest .ft-rest-clock{flex-wrap:wrap;justify-content:center;text-align:center;margin:18px 0;gap:12px}.ft-app .ft-rest-dial{width:156px}.ft-app .ft-rest-copy{flex-basis:100%}}

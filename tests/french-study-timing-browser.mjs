@@ -32,6 +32,15 @@ try{
  assert.match(await page.locator('.ft-guided-congrats').innerText(),/Excellent. Now leave it for a while/);
  assert.equal(await page.locator('[data-rest-continue]').isDisabled(),true);
  assert.ok(await page.locator('[data-rest-hand]').getAttribute('transform'));
+ assert.match(await page.locator('[data-rest-label]').innerText(),/Time to let it settle/);
+ assert.match(await page.locator('.ft-rest-copy').innerText(),/Minimum break: 5 minutes/);
+ assert.equal(await page.locator('[data-rest-continue] .ft-rest-lock').count(),1);
+ assert.equal(await page.locator('.ft-guided-congrats').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(28, 28, 28)');
+ const ringBefore=await page.locator('[data-rest-ring]').getAttribute('stroke-dasharray');
+ const handBefore=await page.locator('[data-rest-hand]').getAttribute('transform');
+ await page.clock.runFor(1000);
+ assert.notEqual(await page.locator('[data-rest-ring]').getAttribute('stroke-dasharray'),ringBefore);
+ assert.notEqual(await page.locator('[data-rest-hand]').getAttribute('transform'),handBefore);
  const deadline=await page.locator('[data-rest-until]').getAttribute('data-rest-until');
  assert.equal(Number(deadline),finish+300000);
  // Attempt to move ahead via another chapter and manual practice.
@@ -56,6 +65,7 @@ try{
  assert.equal(await page.locator('[data-rest-continue]').isDisabled(),true);
  await page.clock.runFor(2000);
  assert.equal(await page.locator('[data-learning-path] [data-eact="daily"]').isDisabled(),false);
+ assert.equal(await page.locator('[data-rest-continue] .ft-rest-lock').count(),0);
  await page.locator('[data-learning-path] [data-eact="daily"]').click();
  await page.locator('#ft-e-answer').waitFor();
  assert.match(await page.locator('.ft-e-question').innerText(),/After teaching/i);
@@ -110,7 +120,7 @@ try{
  assert.equal(await live.locator('[data-gunit]').isDisabled(),false);
  await live.locator('[data-rest-continue]').click();
  await live.locator('#ft-e-answer').waitFor();
- assert.match(await live.locator('.ft-e-question').innerText(),/After teaching/);
+ assert.match(await live.locator('.ft-e-question').innerText(),/After teaching/i);
  assert.deepEqual(liveErrors,[]);await live.close();
  console.log('French timed rest browser: actual chapter completion, countdown, locked alternate routes, reload, exact unlock, overdue notification, deduplication and learner scope');
 }finally{await b.close();}
