@@ -29,3 +29,16 @@ test("real RS256 signatures, owner claims, provider provenance",async()=>{
  }
  }finally{globalThis.fetch=originalFetch}
 });
+
+test("Firebase owner-proof fallback requires positive, exact, authenticated document",async()=>{
+ const old=globalThis.fetch, now=Math.floor(Date.now()/1000), enc=x=>Buffer.from(JSON.stringify(x)).toString("base64url");
+ const token=enc({alg:"RS256",kid:"rotating-key"})+"."+enc({aud:"kk-syllabus",iss:"https://securetoken.google.com/kk-syllabus",sub:"test-owner",exp:now+120,iat:now})+".YWJj";
+ const name="projects/kk-syllabus/databases/(default)/documents/families/test-owner/learners/translation-lab-ci/progress/gateway-auth-v1";
+ let mode="ok";
+ globalThis.fetch=async(url,options)=>{if(url.includes("/service_accounts/v1/jwk/"))return Response.json({keys:[]});if(url==="https://firestore.googleapis.com/v1/"+name){assert.equal(options.headers.Authorization,"Bearer "+token);if(mode==="missing")return new Response(null,{status:404});if(mode==="denied")return new Response(null,{status:403});return Response.json({name,fields:{app:{stringValue:"translation-lab"},kind:{stringValue:mode==="wrong"?"other":"owner-auth-probe"},schema:{integerValue:"1"}}})}throw Error("unexpected request")};
+ try{
+ const headers={Authorization:"Bearer "+token};
+ assert.equal((await handler.fetch(req({action:"status"},headers),env)).status,200);
+ for(const value of ["missing","denied","wrong"]){mode=value;const r=await handler.fetch(req({action:"status"},headers),env);assert.equal(r.status,401)}
+ }finally{globalThis.fetch=old}
+});
