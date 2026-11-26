@@ -142,7 +142,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     const es=entries(),rest=activeRest(es,Date.now(),getTrack());
     if(rest){startGuided(rest.unitId);return;}
     const checks=prioritizedChecks(es,Date.now(),getTrack());
-    const due=checks.find(d=>d.unitId===unitId)||checks[0]||baselineFor(unitId,es);
+    const due=checks.find(d=>d.unitId===unitId)||baselineFor(unitId,es);
     if(due){pick('check',due.items.find(x=>!x.row),{unitId,stage:due.stage,anchor:due.anchor});return;}
     startGuided(unitId);
   };
@@ -246,7 +246,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   };
   const finishOral=()=>{const auto=state.autoOral;state.mode=null;if(auto)onOralComplete();navigate(auto?'home':'explore');};
   const startOral=(auto=false)=>{
-    if(prioritizedChecks(entries(),Date.now(),getTrack()).length){startDaily();return;}
+    if(auto&&prioritizedChecks(entries(),Date.now(),getTrack()).length){startDaily();return;}
     const deck=taughtOralDeck(auto?getSession().completedUnit:null,auto?3:12);
     if(!deck.length){state.mode='done';state.doneUnit=null;state.item={};state.feedback='Oral practice unlocks after you have completed some teaching. Use Today to learn first.';navigate('assessment');return;}
     pick('oral',deck[0],{oralIndex:0,oralDeck:deck,autoOral:auto,stage:null});
@@ -263,7 +263,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     if(a.startsWith('unit:')){startUnit(a.slice(5));return true;}
     if(a.startsWith('range-')){state.range=Number(a.slice(6))===36500?36500:28;refresh();return true;}
     const rest=activeRest(entries(),Date.now(),getTrack());if(rest&&a!=='leave'){startGuided(rest.unitId);return true;}
-    if(['oral','oral-reveal','oral-next','oral-difficulty','experiment','experiment-audio','experiment-next'].includes(a)&&prioritizedChecks(entries(),Date.now(),getTrack()).length){startDaily();return true;}
+    if(state.mode==='oral'&&state.autoOral&&['oral-reveal','oral-next','oral-difficulty'].includes(a)&&prioritizedChecks(entries(),Date.now(),getTrack()).length){startDaily();return true;}
     switch(a){
       case 'daily':startDaily();break;
       case 'skip-baseline':if(state.mode==='check'&&state.stage==='baseline'&&ALL_UNITS.find(u=>u.id===state.unitId)?.incremental)startGuided(state.unitId);break;
