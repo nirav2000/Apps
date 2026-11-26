@@ -1,7 +1,7 @@
 // Timed learning breaks and schedule warnings. Evidence, not a resettable
 // countdown, determines eligibility. These defaults are a teaching policy,
 // not a claim that these exact intervals are scientifically optimal.
-import {unitsForTrack} from './guided-lessons.js';
+import {ALL_UNITS,unitsForTrack} from './guided-lessons.js';
 import {teachingFinishedAt,checkResult,pendingChecks} from './assessment.js';
 import {CHECK_WINDOWS,ASSESSMENT_DAY as DAY} from '../../learning-evidence/v1/assessment.js';
 export const MINUTE=60000;
@@ -21,7 +21,8 @@ export function restForUnit(unitId,entries,now=Date.now()){
 export function activeRest(entries,now=Date.now(),track='michaela'){
  // Only recent completions can possibly require a five-minute break.
  const recent=new Set(entries.filter(e=>e.at>now-MINIMUM_REST_MS&&e.at<=now&&e.source?.ref?.startsWith('guided-v2:')&&e.source.ref.endsWith(':complete')&&!e.source.ref.includes(':review-')).map(e=>e.source.ref.split(':')[1]));
- return unitsForTrack(track).filter(u=>recent.has(u.id)).map(u=>restForUnit(u.id,entries,now)).filter(x=>x?.active).sort((a,b)=>b.readyAt-a.readyAt)[0]||null;
+ const units=track==null?ALL_UNITS:unitsForTrack(track);
+ return units.filter(u=>recent.has(u.id)).map(u=>{const rest=restForUnit(u.id,entries,now);return rest?{...rest,track:u.track||'michaela'}:null;}).filter(x=>x?.active).sort((a,b)=>b.readyAt-a.readyAt)[0]||null;
 }
 const dueTime=(anchor,w)=>anchor+(w.id==='immediate'?MINIMUM_REST_MS:w.from*DAY);
 export function scheduledPractice(entries,now=Date.now(),track='michaela'){
@@ -84,7 +85,7 @@ export function updateStudyClocks(root,now=Date.now()){
   clock.querySelector('[data-rest-hand]').setAttribute('transform','rotate('+(fraction*360)+' 60 60)');
   clock.querySelector('[data-rest-label]').textContent=active?'Take a five-minute break':'Ready for independent recall';
   clock.querySelector('[data-rest-description]').textContent=active?'Leave the French alone for now. Walk away, get a drink or do something unrelated.':'The minimum break has elapsed. Try to recall the French without reviewing it first.';
-  const area=clock.closest('.ft-guided-congrats,.ft-path-next')||clock.parentElement;
+  const area=clock.closest('.ft-guided-congrats,.ft-path-next,.ft-global-rest')||clock.parentElement;
   const button=area.querySelector('[data-rest-continue]');
   if(button){button.disabled=active;button.setAttribute('aria-disabled',String(active));button.textContent=active?'Continue when the break finishes':'Start independent recall';}
   if(clock.dataset.restRunning==='true'&&!active)clock.querySelector('[data-rest-live]').textContent='Break complete. You can continue.';

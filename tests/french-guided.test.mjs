@@ -296,3 +296,13 @@ test('positive independent and delayed evidence reduce priority; assistance and 
  assert.equal(adaptiveOutcome(plan,{correct:true,answer:'je parle une autre langue'}).correct,false);
  assert.equal(phraseTarget('je dois étudier','I must study').word,'je dois');
 });
+
+import {learningAudioText} from '../french-teaching/v1/guided-ui.js';
+test('semantic speech policy is explicit and never reads a protected answer',()=>{
+ assert.equal(learningAudioText('model','Bonjour'),'Bonjour');
+ assert.equal(learningAudioText('correction','J’ai étudié.'),'J’ai étudié.');
+ assert.equal(learningAudioText('model','Bonjour',{protectedCheck:true}),'');
+ assert.equal(learningAudioText('render','Bonjour'),'');
+ assert.equal(guidedEntryAudio({kind:'model',unlockAction:'reverse',fr:'je parle français'}),'je parle français');
+ assert.equal(guidedEntryAudio({kind:'write',fr:'je parle français'}),'');
+});

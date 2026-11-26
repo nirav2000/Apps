@@ -38,10 +38,14 @@ export function answerFeedback(input,expected){
   return correctionSummary(input,expected);
 }
 
-// Only teaching models and listening prompts may autoplay on entry.
+// Only explicit learning transitions request speech, not CSS or rerender.
+const SPEECH_EVENTS=new Set(['model','listening-prompt','visible-french','reveal','correction','choice','reinforce','reference-change','replay']);
+export function learningAudioText(event,text,{protectedCheck=false}={}){
+  return !protectedCheck&&SPEECH_EVENTS.has(event)?String(text??'').trim():'';
+}
 export function guidedEntryAudio(step){
   if(!step)return '';
-  if(step.kind==='listen'||step.kind==='transcribe')return step.fr;
+  if(step.kind==='listen'||step.kind==='transcribe'||step.kind==='model'&&step.unlockAction==='reverse')return step.fr;
   if(step.kind!=='model'||!step.modelInitiallyShown)return '';
   return teacherModelAudio(step);
 }
@@ -123,7 +127,7 @@ export function answerComparison({answer='',expected,result,lang='fr',replay=''}
     '<div class="ft-answer-expected"><small>Correct answer</small><div class="ft-pair-french">'+
     '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected,right)+'</p>'+replay+'</div></div></div>';
 }
-export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{},getAdaptivePlans=()=>[],planAdaptive=()=>null,signalContext=()=>({}),recordSignal=()=>true}){
+export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{},getAdaptivePlans=()=>[],planAdaptive=()=>null,signalContext=()=>({}),recordSignal=()=>true}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')
     throw Error('Guided lessons require evidence and speech adapters');
   const state={
@@ -143,9 +147,9 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
   const announce=()=>refresh();
   const go=page=>typeof navigate==='function'?navigate(page):announce();
   const start=(unitId)=>{
-    const locked=activeRest(evidence(),Date.now(),getTrack());
+    const locked=activeRest(evidence(),Date.now(),null);
     const id=locked?.unitId||unitId||recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id;
-    if(!unitsForTrack(getTrack()).some(u=>u.id===id))return;
+    if(!locked&&!unitsForTrack(getTrack()).some(u=>u.id===id))return;
     guidedLesson(id); // validate before writing any record
     cancelAdvance();resetStep();
     state.unitId=id;
@@ -158,7 +162,8 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     state.step=chooseNext();
     if(state.step)state.hint=state.step.adaptivePlan?.hintLevel||Number(has(evidence(),hintRef(state.step)));
     go('lesson');
-    const audio=guidedEntryAudio(context().current);if(audio)speak(audio);
+    const audio=guidedEntryAudio(context().current);if(audio)playAudio('model',audio);
+    focusTarget('#ft-guided-input,[data-ft-advance],[data-gchoice]');
   };
   const reset=()=>{cancelAdvance();state.unitId=null;resetStep();state.selectedVerb='parler';};
   const context=()=>{
@@ -181,14 +186,14 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const next=chooseNext();
     const same=next&&normaliseAnswer(next.fr)===normaliseAnswer(reinforce);
     const safeRepeat=same&&!guidedEntryAudio(next)?'':reinforce;
-    if(safeRepeat)await speak(safeRepeat);
+    if(safeRepeat)await playAudio('reinforce',safeRepeat);
     if(token!==navigation)return;
     state.advancing=false;resetStep();state.step=next;
     if(next)state.hint=next.adaptivePlan?.hintLevel||Number(has(evidence(),hintRef(next)));
     announce();
     const intro=guidedEntryAudio(context().current);
-    if(intro)speak(intro);
-    focusTarget('#ft-guided-input,[data-gchoice],[data-gact="reveal"],[data-gact="finish-model"],[data-gact="next-unit"]');
+    if(intro)playAudio('model',intro);
+    focusTarget('#ft-guided-input,[data-ft-advance],[data-gchoice]');
   };
   const completion=(step,support)=>{
     if(step.adaptivePlan){state.done=true;return;}
@@ -230,12 +235,12 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const counts=status.teaching;
     const breakdown=counts.coreCompleted+'/'+counts.coreTotal+' core steps · '+counts.repairCompleted+'/'+counts.repairTotal+' corrections'+(plans.length?' · '+adaptiveCompleted+'/'+plans.length+' personal practice':'');
     const pct=total?Math.round(completed/total*100):0;
-    const other=unitsForTrack(getTrack()).map(u=>'<option value="'+html(u.id)+'"'+(u.id===id?' selected':'')+'>'+
+    const available=unitsForTrack(getTrack()),other=(available.some(u=>u.id===id)?available:[unit,...available]).map(u=>'<option value="'+html(u.id)+'"'+(u.id===id?' selected':'')+'>'+
       html(u.label+': '+u.name)+'</option>').join('');
     const head='<section class="ft-card ft-guided-shell"><div class="ft-guided-head">'+
       '<div><p class="ft-eyebrow">'+(unit.incremental?'UNLOCKING FRENCH · ONE BLOCK AT A TIME':'GUIDED FRENCH · SPEAK → REPEAT → REMEMBER')+'</p>'+
       '<h2>'+html(unit.name)+'</h2><p>'+html(unit.goal)+'</p></div>'+
-      '<label>Teaching unit<select data-gunit>'+other+'</select></label></div>'+
+      '<label>Teaching unit<select data-gunit'+(rest?.active?' disabled aria-label="Teaching unit locked during learning break"':'')+'>'+other+'</select></label></div>'+
       '<div class="ft-guided-progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="'+completed+
       '" aria-valuemin="0" aria-valuemax="'+total+'"><span style="width:'+pct+'%"></span></div>'+
       '<p class="ft-small ft-progress-count"><strong>'+completed+'/'+total+'</strong> '+(status.mode==='review'?'day '+status.reviewDay+' review completed':'teaching steps completed')+' · '+html(breakdown)+'</p>';
@@ -243,14 +248,14 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       const next=status.nextReviewAt?new Date(status.nextReviewAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'none scheduled';
       return head+'<div class="ft-guided-congrats"><h3>Excellent. Now leave it for a while.</h3>'+
         (rest?restMarkup(rest):unit.track?'<p>You have completed the guided teaching. Continue to the independent check and scheduled reviews.</p>':'<p>You have completed the guided teaching. The next retrieval opportunity is <strong>'+html(next)+'</strong>. This is a schedule, not proof of retention.</p>')+
-        (rest?'<button type="button" data-gact="next-unit" data-rest-continue data-rest-unit="'+html(id)+'" class="ft-primary"'+(rest.active?' disabled aria-disabled="true"':'')+'>'+ (rest.active?'Continue when the break finishes':'Start independent recall')+'</button>':'<button type="button" data-gact="next-unit" class="ft-primary">Continue to the next learning activity</button>')+'</div>'+(unit.incremental&&!rest?'<details class="ft-unlock-glossary"><summary>Chapter vocabulary &amp; building blocks</summary>'+unit.blocks.map(b=>'<div class="ft-unlock-glossary-row"><span>'+html(b.en)+'</span><strong lang="fr">'+spokenWords(b.fr)+'</strong><small>'+html(b.pronunciation)+'</small></div>').join('')+'</details>':'')+
+        (rest?'<button type="button" data-gact="next-unit" data-ft-advance data-rest-continue data-rest-unit="'+html(id)+'" class="ft-primary"'+(rest.active?' disabled aria-disabled="true"':'')+'>'+ (rest.active?'Continue when the break finishes':'Start independent recall')+'</button>':'<button type="button" data-gact="next-unit" data-ft-advance class="ft-primary">Continue to the next learning activity</button>')+'</div>'+(unit.incremental&&!rest?'<details class="ft-unlock-glossary"><summary>Chapter vocabulary &amp; building blocks</summary>'+unit.blocks.map(b=>'<div class="ft-unlock-glossary-row"><span>'+html(b.en)+'</span><strong lang="fr">'+spokenWords(b.fr)+'</strong><small>'+html(b.pronunciation)+'</small></div>').join('')+'</details>':'')+
         '<button type="button" data-page="home">Return to overview</button></section>';
     }
     if(!current)return head+'<p>Nothing due in this lesson. Select a different teaching unit above.</p></section>';
     const step=current,style=stageLabels[step.stage]||step.stage;
     const phase=step.stage==='review'?' · Day '+status.reviewDay:'';
     const busy=state.advancing?' disabled aria-busy="true"':'';
-    const advanceButton=(act,label)=>'<button type="button" data-gact="'+act+'" class="ft-primary"'+busy+'>'+html(state.advancing?'Listening…':label)+'</button>';
+    const advanceButton=(act,label,defaultAction=true)=>'<button type="button" data-gact="'+act+'"'+(defaultAction?' data-ft-advance':'')+' class="ft-primary"'+busy+'>'+html(state.advancing?'Listening…':label)+'</button>';
     const pair=(english,french,covered=false)=>'<div class="ft-guided-pair'+(covered?' ft-pair-covered':'')+'"><p class="ft-guided-english">'+html(english)+'</p>'+
       (french?'<div class="ft-pair-french"><p lang="fr" class="ft-guided-french">'+spokenWords(french)+'</p><button type="button" data-gact="speak" aria-label="Hear the French again">▶</button></div>':
         covered?'<span class="ft-pair-placeholder">Say it from memory, then reveal.</span>':'')+'</div>';
@@ -272,8 +277,8 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
           (step.unlockAction!=='introduce'&&step.stage!=='repair'?'<button type="button" data-gact="oral-retry"'+busy+'>Needed help · revisit later</button>':''))+'</div>';
       }else body+=pair(step.en,showFrench?step.fr:'',!showFrench)+
         '<div class="ft-actions">'+
-        (!showFrench?'<button type="button" data-gact="reveal">Reveal French</button>':'')+
-        advanceButton('finish-model','I have repeated it → Next')+'</div>';
+        (!showFrench?'<button type="button" data-gact="reveal" data-ft-advance>Reveal French</button>':'')+
+        advanceButton('finish-model','I have repeated it → Next',showFrench)+'</div>';
     }else{
       body+='<p class="ft-guided-english">'+
         (step.kind==='listen'||step.kind==='transcribe'
@@ -323,7 +328,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       '<p>'+html(focus.note)+'</p><button type="button" data-gact="focus-word">▶ Hear '+html(focus.word)+'</button></aside>';
     if(showFrench)body+='<p class="ft-small ft-word-hint">Tap a French word to hear it. Hold it or choose Explore to learn more.</p>';
     if(state.feedback)body+='<p class="'+(isChoice(step)?'ft-sr-only':'ft-guided-feedback '+(state.result||''))+'" role="status">'+html(state.feedback)+'</p>';
-    body+='</div>';
+    body+='<div class="ft-pause-row"><button type="button" data-gact="pause" class="ft-pause-control">Pause</button></div></div>';
     body+='</section>';
     return head+body;
   };
@@ -403,8 +408,8 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
         'Not quite. Say each part in French again, then choose another answer.';
     }
     announce();
-    if(current.kind==='choice')speak(value);
-    else if(correct)speak(current.fr);else speak(value,'en-GB');
+    if(current.kind==='choice')playAudio('choice',value);
+    else if(correct)playAudio('correction',current.fr);else playAudio('choice',value,'en-GB');
     if(correct)focusTarget('[data-gact="next"]');else focusTarget('[data-gchoice="'+i+'"]');
   };
   const write=(value)=>{
@@ -427,7 +432,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       state.revealed=true;
     }
     announce();
-    speak(current.fr);
+    playAudio('correction',current.fr);
     focusTarget(correct?'[data-gact="next"]':'[data-gact="finish-revealed"]');
   };
   const click=(target)=>{
@@ -444,8 +449,8 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const {current}=context();
     switch(act){
       case 'start':{const id=recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id;if(getTrack()!=='michaela'&&requestStart)requestStart(id);else start(id);break;}
-      case 'next-unit':if(!activeRest(evidence(),Date.now(),getTrack())){if(requestStart&&target.dataset.restUnit)requestStart(target.dataset.restUnit);else start(recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id);}break;
-      case 'pause':resetStep();announce();break;
+      case 'next-unit':if(!activeRest(evidence(),Date.now(),null)){if(requestStart&&target.dataset.restUnit)requestStart(target.dataset.restUnit);else start(recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id);}break;
+      case 'pause':cancelAdvance();resetStep();go('home');break;
       case 'speak':if(current)speak(current.fr);break;
       case 'focus-word':{
         const item=ALL_UNITS.find(x=>x.id===context().id)?.soundFocus;
@@ -479,7 +484,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
             firstAttempt(current,false,'worked-example');state.result='revealed';
           }
           state.revealed=true;state.feedback='';
-          announce();speak(current.kind==='model'?teacherModelAudio(current):current.fr);
+          announce();playAudio('reveal',current.kind==='model'?teacherModelAudio(current):current.fr);
           focusTarget(current.kind==='model'?'[data-gact="finish-model"]':'[data-gact="finish-revealed"]');
         }break;
       case 'oral-retry':
@@ -523,5 +528,5 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     if(field)write(field.value);
     return true;
   };
-  return {dashboard,page,reference,start,reset,leave:cancelAdvance,click,change,submit,current:()=>state.step};
+  return {dashboard,page,reference,start,reset,leave:cancelAdvance,click,change,submit,current:()=>state.step,finishing:()=>state.done||state.advancing};
 }

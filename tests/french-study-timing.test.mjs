@@ -47,3 +47,10 @@ test('overdue timing and missed windows never backfill observations',()=>{
  const words=overdueWords([{key:'a',dueAt:ready},{key:'b',dueAt:null}],ready+30*MINUTE);
  assert.equal(words.length,1);assert.equal(alertKeys(late,words).length,2);
 });
+
+test('learner-wide rest includes every French track, while track queries stay scoped',()=>{
+ const rest=activeRest(taught,finish+1000,null);
+ assert.equal(rest.unitId,unit.id);assert.equal(rest.track,'michaela');
+ assert.equal(activeRest(taught,finish+1000,'unlocking'),null);
+ assert.equal(activeRest(taught,finish+MINIMUM_REST_MS,null),null);
+});

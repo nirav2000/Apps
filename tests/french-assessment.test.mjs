@@ -108,6 +108,7 @@ test('targeted repair retains submitted French and canonical model on wrong and 
  let lastSpoken='',focused='',audits=[];
  const ui=createAssessmentInterface({getEntries:()=>records,record:raw=>records.push(event(raw.sourceRef,now,raw)),recordAttempt:a=>{audits.push(a);return true;},speak:v=>lastSpoken=v,refresh:()=>{},navigate:()=>{},startGuided:()=>{},focusTarget:v=>focused=v});
  ui.startDaily();assert.match(ui.page(),/TARGETED REPAIR/);
+ assert.equal(lastSpoken,item.fr);assert.equal(focused,'[data-eact="cover"]');
  ui.click({dataset:{eact:'cover'}});
  const submit=value=>ui.submit({id:'ft-e-form',querySelector:()=>({value})},{preventDefault(){}});
  submit('je ne sais pas');

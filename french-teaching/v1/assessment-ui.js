@@ -1,7 +1,7 @@
 import {ALL_UNITS,unitsForTrack,lessonRows,guidedStatus} from './guided-lessons.js';
 import {STAGES,assessmentStats,baselineFor,pendingChecks,pendingRepairs,repairRef,nextCheckDate,markAssessment,ERROR_TIPS,availableExperiment,experimentStats,experimentDeck,assessmentDeck,teachingFinishedAt,assessmentComparison,checkResult} from './assessment.js';
 import {exactAudit} from './answer-history.js';
-import {spokenWords,answerComparison} from './guided-ui.js';
+import {spokenWords,answerComparison,learningAudioText} from './guided-ui.js';
 import {firstByRef,ASSESSMENT_DAY as DAY} from '../../learning-evidence/v1/assessment.js';
 import {magicTenPhrase} from './magic10.js';
 import {trackName} from './curriculum-meta.js';
@@ -9,7 +9,9 @@ import {activeRest,prioritizedChecks,restMarkup,scheduledPractice} from './study
 import {containsTarget} from './revision-signals.js';
 
 const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const btn=(action,label,primary=false)=>'<button type="button" data-eact="'+h(action)+'"'+(primary?' class="ft-primary"':'')+'>'+h(label)+'</button>';
+const DEFAULT_ACTIONS=new Set(['daily','cover','oral-reveal','oral-next','continue-unit','experiment-next']);
+const btn=(action,label,primary=false)=>'<button type="button" data-eact="'+h(action)+'"'+(primary?' class="ft-primary"':'')+(DEFAULT_ACTIONS.has(action)?' data-ft-advance':'')+'>'+h(label)+'</button>';
+const pauseButton=()=>'<div class="ft-pause-row"><button type="button" data-eact="leave" class="ft-pause-control">Pause</button></div>';
 const pct=m=>m?.percent==null?'—':m.percent+'%';
 const n=m=>m?.total?m.correct+' of '+m.total+' correct':'Not measured';
 const date=x=>new Date(x).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
@@ -84,13 +86,15 @@ export function sequenceStatus(plan,{checks=[],revisionCount=0,repair=false,adap
  });
 }
 
-export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,refresh,navigate,startGuided,focusTarget=()=>{},getRevisionItems=()=>[],getSession=()=>({}),onRevision=()=>{},onCheckComplete=()=>{},onOralComplete=()=>{},onOralDifficulty=()=>{},onNewSession=()=>{}}){
+export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),refresh,navigate,startGuided,focusTarget=()=>{},getRevisionItems=()=>[],getSession=()=>({}),onRevision=()=>{},onCheckComplete=()=>{},onOralComplete=()=>{},onOralDifficulty=()=>{},onNewSession=()=>{}}){
   let state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};
   const entries=()=>getEntries()||[];
   const reset=()=>{state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};};
   const pick=(mode,item,extra={})=>{
     state={...state,mode,item,started:Date.now(),feedback:null,submittedAnswer:null,answerResult:null,doneUnit:null,...extra};
-    navigate('assessment');focusTarget('#ft-e-answer');
+    navigate('assessment');
+    if(mode==='repair')playAudio('model',item.fr);
+    focusTarget(mode==='repair'?'[data-eact="cover"]':mode==='oral'?'[data-eact="oral-reveal"]':mode==='experiment'?(item.arm==='audio'?'[data-eact="experiment-audio"]':'[data-eact="experiment-next"]'):'#ft-e-answer');
   };
   const taughtOralDeck=(preferredUnit=null,limit=Infinity)=>{
     const es=entries(),signals=getRevisionItems(),units=unitsForTrack(getTrack())
@@ -101,7 +105,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     return distinct.sort((a,b)=>priority(b)-priority(a)).slice(0,limit);
   };
   const dailyPlan=()=>{
-    const es=entries(),now=Date.now(),session=getSession(),rest=activeRest(es,now,getTrack());
+    const es=entries(),now=Date.now(),session=getSession(),rest=activeRest(es,now,null);
     const checks=prioritizedChecks(es,now,getTrack()),adaptive=extraRecall(es,now,getTrack())[0],repair=pendingRepairs(es,now,getTrack())[0];
     const revisionCount=getRevisionItems().length;
     const guided=unitsForTrack(getTrack()).map(u=>guidedStatus(u.id,es,now));
@@ -138,9 +142,9 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     else navigate('evidence');
   };
   const startUnit=unitId=>{
-    if(!unitsForTrack(getTrack()).some(u=>u.id===unitId))return;
-    const es=entries(),rest=activeRest(es,Date.now(),getTrack());
+    const es=entries(),rest=activeRest(es,Date.now(),null);
     if(rest){startGuided(rest.unitId);return;}
+    if(!unitsForTrack(getTrack()).some(u=>u.id===unitId))return;
     const checks=prioritizedChecks(es,Date.now(),getTrack());
     const due=checks.find(d=>d.unitId===unitId)||baselineFor(unitId,es);
     if(due){pick('check',due.items.find(x=>!x.row),{unitId,stage:due.stage,anchor:due.anchor});return;}
@@ -149,7 +153,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   const overview=()=>{
     const plan=dailyPlan(),done=plan.mode==='complete'||plan.mode==='rest';
     const label=done?(plan.hasMore?'Start another learning session':'View learning dashboard'):'Continue learning';
-    const action=plan.mode==='break'?'<button type="button" class="ft-primary" data-eact="daily" data-rest-continue disabled aria-disabled="true">Continue when the break finishes</button>':btn('daily',label,true);
+    const action=plan.mode==='break'?'<button type="button" class="ft-primary" data-eact="daily" data-ft-advance data-rest-continue disabled aria-disabled="true">Continue when the break finishes</button>':btn('daily',label,true);
     return '<section class="ft-card ft-e-today ft-unified-path" data-learning-mode="'+h(plan.mode)+'"><div class="ft-path-header"><p class="ft-eyebrow">YOUR PERSONALISED LEARNING PATH</p><h2>Today’s learning</h2><p class="ft-small">'+h(trackName(getTrack()))+' · Follow the recommended next step.</p></div>'+
       '<div class="ft-path-next"><p class="ft-eyebrow">'+(done?'YOU’RE UP TO DATE':'YOUR NEXT ACTIVITY')+'</p><h3>'+h(plan.label)+'</h3><p>'+h(plan.sub)+'</p>'+(plan.rest?restMarkup(plan.rest):'')+'<div class="ft-path-action">'+action+'</div></div>'+
       '<h3 class="ft-path-sequence-heading">Your learning sequence</h3><ol class="ft-path-sequence">'+plan.sequence.map((row,i)=>'<li class="ft-path-row '+h(row.kind)+'"'+(row.kind==='current'?' aria-current="step"':'')+'><span class="ft-path-number">'+(row.kind==='done'?'✓':i+1)+'</span><div><strong>'+h(row.name)+'</strong><small>'+h(row.description)+'</small></div><span class="ft-path-status">'+h(row.status)+'</span></li>').join('')+'</ol><p class="ft-small ft-path-footer">The app chooses the order. You do not need to work through these sections manually.</p></section>';
@@ -177,23 +181,23 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       const progress=state.mode==='check'?deck.filter(x=>firstByRef(entries()).has(x.ref)).length:null;
       return '<section class="ft-card ft-e-question"><p class="ft-eyebrow">'+h(title)+(progress==null?'':' · '+Math.min(progress+1,deck.length)+'/'+deck.length)+'</p><h2>Answer in French</h2><p class="ft-e-prompt">'+h(item.en)+'</p>'+
         '<p class="ft-small">'+(baseline?'This checks what you already know; it is not a grade.':state.mode==='adaptive'?'Recall the repaired phrase without a model.':'First answer only. No hints, dictionary or corrections until the check is finished.')+'</p>'+
-        '<form id="ft-e-form"><label for="ft-e-answer">Your French</label><input id="ft-e-answer" name="answer" '+inputs+' required><div class="ft-actions"><button type="submit" class="ft-primary">Submit answer</button>'+btn('unknown',"I don't know")+'</div></form>'+((baseline&&ALL_UNITS.find(u=>u.id===state.unitId)?.incremental)?btn('skip-baseline','Start teaching without a baseline'):'')+btn('leave','Pause')+'</section>';
+        '<form id="ft-e-form"><label for="ft-e-answer">Your French</label><input id="ft-e-answer" name="answer" '+inputs+' required><div class="ft-actions"><button type="submit" class="ft-primary">Submit answer</button>'+btn('unknown',"I don't know")+'</div></form>'+((baseline&&ALL_UNITS.find(u=>u.id===state.unitId)?.incremental)?btn('skip-baseline','Start teaching without a baseline'):'')+pauseButton()+'</section>';
     }
     if(state.mode==='repair'){
       return '<section class="ft-card ft-e-question"><p class="ft-eyebrow">TARGETED REPAIR</p><h2>'+h(labels[item.error]||'Phrase construction')+'</h2><p>'+h(ERROR_TIPS[item.error]||ERROR_TIPS.chunk)+'</p><p class="ft-e-prompt">'+h(item.en)+'</p>'+
         (state.feedback==='cover'?'<form id="ft-e-form"><label for="ft-e-answer">Now rebuild without the model</label><input id="ft-e-answer" name="answer" '+inputs+' required><button type="submit" class="ft-primary">Check</button></form>'+btn('model','Show model again'):
           state.feedback==='correct'?comparison(item)+'<p role="status">Correct. Compare your answer with the model. Another unaided practice is due tomorrow.</p>'+btn('daily','Continue',true):
-          (state.feedback==='wrong'?comparison(item)+'<p role="status">Not quite. Compare the highlighted words, then try again.</p>':'<p class="ft-e-prompt" lang="fr">'+spokenWords(item.fr)+'</p>')+'<div class="ft-actions">'+btn('speak','▶ Listen and repeat')+btn('cover','Cover and reconstruct',true)+'</div>')+btn('leave','Pause')+'</section>';
+          (state.feedback==='wrong'?comparison(item)+'<p role="status">Not quite. Compare the highlighted words, then try again.</p>':'<p class="ft-e-prompt" lang="fr">'+spokenWords(item.fr)+'</p>')+'<div class="ft-actions">'+btn('speak','▶ Listen and repeat')+btn('cover','Cover and reconstruct',true)+'</div>')+pauseButton()+'</section>';
     }
     if(state.mode==='experiment'){
       return '<section class="ft-card ft-e-question"><p class="ft-eyebrow">OPTIONAL TEACHING EXPERIMENT</p><h2>'+h(item.arm==='audio'?'Listen to the model':'Read the model')+'</h2><p class="ft-e-prompt">'+h(item.en)+'</p>'+
       (item.arm==='audio'?btn('experiment-audio','▶ Play French model',true):'<p class="ft-e-prompt" lang="fr">'+h(item.fr)+'</p>')+
-      '<p class="ft-small">Repeat the phrase once. Do not look it up. The next regular assessment measures later recall.</p>'+btn('experiment-next','I have repeated it',true)+btn('leave','Pause')+'</section>';
+      '<p class="ft-small">Repeat the phrase once. Do not look it up. The next regular assessment measures later recall.</p>'+btn('experiment-next','I have repeated it',true)+pauseButton()+'</section>';
     }
     if(state.mode==='oral'){
       return '<section class="ft-card ft-e-question"><p class="ft-eyebrow">RAPID ORAL PRACTICE · '+(state.oralIndex+1)+'/'+state.oralDeck.length+'</p><h2>Say it in French</h2><p class="ft-e-prompt">'+h(item.en)+'</p>'+
       (state.feedback==='spoken'?'<p class="ft-e-prompt" lang="fr">'+spokenWords(item.fr)+'</p>'+btn('speak','▶ Hear again')+btn('oral-next',state.oralIndex+1===state.oralDeck.length?'Finish oral practice':'Got it · next',true)+btn('oral-difficulty','Needed help'):btn('oral-reveal','Reveal and hear',true))+
-      '<p class="ft-small">Say your answer before revealing it. Self-check only; this is not an acoustic pronunciation score.</p>'+btn('oral-finish',state.autoOral?'Skip oral practice':'Finish')+'</section>';
+      '<p class="ft-small">Say your answer before revealing it. Self-check only; this is not an acoustic pronunciation score.</p>'+'<div class="ft-pause-row">'+btn('oral-finish',state.autoOral?'Skip oral practice':'Finish')+'</div></section>';
     }
     return '<section class="ft-card ft-e-question"><h2>'+(state.answerResult?'Practice complete':'Check complete')+'</h2>'+
       (state.answerResult?'<p class="ft-e-prompt">'+h(item.en)+'</p>'+comparison(item):'')+
@@ -208,7 +212,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   };
   const finishAnswer=value=>{
     const item=state.item;if(!item)return;
-    const rest=activeRest(entries(),Date.now(),getTrack());if(rest){startGuided(rest.unitId);return;}
+    const rest=activeRest(entries(),Date.now(),null);if(rest){startGuided(rest.unitId);return;}
     if(state.mode==='repair'){
       if(state.feedback!=='cover')return;
       const r=markAssessment(value,item);
@@ -218,7 +222,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
         state.feedback='correct';
       }else state.feedback='wrong';
       state.submittedAnswer=value;state.answerResult=r.correct?'correct':'incorrect';
-      refresh();speak(item.fr);
+      refresh();playAudio('correction',item.fr);
       focusTarget(r.correct?'[data-eact="daily"]':'[data-eact="cover"]');return;
     }
     if(!['check','adaptive'].includes(state.mode))return;
@@ -237,12 +241,12 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     if(result.error&&!adaptive)record({concept:item.concept,phase:'practice',support:'unknown',sourceRef:sourceRef+':error:'+result.error});
     if(adaptive){
       state.mode='done';state.submittedAnswer=value;state.answerResult=result.correct?'correct':value.trim()?'incorrect':'revealed';
-      state.feedback=result.correct?'Correct. Your repaired phrase was recalled independently.':'Not recalled yet. Compare the model and try again at the next scheduled check.';refresh();speak(item.fr);focusTarget('[data-eact="daily"]');return;
+      state.feedback=result.correct?'Correct. Your repaired phrase was recalled independently.':'Not recalled yet. Compare the model and try again at the next scheduled check.';refresh();playAudio('correction',item.fr);focusTarget('[data-eact="daily"]');return;
     }
     const current=stage==='baseline'?baselineFor(state.unitId,entries()):prioritizedChecks(entries(),Date.now(),getTrack()).find(x=>x.unitId===state.unitId&&x.stage===stage);
     if(current){pick('check',current.items.find(x=>!x.row),{unitId:current.unitId,stage,anchor:current.anchor});return;}
     if(stage==='immediate'&&checkResult(state.unitId,stage,entries()).complete)onCheckComplete(state.unitId);
-    state.mode='done';state.doneUnit=stage==='baseline'?state.unitId:null;state.feedback=stage==='baseline'?'Starting knowledge recorded. Now learn the phrases.':'Check complete. Continue learning to follow the recommended next step.';refresh();
+    state.mode='done';state.doneUnit=stage==='baseline'?state.unitId:null;state.feedback=stage==='baseline'?'Starting knowledge recorded. Now learn the phrases.':'Check complete. Continue learning to follow the recommended next step.';refresh();focusTarget(state.doneUnit?'[data-eact="continue-unit"]':'[data-eact="daily"]');
   };
   const startExperiment=()=>{
     const x=getTrack()==='michaela'?availableExperiment(entries()):null;
@@ -268,7 +272,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     const a=target.dataset.eact;if(!a)return false;
     if(a.startsWith('unit:')){startUnit(a.slice(5));return true;}
     if(a.startsWith('range-')){state.range=Number(a.slice(6))===36500?36500:28;refresh();return true;}
-    const rest=activeRest(entries(),Date.now(),getTrack());if(rest&&a!=='leave'){startGuided(rest.unitId);return true;}
+    const rest=activeRest(entries(),Date.now(),null);if(rest&&a!=='leave'){startGuided(rest.unitId);return true;}
     if(state.mode==='oral'&&state.autoOral&&['oral-reveal','oral-next','oral-difficulty'].includes(a)&&prioritizedChecks(entries(),Date.now(),getTrack()).length){startDaily();return true;}
     switch(a){
       case 'daily':startDaily();break;
@@ -278,7 +282,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       case 'unknown':finishAnswer('');break;
       case 'speak':if(state.item?.fr)speak(state.item.fr);break;
       case 'cover':state.feedback='cover';state.submittedAnswer=null;state.answerResult=null;refresh();focusTarget('#ft-e-answer');break;
-      case 'model':state.feedback=null;state.submittedAnswer=null;state.answerResult=null;refresh();speak(state.item.fr);break;
+      case 'model':state.feedback=null;state.submittedAnswer=null;state.answerResult=null;refresh();playAudio('reveal',state.item.fr);focusTarget('[data-eact="cover"]');break;
       case 'experiment':startExperiment();break;
       case 'experiment-audio':state.played=true;speak(state.item.fr);break;
       case 'experiment-next':{
@@ -294,7 +298,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
         if(state.mode!=='oral'||state.feedback==='spoken')break;
         const item=state.item,sourceRef='oral-practice:'+item.unitId+':'+Date.now()+':'+state.oralIndex+':exposure';
         record({concept:item.concept,phase:'practice',support:'worked-example',sourceRef});
-        state.feedback='spoken';refresh();speak(item.fr);break;
+        state.feedback='spoken';refresh();playAudio('reveal',item.fr);focusTarget('[data-eact="oral-next"]');break;
       }
       case 'oral-next':oralNext();break;
       case 'oral-difficulty':oralNext(true);break;
