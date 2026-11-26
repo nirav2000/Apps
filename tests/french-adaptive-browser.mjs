@@ -22,6 +22,10 @@ try{
   await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
  await page.locator('#ft-revision-add-word').fill('école');
  await page.locator('#ft-revision-add button').click();
+ const bar=page.locator('.ft-learning-profile [role="meter"]');
+ assert.equal(await bar.count(),1);assert.equal(await bar.getAttribute('aria-valuenow'),'20');
+ assert.match(await bar.getAttribute('aria-valuetext'),/High priority/);
+ assert.match(await page.locator('.ft-signal-next').innerText(),/Ready now/);
  await page.locator('.ft-tabs [data-page="home"]').click();
  await page.locator('.ft-tabs [data-page="explore"]').click();
  await page.getByRole('button',{name:'Start guided lesson',exact:true}).click();
@@ -62,6 +66,7 @@ try{
  await page.locator('.ft-tabs [data-page="explore"]').click();
   await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
  assert.equal(await page.locator('.ft-revision-row').count(),0);
+ assert.equal(await page.locator('.ft-learning-profile [role="meter"]').count(),0);
  assert.deepEqual(errors,[]);
  console.log('Adaptive browser: inserted dictation, durable plan, reload, core resume, private outcome, clean screen and learner isolation');
 }finally{await browser.close();}

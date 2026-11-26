@@ -95,3 +95,35 @@ test('answer audit captures exact text without changing score, isolates learners
  const rows=visibleHistory(store.getEntries(),evidence);
  assert.equal(rows.length,8);assert.equal(rows.find(x=>!x.legacy).answer,raw);assert.equal(rows.find(x=>x.legacy).answer,null);assert.equal(rows.find(x=>!x.legacy).expected,item.fr);
 });
+
+
+import {createAssessmentInterface} from '../french-teaching/v1/assessment-ui.js';
+test('targeted repair retains submitted French and canonical model on wrong and correct responses',()=>{
+ const now=Date.now(),taughtAt=now-8*DAY,deck=guidedLesson(u.id).steps;
+ const records=[event(guidedTeachingRef(u.id),taughtAt),
+   ...deck.map((x,i)=>event(guidedCompletionRefs(x.id).complete,taughtAt+(i+1)*1000,{concept:x.concept}))];
+ const finish=teachingFinishedAt(u.id,records,now);
+ records.push(...attempts('day7',finish+7*DAY+1000,false));
+ const item=pendingRepairs(records,now)[0];assert.ok(item);
+ let lastSpoken='',focused='',audits=[];
+ const ui=createAssessmentInterface({getEntries:()=>records,record:raw=>records.push(event(raw.sourceRef,now,raw)),recordAttempt:a=>{audits.push(a);return true;},speak:v=>lastSpoken=v,refresh:()=>{},navigate:()=>{},startGuided:()=>{},focusTarget:v=>focused=v});
+ ui.startDaily();assert.match(ui.page(),/TARGETED REPAIR/);
+ ui.click({dataset:{eact:'cover'}});
+ const submit=value=>ui.submit({id:'ft-e-form',querySelector:()=>({value})},{preventDefault(){}});
+ submit('je ne sais pas');
+ assert.match(ui.page(),/ft-answer-comparison incorrect/);
+ assert.match(ui.page().replace(/<[^>]*>/g,''),/je ne sais pas/);
+ assert.match(ui.page(),/ft-word-difference/);
+ assert.equal(lastSpoken,item.fr);assert.equal(focused,'[data-eact="cover"]');
+ ui.click({dataset:{eact:'cover'}});
+ assert.doesNotMatch(ui.page(),/ft-answer-comparison/);
+ const answer='  '+item.fr+'.  ';
+ submit(answer);
+ assert.match(ui.page(),/ft-answer-comparison correct/);
+ assert.match(ui.page(),/Your answer/);
+ assert.match(ui.page(),/Correct answer/);
+ assert.equal(audits.at(-1).answer,answer);
+ assert.equal(audits.at(-1).expected,item.fr);
+ assert.equal(lastSpoken,item.fr);assert.equal(focused,'[data-eact="daily"]');
+ assert.equal(pendingRepairs(records,now).length,7);
+});

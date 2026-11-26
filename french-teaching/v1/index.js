@@ -147,12 +147,26 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const pending=importedWords.filter(w=>!rows.some(x=>x.key===wordKey(w)&&x.dueAt!==null));
     const importBox=importedWords.length?'<section class="ft-revision-row"><strong>Words to add to this learner’s revision</strong><p lang="fr">'+importedWords.map(esc).join(' · ')+'</p><p class="ft-small">'+(pending.length?pending.length+' new words; existing scheduled words will not be duplicated.':'All these words already have a scheduled review.')+'</p><button type="button" data-act="revision-import" class="ft-primary">'+(pending.length?'Confirm and add':'Done')+'</button></section>':'';
     const date=ms=>ms===null?'No drill scheduled':ms<=Date.now()?'Ready now':new Date(ms).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    const priorityBar=x=>{
+      const value=Math.max(0,Math.min(100,Number(x.strength)||0));
+      const tier=x.priority==='High'?'high':x.priority==='Medium'?'medium':'low';
+      return '<div class="ft-signal-priority-bar" role="meter" aria-label="'+esc(x.word)+' revision priority" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+value+'" aria-valuetext="'+value+' out of 100, '+esc(x.priority)+' priority"><span class="'+tier+'" style="width:'+value+'%"></span></div>';
+    };
+    const nextAction=x=>{
+      const planned=plans.find(p=>p.key===x.key&&!p.complete);
+      if(planned)return 'Planned: '+(planned.mode==='model'?'listen and repeat':planned.mode==='dictation'?'listen and spell':'recall in a sentence');
+      if(x.due)return 'Ready now · eligible for upcoming practice';
+      if(x.dueAt!==null)return 'Next review: '+date(x.dueAt);
+      if(x.level>=5)return 'Scheduled revision complete';
+      return 'Watching for further evidence · no drill scheduled';
+    };
     return '<section class="ft-card ft-revision-dashboard"><p class="ft-eyebrow">PERSONAL LEARNING SIGNALS</p><h2>Your revision queue</h2><p>Each signal is a clue, not a mastery score. Repeated difficulty brings a word forward. Correct revision answers space it further apart.</p>'+
       '<div class="ft-actions"><button type="button" data-act="revision-start" class="ft-primary"'+(!due.length?' disabled':'')+'>Practise '+Math.min(5,due.length)+' due words</button><button type="button" data-act="sync">Sync</button></div>'+
       importBox+'<form id="ft-revision-add"><label for="ft-revision-add-word">Add a French word to revise</label><input id="ft-revision-add-word" name="word" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required maxlength="80"><button type="submit">Add word</button></form>'+
-      (rows.length?rows.map(x=>'<article class="ft-revision-row"><div class="ft-row"><strong lang="fr">'+spokenWords(x.word)+'</strong><span>'+esc(x.priority)+' · '+x.strength+'/100 · '+esc(date(x.dueAt))+'</span></div><p class="ft-small">'+x.counts.spelling+' spelling / form · '+x.counts.pronunciation+' word plays · '+x.counts.hesitation+' slower typing · '+x.counts.review+' reviews · '+(x.counts.hint+x.counts.reveal+x.counts.construction+x.counts.recognition)+' phrase / help signals · '+x.counts.success+' unaided successes</p>'+
+      '<div class="ft-learning-profile"><h3>Your learning profile</h3><p class="ft-small">Live priority scores from your own learning signals, not percentages of knowledge. High-priority targets are considered sooner when the teaching sequence allows.</p>'+
+      (rows.length?rows.map(x=>'<article class="ft-revision-row ft-signal-profile-row"><div class="ft-row"><strong lang="fr">'+spokenWords(x.word)+'</strong><span>'+esc(x.priority)+' · '+x.strength+'/100 priority</span></div>'+priorityBar(x)+'<p class="ft-small">'+x.counts.spelling+' spelling / form · '+x.counts.pronunciation+' word plays · '+x.counts.hesitation+' slower typing · '+x.counts.review+' reviews · '+(x.counts.hint+x.counts.reveal+x.counts.construction+x.counts.recognition)+' phrase / help signals · '+x.counts.success+' unaided successes</p><p class="ft-signal-next">'+esc(nextAction(x))+'</p>'+
         (x.counts.spelling?'<p class="ft-revision-errors">'+[...new Set(x.signals.filter(s=>s.kind==='spelling').map(s=>s.actual))].map(esc).join(', ')+' → <strong>'+esc(x.word)+'</strong></p>':'')+
-        '<details><summary>Signal history</summary>'+x.signals.slice().reverse().map(s=>'<p class="ft-small">'+esc(new Date(s.at).toLocaleString('en-GB'))+' · '+esc(s.kind)+(s.kind==='hesitation'?' · '+s.ratio+'× your sentence baseline'+(s.mode==='before-word'?' (pause before word)':' (typing)'):s.kind==='review'?' · '+(s.correct?'correct':'incorrect'):'')+'</p>').join('')+'</details></article>').join(''):'<p>No signals recorded yet. Words you mistype, repeatedly listen to or hesitate over will appear here.</p>')+
+        '<details><summary>Signal history</summary>'+x.signals.slice().reverse().map(s=>'<p class="ft-small">'+esc(new Date(s.at).toLocaleString('en-GB'))+' · '+esc(s.kind)+(s.kind==='hesitation'?' · '+s.ratio+'× your sentence baseline'+(s.mode==='before-word'?' (pause before word)':' (typing)'):s.kind==='review'?' · '+(s.correct?'correct':'incorrect'):'')+'</p>').join('')+'</details></article>').join(''):'<p>No signals recorded yet. Words you mistype, repeatedly listen to or hesitate over will appear here.</p>')+'</div>'+
       (plans.length?'<details class="ft-adaptive-log"><summary>Teaching adaptations ('+plans.length+')</summary>'+plans.slice(0,40).map(p=>'<p><strong>'+esc(p.target)+'</strong> · '+esc(p.mode)+' · '+esc(p.reason)+' · '+(p.complete?'Completed':'Planned')+'<br>'+esc(p.fr)+'</p>').join('')+'</details>':'')+
       '<p class="ft-small">Timing uses only word-level aggregates from ordinary typing in answer fields, never a keystroke log. One slow word alone does not establish a difficulty.</p></section>';
   }
@@ -921,7 +935,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       return;
     }
     const assessmentTarget=e.target.closest('[data-eact]');
-    if(assessmentTarget?.dataset.eact==='daily'){startDailyWithSignals(true);return;}
+    if(assessmentTarget?.dataset.eact==='daily'){
+      if(state.page==='assessment')await afterSpeech(assessmentTarget,()=>startDailyWithSignals(true));
+      else startDailyWithSignals(true);
+      return;
+    }
+    if(assessmentTarget?.dataset.eact==='cover'&&state.page==='assessment'){await afterSpeech(assessmentTarget,()=>assessmentUI.click(assessmentTarget));return;}
     if(assessmentTarget&&assessmentUI.click(assessmentTarget))return;
     const guidedTarget=e.target.closest('[data-gword],[data-gact],[data-gchoice],[data-gspeak]');
     if(guidedTarget?.dataset.gact==='next-unit'){if(enforceBreak())return;const unit=guidedTarget.dataset.restUnit;if(unit)assessmentUI.startUnit(unit);else startDailyWithSignals();return;}
