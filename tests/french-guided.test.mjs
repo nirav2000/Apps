@@ -414,8 +414,8 @@ test('learning-history lookup distinguishes starting check from recorded teachin
 });
 
 
-import {grammarPatternsFor,patternsForModel,patternQuestion,patternQuestions,patternIntroQuestion,patternReviewSchedule,PATTERN_DAY,PATTERN_CONTENT_VERSION,ALL_LANGUAGE_PATTERNS,UNLOCKING_BUILDER_UNITS} from '../french-teaching/v1/unlocking-builder.js';
-import {patternCardMarkup,wordPatternMarkup} from '../french-teaching/v1/guided-ui.js';
+import {grammarPatternsFor,patternsForModel,patternQuestion,patternQuestions,patternIntroQuestion,patternReviewSchedule,patternExampleKey,PATTERN_DAY,PATTERN_CONTENT_VERSION,ALL_LANGUAGE_PATTERNS,UNLOCKING_BUILDER_UNITS} from '../french-teaching/v1/unlocking-builder.js';
+import {patternCardMarkup,wordPatternMarkup,patternPreviewMarkup} from '../french-teaching/v1/guided-ui.js';
 test('interesting gets its relevant English ending pattern; agreement and order are explicit',()=>{
  assert.deepEqual(wordPatternsFor('intéressant').map(p=>p.id),['ing-ant']);
  assert.ok(wordPatternsFor('différent').some(p=>p.id==='ant-ent'));
@@ -487,4 +487,41 @@ test('old misleading pattern answers cannot advance revised review and guided co
  assert.equal(before.level,0);assert.equal(before.practiceIndex,0);assert.equal(before.dueAt,due);
  assert.equal(run(due,[...old,intro,guided,mk(due,'pattern-practice-v1',{patternContentVersion:PATTERN_CONTENT_VERSION})]).level,1);
  assert.equal(old.length,2);
+});
+
+import {chooseLearningActivity} from '../french-teaching/v1/assessment-ui.js';
+test('due optional grammar never interrupts Continue learning',()=>{
+ const guided={mode:'resume',unit:{id:'u'}};
+ assert.equal(chooseLearningActivity({patternCount:9,guided}).mode,'guided');
+ assert.equal(chooseLearningActivity({patternCount:9,revisionCount:2}).mode,'revision');
+ assert.equal(chooseLearningActivity({patternCount:9}).mode,'rest');
+ assert.equal(chooseLearningActivity({patternCount:9,checks:[{stage:'day7'}],guided}).mode,'check');
+ assert.equal(chooseLearningActivity({patternCount:9,rest:{unitId:'u'},guided}).mode,'break');
+});
+test('normal lessons have a single closed grammar disclosure and compact relevant examples',()=>{
+ const box=wordPatternMarkup('J’ai préparé le repas');
+ assert.match(box,/^<details class="ft-pattern-disclosure"><summary>/);
+ assert.match(box,/See the grammar pattern/);
+ assert.ok(!box.includes('<details class="ft-pattern-disclosure" open'));
+ assert.match(box,/ft-mini-conversion/);
+ assert.match(box,/More examples &amp; explanation/);
+ assert.equal(wordPatternMarkup('bonjour'),'');
+ const p=ALL_LANGUAGE_PATTERNS.find(p=>p.id==='past-e');
+ const preview=patternPreviewMarkup(p,{model:'J’ai réservé une table',more:false});
+ assert.match(preview,/reservation/);
+ assert.ok(!preview.includes('organisation'));
+ assert.ok(!preview.includes('ft-pattern-more'));
+});
+test('optional review shows unknown examples individually before independent delayed recall',()=>{
+ const t=1000000,track='unlocking',step={id:'guided-v2:unlock2-past:present:1',unitId:'unlock2-past',track,stage:'present',kind:'model',en:'prepared',fr:'préparé'},steps=[step],evidence=[{at:t,source:{ref:step.id+':complete'}}];
+ const key=patternExampleKey(patternQuestion('past-e',0));
+ const mk=(at,marker,extra={})=>({id:marker+at,at,answerAudit:{marker,result:marker==='pattern-intro-v1'?'model':'correct',support:'none',context:{track,patternId:'past-e',patternContentVersion:PATTERN_CONTENT_VERSION,patternExample:key,...extra}}});
+ const run=(now,audits=[])=>patternReviewSchedule({steps,evidence,audits,track,now}).find(x=>x.id==='past-e');
+ assert.equal(run(t).needsExample,true);
+ const first=mk(t+600000,'pattern-intro-v1'),due=first.at+600000;
+ assert.equal(run(first.at,[first]).needsExample,false);
+ assert.equal(run(due,[first,mk(due-1,'pattern-practice-v1')]).level,0);
+ assert.equal(run(due,[first,mk(due-1,'pattern-practice-v1')]).practiceIndex,0);
+ const next=run(due,[first,mk(due,'pattern-practice-v1')]);
+ assert.equal(next.level,1);assert.equal(next.practiceIndex,1);assert.equal(next.needsExample,true);
 });

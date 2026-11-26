@@ -52,7 +52,7 @@ export function chooseLearningActivity({rest=null,checks=[],adaptive=null,repair
   if(checks.length){const due=checks[0];return {mode:'check',due,step:due.stage==='immediate'?'after':'recall'};}
   if(adaptive)return {mode:'adaptive',item:adaptive,step:'recall'};
   if(repair)return {mode:'repair',item:repair,step:'revision'};
-  if(patternCount>0)return {mode:'patterns',count:Math.min(3,patternCount),step:'revision'};
+  // Pattern explanations are optional; never interrupt Continue learning.
   // A paused teaching sequence retains its position, including adaptive inserts.
   if(guided?.mode==='resume')return {mode:'guided',unitId:guided.unit.id,step:'teaching'};
   if(revisionCount>0&&!session.revisionDone)return {mode:'revision',count:Math.min(5,revisionCount),step:'revision'};
@@ -68,7 +68,7 @@ export function chooseLearningActivity({rest=null,checks=[],adaptive=null,repair
 }
 const LEARNING_SEQUENCE=[
  {id:'recall',name:'Recall previous learning',description:'Independent checks before any revision.'},
- {id:'revision',name:'Personal revision',description:'Revisit difficult words, grammar and word patterns.'},
+ {id:'revision',name:'Personal revision',description:'Revisit difficult words and familiar expressions.'},
  {id:'teaching',name:'Learn something new',description:'Guided teaching, at your own pace.'},
  {id:'break',name:'Let it settle',description:'Five minutes away from this course.'},
  {id:'after',name:'After teaching check',description:'Recall the new French without help.'},
@@ -112,7 +112,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     const guided=unitsForTrack(getTrack()).map(u=>guidedStatus(u.id,es,now));
     const next=guided.find(x=>x.mode==='resume')||guided.find(x=>x.mode==='new');
     const baseline=next?baselineFor(next.unit.id,es,now):null;
-    const upcoming=[scheduledPractice(es,now,getTrack()).next?.at,nextCheckDate(es,now,getTrack()),getNextPatternReview()].filter(t=>Number.isFinite(t)&&t>now);
+    const upcoming=[scheduledPractice(es,now,getTrack()).next?.at,nextCheckDate(es,now,getTrack())].filter(t=>Number.isFinite(t)&&t>now);
     const nextReview=upcoming.length?Math.min(...upcoming):null;
     const oralCount=session.completedUnit&&!session.oralDone?taughtOralDeck(session.completedUnit,3).length:0;
     const plan=chooseLearningActivity({rest,checks,adaptive,repair,revisionCount,patternCount,session,guided:next,baseline,oralCount,nextReview});
@@ -130,7 +130,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       rest:['All caught up',plan.nextReview?'Next scheduled review: '+when:when]
     };
     const [label,sub]=plan.mode==='check'?[plan.due.stage==='baseline'?'Quick starting check':plan.due.label+' check',plan.due.unit.name+' · '+(plan.due.items.length-plan.due.attempted.length)+' questions · '+(plan.due.stage==='baseline'?'check what you know before teaching':'recall without hints')]:details[plan.mode];
-    return {...plan,label,sub,sequence:sequenceStatus(plan,{checks,revisionCount:revisionCount+patternCount,repair:!!repair,adaptive:!!adaptive,session})};
+    return {...plan,label,sub,optionalPatternCount:patternCount,sequence:sequenceStatus(plan,{checks,revisionCount,repair:!!repair,adaptive:!!adaptive,session})};
   };
   const startDaily=()=>{
     const plan=dailyPlan();
@@ -140,7 +140,6 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     }else if(plan.mode==='guided'||plan.mode==='break')startGuided(plan.unitId);
     else if(plan.mode==='repair'||plan.mode==='adaptive')pick(plan.mode,plan.item);
     else if(plan.mode==='revision')onRevision();
-    else if(plan.mode==='patterns')onPatterns();
     else if(plan.mode==='oral')startOral(true);
     else if(plan.mode==='complete'&&plan.hasMore){onNewSession();startDaily();}
     else navigate('evidence');
@@ -160,7 +159,8 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     const action=plan.mode==='break'?'<button type="button" class="ft-primary" data-eact="daily" data-ft-advance data-rest-continue disabled aria-disabled="true">Continue when the break finishes</button>':btn('daily',label,true);
     return '<section class="ft-card ft-e-today ft-unified-path" data-learning-mode="'+h(plan.mode)+'"><div class="ft-path-header"><p class="ft-eyebrow">YOUR PERSONALISED LEARNING PATH</p><h2>Today’s learning</h2><p class="ft-small">'+h(trackName(getTrack()))+' · Follow the recommended next step.</p></div>'+
       '<div class="ft-path-next"><p class="ft-eyebrow">'+(done?'YOU’RE UP TO DATE':'YOUR NEXT ACTIVITY')+'</p><h3>'+h(plan.label)+'</h3><p>'+h(plan.sub)+'</p>'+(plan.rest?restMarkup(plan.rest):'')+'<div class="ft-path-action">'+action+'</div></div>'+
-      '<h3 class="ft-path-sequence-heading">Your learning sequence</h3><ol class="ft-path-sequence">'+plan.sequence.map((row,i)=>'<li class="ft-path-row '+h(row.kind)+'"'+(row.kind==='current'?' aria-current="step"':'')+'><span class="ft-path-number">'+(row.kind==='done'?'✓':i+1)+'</span><div><strong>'+h(row.name)+'</strong><small>'+h(row.description)+'</small></div><span class="ft-path-status">'+h(row.status)+'</span></li>').join('')+'</ol><p class="ft-small ft-path-footer">The app chooses the order. You do not need to work through these sections manually.</p></section>';
+      '<h3 class="ft-path-sequence-heading">Your learning sequence</h3><ol class="ft-path-sequence">'+plan.sequence.map((row,i)=>'<li class="ft-path-row '+h(row.kind)+'"'+(row.kind==='current'?' aria-current="step"':'')+'><span class="ft-path-number">'+(row.kind==='done'?'✓':i+1)+'</span><div><strong>'+h(row.name)+'</strong><small>'+h(row.description)+'</small></div><span class="ft-path-status">'+h(row.status)+'</span></li>').join('')+'</ol><p class="ft-small ft-path-footer">The app chooses the order. You do not need to work through these sections manually.</p>'+
+      (getTrack()==='unlocking'&&!['break','check'].includes(plan.mode)&&plan.optionalPatternCount?'<div class="ft-pattern-optional"><span><strong>Optional: patterns &amp; grammar</strong><small>'+plan.optionalPatternCount+' ready to revisit</small></span><button type="button" data-page="patterns">View</button></div>':'')+'</section>';
   };
   const dashboard=()=>{
     const es=entries(),s=assessmentStats(es,Date.now(),state.range,getTrack()),exp=experimentStats(es);

@@ -858,6 +858,9 @@ export function patternIntroQuestion(patternId){
  if(patternId==='past-e')return {prompt:'Build a new French word',mode:'conversion',en:'confirmation',sourceFr:'confirmation',targetEn:'confirmed',fr:'confirmé',clue:'Replace the French ending -ation with -é. You are making a new word, not translating the original word.'};
  return patternQuestion(patternId,0);
 }
+// An example must have been shown before it becomes an independent question.
+const patternNorm=s=>String(s??'').normalize('NFC').toLowerCase().replace(/[’‘]/g,"'").replace(/[.!?]+$/,'').replace(/\s+/g,' ').trim();
+export const patternExampleKey=q=>patternNorm(q?.en)+'|'+patternNorm(q?.fr);
 export const PATTERN_DAY=86400000;
 export function patternQuestion(patternId,index=0){
  const qs=patternQuestions(patternId);return qs.length?qs[((index%qs.length)+qs.length)%qs.length]:null;
@@ -868,31 +871,43 @@ export function patternQuestion(patternId,index=0){
 export function patternReviewSchedule({steps=[],evidence=[],audits=[],track='unlocking',now=Date.now()}={}){
  const completed=new Map();
  for(const e of evidence){const ref=e.source?.ref,at=Number(e.at);if(ref&&Number.isFinite(at)&&at<=now&&(!completed.has(ref)||at<completed.get(ref)))completed.set(ref,at);}
- const first=new Map();
+ const first=new Map(),knownExamples=new Map();
  for(const s of steps){
   if((s.track||'michaela')!==track||s.kind!=='model'||['independent','transfer','review','adaptive'].includes(s.stage))continue;
   const at=completed.get(s.id+':complete');if(at===undefined)continue;
+  if(s.en&&s.fr){const k=patternExampleKey(s);knownExamples.set(k,Math.min(at,knownExamples.get(k)??Infinity));}
   for(const p of patternsForModel(s.fr)){if(!first.has(p.id)||at<first.get(p.id))first.set(p.id,at);}
  }
  const intervals=[1,3,7,28,28],out=[];
  for(const p of ALL_LANGUAGE_PATTERNS){
   const taughtAt=first.get(p.id);if(taughtAt===undefined)continue;
   const samePattern=r=>r.answerAudit?.context?.track===track&&r.answerAudit?.context?.patternId===p.id&&r.answerAudit?.context?.patternContentVersion===PATTERN_CONTENT_VERSION&&r.at>=taughtAt&&r.at<=now;
-  const intro=audits.filter(r=>r.answerAudit?.marker==='pattern-intro-v1'&&r.answerAudit?.result==='model'&&samePattern(r)).sort((a,b)=>a.at-b.at)[0];
+  const introductions=audits.filter(r=>r.answerAudit?.marker==='pattern-intro-v1'&&r.answerAudit?.result==='model'&&samePattern(r)).sort((a,b)=>a.at-b.at);
+  const intro=introductions[0],exampleAt=new Map();
+  for(const r of introductions){const key=r.answerAudit.context?.patternExample;if(key&&!exampleAt.has(key))exampleAt.set(key,r.at);}
   const introAt=intro?.at??null,needsIntro=introAt===null;
   let level=0,dueAt=(introAt??taughtAt)+10*60000,attempts=0,practiceIndex=0,lastAt=null,lastCorrect=null;
   const rows=needsIntro?[]:audits.filter(r=>r.answerAudit?.marker==='pattern-practice-v1'&&samePattern(r)&&r.at>=introAt).sort((a,b)=>a.at-b.at||String(a.id).localeCompare(String(b.id)));
   for(const r of rows){
    const a=r.answerAudit;attempts++;lastAt=r.at;lastCorrect=a.result==='correct';
    if(a.context?.guidedIntro)continue;
-   practiceIndex++;
+   const key=a.context?.patternExample;
+   // Keep older review records interpretable. New reviews repeat the same
+   // example until it is independently retrieved after a delay.
+   if(!key)practiceIndex++;
    const correct=lastCorrect&&a.support==='none';
    if(!correct){level=0;dueAt=r.at+10*60000;continue;}
-   if(r.at<dueAt)continue;
+   if(key&&!((knownExamples.get(key)??Infinity)<=r.at||(exampleAt.get(key)??Infinity)<=r.at))continue;
+   const minimum=key&&exampleAt.has(key)?exampleAt.get(key)+10*60000:0;
+   if(r.at<Math.max(dueAt,minimum))continue;
+   if(key)practiceIndex++;
    dueAt=r.at+intervals[Math.min(level,intervals.length-1)]*PATTERN_DAY;
    level=Math.min(level+1,intervals.length);
   }
-  out.push({...p,taughtAt,introAt,needsIntro,level,dueAt,due:dueAt<=now,attempts,practiceIndex,lastAt,lastCorrect,question:patternQuestion(p.id,practiceIndex)});
+  const question=patternQuestion(p.id,practiceIndex),questionKey=patternExampleKey(question);
+  const needsExample=!knownExamples.has(questionKey)&&!exampleAt.has(questionKey);
+  if(exampleAt.has(questionKey))dueAt=Math.max(dueAt,exampleAt.get(questionKey)+10*60000);
+  out.push({...p,taughtAt,introAt,needsIntro,needsExample,level,dueAt,due:dueAt<=now,attempts,practiceIndex,lastAt,lastCorrect,question});
  }
  return out.sort((a,b)=>a.dueAt-b.dueAt||a.id.localeCompare(b.id));
 }

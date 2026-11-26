@@ -213,9 +213,48 @@ export function patternCardMarkup(p,{compact=false,reference=false}={}){
  const content='<strong>'+html(p.rule)+'</strong><p>'+html(p.note)+'</p>'+conversion+(p.id==='adjective-order'?orderDiagram():'')+'<div class="ft-word-pattern-pairs">'+pairs+'</div><details><summary>Try saying: '+html(p.tryEn)+'</summary><p lang="fr">'+spokenWords(p.tryFr)+'</p><p class="ft-small">Optional practice — say it aloud before revealing.</p></details>'+(p.technical?'<details class="ft-optional-grammar"><summary>Optional grammar explanation</summary><p>'+html(p.technical)+'</p></details>':'');
  return compact?'<aside class="ft-word-pattern ft-pattern-compact"><p class="ft-eyebrow">REMEMBER THE PATTERN</p><strong>'+html(p.rule)+'</strong><div class="ft-pattern-reminder"><span class="ft-pattern-lang">ENGLISH</span> '+html(p.examples[0][0])+' → <span class="ft-pattern-lang">FRENCH</span> <b lang="fr">'+spokenWords(p.examples[0][1])+'</b></div><details><summary>Explanation &amp; more examples</summary>'+content+'</details></aside>':'<aside class="ft-word-pattern"><p class="ft-eyebrow">'+heading+'</p>'+content+(reference?'':'<p class="ft-small">You will use this again in later practice. The full explanation is in Patterns &amp; grammar.</p>')+'</aside>';
 }
-export function wordPatternMarkup(fr,{compact=false,grammarOnly=false}={}){
- const patterns=grammarOnly?grammarPatternsFor(fr):patternsForModel(fr);
- return patterns.map(p=>patternCardMarkup(p,{compact})).join('');
+// A short example is the default; the complete catalogue is only a reference.
+const SHORT_PATTERN_NOTES={
+ 'past-e':'For some French word families, change -ation to -é to make a word for something done. The meaning changes too.',
+ visit:'Use visité after j’ai to say I visited. Listen to the final é.',
+ 'er-e':'To book is réserver; booked is réservé. They sound alike, but the spelling and meaning differ.',
+ ique:'Some English -ic or -ical words become -ique in French.',
+ able:'Some words keep the same spelling. Listen to their French pronunciation.',
+ 'ant-ent':'Many -ant or -ent words look familiar in French. Notice accents and listen to the ending.',
+ 'ing-ant':'Some English -ing describing words become -ant in French, like interesting → intéressant.',
+ ion:'Many -ion words have a familiar French equivalent. Notice accents and learn un or une with each word.',
+ normal:'Some words look the same in English and French. Say them with French pronunciation.',
+ 'gender-agreement':'Important stays important with un repas, but gains e with une invitation. Some describing words do not change.',
+ 'adjective-order':'Important usually comes after the thing being described in French. Petit usually comes before it.',
+ 'noun-gender':'Un and une both mean a or an. Learn each word with the little French word that goes with it.'
+};
+const containsPatternExample=(source,target)=>(' '+normaliseAnswer(source)+' ').includes(' '+normaliseAnswer(target)+' ');
+const previewAudio=fr=>'<button type="button" class="ft-pattern-play" data-act="pattern-audio" data-pattern-audio="'+html(fr)+'" aria-label="Hear '+html(fr)+'">▶</button>';
+export function patternPreviewMarkup(p,{model='',exclude='',more=true}={}){
+ const omit=fr=>!!exclude&&normaliseAnswer(fr)===normaliseAnswer(exclude);
+ let visual='';
+ if(p.conversions){
+  const choices=p.conversions.filter(([,fr,,action])=>!omit(fr)&&!omit(action));
+  const row=choices.find(([,fr,,action])=>containsPatternExample(model,fr)||containsPatternExample(model,action))||choices[0];
+  if(row){const [en,fr,action,actionFr]=row;visual='<div class="ft-mini-conversion"><div><small>'+html(en)+'</small><strong lang="fr">'+suffixMark(fr,['ation'],{accents:true})+'</strong>'+previewAudio(fr)+'</div><span class="ft-mini-arrow" aria-hidden="true">→</span><div><small>'+html(action)+'</small><strong lang="fr">'+suffixMark(actionFr,['é'],{accents:true})+'</strong>'+previewAudio(actionFr)+'</div></div><p class="ft-mini-label">English meanings above · French words below</p>';}
+ }else{
+  const choices=p.examples.filter(([,fr])=>!omit(fr));
+  const match=choices.find(([,fr])=>normaliseAnswer(model)===normaliseAnswer(fr))||choices.slice().sort((a,b)=>b[1].length-a[1].length).find(([,fr])=>containsPatternExample(model,fr))||choices[0];
+  const pair=([en,fr])=>'<div class="ft-mini-pair"><div><small>English</small><strong>'+html(en)+'</strong></div><div><small>French</small><strong lang="fr">'+accentMark(fr)+'</strong></div>'+previewAudio(fr)+'</div>';
+  if(p.id==='gender-agreement'&&!exclude)visual=p.examples.slice(0,2).map(pair).join('');
+  else if(match)visual=pair(match);
+ }
+ return '<div class="ft-pattern-preview"><strong class="ft-mini-rule">'+html(p.rule)+'</strong>'+visual+'<p>'+html(SHORT_PATTERN_NOTES[p.id]||p.note)+'</p>'+
+ (more?'<details class="ft-pattern-more"><summary>More examples &amp; explanation</summary>'+patternCardMarkup(p,{reference:true})+'</details>':'')+'</div>';
+}
+export function wordPatternMarkup(fr,{compact=true,grammarOnly=false,note='',patterns:provided=null}={}){
+ const patterns=(provided||(grammarOnly?grammarPatternsFor(fr):patternsForModel(fr))).slice();
+ if(!patterns.length&&!note)return '';
+ const priority=patterns.find(p=>p.id==='adjective-order')||patterns.find(p=>p.id==='gender-agreement')||patterns[0],others=patterns.filter(p=>p!==priority);
+ return '<details class="ft-pattern-disclosure"><summary><span class="ft-pattern-bulb" aria-hidden="true">✧</span><span>See the grammar pattern</span></summary><div class="ft-pattern-disclosure-body">'+
+ (priority?patternPreviewMarkup(priority,{model:fr}):'')+
+ (note?'<p class="ft-mini-note">'+html(note)+'</p>':'')+
+ (others.length?'<details class="ft-pattern-more"><summary>Other related patterns ('+others.length+')</summary>'+others.map(p=>patternPreviewMarkup(p,{model:fr})).join('')+'</details>':'')+'</div></details>';
 }
 export const EXACT_ANSWER_ATTRIBUTES='spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" writingsuggestions="false" inputmode="text"';
 export function answerComparison({answer='',expected,result,lang='fr',replay=''}) {
@@ -387,22 +426,19 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     if(step.kind==='model'){
       if(unit.incremental&&!step.adaptivePlan){
         const reverse=step.unlockAction==='reverse';
-        if(showFrench&&!reverse)body+='<p class="ft-small ft-current-audio"><strong>Listen and repeat this answer.</strong> When you have said it aloud, press Next to start a new exercise.</p>';
+        if(showFrench&&!reverse)body+='<p class="ft-small ft-current-audio">Listen, then say it aloud.</p>';
         body+=reverse?'<div class="ft-guided-pair"><div class="ft-pair-french"><p lang="fr" class="ft-guided-french">'+spokenWords(step.fr)+'</p><button type="button" data-gact="speak">▶</button></div>'+
           (showFrench?'<p class="ft-guided-english">'+html(step.en)+'</p>':'<p class="ft-pair-placeholder">Work out the English meaning first.</p>')+'</div>':pair(step.en,showFrench?step.fr:'',!showFrench);
         if(showFrench){
-          if(step.pronunciation)body+='<p class="ft-unlock-pron" aria-label="Pronunciation">'+html(step.pronunciation)+' · tap the French to listen</p>';
-          if(step.note)body+='<details class="ft-unlock-note"><summary>Notice the pattern</summary><p>'+html(step.note)+'</p></details>';
-          // Show the relevant rule with the first model and reinforce it
-          // after covered retrieval, without revealing any hidden answer.
-          if(step.unlockAction==='introduce')body+=wordPatternMarkup(step.fr);
-          else if(step.unlockAction==='build')body+=wordPatternMarkup(step.fr,{compact:!grammarPatternsFor(step.fr).some(p=>p.id==='adjective-order')});
-          else if(step.unlockAction==='recall'||step.unlockAction==='reverse')body+=wordPatternMarkup(step.fr,{compact:true});
           if(step.components?.length>1)body+='<div class="ft-unlock-components" aria-label="How the sentence is built">'+step.components.map(c=>'<span><small>'+html(c.en)+'</small><strong lang="fr">'+spokenWords(c.fr)+'</strong></span>').join('')+'</div>';
         }
         body+='<div class="ft-actions">'+(!showFrench?advanceButton('reveal',reverse?'Reveal English':'Reveal French'):
           advanceButton('finish-model',reverse?'I checked the meaning → Next':'I have said it → Next')+
           (step.unlockAction!=='introduce'&&step.stage!=='repair'?'<button type="button" data-gact="oral-retry"'+busy+'>Needed help · revisit later</button>':''))+'</div>';
+        if(showFrench){
+          body+=wordPatternMarkup(step.fr,{note:step.note||''});
+          if(step.pronunciation)body+='<details class="ft-pron-disclosure"><summary>Pronunciation</summary><p class="ft-unlock-pron">'+html(step.pronunciation)+' · tap the French to listen</p></details>';
+        }
       }else body+=pair(step.en,showFrench?step.fr:'',!showFrench)+
         '<div class="ft-actions">'+
         (!showFrench?'<button type="button" data-gact="reveal" data-ft-advance>Reveal French</button>':'')+
