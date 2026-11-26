@@ -1,7 +1,7 @@
 // Shared isolated translation gateway. Do NOT install in apps-monitor-api.
 // Secrets: GOOGLE_TRANSLATE_KEY, DEEPL_AUTH_KEY, FIREBASE_WEB_API_KEY, OWNER_UID.
 // Bindings: AI (optional), LIMITS (Durable Object for atomic daily quota).
-export const BUILD="translation-gateway-v1.1.1";
+export const BUILD="translation-gateway-v1.1.2";
 const ORIGIN="https://nirav2000.github.io";
 const PROJECT="kk-syllabus";
 const cors={"Access-Control-Allow-Origin":ORIGIN,"Access-Control-Allow-Methods":"POST, OPTIONS","Access-Control-Allow-Headers":"Authorization, Content-Type","Cache-Control":"no-store","Vary":"Origin"};
@@ -12,20 +12,31 @@ const decodeJwt=s=>{const b=s.replace(/-/g,"+").replace(/_/g,"/");return Uint8Ar
 const jwksUrl="https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 async function verify(request,env){
   const token=request.headers.get("Authorization")?.match(/^Bearer ([A-Za-z0-9._-]+)$/)?.[1];
-  if(!token||token.length>10000||!env.OWNER_UID)throw Error("Owner sign-in required");
-  const parts=token.split(".");if(parts.length!==3||parts.some(x=>!x))throw Error("Invalid token");
+  if(!token||token.length>10000||!env.OWNER_UID)throw Error("AUTH_REQUIRED");
+  const parts=token.split(".");if(parts.length!==3||parts.some(x=>!x))throw Error("AUTH_FORMAT");
   const decoder=new TextDecoder();
-  const h=JSON.parse(decoder.decode(decodeJwt(parts[0]))),p=JSON.parse(decoder.decode(decodeJwt(parts[1])));
+  let h,p;try{h=JSON.parse(decoder.decode(decodeJwt(parts[0])));p=JSON.parse(decoder.decode(decodeJwt(parts[1])))}catch{throw Error("AUTH_FORMAT")}
   const now=Date.now()/1000;
-  if(h.alg!=="RS256"||typeof h.kid!=="string"||!h.kid||p.aud!==PROJECT||p.iss!=="https://securetoken.google.com/"+PROJECT||p.sub!==env.OWNER_UID||!Number.isFinite(p.exp)||p.exp<=now||!Number.isFinite(p.iat)||p.iat>now+30||!Number.isFinite(p.auth_time)||p.auth_time>now+30)throw Error("Invalid Firebase claims");
-  // Firebase public signing keys, same trust root as the existing Comprehension AI service.
-  // No admin key is installed in this Worker. Signed tokens expire naturally within an hour.
-  const certs=await fetch(jwksUrl,{redirect:"error",signal:AbortSignal.timeout(8000),cf:{cacheTtl:3600}});
-  if(!certs.ok)throw Error("Signing keys unavailable");
-  const jwk=(await certs.json()).keys?.find(k=>k.kid===h.kid&&k.kty==="RSA");
-  if(!jwk)throw Error("Unknown signing key");
-  const key=await crypto.subtle.importKey("jwk",jwk,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["verify"]);
-  if(!await crypto.subtle.verify("RSASSA-PKCS1-v1_5",key,decodeJwt(parts[2]),new TextEncoder().encode(parts[0]+"."+parts[1])))throw Error("Invalid signature");
+  if(h.alg!=="RS256"||typeof h.kid!=="string"||!h.kid||p.aud!==PROJECT||p.iss!=="https://securetoken.google.com/"+PROJECT||p.sub!==env.OWNER_UID||!Number.isFinite(p.exp)||p.exp<=now||!Number.isFinite(p.iat)||p.iat>now+30)throw Error("AUTH_CLAIMS");
+  // Use Firebase public signing keys if available. The fallback is a positive
+  // Firebase-authenticated read of a dedicated owner-only probe, NOT a trust
+  // of unverified claims or a permissive 404. Firestore applies the existing
+  // exact owner rules and independently validates the same ID token.
+  let trusted=false,explicitInvalid=false;
+  try{
+    const certs=await fetch(jwksUrl,{redirect:"error",signal:AbortSignal.timeout(8000),cf:{cacheTtl:3600}});
+    if(certs.ok){
+      const jwk=(await certs.json()).keys?.find(k=>k.kid===h.kid&&k.kty==="RSA");
+      if(jwk){const key=await crypto.subtle.importKey("jwk",jwk,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["verify"]);trusted=await crypto.subtle.verify("RSASSA-PKCS1-v1_5",key,decodeJwt(parts[2]),new TextEncoder().encode(parts[0]+"."+parts[1]));explicitInvalid=!trusted}
+    }
+  }catch{}
+  if(explicitInvalid)throw Error("AUTH_SIGNATURE");
+  if(trusted)return;
+  const probeName="projects/"+PROJECT+"/databases/(default)/documents/families/"+encodeURIComponent(env.OWNER_UID)+"/learners/translation-lab-ci/progress/gateway-auth-v1";
+  const probe=await fetch("https://firestore.googleapis.com/v1/"+probeName,{headers:{Authorization:"Bearer "+token,Accept:"application/json"},redirect:"error",signal:AbortSignal.timeout(10000),cache:"no-store"});
+  if(!probe.ok)throw Error("AUTH_FIREBASE_DENIED");
+  const doc=await probe.json();
+  if(doc.name!==probeName||doc.fields?.app?.stringValue!=="translation-lab"||doc.fields?.kind?.stringValue!=="owner-auth-probe"||doc.fields?.schema?.integerValue!=="1")throw Error("AUTH_PROBE");
 }
 export class Limits {
   constructor(state){this.state=state;}
@@ -49,7 +60,7 @@ export default {async fetch(request,env){
   if(request.headers.get("Origin")!==ORIGIN)return json({error:"Origin not permitted."},403);
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
   if(request.method!=="POST")return json({error:"POST required."},405);
-  try{await verify(request,env)}catch{return json({error:"Authorised Firebase sign-in could not be verified."},401)}
+  try{await verify(request,env)}catch(e){const code=/^AUTH_[A-Z_]+$/.test(e?.message||"")?e.message:"AUTH_UNAVAILABLE";return json({error:"Authorised Firebase sign-in could not be verified.",code},401)}
   let body;try{const raw=await request.text();if(raw.length>20000)throw Error();body=JSON.parse(raw);if(!body||typeof body!=="object"||Array.isArray(body))throw Error()}catch{return json({error:"Invalid request."},400)}
   const ready=!!env.LIMITS;
   if(body.action==="status")return json({google:ready&&!!env.GOOGLE_TRANSLATE_KEY,deepl:ready&&!!env.DEEPL_AUTH_KEY,ai:ready&&!!env.AI});
