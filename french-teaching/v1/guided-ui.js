@@ -350,10 +350,10 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
   const dashboard=()=>{
     const statuses=unitsForTrack(getTrack()).map(u=>guidedStatus(u.id,evidence()));
     const preferred=recommendedGuidedUnit(evidence(),Date.now(),getTrack());
-    return '<section class="ft-card ft-todays-lesson"><p class="ft-eyebrow">TODAY’S GUIDED FRENCH</p>'+
-      '<h2>'+html(preferred.mode==='review'?'Remember what you learned':'Build French one phrase at a time')+'</h2>'+
-      '<p>'+html(preferred.unit.name)+' · '+html(preferred.unit.goal)+'</p>'+
-      '<div class="ft-actions"><button data-gact="start" class="ft-primary">'+
+    return '<section class="ft-card ft-todays-lesson"><p class="ft-eyebrow">LESSON LIBRARY · MANUAL SELECTION</p>'+
+      '<h2>'+html(preferred.mode==='review'?'Browse guided lessons':'Browse guided lessons')+'</h2>'+
+      '<p>Choose a topic yourself, or return to Today for the recommended sequence.</p>'+
+      '<div class="ft-actions"><button data-gact="start">'+
       (preferred.mode==='review'?'Start your review':preferred.mode==='new'?'Start guided lesson':'Continue guided lesson')+
       '</button><button data-page="magic">Explore Magic 10</button></div>'+
       '<p class="ft-small">Practise small useful structures repeatedly, cover the prompts, and revisit them after 1, 3, 7 and 28 days.</p>'+

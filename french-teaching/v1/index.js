@@ -847,6 +847,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   function setPage(page){
     if(!state.store){render();return;}
     if(!['home','evidence','history','signals','settings','explore'].includes(page)&&enforceBreak())return;
+    if(explorePages.some(([p])=>p===page)&&page!=='signals'&&prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
     cancelPendingAdvance();
     if(page==='lesson'){revision=null;startDailyWithSignals(true);return;}
     revision=null;
