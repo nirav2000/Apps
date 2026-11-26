@@ -29,6 +29,32 @@ export function activeRest(entries,now=Date.now(),track='michaela'){
  return units.filter(u=>recent.has(u.id)).map(u=>{const rest=restForUnit(u.id,entries,now);return rest?{...rest,track:u.track||'michaela'}:null;}).filter(x=>x?.active).sort((a,b)=>b.readyAt-a.readyAt)[0]||null;
 }
 const dueTime=(anchor,w)=>anchor+(w.id==='immediate'?MINIMUM_REST_MS:w.from*DAY);
+const REVIEW_STAGES=Object.freeze({
+ immediate:{title:'After-teaching recall',purpose:'Try to remember the new French without looking, after the five-minute break.'},
+ day1:{title:'1-day recall',purpose:'Check what you still remember after one day.'},
+ day3:{title:'3-day recall',purpose:'Check what you still remember after three days.'},
+ day7:{title:'7-day recall',purpose:'Check what you can still use independently after a week.'},
+ day28:{title:'28-day recall',purpose:'Check what you have retained over the longer term.'}
+});
+export function reviewStageDetails(stage){return REVIEW_STAGES[stage]||{title:'Independent recall',purpose:'Check what you still remember without help.'};}
+export function reviewAvailability(at,now=Date.now()){
+ const d=new Date(at),today=new Date(now),tomorrow=new Date(now);tomorrow.setDate(today.getDate()+1);
+ const time=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+ const day=d.toDateString()===today.toDateString()?'Today':d.toDateString()===tomorrow.toDateString()?'Tomorrow':d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',...(d.getFullYear()!==today.getFullYear()?{year:'numeric'}:{})});
+ return day+' from '+time;
+}
+export function reviewUnitTitle(unit,track){
+ if(!unit)return '';
+ const name=unit.name||unit.unitId||unit.id||'';
+ if(track!=='unlocking'||/^Chapter\s+\d+/i.test(name))return name;
+ const pos=unitsForTrack(track).findIndex(u=>u.id===(unit.unitId||unit.id));
+ return pos<0?name:'Chapter '+(pos+1)+' · '+name;
+}
+export function nextReviewMarkup(review,now=Date.now()){
+ if(!review||!Number.isFinite(review.at))return '';
+ const stage=reviewStageDetails(review.stage);
+ return '<div class="ft-next-review"><span class="ft-next-review-caption">NEXT SCHEDULED REVIEW</span><strong class="ft-next-review-title">'+esc(stage.title)+'</strong><span class="ft-next-review-unit">'+esc(reviewUnitTitle(review,review.track))+'</span><span class="ft-next-review-time">'+esc(reviewAvailability(review.at,now))+'</span><p>'+esc(stage.purpose)+'</p><small>Come back when convenient after this time. You don’t need to return at the exact minute.</small></div>';
+}
 export function scheduledPractice(entries,now=Date.now(),track='michaela'){
  const due=[];
  let next=null;
@@ -38,8 +64,8 @@ export function scheduledPractice(entries,now=Date.now(),track='michaela'){
   const anchor=teachingFinishedAt(u.id,entries,now);
   if(anchor===null||now<anchor)continue;
   const current=CHECK_WINDOWS.find(w=>now>=dueTime(anchor,w)&&now<anchor+w.to*DAY)||(now<anchor+MINIMUM_REST_MS&&checkResult(u.id,'immediate',entries,now).attempted.length?CHECK_WINDOWS[0]:null);
-  const upcoming=CHECK_WINDOWS.find(w=>dueTime(anchor,w)>now);
-  if(upcoming){const at=dueTime(anchor,upcoming);if(!next||at<next.at)next={at,stage:upcoming.id,unitId:u.id,name:u.name};}
+  const upcoming=CHECK_WINDOWS.find(w=>dueTime(anchor,w)>now&&!checkResult(u.id,w.id,entries,now).complete);
+  if(upcoming){const at=dueTime(anchor,upcoming);if(!next||at<next.at)next={at,stage:upcoming.id,unitId:u.id,name:u.name,track:u.track||'michaela'};}
   if(!current)continue;
   const result=checkResult(u.id,current.id,entries,now);
   if(result.complete)continue;
@@ -106,7 +132,7 @@ export function noticeMarkup(schedule,words,rest,{enabled=false,supported=false,
  const message=n?(schedule.overdue.length?schedule.overdue.length+' lesson check'+(schedule.overdue.length===1?'':'s')+' overdue. ':'')+(words.length?words.length+' personal revision item'+(words.length===1?'':'s')+' overdue. ':'')+(late?'Oldest shown: '+late+' since due.':'')+(earliest?.missed.length?' An earlier check was missed; do the current check rather than backdating it.':''):
  rest?'Your next independent check unlocks at '+shortDate(rest.readyAt)+'.':
  schedule.due.length?schedule.due[0].name+' · '+schedule.due[0].label+' check is ready.':
- schedule.next?schedule.next.name+' · '+shortDate(schedule.next.at)+'.':'No practice is currently scheduled.';
+ schedule.next?reviewUnitTitle(schedule.next,schedule.next.track)+' · '+reviewStageDetails(schedule.next.stage).title+' · '+reviewAvailability(schedule.next.at)+'.':'No practice is currently scheduled.';
  return '<aside class="ft-timing-notice'+(n?' overdue':'')+'" aria-label="Practice schedule"><div><strong>'+esc(title)+'</strong><p>'+esc(message)+'</p></div><div class="ft-actions">'+
  (actions&&(rest||schedule.due.length)?'<button type="button" data-eact="daily" class="ft-primary">'+(rest?'View countdown':'Practise now')+'</button>':actions&&words.length?'<button type="button" data-act="revision-start" class="ft-primary">Review words</button>':'')+
  (supported?'<button type="button" data-act="practice-alerts">'+(enabled?'Turn off device alerts':'Enable device alerts')+'</button>':'')+

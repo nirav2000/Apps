@@ -489,7 +489,7 @@ test('old misleading pattern answers cannot advance revised review and guided co
  assert.equal(old.length,2);
 });
 
-import {chooseLearningActivity} from '../french-teaching/v1/assessment-ui.js';
+import {chooseLearningActivity,sequenceStatus} from '../french-teaching/v1/assessment-ui.js';
 test('due optional grammar never interrupts Continue learning',()=>{
  const guided={mode:'resume',unit:{id:'u'}};
  assert.equal(chooseLearningActivity({patternCount:9,guided}).mode,'guided');
@@ -524,4 +524,49 @@ test('optional review shows unknown examples individually before independent del
  assert.equal(run(due,[first,mk(due-1,'pattern-practice-v1')]).practiceIndex,0);
  const next=run(due,[first,mk(due,'pattern-practice-v1')]);
  assert.equal(next.level,1);assert.equal(next.practiceIndex,1);assert.equal(next.needsExample,true);
+});
+
+
+import {nextReviewMarkup,reviewStageDetails,reviewAvailability,scheduledPractice,MINIMUM_REST_MS} from '../french-teaching/v1/study-timing.js';
+import {teachingFinishedAt} from '../french-teaching/v1/assessment.js';
+test('session checklist ticks completed breaks and oral practice but not skipped or unknown outcomes',()=>{
+ const complete={mode:'complete',step:'complete'};
+ const row=(id,session,plan=complete)=>sequenceStatus(plan,{session}).find(x=>x.id===id);
+ assert.equal(row('break',{completedUnit:'u'}).status,'Break completed');
+ assert.equal(row('break',{completedUnit:'u'}).kind,'done');
+ assert.equal(row('break',{}, {mode:'check',step:'after'}).kind,'done');
+ assert.equal(row('break',{}, {mode:'break',step:'break'}).kind,'current');
+ assert.equal(row('oral',{oralDone:true,oralStatus:'completed'}).kind,'done');
+ assert.equal(row('oral',{oralDone:true,oralStatus:'skipped'}).status,'Skipped');
+ assert.equal(row('oral',{oralDone:true,oralStatus:'partial'}).kind,'quiet');
+ assert.equal(row('oral',{oralDone:true}).kind,'quiet');
+ assert.equal(row('revision',{revisionDone:true,revisionStatus:'skipped'}).kind,'quiet');
+ assert.equal(row('revision',{revisionDone:true,revisionStatus:'completed'}).kind,'done');
+ assert.equal(row('recall',{recallDone:true}).kind,'done');
+});
+test('next review identifies chapter, stage and available-from time without implying an appointment',()=>{
+ const now=new Date(2026,10,26,21,37).getTime(),at=new Date(2026,10,26,21,43).getTime();
+ const review={at,stage:'day1',name:'Talk about what you did',unitId:'unlock2-past',track:'unlocking'};
+ assert.equal(reviewAvailability(at,now),'Today from 21:43');
+ const box=nextReviewMarkup(review,now);
+ assert.match(box,/1-day recall/);assert.match(box,/Talk about what you did/);assert.match(box,/Today from 21:43/);
+ assert.match(box,/after one day/);assert.match(box,/exact minute/);assert.match(box,/Chapter 1/);
+ assert.equal(nextReviewMarkup(null,now),'');
+ assert.equal(reviewStageDetails('immediate').title,'After-teaching recall');
+ assert.equal(reviewStageDetails('day28').title,'28-day recall');
+ assert.equal(reviewAvailability(new Date(2026,10,27,9,5).getTime(),now),'Tomorrow from 09:05');
+});
+test('review schedule preserves five-minute and day-one intervals, skips already completed checks',()=>{
+ const u=UNLOCKING_BUILDER_UNITS[0],t=1700000000000;
+ const event=(ref,at,extra={})=>({id:ref,at,source:{ref},concept:'test',phase:'practice',support:'none',score:{correct:0,total:0},...extra});
+ const taught=[event(guidedTeachingRef(u.id),t),...guidedLesson(u.id).steps.map((s,j)=>event(guidedCompletionRefs(s.id).complete,t+(j+1)*1000,{concept:s.concept}))];
+ const anchor=teachingFinishedAt(u.id,taught,t+10000000);
+ assert.ok(Number.isFinite(anchor));
+ const first=scheduledPractice(taught,anchor+1000,'unlocking').next;
+ assert.equal(first.stage,'immediate');assert.equal(first.at,anchor+MINIMUM_REST_MS);assert.equal(first.unitId,u.id);assert.equal(first.track,'unlocking');
+ const next=scheduledPractice(taught,anchor+MINIMUM_REST_MS,'unlocking').next;
+ assert.equal(next.stage,'day1');assert.equal(next.at,anchor+86400000);
+ const completed=[...taught,...assessmentDeck(u.id,'immediate').map((q,j)=>event(q.ref,anchor+1000+j,{concept:q.concept,phase:'assessment',score:{correct:1,total:1}}))];
+ const legacy=scheduledPractice(completed,anchor+10000,'unlocking').next;
+ assert.equal(legacy.stage,'day1');
 });

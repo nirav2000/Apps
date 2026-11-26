@@ -5,7 +5,7 @@ import {spokenWords,answerComparison,learningAudioText} from './guided-ui.js';
 import {firstByRef,ASSESSMENT_DAY as DAY} from '../../learning-evidence/v1/assessment.js';
 import {magicTenPhrase} from './magic10.js';
 import {trackName} from './curriculum-meta.js';
-import {activeRest,prioritizedChecks,restMarkup,scheduledPractice} from './study-timing.js';
+import {activeRest,prioritizedChecks,restMarkup,scheduledPractice,nextReviewMarkup,reviewStageDetails,reviewUnitTitle,reviewAvailability} from './study-timing.js';
 import {containsTarget} from './revision-signals.js';
 
 const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -70,24 +70,38 @@ const LEARNING_SEQUENCE=[
  {id:'recall',name:'Recall previous learning',description:'Independent checks before any revision.'},
  {id:'revision',name:'Personal revision',description:'Revisit difficult words and familiar expressions.'},
  {id:'teaching',name:'Learn something new',description:'Guided teaching, at your own pace.'},
- {id:'break',name:'Let it settle',description:'Five minutes away from this course.'},
+ {id:'break',name:'Let it settle',description:'A five-minute break before checking what you remember.'},
  {id:'after',name:'After teaching check',description:'Recall the new French without help.'},
  {id:'oral',name:'Rapid oral practice',description:'Optional spoken recall of taught material.'}
 ];
 export function sequenceStatus(plan,{checks=[],revisionCount=0,repair=false,adaptive=false,session={}}={}){
  const progress=plan.step==='break'||plan.step==='after'||!!session.completedUnit;
+ const finishedBreak=plan.step==='after'||!!session.completedUnit;
+ const outcome=(status,legacy)=>{
+   if(status==='completed')return {status:'Done this session',kind:'done'};
+   if(status==='partial')return {status:'Partly completed',kind:'quiet'};
+   if(status==='skipped')return {status:'Skipped',kind:'quiet'};
+   if(status==='none-due')return {status:'None due',kind:'quiet'};
+   return legacy?{status:'Ended (previous record)',kind:'quiet'}:null;
+ };
  return LEARNING_SEQUENCE.map(s=>{
    if(s.id===plan.step)return {...s,status:'Now',kind:'current'};
-   if(s.id==='recall')return {...s,status:checks.some(c=>c.stage!=='immediate')||adaptive?'Due':'Up to date',kind:checks.some(c=>c.stage!=='immediate')||adaptive?'next':'quiet'};
-   if(s.id==='revision')return {...s,status:revisionCount||repair?'When due':session.revisionDone?'Done this session':'None due',kind:revisionCount||repair?'next':session.revisionDone?'done':'quiet'};
+   if(s.id==='recall'){
+     const due=checks.some(c=>c.stage!=='immediate')||adaptive;
+     return {...s,...(due?{status:'Due',kind:'next'}:session.recallDone?{status:'Done this session',kind:'done'}:{status:'Up to date',kind:'quiet'})};
+   }
+   if(s.id==='revision'){
+     const result=outcome(session.revisionStatus,session.revisionDone);
+     return {...s,...(result?(result.kind==='done'&&revisionCount?{status:'Batch completed',kind:'done'}:result):revisionCount||repair?{status:'When due',kind:'next'}:{status:'None due',kind:'quiet'})};
+   }
    if(s.id==='teaching')return {...s,status:progress?'Teaching finished':plan.mode==='rest'?'When available':'Next when ready',kind:progress?'done':'next'};
-   if(s.id==='break')return {...s,status:plan.step==='after'||session.completedUnit?'Elapsed':'After teaching',kind:'quiet'};
+   if(s.id==='break')return {...s,status:finishedBreak?'Break completed':'After teaching',kind:finishedBreak?'done':'quiet'};
    if(s.id==='after')return {...s,status:session.completedUnit?'Done this session':'After the break',kind:session.completedUnit?'done':'quiet'};
-   return {...s,status:session.oralDone?'Finished / skipped':'Optional',kind:'quiet'};
+   return {...s,...(outcome(session.oralStatus,session.oralDone)||{status:'Optional',kind:'quiet'})};
  });
 }
 
-export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),refresh,navigate,startGuided,focusTarget=()=>{},getRevisionItems=()=>[],getPatternItems=()=>[],getNextPatternReview=()=>null,getSession=()=>({}),onRevision=()=>{},onPatterns=()=>{},onCheckComplete=()=>{},onOralComplete=()=>{},onOralDifficulty=()=>{},onNewSession=()=>{}}){
+export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),refresh,navigate,startGuided,focusTarget=()=>{},getRevisionItems=()=>[],getPatternItems=()=>[],getNextPatternReview=()=>null,getSession=()=>({}),onRevision=()=>{},onPatterns=()=>{},onCheckComplete=()=>{},onRecallComplete=()=>{},onOralComplete=()=>{},onOralDifficulty=()=>{},onNewSession=()=>{}}){
   let state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};
   const entries=()=>getEntries()||[];
   const reset=()=>{state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};};
@@ -112,12 +126,10 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     const guided=unitsForTrack(getTrack()).map(u=>guidedStatus(u.id,es,now));
     const next=guided.find(x=>x.mode==='resume')||guided.find(x=>x.mode==='new');
     const baseline=next?baselineFor(next.unit.id,es,now):null;
-    const upcoming=[scheduledPractice(es,now,getTrack()).next?.at,nextCheckDate(es,now,getTrack())].filter(t=>Number.isFinite(t)&&t>now);
-    const nextReview=upcoming.length?Math.min(...upcoming):null;
+    const nextReview=scheduledPractice(es,now,getTrack()).next;
     const oralCount=session.completedUnit&&!session.oralDone?taughtOralDeck(session.completedUnit,3).length:0;
     const plan=chooseLearningActivity({rest,checks,adaptive,repair,revisionCount,patternCount,session,guided:next,baseline,oralCount,nextReview});
     const unit=unitsForTrack(getTrack()).find(u=>u.id===plan.unitId);
-    const when=plan.nextReview?new Date(plan.nextReview).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'No further review scheduled';
     const details={
       break:['Time to let it settle','Your independent recall is locked until the break ends.'],
       adaptive:['Recall a repaired phrase','Try an earlier correction independently.'],
@@ -126,8 +138,8 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       patterns:['Revisit patterns & grammar',plan.count+' short French expressions · spaced review'],
       guided:['Guided teaching',unit?.name||'Continue the selected lesson'],
       oral:['Rapid oral practice','Optional · '+plan.count+' familiar expressions, then finish this session.'],
-      complete:['Session complete',plan.nextReview?'Next scheduled review: '+when:when],
-      rest:['All caught up',plan.nextReview?'Next scheduled review: '+when:when]
+      complete:['Session complete','You can stop here, or start another session if you want to learn more.'],
+      rest:['All caught up','No required learning activity is ready right now.']
     };
     const [label,sub]=plan.mode==='check'?[plan.due.stage==='baseline'?'Quick starting check':plan.due.label+' check',plan.due.unit.name+' · '+(plan.due.items.length-plan.due.attempted.length)+' questions · '+(plan.due.stage==='baseline'?'check what you know before teaching':'recall without hints')]:details[plan.mode];
     return {...plan,label,sub,optionalPatternCount:patternCount,sequence:sequenceStatus(plan,{checks,revisionCount,repair:!!repair,adaptive:!!adaptive,session})};
@@ -158,18 +170,18 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     const label=done?(plan.hasMore?'Start another learning session':'View learning dashboard'):'Continue learning';
     const action=plan.mode==='break'?'<button type="button" class="ft-primary" data-eact="daily" data-ft-advance data-rest-continue disabled aria-disabled="true">Continue when the break finishes</button>':btn('daily',label,true);
     return '<section class="ft-card ft-e-today ft-unified-path" data-learning-mode="'+h(plan.mode)+'"><div class="ft-path-header"><p class="ft-eyebrow">YOUR PERSONALISED LEARNING PATH</p><h2>Today’s learning</h2><p class="ft-small">'+h(trackName(getTrack()))+' · Follow the recommended next step.</p></div>'+
-      '<div class="ft-path-next"><p class="ft-eyebrow">'+(done?'YOU’RE UP TO DATE':'YOUR NEXT ACTIVITY')+'</p><h3>'+h(plan.label)+'</h3><p>'+h(plan.sub)+'</p>'+(plan.rest?restMarkup(plan.rest):'')+'<div class="ft-path-action">'+action+'</div></div>'+
+      '<div class="ft-path-next"><p class="ft-eyebrow">'+(done?(plan.mode==='complete'?'SESSION FINISHED':'YOU’RE UP TO DATE'):'YOUR NEXT ACTIVITY')+'</p><h3>'+h(plan.label)+'</h3><p>'+h(plan.sub)+'</p>'+(plan.rest?restMarkup(plan.rest):'')+(done?(nextReviewMarkup(plan.nextReview)||'<p class="ft-no-review">No further lesson review scheduled.</p>'):'')+'<div class="ft-path-action">'+action+'</div></div>'+
       '<h3 class="ft-path-sequence-heading">Your learning sequence</h3><ol class="ft-path-sequence">'+plan.sequence.map((row,i)=>'<li class="ft-path-row '+h(row.kind)+'"'+(row.kind==='current'?' aria-current="step"':'')+'><span class="ft-path-number">'+(row.kind==='done'?'✓':i+1)+'</span><div><strong>'+h(row.name)+'</strong><small>'+h(row.description)+'</small></div><span class="ft-path-status">'+h(row.status)+'</span></li>').join('')+'</ol><p class="ft-small ft-path-footer">The app chooses the order. You do not need to work through these sections manually.</p>'+
       (getTrack()==='unlocking'&&!['break','check'].includes(plan.mode)&&plan.optionalPatternCount?'<div class="ft-pattern-optional"><span><strong>Optional: patterns &amp; grammar</strong><small>'+plan.optionalPatternCount+' ready to revisit</small></span><button type="button" data-page="patterns">View</button></div>':'')+'</section>';
   };
   const dashboard=()=>{
     const es=entries(),s=assessmentStats(es,Date.now(),state.range,getTrack()),exp=experimentStats(es);
-    const next=nextCheckDate(es,Date.now(),getTrack()),due=prioritizedChecks(es,Date.now(),getTrack()).length,repair=pendingRepairs(es,Date.now(),getTrack()).length;
+    const next=scheduledPractice(es,Date.now(),getTrack()).next,due=prioritizedChecks(es,Date.now(),getTrack()).length,repair=pendingRepairs(es,Date.now(),getTrack()).length;
     return '<section class="ft-card ft-e-dashboard"><div class="ft-e-header"><div><p class="ft-eyebrow">LEARNING EVIDENCE · V1</p><h2>French learning effectiveness</h2><p class="ft-small">'+h(trackName(getTrack()))+'</p></div><div class="ft-e-period" aria-label="Dashboard time period">'+[28,36500].map(d=>'<button type="button" data-eact="range-'+d+'" aria-pressed="'+(state.range===d)+'">'+(d===28?'28 days':'All time')+'</button>').join('')+'</div></div>'+
       '<div class="ft-e-metrics">'+metricCard('Practice accuracy',s.practice)+metricCard('Independent accuracy',s.independent)+metricCard('7-day retention',s.retention)+metricCard('Unseen transfer',s.transfer)+'</div>'+(getTrack()!=='michaela'?'<div class="ft-e-metrics ft-e-two">'+metricCard('Application in new contexts',s.application)+'</div>':'')+
       '<div class="ft-e-section"><h3>Knowledge retained over time</h3><p class="ft-small">Observed recall, not predictions. Different completed units may contribute to each point.</p>'+chart(s.chart)+'</div>'+
       '<div class="ft-e-details"><div><span>28-day recall</span><strong>'+pct(s.day28)+'</strong><small>'+h(n(s.day28))+'</small></div><div><span>7-day unseen transfer</span><strong>'+pct(s.sevenUnseen)+'</strong><small>'+h(n(s.sevenUnseen))+'</small></div><div><span>Median response time</span><strong>'+(s.medianMs==null?'—':(s.medianMs/1000).toFixed(1)+'s')+'</strong><small>Typed answer time, not spoken fluency</small></div><div><span>Baseline to day 7</span><strong>'+(s.gain==null?'—':(s.gain>0?'+':'')+s.gain+' pp')+'</strong><small>'+s.gainPairs+' paired checks</small></div></div>'+
-      '<div class="ft-e-section"><h3>Automatic diagnosis</h3>'+s.tips.map(t=>'<p class="ft-e-diagnosis">'+h(t)+'</p>').join('')+'<p class="ft-small">'+due+' check'+(due===1?'':'s')+' due · '+repair+' targeted repair'+(repair===1?'':'s')+' · '+(next?'Next review '+date(next):'No future review scheduled')+(s.gapDays==null?'':' · Average recorded practice gap before 7-day recall: '+s.gapDays+' days')+'.</p>'+''+'</div></section>'+
+      '<div class="ft-e-section"><h3>Automatic diagnosis</h3>'+s.tips.map(t=>'<p class="ft-e-diagnosis">'+h(t)+'</p>').join('')+'<p class="ft-small">'+due+' check'+(due===1?'':'s')+' due · '+repair+' targeted repair'+(repair===1?'':'s')+' · '+(next?'Next review: '+h(reviewUnitTitle(next,next.track))+' · '+h(reviewStageDetails(next.stage).title)+' · '+h(reviewAvailability(next.at)):'No future review scheduled')+(s.gapDays==null?'':' · Average recorded practice gap before 7-day recall: '+s.gapDays+' days')+'.</p>'+''+'</div></section>'+
       '<section class="ft-card ft-e-dashboard"><h2>Language mastery</h2><p class="ft-small">Independent checks by '+(getTrack()==='michaela'?'reusable structure':'lesson topic')+'. Secure requires repeated success, delayed recall and transfer. A dash means not measured.</p>'+bars(s.knowledge)+
       '<details><summary>Assessment coverage</summary><div class="ft-e-coverage">'+unitsForTrack(getTrack()).map(u=>'<div><strong>'+h(u.name)+'</strong>'+STAGES.map(t=>{const c=s.checks.find(x=>x.unitId===u.id&&x.stage===t.id);return '<span>'+h(t.label)+': '+c.attempted.length+'/'+c.items.length+'</span>';}).join('')+'</div>').join('')+'</div></details></section>'+
       (getTrack()==='michaela'?'<section class="ft-card ft-e-dashboard"><h2>Learning experiments</h2><p>Written versus audio model · exploratory comparison.</p><div class="ft-e-metrics ft-e-two">'+metricCard('Written model',exp.left)+metricCard('Audio model',exp.right)+'</div><p class="ft-small">'+(exp.sufficient?'Exploratory difference: '+exp.difference+' percentage points.':'Insufficient paired results for a comparison.')+' Baseline: written '+pct(exp.baselineA)+', audio '+pct(exp.baselineB)+'. Small observational pilot, not proof one method is better. No teaching method is promoted automatically.</p></section>':'');
@@ -249,7 +261,10 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     }
     const current=stage==='baseline'?baselineFor(state.unitId,entries()):prioritizedChecks(entries(),Date.now(),getTrack()).find(x=>x.unitId===state.unitId&&x.stage===stage);
     if(current){pick('check',current.items.find(x=>!x.row),{unitId:current.unitId,stage,anchor:current.anchor});return;}
-    if(stage==='immediate'&&checkResult(state.unitId,stage,entries()).complete)onCheckComplete(state.unitId);
+    if(checkResult(state.unitId,stage,entries()).complete){
+      if(stage==='immediate')onCheckComplete(state.unitId);
+      else if(stage!=='baseline')onRecallComplete(state.unitId,stage);
+    }
     state.mode='done';state.doneUnit=stage==='baseline'?state.unitId:null;state.feedback=stage==='baseline'?'Starting knowledge recorded. Now learn the phrases.':'Check complete. Continue learning to follow the recommended next step.';refresh();focusTarget(state.doneUnit?'[data-eact="continue-unit"]':'[data-eact="daily"]');
   };
   const startExperiment=()=>{
@@ -258,7 +273,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     const next=x.deck.find(i=>!firstByRef(entries()).has(i.ref));
     pick('experiment',next,{unitId:x.unit.id,anchor:x.anchor,played:false});
   };
-  const finishOral=()=>{const auto=state.autoOral;state.mode=null;if(auto)onOralComplete();navigate(auto?'home':'explore');};
+  const finishOral=(completed=false)=>{const auto=state.autoOral,status=completed?'completed':state.oralIndex>0||state.feedback==='spoken'?'partial':'skipped';state.mode=null;if(auto)onOralComplete(status);navigate(auto?'home':'explore');};
   const startOral=(auto=false)=>{
     if(auto&&prioritizedChecks(entries(),Date.now(),getTrack()).length){startDaily();return;}
     const deck=taughtOralDeck(auto?getSession().completedUnit:null,auto?3:12);
@@ -269,7 +284,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     if(state.mode!=='oral'||state.feedback!=='spoken')return;
     if(difficulty)onOralDifficulty(state.item);
     const index=state.oralIndex+1;
-    if(index>=state.oralDeck.length){finishOral();return;}
+    if(index>=state.oralDeck.length){finishOral(true);return;}
     pick('oral',state.oralDeck[index],{oralIndex:index});
   };
   const click=target=>{

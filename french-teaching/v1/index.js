@@ -78,7 +78,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   function currentSession(){
     const now=Date.now(),key=sessionKey();
-    if(!readSession())session={id:id(),key,lastAt:now,revisionDone:false,oralDone:false,completedUnit:null};
+    if(!readSession())session={id:id(),key,lastAt:now,revisionDone:false,revisionStatus:null,recallDone:false,oralDone:false,oralStatus:null,completedUnit:null};
     session.lastAt=now;try{localStorage.setItem(key,JSON.stringify(session));}catch{}
     return session.id;
   }
@@ -211,7 +211,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(enforceBreak())return;
     if(auto&&prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
     const due=(auto?dailyRevisionItems():revisions().filter(x=>x.due)).slice(0,5);
-    if(!due.length){if(auto){updateSession({revisionDone:true});assessmentUI.startDaily();}return;}
+    if(!due.length){if(auto){updateSession({revisionDone:true,revisionStatus:'none-due'});assessmentUI.startDaily();}return;}
     cancelPendingAdvance();revision={items:due,index:0,result:null,answer:'',draft:'',level:0,rebuilding:false,rebuilt:false,rebuildFeedback:null,auto};state.page='signals';render();
     speak(due[0].word);focusTarget('#ft-revision-answer');
   }
@@ -300,7 +300,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     navigate:page=>{state.page=page;render();}
   });
   const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,record,recordAttempt,speak,playAudio,refresh:render,focusTarget,
-    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>{const rest=breakForCourse();if(rest)showBreak(rest);else guidedUI.start(unit);},getRevisionItems:dailyRevisionItems,getPatternItems:duePatterns,getNextPatternReview:nextPatternReview,getSession:()=>readSession()||{},onRevision:()=>startRevision(true),onCheckComplete:unit=>updateSession({completedUnit:unit,oralDone:false}),onOralComplete:()=>updateSession({oralDone:true}),onOralDifficulty:item=>recordSignal(item.fr,'manual',item.fr,{english:item.en,targetKind:'phrase'}),onNewSession:newLearningSession});
+    navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>{const rest=breakForCourse();if(rest)showBreak(rest);else guidedUI.start(unit);},getRevisionItems:dailyRevisionItems,getPatternItems:duePatterns,getNextPatternReview:nextPatternReview,getSession:()=>readSession()||{},onRevision:()=>startRevision(true),onCheckComplete:unit=>updateSession({completedUnit:unit,oralDone:false,oralStatus:null}),onRecallComplete:()=>updateSession({recallDone:true}),onOralComplete:status=>updateSession({oralDone:true,oralStatus:status}),onOralDifficulty:item=>recordSignal(item.fr,'manual',item.fr,{english:item.en,targetKind:'phrase'}),onNewSession:newLearningSession});
   // The break belongs to the learner across French tracks and is anchored
   // to completion evidence. Safe dashboard/settings navigation remains open.
   const SAFE_BREAK_PAGES=new Set(['home','evidence','history','signals','settings','explore']);
@@ -1279,11 +1279,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       case 'revision-next':await afterSpeech(b,()=>{
         if(!revision)return;
         const auto=revision.auto;
-        if(++revision.index>=revision.items.length){revision=null;if(auto){updateSession({revisionDone:true});assessmentUI.startDaily();return;}}
+        if(++revision.index>=revision.items.length){revision=null;if(auto){updateSession({revisionDone:true,revisionStatus:'completed'});assessmentUI.startDaily();return;}}
         else{Object.assign(revision,{result:null,answer:'',draft:'',level:0,rebuilding:false,rebuilt:false,rebuildFeedback:null});}
         render();if(revision){speak(revision.items[revision.index].word);focusTarget('#ft-revision-answer');}
       });break;
-      case 'revision-leave':{const auto=revision?.auto;revision=null;cancelPendingAdvance();if(auto){updateSession({revisionDone:true});assessmentUI.startDaily();}else render();break;}
+      case 'revision-leave':{const auto=revision?.auto,attempted=revision?revision.index+Number(!!revision.result):0,total=revision?.items.length||0;revision=null;cancelPendingAdvance();if(auto){updateSession({revisionDone:true,revisionStatus:attempted>=total?'completed':attempted?'partial':'skipped'});assessmentUI.startDaily();}else render();break;}
       case 'sync':await syncNow();if(state.page==='signals'&&!revision&&!wordDialog)render();break;
       case 'more-answers':historyLimit+=50;render();break;
       case 'export-answers':{
