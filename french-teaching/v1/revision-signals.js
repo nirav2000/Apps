@@ -92,7 +92,7 @@ export function createTypingSample(initial=''){
   }
  };
 }
-const frenchWritten=x=>!x.signal&&(x.targetLang==='fr'||!x.targetLang&&['guided-exact-v1','curriculum-v1','assessment-v1'].includes(x.marker));
+const frenchWritten=x=>!x.signal&&x.marker!=='listening-rebuild-v1'&&(x.targetLang==='fr'||!x.targetLang&&['guided-exact-v1','curriculum-v1','assessment-v1'].includes(x.marker));
 export function auditSignals(x){
  if(!frenchWritten(x)||!['correct','incorrect'].includes(x.result)||!x.answer||!x.expected)return [];
  const pairs=compareFrench(x.answer,x.expected),out=[];
@@ -122,7 +122,7 @@ export function revisionEvents(audits,visible){
   const a=x.answerAudit,s=a.signal;
   // Reinterpret legacy manual review false negatives for scheduling only.
   // The immutable original audit is retained for transparency.
-  const formattingOnly=a.marker==='revision-v1'&&s.kind==='review'&&!s.correct&&a.answer?.trim()&&a.expected&&markAnswer(a.answer,a.expected);
+  const formattingOnly=a.marker==='revision-v1'&&s.kind==='review'&&!s.correct&&!a.context?.listeningAssisted&&a.answer?.trim()&&a.expected&&markAnswer(a.answer,a.expected);
   return {...s,...(formattingOnly?{correct:true}:{}),context:a.context||{},id:x.id,at:x.at,ref:a.ref};
  });
  // Use actual chronology. An independent answer can reduce an existing
@@ -145,6 +145,7 @@ export function revisionEvents(audits,visible){
  for(const item of timeline){
   if(item.event){add(item.event);continue;}
   const x=item.audit;
+  if(x.marker==='listening-rebuild-v1')continue;
   if(x.signal){
    // In a personalised sentence, a second word can also reveal a spelling
    // difficulty. Record it, but do not double-count the targeted outcome.

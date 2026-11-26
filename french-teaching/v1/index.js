@@ -3,11 +3,11 @@ import {SOUND_FAMILIES,SOUND_QUIZ,LETTER_NAME_GROUPS,LETTER_IPA,CUDDLES_DEMOS,so
 import {SUBJECTS,lookupFrenchWord,tokenizeFrench} from './lexicon.js';
 import {fetchDictionary,dictionaryWord,dictionaryURL,frenchWiktionaryURL} from './dictionary.js';
 import {browserAuthContext} from './auth-context.js';
-import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES,learningAudioText,AUDIO_WAIT_LABEL,audioWaitMarkup} from './guided-ui.js';
+import {createGuidedInterface,answerComparison,spokenWords,EXACT_ANSWER_ATTRIBUTES,learningAudioText,AUDIO_WAIT_LABEL,audioWaitMarkup,LISTEN_SLOW_RATE,listeningChunks,listeningSteps,listeningContext,listeningHintMarkup,listeningRepairMarkup,verifiedListeningEnglish,listeningHelpName} from './guided-ui.js';
 import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
-import {unitsForTrack,guidedStatus} from './guided-lessons.js';
+import {ALL_UNITS,unitsForTrack,guidedStatus,guidedLesson} from './guided-lessons.js';
 import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget,revisionLabel} from './revision-signals.js';
 import {adaptivePlans,chooseAdaptivePlan} from './adaptive-teaching.js';
 import {activeRest,scheduledPractice,prioritizedChecks,overdueWords,noticeMarkup,updateStudyClocks,alertKeys,restMarkup} from './study-timing.js';
@@ -121,26 +121,57 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const rows=revisions(),due=rows.filter(x=>x.due).length;
     return '<section class="ft-card ft-revision-summary"><div class="ft-row"><div><p class="ft-eyebrow">PERSONAL REVISION</p><h2>'+due+' words or structures ready to revisit</h2><p class="ft-small">Spelling, repeated listening and relative typing hesitation guide the timing.</p></div><button type="button" data-page="signals" class="ft-primary">Review signals →</button></div></section>';
   }
+  // Use exact bilingual course/audit pairs, not the translation of a longer
+  // context sentence for an isolated word or an invented translation.
+  function resolveListeningEnglish(fr,provided='',row=null){
+    const direct=verifiedListeningEnglish(provided);if(direct)return direct;
+    const key=normaliseAnswer(fr);if(!key)return '';
+    const same=(f,e)=>normaliseAnswer(f)===key?verifiedListeningEnglish(e):'';
+    const known=same(row?.sentence,row?.english);if(known)return known;
+    for(const a of historyRows()){
+      const context=a.context||{};const en=same(context.fr,context.en);if(en)return en;
+    }
+    for(const u of ALL_UNITS)for(const step of guidedLesson(u.id).steps){
+      const en=same(step.fr,step.en);if(en)return en;
+      for(const part of step.components||[]){const block=same(part.fr,part.en);if(block)return block;}
+    }
+    for(const p of PASSAGE){const en=same(p.fr,p.en);if(en)return en;}
+    const note=lookupFrenchWord(fr);
+    if(note?.type==='note'&&normaliseAnswer(note.key)===key)return verifiedListeningEnglish(note.meaning);
+    if(note?.type==='verb'&&normaliseAnswer(note.entry?.lemma)===key)return verifiedListeningEnglish(note.entry.meaning);
+    return '';
+  }
+  function revisionListenInfo(item){
+    const en=resolveListeningEnglish(item.word,'',item);
+    return {fr:item.word,en,context:listeningContext(item.word,en,clozeFor(item.sentence,item.word))};
+  }
   function startRevision(auto=false){
     if(enforceBreak())return;
     if(auto&&prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
     const due=(auto?dailyRevisionItems():revisions().filter(x=>x.due)).slice(0,5);
     if(!due.length){if(auto){updateSession({revisionDone:true});assessmentUI.startDaily();}return;}
-    cancelPendingAdvance();revision={items:due,index:0,result:null,answer:'',auto};state.page='signals';render();
+    cancelPendingAdvance();revision={items:due,index:0,result:null,answer:'',draft:'',level:0,rebuilding:false,rebuilt:false,rebuildFeedback:null,auto};state.page='signals';render();
     speak(due[0].word);focusTarget('#ft-revision-answer');
   }
   function startDailyWithSignals(){if(enforceBreak())return;currentSession();cancelPendingAdvance();revision=null;assessmentUI.startDaily();}
   function revisionPage(){
     if(revision){
-      const item=revision.items[revision.index];
-      const context=clozeFor(item.sentence,item.word),label=revisionLabel(item);
-      return '<section class="ft-card ft-revision-task"><p class="ft-eyebrow">PERSONAL '+label.toUpperCase()+' REVISION · '+(revision.index+1)+'/'+revision.items.length+'</p><h2>Listen, then type the French</h2>'+
-        (context?'<p class="ft-guided-english" lang="fr">'+esc(context)+'</p>':'')+
+      const item=revision.items[revision.index],label=revisionLabel(item),info=revisionListenInfo(item);
+      const result=revision.result,assisted=revision.level>0;
+      const help=assisted?listeningSteps(info.fr,info.en,info.context).slice(0,revision.level).map(listeningHelpName):[];
+      const showRepair=result&&(result!=='correct'||assisted)&&!revision.rebuilt;
+      const summary=result==='revealed'?'Model revealed. We will revisit this without help.':result==='correct'?(assisted?'Correct with listening help. We will revisit this sooner.':'Correct. A later recall is scheduled.'):'We will revisit this sooner.';
+      return '<section class="ft-card ft-revision-task"><p class="ft-eyebrow">PERSONAL '+label.toUpperCase()+' REVISION · '+(revision.index+1)+'/'+revision.items.length+'</p><h2>'+(revision.rebuilding?'Rebuild what you heard': 'Listen, then type the French')+'</h2>'+
         '<button type="button" data-act="revision-hear">▶ Hear the '+label+'</button>'+
-        (revision.result?answerComparison({answer:revision.answer,expected:item.word,result:revision.result,replay:'<button type="button" data-act="revision-hear">▶</button>'})+
-          '<p role="status">'+(revision.result==='correct'?'Correct. A later recall is scheduled.':'We will revisit this sooner.')+'</p><button type="button" class="ft-primary" data-act="revision-next" data-ft-advance>Next '+label+' →</button>':
-          '<form id="ft-revision-form"><label for="ft-revision-answer">Your French</label><input id="ft-revision-answer" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required><button type="submit" class="ft-primary">Check answer</button></form>')+
-        '<div class="ft-pause-row"><button type="button" class="ft-pause-control" data-act="revision-leave">'+(revision.auto?'Skip remaining revision · continue':'Back to signals')+'</button></div><p class="ft-small">This is targeted spelling/listening practice, not an independent sentence assessment.</p></section>';
+        (revision.rebuilding?'<p class="ft-small">This is a supported rebuild. Your first attempt is already recorded.</p><form id="ft-revision-form"><label for="ft-revision-answer">Your French</label><input id="ft-revision-answer" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required><button type="submit" class="ft-primary">Check rebuild</button></form><button type="button" data-act="revision-listen-cancel-rebuild">Return to feedback</button>':
+        result?answerComparison({answer:revision.answer,expected:item.word,result,replay:'<button type="button" data-act="revision-hear" aria-label="Hear the French again">▶</button>'})+
+          '<p role="status">'+esc(summary)+'</p>'+(help.length?'<p class="ft-small">Help used: '+esc(help.join(' → '))+'</p>':'')+
+          (revision.rebuildFeedback?'<div class="ft-listening-repair"><strong>'+esc(revision.rebuildFeedback.correct?'Rebuild correct — supported practice':'Rebuild needs another try')+'</strong>'+answerComparison({answer:revision.rebuildFeedback.answer,expected:item.word,result:revision.rebuildFeedback.correct?'correct':'incorrect'})+'<p class="ft-small">Your original result and revision schedule are unchanged.</p></div>':'')+
+          (showRepair?listeningRepairMarkup({...info,answer:revision.rebuildFeedback?.answer??revision.answer,retry:true}):'')+
+          '<button type="button" class="ft-primary" data-act="revision-next" data-ft-advance>Next '+label+' →</button>':
+          listeningHintMarkup({...info,level:revision.level})+
+          '<form id="ft-revision-form"><label for="ft-revision-answer">Your French</label><input id="ft-revision-answer" name="answer" lang="fr" type="text" value="'+esc(revision.draft||'')+'" '+EXACT_ANSWER_ATTRIBUTES+' required><button type="submit" class="ft-primary">Check answer</button></form>')+
+        '<div class="ft-pause-row"><button type="button" class="ft-pause-control" data-act="revision-leave">'+(revision.auto?'Skip remaining revision · continue':'Back to signals')+'</button></div><p class="ft-small">Listening and spelling practice; not an independent translation assessment.</p></section>';
     }
     const rows=revisions(),due=rows.filter(x=>x.due);
     const plans=unitsForTrack(state.track).flatMap(u=>adaptivePlans(audits(),u.id)).sort((a,b)=>b.at-a.at);
@@ -183,7 +214,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   // The new lesson engine writes only additional evidence events to the
   // established Firebase parent/learner scope. Existing lesson records stay as-is.
   const guidedUI=createGuidedInterface({
-    getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,requestStart:unit=>assessmentUI.startUnit(unit),record,recordAttempt,speak,playAudio,waitForSpeech,cancelSpeech,refresh:render,focusTarget,getAdaptivePlans:unit=>adaptivePlans(audits(),unit),planAdaptive,signalContext,recordSignal,
+    getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,requestStart:unit=>assessmentUI.startUnit(unit),record,recordAttempt,speak,playAudio,waitForSpeech,cancelSpeech,refresh:render,focusTarget,getAdaptivePlans:unit=>adaptivePlans(audits(),unit),planAdaptive,signalContext,recordSignal,resolveEnglish:resolveListeningEnglish,
     navigate:page=>{state.page=page;render();}
   });
   const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,record,recordAttempt,speak,playAudio,refresh:render,focusTarget,
@@ -803,7 +834,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   async function waitForSpeech(){
     while(speechTask)await speechTask.promise;
   }
-  function speak(s,lang='fr-FR'){
+  function speak(s,lang='fr-FR',rate=.8){
     cancelSpeech();
     if(!('speechSynthesis' in window)||!String(s).trim())return Promise.resolve(false);
     let resolve,timer;
@@ -815,7 +846,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }};
     speechTask=task;
     try{
-      const u=new SpeechSynthesisUtterance(String(s));u.lang=lang;u.rate=.8;
+      const u=new SpeechSynthesisUtterance(String(s));u.lang=lang;u.rate=Math.max(.45,Math.min(1.2,Number(rate)||.8));
       const voices=window.speechSynthesis.getVoices();
       const voice=/^fr(?:[-_]|$)/i.test(lang)?preferredFrenchVoice(voices,preferredVoice):
         voices.find(v=>String(v.lang).toLowerCase()===lang.toLowerCase())||voices.find(v=>String(v.lang).toLowerCase().split('-')[0]===lang.toLowerCase().split('-')[0]);
@@ -1112,11 +1143,41 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       }
       case 'revision-start':startRevision();break;
       case 'revision-hear':if(revision){speak(revision.items[revision.index].word);if(e.detail>0)focusDefaultAdvance();}break;
+      case 'revision-listen-help':
+      case 'revision-listen-slow':
+      case 'revision-listen-chunk':
+      case 'revision-listen-english':
+      case 'revision-listen-whole':
+      case 'revision-listen-rebuild':
+      case 'revision-listen-cancel-rebuild':{
+        if(!revision||advancePending)break;
+        const item=revision.items[revision.index],info=revisionListenInfo(item),steps=listeningSteps(info.fr,info.en,info.context),used=steps.slice(0,revision.level);
+        const act=b.dataset.act.slice('revision-listen-'.length);
+        if(act==='cancel-rebuild'&&revision.rebuilding){revision.rebuilding=false;render();focusTarget('[data-act="revision-next"]');break;}
+        if(act==='rebuild'&&revision.result&&!revision.rebuilding&&!revision.rebuilt){revision.rebuilding=true;render();speak(item.word);focusTarget('#ft-revision-answer');break;}
+        if(revision.rebuilding)break;
+        if(act==='slow'&&(revision.result||used.includes('slow'))){speak(info.fr,'fr-FR',LISTEN_SLOW_RATE);break;}
+        if(act==='whole'&&revision.result){speak(info.fr);break;}
+        if(act==='chunk'&&(revision.result||used.includes('chunks'))){const chunk=listeningChunks(info.fr)[Number(b.dataset.listenIndex)];if(chunk)speak(chunk.text,'fr-FR',LISTEN_SLOW_RATE);break;}
+        if(act==='english'&&info.en&&(revision.result||used.includes('english-audio'))){speak(info.en,'en-GB');break;}
+        if(act!=='help'||revision.result||!steps[revision.level])break;
+        const field=el().querySelector('#ft-revision-answer');if(field)revision.draft=field.value;
+        const next=steps[revision.level],newLevel=revision.level+1;
+        if(next==='reveal'){
+          if(!recordAttempt({ref:'revision:review',activity:'Personal '+revisionLabel(item)+' revision',question:'Listen and type the '+revisionLabel(item),answer:revision.draft,expected:item.word,result:'revealed',reason:'French model requested after listening support.',marker:'revision-v1',targetLang:'fr',support:'worked-example',context:{kind:'transcribe',listeningMode:'dictation',listeningHelp:steps.slice(0,newLevel),listeningAssisted:true},signal:{kind:'assisted',mode:'dictation',word:item.word,sentence:item.sentence,english:normaliseAnswer(item.sentence)===normaliseAnswer(item.word)?info.en:item.english,targetKind:item.targetKind,correct:false}}))break;
+          revision.level=newLevel;revision.answer=revision.draft;revision.result='revealed';render();speak(item.word);focusTarget('[data-act="revision-next"]');break;
+        }
+        revision.level=newLevel;render();
+        if(next==='slow')speak(item.word,'fr-FR',LISTEN_SLOW_RATE);
+        else if(next==='chunks'){const chunk=listeningChunks(item.word)[0];if(chunk)speak(chunk.text,'fr-FR',LISTEN_SLOW_RATE);}
+        else if(next==='english-audio')speak(info.en,'en-GB');
+        focusTarget('#ft-revision-answer');break;
+      }
       case 'revision-next':await afterSpeech(b,()=>{
         if(!revision)return;
         const auto=revision.auto;
         if(++revision.index>=revision.items.length){revision=null;if(auto){updateSession({revisionDone:true});assessmentUI.startDaily();return;}}
-        else{revision.result=null;revision.answer='';}
+        else{Object.assign(revision,{result:null,answer:'',draft:'',level:0,rebuilding:false,rebuilt:false,rebuildFeedback:null});}
         render();if(revision){speak(revision.items[revision.index].word);focusTarget('#ft-revision-answer');}
       });break;
       case 'revision-leave':{const auto=revision?.auto;revision=null;cancelPendingAdvance();if(auto){updateSession({revisionDone:true});assessmentUI.startDaily();}else render();break;}
@@ -1194,12 +1255,19 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       return;
     }
     if(e.target.id==='ft-revision-form'){
-      e.preventDefault();if(!revision||revision.result)return;
+      e.preventDefault();if(!revision||revision.result&&!revision.rebuilding)return;
       if(revision.auto&&prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
       const value=e.target.querySelector('[name="answer"]')?.value||'',item=revision.items[revision.index];
       if(!value.trim())return;
-      const correct=markAnswer(value,item.word),label=revisionLabel(item);
-      if(!recordAttempt({...exactAudit(value,item.word,correct,{ref:'revision:review',activity:'Personal '+label+' revision',question:'Listen and type the '+label,marker:'revision-v1',targetLang:'fr',support:'worked-example'}),signal:{kind:'review',word:item.word,sentence:item.sentence,targetKind:item.targetKind,correct}}))return;
+      const correct=markAnswer(value,item.word),label=revisionLabel(item),info=revisionListenInfo(item),assisted=revision.level>0||revision.rebuilding;
+      const help=listeningSteps(info.fr,info.en,info.context).slice(0,revision.level);
+      const context={kind:'transcribe',fr:item.word,en:info.en,listeningMode:'dictation',listeningHelp:help,listeningAssisted:assisted,listeningRebuild:revision.rebuilding};
+      if(revision.rebuilding){
+        if(!recordAttempt(exactAudit(value,item.word,correct,{ref:'revision:rebuild',activity:'Supported listening rebuild',question:'Rebuild the '+label,marker:'listening-rebuild-v1',targetLang:'fr',support:'worked-example',context})))return;
+        revision.rebuilding=false;revision.rebuilt=correct;revision.rebuildFeedback={answer:value,correct};render();speak(item.word);focusTarget('[data-act="revision-next"]');return;
+      }
+      const signal={kind:correct&&assisted?'assisted':'review',mode:'dictation',word:item.word,sentence:item.sentence,english:normaliseAnswer(item.sentence)===normaliseAnswer(item.word)?info.en:item.english,targetKind:item.targetKind,correct,listeningHelp:help};
+      if(!recordAttempt({...exactAudit(value,item.word,correct,{ref:'revision:review',activity:'Personal '+label+' revision',question:'Listen and type the '+label,marker:'revision-v1',targetLang:'fr',support:assisted?'small-prompt':'none',context}),signal}))return;
       revision.answer=value;revision.result=correct?'correct':'incorrect';render();speak(item.word);focusTarget('[data-act="revision-next"]');return;
     }
     const input=answerField(e.target.querySelector?.('[name="answer"]'));

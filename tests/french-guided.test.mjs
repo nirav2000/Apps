@@ -1,5 +1,5 @@
 import test from 'node:test';
-import {answerFeedback,guidedEntryAudio,teacherModelAudio,guidedHint,spokenWords,answerComparison,EXACT_ANSWER_ATTRIBUTES} from '../french-teaching/v1/guided-ui.js';
+import {answerFeedback,guidedEntryAudio,teacherModelAudio,guidedHint,spokenWords,answerComparison,EXACT_ANSWER_ATTRIBUTES,listeningChunks,listeningSteps,listeningContext,listeningHintMarkup,difficultListeningChunks,verifiedListeningEnglish} from '../french-teaching/v1/guided-ui.js';
 import assert from 'node:assert/strict';
 import {
   MAGIC10_VERSION,MAGIC10_VERBS,MAGIC10_STRUCTURES,magicTenFor,magicTenPhrase,optionalVerbTimeline
@@ -200,7 +200,7 @@ test('devoir timeline teaches obligation in past, present and future',()=>{
  assert.equal(spokenWords('je dois étudier',{choice:true}).replace(/<[^>]+>/g,''),'je dois étudier');assert.doesNotMatch(spokenWords('je dois étudier',{choice:true}),/<button/);
 });
 
-import {markAnswer} from '../french-teaching/v1/data.js';
+import {markAnswer,normaliseAnswer} from '../french-teaching/v1/data.js';
 import {compareFrench,createTypingSample,revisionQueue,auditSignals,clozeFor,wordKey,revisionLabel} from '../french-teaching/v1/revision-signals.js';
 test('word alignment highlights changed words and does not confuse une with negation',()=>{
  const got="J'ai preparé une tarte et j'ai reservé une table",expected="J'ai préparé une tarte et j'ai réservé une table";
@@ -341,4 +341,32 @@ test('legacy punctuation-only personal revision is treated as correct for schedu
  assert.equal(events[0].correct,true);
  assert.equal(audit.answerAudit.signal.correct,false);
  assert.equal(revisionQueue(events,at)[0].dueAt,at+86400000);
+});
+
+
+test('listening support progresses from French sound to meaning, without early exposure',()=>{
+ const fr="Hier j’ai préparé le repas et j’ai réservé une table",en="Yesterday I prepared the meal and booked a table";
+ const context=listeningContext(fr,en),steps=listeningSteps(fr,en,context);
+ assert.deepEqual(steps,['slow','chunks','context','shape','english-audio','english-text','reveal']);
+ const initial=listeningHintMarkup({fr,en,context});
+ assert.match(initial,/slower French/);
+ assert.doesNotMatch(initial,/Yesterday|préparé|data-listen-index/);
+ const chunked=listeningHintMarkup({fr,en,context,level:2});
+ assert.match(chunked,/Chunk 1/);assert.doesNotMatch(chunked,/préparé|Yesterday/);
+ const audio=listeningHintMarkup({fr,en,context,level:5});
+ assert.match(audio,/Hear the English/);assert.doesNotMatch(audio,/Yesterday/);
+ const written=listeningHintMarkup({fr,en,context,level:6});
+ assert.match(written,/Yesterday I prepared/);assert.doesNotMatch(written,/préparé/);
+ const chunks=listeningChunks(fr);assert.ok(chunks.length>1);
+ assert.equal(normaliseAnswer(chunks.map(x=>x.text).join(' ')),normaliseAnswer(fr));
+ assert.deepEqual(listeningSteps('bonjour','Listen and spell the French.'),['slow','shape','reveal']);
+ assert.equal(verifiedListeningEnglish('Dictation: bonjour'),'');
+ const repair=difficultListeningChunks("Hier j'ai préparé le repas et j'ai reservé une table",fr);
+ assert.ok(repair.some(x=>x.difficult&&x.text.includes('réservé')));
+ assert.ok(repair.some(x=>!x.difficult));
+});
+test('assisted dictation schedules a retry rather than advancing unassisted review',()=>{
+ const at=100000,word='bonjour';
+ const row=revisionQueue([{id:'hinted',at,word,kind:'assisted',mode:'dictation',correct:true}],at)[0];
+ assert.equal(row.level,0);assert.equal(row.dueAt,at+600000);assert.equal(row.needsRecall,true);
 });

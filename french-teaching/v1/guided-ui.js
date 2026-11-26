@@ -117,6 +117,87 @@ export function spokenWords(value,{choice=false,highlights=[],targets=[]}={}){
   }
   return result+html(text.slice(cursor));
 }
+
+// Shared graduated listening support. No hidden answer text in button attributes.
+export const LISTEN_SLOW_RATE=.6;
+export function listeningChunks(fr,components=[]){
+  const text=String(fr??'').trim(),tokens=frenchTokens(text);
+  if(!tokens.length)return text?[{text,start:0,end:text.length}]:[];
+  const explicit=components.map(x=>String(x?.fr??'').trim()).filter(Boolean);
+  if(explicit.length>1&&normaliseAnswer(explicit.join(' '))===normaliseAnswer(text)){
+    let pos=0;const result=[];
+    for(const part of explicit){const i=text.indexOf(part,pos);if(i<0)break;result.push({text:part,start:i,end:i+part.length});pos=i+part.length;}
+    if(result.length===explicit.length)return result;
+  }
+  const out=[];let start=0;
+  for(let i=1;i<tokens.length;i++){
+    const gap=text.slice(tokens[i-1].end,tokens[i].start);
+    const connector=/^(et|mais|donc|puis|car|cependant|parce)$/.test(tokens[i].key);
+    const nextIsObject=/^(un|une|le|la|les|des|du|de|à|au|aux|mon|ma|mes|ton|ta|tes|son|sa|ses)$/.test(tokens[i-1].key);
+    const split=(i-start>=2&&(/[,:;.!?]/.test(gap)||connector))||(i-start>=4&&!nextIsObject);
+    if(split&&tokens.length-i>=1){
+      out.push({text:text.slice(tokens[start].start,tokens[i].start).trim(),start:tokens[start].start,end:tokens[i].start});
+      start=i;
+    }
+  }
+  out.push({text:text.slice(tokens[start].start).trim(),start:tokens[start].start,end:text.length});
+  return out;
+}
+export function verifiedListeningEnglish(value){
+  const en=String(value??'').trim();
+  return en&&!/^(?:listen(?:\b|:)|dictation:|requested |which |find the french|write the french|hear the french|word revision|personal (?:word|phrase|sentence) revision|say it|repeat it)/i.test(en)&&/[a-z]/i.test(en)?en:'';
+}
+export function listeningContext(fr,en='',cloze=''){
+  if(cloze)return 'Context: '+cloze;
+  if(frenchTokens(fr).length<2)return '';
+  const n=normaliseAnswer(fr),e=String(en).toLowerCase();
+  const topic=/\b(meal|lunch|dinner|restaurant|table|breakfast|food|eat)\b/.test(e)?'Food, meals or eating out.':/\b(travel|station|train|ticket|hotel|airport|room|visit)\b/.test(e)?'Travel or making arrangements.':/\b(school|study|homework|teacher|class|lesson)\b/.test(e)?'School or studying.':/\b(music|radio|sing|instrument|listen)\b/.test(e)?'Music or listening.':/\b(sail|boat|wind|water|sea)\b/.test(e)?'Sailing or the sea.':'';
+  const time=/^hier\b/.test(n)?'Listen for a past event.':/^demain\b/.test(n)?'Listen for a future plan.':'';
+  const linked=/\b(et|mais|donc|parce que|puis)\b/.test(n)?'There are ideas joined by a linking word.':'';
+  return [topic,time,linked].filter(Boolean).join(' ');
+}
+export function listeningSteps(fr,en='',context='',components=[]){
+  const chunks=listeningChunks(fr,components);
+  return ['slow',...(chunks.length>1?['chunks']:[]),...(context?['context']:[]),'shape',...(verifiedListeningEnglish(en)?['english-audio','english-text']:[]),'reveal'];
+}
+export function listeningHelpName(step){
+  return ({slow:'slower French',chunks:'French in chunks',context:'context clue',shape:'word count and structure','english-audio':'spoken English','english-text':'written English',reveal:'French model'})[step]||'listening support';
+}
+export function listeningSupportLevel(level){return level>0?'small-prompt':'none';}
+export function listeningHintMarkup({fr,en='',context='',components=[],level=0,prefix='revision-',attr='data-act'}){
+  const steps=listeningSteps(fr,en,context,components),used=steps.slice(0,level),next=steps[level],chunks=listeningChunks(fr,components);
+  const btn=(act,label,index)=>'<button type="button" '+attr+'="'+prefix+'listen-'+act+'"'+(index===undefined?'':' data-listen-index="'+index+'"')+'>'+html(label)+'</button>';
+  let out='<div class="ft-listening-support"><div class="ft-listening-controls">';
+  if(used.includes('slow'))out+=btn('slow','▶ Slower French');
+  if(used.includes('chunks'))out+=chunks.map((_,i)=>btn('chunk','▶ Chunk '+(i+1),i)).join('');
+  if(used.includes('english-audio'))out+=btn('english','▶ Hear the English');
+  out+='</div>';
+  if(used.includes('context'))out+='<p class="ft-listening-clue"><small>Context clue</small>'+html(context)+'</p>';
+  if(used.includes('shape')){
+    const tokens=frenchTokens(fr);
+    out+='<div class="ft-listening-clue"><small>'+tokens.length+' written word'+(tokens.length===1?'':'s')+'</small><div class="ft-listening-shape" aria-label="Word lengths">'+tokens.map(t=>'<span>'+Array.from(t.text).map(ch=>/[\p{L}\p{M}\p{N}]/u.test(ch)?'＿':ch).join('')+'</span>').join(' ')+'</div></div>';
+  }
+  if(used.includes('english-text'))out+='<p class="ft-listening-clue" lang="en"><small>English meaning</small>'+html(en)+'</p>';
+  if(next)out+='<div class="ft-listening-next">'+btn('help',(level?'Next hint · ':'I’m struggling · ')+listeningHelpName(next))+
+    (level?'<small>Help used · '+html(used.map(listeningHelpName).join(' → '))+'</small>':'<small>Try listening first. Take one hint at a time if needed.</small>')+'</div>';
+  return out+'</div>';
+}
+export function difficultListeningChunks(answer,fr,components=[]){
+  const chunks=listeningChunks(fr,components),text=String(fr??'').trim();
+  const diffs=compareFrench(answer,text).filter(d=>d.kind!=='match');
+  const positions=diffs.filter(d=>d.right).map(d=>d.right.start);
+  const targeted=chunks.map((x,i)=>({...x,index:i,difficult:positions.some(p=>p>=x.start&&p<x.end)}));
+  return targeted.some(x=>x.difficult)?targeted:targeted.map(x=>({...x,difficult:true}));
+}
+export function listeningRepairMarkup({answer='',fr,en='',components=[],prefix='revision-',attr='data-act',retry=false}){
+  const chunks=difficultListeningChunks(answer,fr,components);
+  return '<aside class="ft-listening-repair"><strong>Hear the difficult parts, then put them together</strong><p class="ft-small">Replay the highlighted chunks. They contain answer differences, or are suggested practice when you used help.</p>'+
+    '<div class="ft-listening-repair-chunks">'+chunks.map(x=>'<button type="button" class="'+(x.difficult?'ft-listening-difficult':'')+'" '+attr+'="'+prefix+'listen-chunk" data-listen-index="'+x.index+'"><span>▶</span> <span lang="fr">'+html(x.text)+'</span></button>').join('')+'</div>'+
+    '<div class="ft-actions"><button type="button" '+attr+'="'+prefix+'listen-whole">▶ Hear the whole French</button>'+
+    (verifiedListeningEnglish(en)?'<button type="button" '+attr+'="'+prefix+'listen-english">▶ Hear the English</button>':'')+
+    (retry?'<button type="button" '+attr+'="'+prefix+'listen-rebuild">Rebuild without the model</button>':'')+'</div></aside>';
+}
+
 export const EXACT_ANSWER_ATTRIBUTES='spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" writingsuggestions="false" inputmode="text"';
 export function answerComparison({answer='',expected,result,lang='fr',replay=''}) {
   const status=result==='correct'?'correct':result==='incorrect'?'incorrect':'revealed';
@@ -139,12 +220,12 @@ export function answerComparison({answer='',expected,result,lang='fr',replay=''}
     '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected,right)+'</p>'+replay+'</div></div>'+
     (detail?'<p class="ft-answer-detail" role="status">'+html(detail)+'</p>':'')+'</div>';
 }
-export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{},getAdaptivePlans=()=>[],planAdaptive=()=>null,signalContext=()=>({}),recordSignal=()=>true}){
+export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{},getAdaptivePlans=()=>[],planAdaptive=()=>null,signalContext=()=>({}),recordSignal=()=>true,resolveEnglish=(fr,en)=>verifiedListeningEnglish(en)}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')
     throw Error('Guided lessons require evidence and speech adapters');
   const state={
     unitId:null,step:null,answer:'',result:null,feedback:'',wrong:false,done:false,
-    hint:0,revealed:false,wrongChoices:new Set(),selectedVerb:'parler',error:null,advancing:false
+    hint:0,listeningLevel:0,revealed:false,wrongChoices:new Set(),selectedVerb:'parler',error:null,advancing:false
   };
   let navigation=0;
   const evidence=()=>getEntries()||[];
@@ -154,7 +235,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
   const hintRef=step=>step.id+':hint';
   const resetStep=()=>{
     state.step=null;state.answer='';state.result=null;state.feedback='';state.wrong=false;
-    state.done=false;state.hint=0;state.revealed=false;state.wrongChoices.clear();state.error=null;
+    state.done=false;state.hint=0;state.listeningLevel=0;state.revealed=false;state.wrongChoices.clear();state.error=null;
   };
   const announce=()=>refresh();
   const go=page=>typeof navigate==='function'?navigate(page):announce();
@@ -219,7 +300,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
   const firstAttempt=(step,correct,extraSupport='none')=>{
     if(step.adaptivePlan||has(evidence(),marker(step).first))return;
     const {status}=context();
-    const assisted=state.hint||has(evidence(),hintRef(step))||state.revealed||state.wrong;
+    const assisted=state.hint||state.listeningLevel||has(evidence(),hintRef(step))||state.revealed||state.wrong;
     const support=state.revealed||extraSupport==='worked-example'?'worked-example':
       assisted?'small-prompt':
       step.stage==='guided'||step.stage==='repair'?'small-prompt':'none';
@@ -230,6 +311,10 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       taughtAt:status.taughtAt||new Date().toISOString(),sourceRef:marker(step).first});
   };
   const isChoice=step=>step?.kind==='choice'||step?.kind==='listen';
+  const isListening=step=>step&&['listen','transcribe'].includes(step.kind)&&!['independent','transfer','review'].includes(step.stage);
+  const listenInfo=step=>{const en=resolveEnglish(step.fr,step.en);return {fr:step.fr,en,context:listeningContext(step.fr,en,step.audioContext),components:step.components||[]};};
+  const listenHints=step=>{const info=listenInfo(step);return listeningSteps(info.fr,info.en,info.context,info.components).slice(0,state.listeningLevel);};
+  const listenSupported=()=>state.listeningLevel>0||state.hint>0;
   const page=()=>{
     const {id,status,current,plans,rest}=context();
     if(!status.unit)return '';
@@ -299,11 +384,12 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       if(step.audioContext)body+='<p class="ft-small">'+html(step.audioContext)+'</p>';
       if(step.kind==='listen'||step.kind==='transcribe')
         body+='<button type="button" class="ft-primary" data-gact="speak">▶ Play French phrase</button>';
+      if(isListening(step)&&!state.done&&!state.revealed)body+=listeningHintMarkup({...listenInfo(step),level:state.listeningLevel,prefix:'',attr:'data-gact'});
       if(isChoice(step)){
         const options=choiceOrder(step);
         body+='<div class="ft-guided-options">'+options.map((option,i)=>
           {
-            const right=state.done&&option===(step.kind==='choice'?step.fr:step.en);
+            const right=(state.done||state.revealed)&&option===(step.kind==='choice'?step.fr:step.en);
             const wrong=state.wrongChoices.has(option)&&!right;
             const result=right?'correct':wrong?'incorrect':'';
             return '<button type="button" data-gchoice="'+i+'"'+(step.kind==='choice'?' lang="fr"':' lang="en"')+
@@ -318,13 +404,14 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
         body+='<form id="ft-guided-form"><label for="ft-guided-input">Your French</label>'+
           '<input id="ft-guided-input" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' value="'+html(state.answer)+'" required>'+
           '<div class="ft-actions"><button type="submit" class="ft-primary">Check answer</button>'+
-          (state.hint<2?'<button type="button" data-gact="hint">'+(state.hint?'Show first part':'Get a hint')+'</button>':'')+
-          '<button type="button" data-gact="reveal">Show answer</button></div></form>';
+          (!isListening(step)&&state.hint<2?'<button type="button" data-gact="hint">'+(state.hint?'Show first part':'Get a hint')+'</button>':'')+
+          (isListening(step)?'':'<button type="button" data-gact="reveal">Show answer</button>')+'</div></form>';
       }
       if(!isChoice(step)&&showFrench)body+=answerComparison({answer:state.answer,expected:step.fr,result:state.result,
         replay:'<button type="button" data-gact="speak" aria-label="Hear the correct French again">▶</button>'});
-      if(state.hint&&!state.done&&!state.revealed)body+='<p class="ft-guided-hint" role="status">'+
+      if(!isListening(step)&&state.hint&&!state.done&&!state.revealed)body+='<p class="ft-guided-hint" role="status">'+
         html(guidedHint(step,1))+(state.hint>=2?'<br><strong>'+html(guidedHint(step,2))+'</strong>':'')+'</p>';
+      if(isListening(step)&&(state.revealed||state.done)&&(state.revealed||state.wrong||listenSupported()))body+=listeningRepairMarkup({...listenInfo(step),answer:step.kind==='listen'?'':state.answer,prefix:'',attr:'data-gact'});
       if(state.revealed&&!state.done)
         body+=advanceButton('finish-revealed',state.result==='incorrect'?'Next phrase →':'I reviewed the model → Next');
       if(state.done)
@@ -382,9 +469,9 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
   };
   const logGuided=(step,answer,correct,{reveal=false,model=false}={})=>{
     const expected=step.kind==='listen'||step.unlockAction==='reverse'?step.en:step.fr;
-    const support=reveal||model?'worked-example':state.hint||state.wrong||step.stage==='guided'||step.stage==='repair'?'small-prompt':'none';
+    const support=reveal||model?'worked-example':state.hint||state.listeningLevel||state.wrong||step.stage==='guided'||step.stage==='repair'?'small-prompt':'none';
     const info={ref:model?step.id+':complete':step.id+':first',activity:ALL_UNITS.find(u=>u.id===step.unitId)?.name+' · '+step.stage,
-      context:{...signalContext(step),unitId:step.unitId,stage:step.stage,kind:step.kind,structure:step.structure||'',fr:step.fr,en:step.en},
+      context:{...signalContext(step),unitId:step.unitId,stage:step.stage,kind:step.kind,structure:step.structure||'',fr:step.fr,en:step.en,...(isListening(step)?{listeningMode:step.kind==='listen'?'meaning':'dictation',listeningHelp:listenHints(step),listeningAssisted:listenSupported()||reveal}: {})},
       question:step.unlockAction==='reverse'?step.fr:step.kind==='listen'?'Listen: '+step.fr:step.kind==='transcribe'?'Dictation: '+step.fr:step.en,support,targetLang:step.kind==='listen'||step.unlockAction==='reverse'?'en':isChoice(step)?'choice':'fr'};
     if(step.adaptivePlan)info.signal=adaptiveOutcome(step.adaptivePlan,{correct,reveal,model,support,answer});
     if(reveal||model)return recordAttempt({...info,answer,expected,result:model?'model':'revealed',reason:model?'Oral repetition, not automatically marked.':'Model revealed; not an independent success.',marker:'unscored'});
@@ -400,7 +487,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     if(!Number.isInteger(i)||i<0||i>=choices.length)return;
     const value=choices[i];
     const correct=value===(current.kind==='choice'?current.fr:current.en);
-    if(state.done){
+    if(state.done||state.revealed){
       // Replay without creating another attempt, changing the selected
       // correct response, or advancing the evidence-backed lesson.
       if(current.kind==='choice')speak(value);
@@ -411,8 +498,8 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     firstAttempt(current,correct);
     state.answer=value;
     if(correct){
-      completion(current,state.wrong?'small-prompt':current.support||'small-prompt');
-      state.feedback='Correct.';
+      completion(current,state.wrong||listenSupported()?'small-prompt':current.support||'small-prompt');
+      state.feedback=state.listeningLevel?'Correct with listening help.':'Correct.';
     }else{
       state.wrong=true;state.wrongChoices.add(value);
       state.feedback=current.kind==='listen'?
@@ -435,7 +522,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     state.answer=answer;state.result=correct?'correct':'incorrect';
     if(correct){
       completion(current,state.hint||state.wrong?'small-prompt':current.support==='none'?'none':'small-prompt');
-      state.feedback='Correct.';
+      state.feedback=state.listeningLevel?'Correct with listening help.':'Correct.';
     }else{
       state.wrong=true;
       // Record the unaided failure before showing the model. Completion is
@@ -459,6 +546,39 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const act=target.dataset.gact;
     if(!act)return false;
     const {current}=context();
+    if(act.startsWith('listen-')){
+      if(!isListening(current))return true;
+      const info=listenInfo(current),steps=listeningSteps(info.fr,info.en,info.context,info.components),used=steps.slice(0,state.listeningLevel);
+      const after=state.done||state.revealed;
+      if(act==='listen-slow'&&(after||used.includes('slow')))speak(info.fr,'fr-FR',LISTEN_SLOW_RATE);
+      if(act==='listen-whole'&&after)speak(info.fr);
+      if(act==='listen-chunk'&&(after||used.includes('chunks'))){const x=listeningChunks(info.fr,info.components)[Number(target.dataset.listenIndex)];if(x)speak(x.text,'fr-FR',LISTEN_SLOW_RATE);}
+      if(act==='listen-english'&&info.en&&(after||used.includes('english-audio')))speak(info.en,'en-GB');
+      if(act==='listen-help'&&!after&&steps[state.listeningLevel]){
+        const input=target.ownerDocument?.getElementById('ft-guided-input');
+        if(input)state.answer=input.value;
+        const next=steps[state.listeningLevel];
+        if(!state.listeningLevel){
+          if(current.adaptivePlan){const p=current.adaptivePlan;if(!recordSignal(p.target,'hint',p.fr,{english:info.en,targetKind:p.targetKind,planId:p.id,hintLevel:1,mode:'listening',context:signalContext(current)}))return true;}
+          else {
+            if(!has(evidence(),hintRef(current)))record({concept:current.concept,phase:'practice',support:'small-prompt',sourceRef:hintRef(current),taughtAt:context().status.taughtAt||new Date().toISOString()});
+            const t=phraseTarget(current.fr,info.en,current.structure);recordSignal(t.word,'hint',t.sentence,{...t,hintLevel:1,mode:'listening',context:signalContext(current)});
+          }
+        }
+        state.hint=Math.max(1,state.hint);state.listeningLevel++;
+        if(next==='reveal'){
+          if(!logGuided(current,state.answer,false,{reveal:true})){state.listeningLevel--;return true;}
+          firstAttempt(current,false,'worked-example');state.result='revealed';state.revealed=true;state.feedback='';
+          announce();playAudio('reveal',current.fr);focusTarget('[data-gact="finish-revealed"]');return true;
+        }
+        announce();
+        if(next==='slow')speak(info.fr,'fr-FR',LISTEN_SLOW_RATE);
+        else if(next==='chunks'){const x=listeningChunks(info.fr,info.components)[0];if(x)speak(x.text,'fr-FR',LISTEN_SLOW_RATE);}
+        else if(next==='english-audio')speak(info.en,'en-GB');
+        if(input)focusTarget('#ft-guided-input');else focusTarget('[data-gact="listen-help"]');
+      }
+      return true;
+    }
     switch(act){
       case 'start':{const id=recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id;if(getTrack()!=='michaela'&&requestStart)requestStart(id);else start(id);break;}
       case 'next-unit':if(!activeRest(evidence(),Date.now(),null)){if(requestStart&&target.dataset.restUnit)requestStart(target.dataset.restUnit);else start(recommendedGuidedUnit(evidence(),Date.now(),getTrack()).unit.id);}break;
