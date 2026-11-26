@@ -200,7 +200,8 @@ test('devoir timeline teaches obligation in past, present and future',()=>{
  assert.equal(spokenWords('je dois étudier',{choice:true}).replace(/<[^>]+>/g,''),'je dois étudier');assert.doesNotMatch(spokenWords('je dois étudier',{choice:true}),/<button/);
 });
 
-import {compareFrench,createTypingSample,revisionQueue,auditSignals,clozeFor} from '../french-teaching/v1/revision-signals.js';
+import {markAnswer} from '../french-teaching/v1/data.js';
+import {compareFrench,createTypingSample,revisionQueue,auditSignals,clozeFor,wordKey,revisionLabel} from '../french-teaching/v1/revision-signals.js';
 test('word alignment highlights changed words and does not confuse une with negation',()=>{
  const got="J'ai preparé une tarte et j'ai reservé une table",expected="J'ai préparé une tarte et j'ai réservé une table";
  assert.doesNotMatch(answerFeedback(got,expected),/negative/);
@@ -208,8 +209,8 @@ test('word alignment highlights changed words and does not confuse une with nega
  assert.deepEqual(compareFrench(got,expected).filter(d=>d.kind!=='match').map(d=>d.right.text),['préparé','réservé']);
  assert.equal(compareFrench('je parle la radio','je parle puis la radio').filter(d=>d.kind!=='match')[0].kind,'missing');
  const box=answerComparison({answer:got,expected,result:'incorrect'});
- assert.match(box,/<mark class="ft-word-difference">preparé<\/mark>/);
- assert.match(box,/<mark class="ft-word-difference">réservé<\/mark>/);
+ assert.match(box,/pr<mark class="ft-word-difference">e<\/mark>paré/);
+ assert.match(box,/r<mark class="ft-word-difference">é<\/mark>servé/);
  assert.doesNotMatch(box,/<mark class="ft-word-difference">une<\/mark>/);
 });
 test('word typing uses relative aggregates, excludes paste and treats a lone hesitation as weak',()=>{
@@ -305,4 +306,39 @@ test('semantic speech policy is explicit and never reads a protected answer',()=
  assert.equal(learningAudioText('render','Bonjour'),'');
  assert.equal(guidedEntryAudio({kind:'model',unlockAction:'reverse',fr:'je parle français'}),'je parle français');
  assert.equal(guidedEntryAudio({kind:'write',fr:'je parle français'}),'');
+});
+
+
+test('shared written marking accepts harmless formatting but preserves French language distinctions',()=>{
+ const expected='Hier j’ai préparé le repas et j’ai réservé une table';
+ const answer="hier j'ai préparé le repas et j'ai réservé une table.";
+ assert.equal(markAnswer(answer,expected),true);
+ assert.equal(wordKey(answer),wordKey(expected));
+ assert.equal(markAnswer('  HIER,  j’ai préparé le repas et j’ai réservé une table ! ',expected),true);
+ assert.equal(markAnswer("hier j'ai preparé le repas et j'ai réservé une table",expected),false);
+ assert.equal(markAnswer("hier j'ai préparé le repas et je réserve une table",expected),false);
+ assert.equal(markAnswer("hier jai préparé le repas et j'ai réservé une table",expected),false);
+ assert.equal(markAnswer('1,5','15'),false);
+ assert.equal(markAnswer('1,5','1.5'),false);
+ assert.equal(revisionLabel({word:'école'}),'word');
+ assert.equal(revisionLabel({word:'je vais'}),'phrase');
+ assert.equal(revisionLabel({word:expected}),'sentence');
+ const box=answerComparison({answer,expected,result:'correct'});
+ assert.match(box,/ft-answer-comparison correct/);
+ assert.match(box,/capital H/);
+ assert.match(box,/punctuation is accepted/);
+ assert.doesNotMatch(box,/ft-word-difference/);
+ const wrong=answerComparison({answer:answer.replace('préparé','preparé'),expected,result:'incorrect'});
+ assert.match(wrong,/pr<mark class="ft-word-difference">e<\/mark>paré/);
+ assert.match(wrong,/pr<mark class="ft-word-difference">é<\/mark>paré/);
+ assert.match(wrong,/French accents/);
+ assert.doesNotMatch(wrong,/<mark class="ft-word-difference">repas<\/mark>/);
+});
+test('legacy punctuation-only personal revision is treated as correct for scheduling without mutating its audit',()=>{
+ const at=100000;
+ const audit={id:'old-review',at,answerAudit:{ref:'revision:review',marker:'revision-v1',answer:'Bonjour.',expected:'Bonjour',signal:{kind:'review',word:'Bonjour',correct:false}}};
+ const events=revisionEvents([audit],[]);
+ assert.equal(events[0].correct,true);
+ assert.equal(audit.answerAudit.signal.correct,false);
+ assert.equal(revisionQueue(events,at)[0].dueAt,at+86400000);
 });

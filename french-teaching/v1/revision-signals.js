@@ -1,9 +1,10 @@
 // Word-level learning signals, separate from assessed mastery.
+import {normaliseAnswer,markAnswer} from './data.js';
 const DAY=86400000,MIN=60000;
-export const wordKey=s=>String(s??'').normalize('NFC').toLocaleLowerCase('fr').replace(/[’‘]/g,"'").trim();
+export const wordKey=normaliseAnswer;
 const flat=s=>wordKey(s).normalize('NFD').replace(/\p{M}/gu,'');
 export function frenchTokens(s){
- return [...String(s??'').matchAll(/[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*/gu)].map(m=>({text:m[0],key:wordKey(m[0]),start:m.index,end:m.index+m[0].length}));
+ return [...String(s??'').matchAll(/[\p{L}\p{M}]+(?:['’‘\-][\p{L}\p{M}]+)*|\p{N}+(?:[.,]\p{N}+)*/gu)].map(m=>({text:m[0],key:wordKey(m[0]),start:m.index,end:m.index+m[0].length}));
 }
 function distance(a,b){
  let row=Array.from({length:b.length+1},(_,i)=>i);
@@ -34,9 +35,30 @@ export function compareFrench(answer,expected){
  }
  return out.reverse();
 }
+// Keep the learner's exact characters; for equal-length near spellings
+// highlight the changed letters only. Insertions/deletions mark the word.
+export function differenceSegments(value,other){
+ const a=Array.from(String(value??'')),b=Array.from(String(other??''));
+ const same=(x,y)=>String(x).normalize('NFC').toLocaleLowerCase('fr').replace(/[’‘]/g,"'")===String(y).normalize('NFC').toLocaleLowerCase('fr').replace(/[’‘]/g,"'");
+ if(!other||a.length!==b.length||!a.some((c,i)=>same(c,b[i])))return [{text:a.join(''),changed:true}];
+ return a.map((text,i)=>({text,changed:!same(text,b[i])}));
+}
+export function writingConvention(answer,expected){
+ if(!markAnswer(answer,expected))return '';
+ const a=String(answer??'').trim(),b=String(expected??'').trim(),notes=[];
+ if(/^\p{Lu}/u.test(b)&&/^\p{Ll}/u.test(a))notes.push('Start the sentence with a capital '+b[0]+'.');
+ if(/[.!?]$/.test(a)&&!/[.!?]$/.test(b))notes.push('Your sentence-ending punctuation is accepted.');
+ if(notes.length)return notes.join(' ')+' These writing conventions do not affect your mark.';
+ if(a!==b&&a.normalize('NFC').replace(/[’‘]/g,"'")!==b.normalize('NFC').replace(/[’‘]/g,"'"))return 'Harmless capitalisation, punctuation or spacing differences are accepted.';
+ return '';
+}
+export function revisionLabel(item){
+ const value=String(item?.word??'').trim(),count=frenchTokens(value).length;
+ return count<=1?'word':count>=5||value===String(item?.sentence??'').trim()?'sentence':'phrase';
+}
 export function correctionSummary(answer,expected){
  const d=compareFrench(answer,expected).filter(x=>x.kind!=='match');
- if(!d.length)return 'Compare the punctuation and spacing with the model.';
+ if(!d.length)return markAnswer(answer,expected)?'The words match. Formatting differences are accepted.':'Check the apostrophes, hyphens or number punctuation against the model.';
  const items=d.slice(0,5).map(x=>x.kind==='extra'?'extra “'+x.left.text+'”':x.kind==='missing'?'missing “'+x.right.text+'”':'“'+x.left.text+'” → “'+x.right.text+'”');
  return (d.every(x=>x.accent)?'Check the French accents: ':'Compare with the expected spelling or word form: ')+items.join('; ')+(d.length>5?'; see the highlighted words':'')+'.';
 }
@@ -96,7 +118,13 @@ export function containsTarget(sentence,target){
  return b.length>0&&a.some((_,i)=>b.every((w,j)=>a[i+j]===w));
 }
 export function revisionEvents(audits,visible){
- const explicit=audits.filter(x=>x.answerAudit?.signal&&!['adaptive-plan'].includes(x.answerAudit.signal.kind)).map(x=>({...x.answerAudit.signal,context:x.answerAudit.context||{},id:x.id,at:x.at,ref:x.answerAudit.ref}));
+ const explicit=audits.filter(x=>x.answerAudit?.signal&&!['adaptive-plan'].includes(x.answerAudit.signal.kind)).map(x=>{
+  const a=x.answerAudit,s=a.signal;
+  // Reinterpret legacy manual review false negatives for scheduling only.
+  // The immutable original audit is retained for transparency.
+  const formattingOnly=a.marker==='revision-v1'&&s.kind==='review'&&!s.correct&&a.answer?.trim()&&a.expected&&markAnswer(a.answer,a.expected);
+  return {...s,...(formattingOnly?{correct:true}:{}),context:a.context||{},id:x.id,at:x.at,ref:a.ref};
+ });
  // Use actual chronology. An independent answer can reduce an existing
  // difficulty; it cannot invent a difficulty or cancel a later event.
  const timeline=[...visible.filter(x=>!x.legacy&&x.result!=='withheld').map(x=>({at:x.at,id:x.id,audit:x})),...explicit.map(x=>({at:x.at,id:x.id,event:x}))].sort((a,b)=>a.at-b.at||String(a.id).localeCompare(String(b.id)));
@@ -128,6 +156,7 @@ export function revisionEvents(audits,visible){
   const written=frenchWritten(x),fr=written?x.expected:context.fr,english=context.en||x.question;
   if(!fr)continue;
   if(x.result==='incorrect'&&written){
+   if(x.answer?.trim()&&x.expected&&markAnswer(x.answer,x.expected))continue;
    const wordEvents=auditSignals(x);
    wordEvents.forEach(e=>add({...e,context,english,targetKind:'word'}));
    const diffs=compareFrench(x.answer,x.expected).filter(d=>d.kind!=='match');

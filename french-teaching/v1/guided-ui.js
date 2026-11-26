@@ -9,7 +9,7 @@ import {
 } from './guided-lessons.js';
 import {markAnswer,normaliseAnswer} from './data.js';
 import {exactAudit} from './answer-history.js';
-import {compareFrench,correctionSummary,phraseTarget} from './revision-signals.js';
+import {compareFrench,correctionSummary,phraseTarget,frenchTokens,differenceSegments,writingConvention} from './revision-signals.js';
 import {adaptiveStep,adaptiveOutcome} from './adaptive-teaching.js';
 import {curriculumVariants,curriculumNormalize} from './curriculum-meta.js';
 import {activeRest,restForUnit,restMarkup} from './study-timing.js';
@@ -31,7 +31,7 @@ export function answerFeedback(input,expected){
   if(want.includes('je vais ')&&got.includes("j'ai "))return 'Je vais + infinitive is a future plan. J’ai + past participle is a completed action.';
   if(want.includes("j'ai ")&&got.includes('je vais '))return 'For the completed past, use j’ai + the correct past participle.';
   const strip=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  if(strip(got)===strip(want))return 'All the words are in place. Check the French accents.';
+  if(strip(got)===strip(want))return correctionSummary(input,expected);
   if(want.includes('parce que')&&!got.includes('parce que'))return 'To explain why, join the two clauses with parce que.';
   if(want.includes(' mais ')&&!got.includes(' mais '))return 'To contrast two ideas, use mais.';
   if(want.startsWith("j'")&&got.startsWith('je '))return 'Before a vowel sound, je normally contracts to j’.';
@@ -96,14 +96,20 @@ export function guidedHint(step,level=1){
 }
 // Render each visible French word as a small native button without altering
 // or duplicating a single character of the source. Keep elisions together.
+const highlightedWord=(value,other)=>differenceSegments(value,other).map(p=>p.changed?'<mark class="ft-word-difference">'+html(p.text)+'</mark>':html(p.text)).join('');
+function plainHighlights(value,highlights){
+  const text=String(value??'');let cursor=0,result='';
+  for(const token of highlights){result+=html(text.slice(cursor,token.start))+highlightedWord(token.text,token.counterpart);cursor=token.end;}
+  return result+html(text.slice(cursor));
+}
 export function spokenWords(value,{choice=false,highlights=[],targets=[]}={}){
   const text=String(value??'');
-  const tokens=/[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*/gu;
+  const tokens=frenchTokens(text);
   let cursor=0,result='';
-  for(const match of text.matchAll(tokens)){
-    const word=match[0],start=match.index;
+  for(const token of tokens){
+    const word=token.text,start=token.start;
     const escaped=html(word),difference=highlights.find(x=>x.start===start),target=targets.find(x=>x.start===start)?.replacement||difference?.replacement;
-    const content=difference?'<mark class="ft-word-difference">'+escaped+'</mark>':escaped;
+    const content=difference?highlightedWord(word,difference.counterpart):escaped;
     result+=html(text.slice(cursor,start))+(choice?
       '<span class="ft-choice-word" lang="fr" data-choice-word="'+escaped+'" title="Tap to hear; hold to explore">'+escaped+'</span>':
       '<button type="button" class="ft-spoken-word" lang="fr" data-gword="'+escaped+'" aria-label="Hear '+escaped+'" title="Tap to hear; hold to explore"'+(target?' data-revision-target="'+html(target)+'"':'')+'>'+content+'</button>');
@@ -116,19 +122,22 @@ export function answerComparison({answer='',expected,result,lang='fr',replay=''}
   const status=result==='correct'?'correct':result==='incorrect'?'incorrect':'revealed';
   const label=status==='correct'?'Correct':status==='incorrect'?'Incorrect':'Answer revealed';
   const submitted=String(answer??'').trim().length>0;
-  const aligned=status==='incorrect'&&lang==='fr'?compareFrench(answer,expected):[];
+  const aligned=status==='incorrect'?compareFrench(answer,expected):[];
   const diff=aligned.filter(x=>x.kind!=='match');
-  const left=diff.filter(x=>x.left).map(x=>({...x.left,replacement:x.near?x.right?.text:null}));
-  const right=diff.filter(x=>x.right).map(x=>x.right);
+  const left=diff.filter(x=>x.left).map(x=>({...x.left,replacement:x.near?x.right?.text:null,counterpart:x.near?x.right?.text:null}));
+  const right=diff.filter(x=>x.right).map(x=>({...x.right,counterpart:x.near?x.left?.text:null}));
   const targets=aligned.filter(x=>x.left&&x.right&&(x.kind==='match'||x.near)).map(x=>({start:x.left.start,replacement:x.right.text}));
-  const content=(value,highlights,targets=[])=>lang==='fr'?spokenWords(value,{highlights,targets}):html(value);
+  const content=(value,highlights,targets=[])=>lang==='fr'?spokenWords(value,{highlights,targets}):plainHighlights(value,highlights);
   const mark=status==='correct'?'✓':status==='incorrect'?'×':'';
+  const detail=status==='incorrect'?correctionSummary(answer,expected):status==='correct'?writingConvention(answer,expected):'';
+  const statusText=status==='correct'?'Correct':status==='incorrect'?(diff.length===1?'One difference to review':diff.length>1?diff.length+' differences to review':'Check your answer'):'Answer revealed';
   return '<div class="ft-guided-pair ft-answer-comparison '+status+'" role="group" aria-label="'+label+'">'+
     '<div class="ft-answer-submitted"><small>'+ (status==='revealed'?'Your draft (not checked)':'Your answer')+
-    (mark?' <span class="ft-answer-mark" aria-hidden="true">'+mark+'</span>':'')+'</small>'+
+    (mark?' <span class="ft-answer-mark" aria-hidden="true">'+mark+'</span><span class="ft-answer-status">'+html(statusText)+'</span>':'')+'</small>'+
     '<p lang="'+html(lang)+'" class="ft-answer-value">'+(submitted?content(answer,left,targets):'—')+'</p></div>'+
     '<div class="ft-answer-expected"><small>Correct answer</small><div class="ft-pair-french">'+
-    '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected,right)+'</p>'+replay+'</div></div></div>';
+    '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected,right)+'</p>'+replay+'</div></div>'+
+    (detail?'<p class="ft-answer-detail" role="status">'+html(detail)+'</p>':'')+'</div>';
 }
 export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{},getAdaptivePlans=()=>[],planAdaptive=()=>null,signalContext=()=>({}),recordSignal=()=>true}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')

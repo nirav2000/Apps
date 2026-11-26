@@ -7,7 +7,7 @@ export const TRACKS=Object.freeze([
 ]);
 export const trackName=id=>TRACKS.find(t=>t.id===id)?.name||TRACKS[0].name;
 export const validTrack=id=>TRACKS.some(t=>t.id===id);
-export const curriculumNormalize=s=>normaliseAnswer(s).replace(/[«»“”"]/g,'').replace(/\s*[,;.!?]\s*/g,' ').replace(/\s+/g,' ').trim();
+export const curriculumNormalize=normaliseAnswer;
 export function curriculumVariants(fr,en=''){
  const base=curriculumNormalize(fr),prompt=String(en).toLowerCase(),xs=new Set([base]);
  const add=s=>xs.add(curriculumNormalize(s));

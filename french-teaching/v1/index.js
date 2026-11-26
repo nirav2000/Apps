@@ -8,7 +8,7 @@ import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
 import {unitsForTrack,guidedStatus} from './guided-lessons.js';
-import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget} from './revision-signals.js';
+import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget,revisionLabel} from './revision-signals.js';
 import {adaptivePlans,chooseAdaptivePlan} from './adaptive-teaching.js';
 import {activeRest,scheduledPractice,prioritizedChecks,overdueWords,noticeMarkup,updateStudyClocks,alertKeys,restMarkup} from './study-timing.js';
 import {ANSWER_APP,createAnswerHistory,exactAudit,visibleHistory,answerHistoryPage} from './answer-history.js';
@@ -133,12 +133,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   function revisionPage(){
     if(revision){
       const item=revision.items[revision.index];
-      const context=clozeFor(item.sentence,item.word);
-      return '<section class="ft-card ft-revision-task"><p class="ft-eyebrow">PERSONAL WORD REVISION · '+(revision.index+1)+'/'+revision.items.length+'</p><h2>Listen, then type the French</h2>'+
+      const context=clozeFor(item.sentence,item.word),label=revisionLabel(item);
+      return '<section class="ft-card ft-revision-task"><p class="ft-eyebrow">PERSONAL '+label.toUpperCase()+' REVISION · '+(revision.index+1)+'/'+revision.items.length+'</p><h2>Listen, then type the French</h2>'+
         (context?'<p class="ft-guided-english" lang="fr">'+esc(context)+'</p>':'')+
-        '<button type="button" data-act="revision-hear">▶ Hear the word</button>'+
+        '<button type="button" data-act="revision-hear">▶ Hear the '+label+'</button>'+
         (revision.result?answerComparison({answer:revision.answer,expected:item.word,result:revision.result,replay:'<button type="button" data-act="revision-hear">▶</button>'})+
-          '<p role="status">'+(revision.result==='correct'?'Correct. A later recall is scheduled.':'Compare the spelling. We will revisit it sooner.')+'</p><button type="button" class="ft-primary" data-act="revision-next" data-ft-advance>Next word →</button>':
+          '<p role="status">'+(revision.result==='correct'?'Correct. A later recall is scheduled.':'We will revisit this sooner.')+'</p><button type="button" class="ft-primary" data-act="revision-next" data-ft-advance>Next '+label+' →</button>':
           '<form id="ft-revision-form"><label for="ft-revision-answer">Your French</label><input id="ft-revision-answer" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required><button type="submit" class="ft-primary">Check answer</button></form>')+
         '<div class="ft-pause-row"><button type="button" class="ft-pause-control" data-act="revision-leave">'+(revision.auto?'Skip remaining revision · continue':'Back to signals')+'</button></div><p class="ft-small">This is targeted spelling/listening practice, not an independent sentence assessment.</p></section>';
     }
@@ -1198,8 +1198,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
       if(revision.auto&&prioritizedChecks(state.store.getEntries(),Date.now(),state.track).length){startDailyWithSignals();return;}
       const value=e.target.querySelector('[name="answer"]')?.value||'',item=revision.items[revision.index];
       if(!value.trim())return;
-      const correct=wordKey(value)===item.key;
-      if(!recordAttempt({...exactAudit(value,item.word,correct,{ref:'revision:review',activity:'Personal word revision',question:'Listen and spell the word',marker:'revision-v1',targetLang:'fr',support:'worked-example'}),signal:{kind:'review',word:item.word,sentence:item.sentence,correct}}))return;
+      const correct=markAnswer(value,item.word),label=revisionLabel(item);
+      if(!recordAttempt({...exactAudit(value,item.word,correct,{ref:'revision:review',activity:'Personal '+label+' revision',question:'Listen and type the '+label,marker:'revision-v1',targetLang:'fr',support:'worked-example'}),signal:{kind:'review',word:item.word,sentence:item.sentence,targetKind:item.targetKind,correct}}))return;
       revision.answer=value;revision.result=correct?'correct':'incorrect';render();speak(item.word);focusTarget('[data-act="revision-next"]');return;
     }
     const input=answerField(e.target.querySelector?.('[name="answer"]'));

@@ -1,6 +1,6 @@
 // Human-reviewed pilot content. Original material inspired by documented Michaela routines.
 // These are not verbatim Michaela knowledge organisers or official Barry Smith materials.
-export const COURSE_VERSION='1.0.0';
+export const COURSE_VERSION='1.0.1';
 const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const names=['a','bé','cé','dé','e','effe','gé','ache','i','ji','ka','elle','emme','enne','o','pé','cu','erre','esse','té','u','vé','double vé','iks','i grec','zède'];
 const examples=['ami','bonjour','chat','demain','école','français','grand','hôtel','ici','je','kilo','livre','maison','non','oui','parce que','question','rue','salut','toujours','utile','ville','wagon','exemple','yeux','zéro'];
@@ -62,7 +62,13 @@ export const DRILLS=[
  {id:'transfer-5',kind:'toFrench',prompt:'I want to learn, so I listen and I repeat.',answer:"Je veux apprendre, donc j'écoute et je répète.",concept:'french:connectives:result',phase:'transfer',novel:true,hint:"Je veux apprendre + donc + j'écoute et je répète."},
  {id:'transfer-6',kind:'toFrench',prompt:"Yesterday I listened to music, but today I study French.",answer:"Hier, j'ai écouté de la musique, mais aujourd'hui j'étudie le français.",concept:'french:profs:past',phase:'transfer',novel:true,hint:"Hier j'ai écouté + mais aujourd'hui j'étudie."}
 ];
-export function normaliseAnswer(s){return String(s||'').normalize('NFC').trim().toLocaleLowerCase('fr').replace(/[’‘]/g,"'").replace(/\s+/g,' ').replace(/[.!?;,]+$/g,'').trim();}
+// One written-answer policy: accept formatting, never remove meaningful accents or word joins.
+export function normaliseAnswer(s){
+  return String(s??'').normalize('NFC').toLocaleLowerCase('fr').replace(/[’‘]/g,"'")
+    .replace(/[«»“”"]/g,' ')
+    .replace(/[.!?,;:]+/g,(p,i,v)=>/^[.,]$/.test(p)&&/\d/.test(v[i-1]||'')&&/\d/.test(v[i+p.length]||'')?p:' ')
+    .replace(/\s+/g,' ').trim();
+}
 export function markAnswer(input,answer){return normaliseAnswer(input)===normaliseAnswer(answer);}
 
 

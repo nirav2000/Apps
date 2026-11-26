@@ -12,7 +12,7 @@ const unitFor=id=>ALL_UNITS.find(u=>u.id===id);
 const rowsFor=lessonRows;
 const key=(unit,stage,i,kind)=>'assess-v1:'+unit+':'+stage+':'+i+':'+kind;
 const ref=e=>e?.source?.ref||'';
-const normalize=s=>normaliseAnswer(s).replace(/\s*[,;.!?]\s*/g,' ').replace(/\s+/g,' ').trim();
+const normalize=normaliseAnswer;
 const lower=s=>s.charAt(0).toLowerCase()+s.slice(1);
 const englishClause=r=>r.id==='past'&&r.verbId==='lire'?'I read in French (in the past)':r.en;
 const stripAccent=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');

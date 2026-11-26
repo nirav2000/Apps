@@ -221,17 +221,20 @@
 /* Distinguish a learner's answer from the correction, including reveal-only. */
 .ft-app .ft-answer-comparison{align-items:start;gap:clamp(14px,4vw,44px);padding:16px 18px;background:#f6f7f5;border-color:#cdd8d0}
 .ft-app .ft-answer-comparison.correct{background:#e4f3e8;border-color:#39845b;color:#175237}
-.ft-app .ft-answer-comparison.incorrect{background:#fff0ed;border-color:#bd665d;color:#842f29}
+.ft-app .ft-answer-comparison.incorrect{background:#fff;border-color:#d7ddd8;color:#18392f}
+.ft-app .ft-answer-comparison.incorrect .ft-answer-mark,.ft-app .ft-answer-comparison.incorrect .ft-answer-status{color:#842f29}
+.ft-app .ft-answer-comparison .ft-answer-detail{grid-column:1/-1;margin:0;padding-top:12px;border-top:1px solid #d7ddd8;font-size:15px;line-height:1.5;color:#304a3c}
+.ft-app .ft-answer-comparison .ft-answer-status{font-weight:700}
 .ft-app .ft-answer-comparison.revealed{background:#f4f6f8;border-color:#c6d0d8;color:#334d43}
 .ft-app .ft-answer-comparison small{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:750;color:inherit;margin-bottom:8px}
 .ft-app .ft-answer-comparison .ft-answer-value{font-size:clamp(17px,2.4vw,23px);font-weight:650;margin:0;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
-.ft-app .ft-answer-comparison .ft-answer-expected{border-left:1px solid #bd665d55;padding-left:16px;min-width:0;color:#18392f}
+.ft-app .ft-answer-comparison .ft-answer-expected{border-left:1px solid #d7ddd8;padding-left:16px;min-width:0;color:#18392f}
 .ft-app .ft-answer-comparison .ft-answer-mark{font-size:19px;line-height:1}
 .ft-app .ft-guided-feedback.incorrect,.ft-app .ft-feedback.incorrect,.ft-app .ft-input-incorrect{background:#fff0ed;border:1px solid #bd665d;color:#842f29}
 .ft-app .ft-guided-feedback.correct,.ft-app .ft-feedback.correct{background:#e4f3e8;border:1px solid #39845b;color:#175237}
 .ft-app .ft-guided-feedback.revealed,.ft-app .ft-feedback.revealed{background:#f4f6f8;border:1px solid #c6d0d8;color:#334d43}
 .ft-app button:focus-visible{outline:2px solid #24634b;outline-offset:3px}
-@media(max-width:640px){.ft-app .ft-answer-comparison .ft-answer-expected{border-left:0;padding-left:0;border-top:1px solid #bd665d55;padding-top:12px}}
+@media(max-width:640px){.ft-app .ft-answer-comparison .ft-answer-expected{border-left:0;padding-left:0;border-top:1px solid #d7ddd8;padding-top:12px}}
 
 /* Individual word playback is inline, not a new card or full-width button. */
 .ft-app button.ft-spoken-word{display:inline;min-height:0;min-width:0;max-width:100%;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:inherit;font:inherit;line-height:inherit;text-decoration:none;vertical-align:baseline;cursor:pointer;overflow-wrap:anywhere;white-space:normal}
@@ -285,7 +288,7 @@
 @media(max-width:430px){.ft-app .ft-e-metric{padding:13px 11px}.ft-app .ft-e-metric span{font-size:12px}.ft-app .ft-e-metrics{gap:8px}.ft-app .ft-e-coverage{grid-template-columns:1fr}.ft-app .ft-e-knowledge-row>div:first-child{font-size:13px}.ft-app .ft-e-bar-meta{font-size:11px}}
 
 /* Private answer history; retain exact input, distinguish marker judgement. */
-.ft-app .ft-answer-history .ft-actions{align-items:end}.ft-app .ft-answer-history label{display:grid;gap:5px;font-size:12px}.ft-app .ft-audit-row{border:1px solid var(--ft-line);border-radius:12px;padding:14px;margin:12px 0;overflow-wrap:anywhere}.ft-app .ft-audit-row.incorrect,.ft-app .ft-audit-row.unknown{border-color:#bd665d;background:#fff9f7}.ft-app .ft-audit-row.correct{border-color:#8ab39a}.ft-app .ft-audit-meta{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}.ft-app .ft-audit-meta small,.ft-app .ft-audit-pair small{font-size:12px;color:#536b5e}.ft-app .ft-audit-row.incorrect .ft-audit-meta strong{color:#842f29}.ft-app .ft-audit-question{font-size:17px;font-weight:700}.ft-app .ft-audit-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.ft-app .ft-audit-pair p{white-space:pre-wrap;margin:5px 0;font-size:16px}.ft-app .ft-audit-reason{font-size:13px;line-height:1.5}.ft-app .ft-audit-row details{font-size:13px}@media(max-width:520px){.ft-app .ft-audit-pair{grid-template-columns:1fr;gap:9px}}
+.ft-app .ft-answer-history .ft-actions{align-items:end}.ft-app .ft-answer-history label{display:grid;gap:5px;font-size:12px}.ft-app .ft-audit-row{border:1px solid var(--ft-line);border-radius:12px;padding:14px;margin:12px 0;overflow-wrap:anywhere}.ft-app .ft-audit-row.incorrect,.ft-app .ft-audit-row.unknown{border-color:#d7ddd8;background:#fff}.ft-app .ft-audit-row.correct{border-color:#8ab39a}.ft-app .ft-audit-meta{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}.ft-app .ft-audit-meta small,.ft-app .ft-audit-pair small{font-size:12px;color:#536b5e}.ft-app .ft-audit-row.incorrect .ft-audit-meta strong{color:#842f29}.ft-app .ft-audit-question{font-size:17px;font-weight:700}.ft-app .ft-audit-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.ft-app .ft-audit-pair p{white-space:pre-wrap;margin:5px 0;font-size:16px}.ft-app .ft-audit-reason{font-size:13px;line-height:1.5}.ft-app .ft-audit-row details{font-size:13px}@media(max-width:520px){.ft-app .ft-audit-pair{grid-template-columns:1fr;gap:9px}}
 
 /* Track selection, preserving the clean evidence dashboard design. */
 .ft-track-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px;margin-top:12px}.ft-track-option{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;text-align:left;border:1px solid #e2e8e4;background:#fff;border-radius:14px;padding:16px;color:#20352b;white-space:normal}.ft-track-option.selected{border-color:#39856d;background:#eef7f1;box-shadow:inset 0 0 0 1px #39856d}.ft-track-option strong{font-size:16px}.ft-track-option small,.ft-track-option span{font-size:12px;line-height:1.4;color:#55685d}.ft-guided-unit-summary>div>button{font-size:12px;padding:5px 9px;min-height:32px;margin-top:6px}.ft-account #ft-track{max-width:100%;width:100%}
@@ -310,8 +313,8 @@
 /* Incremental Unlocking chapters */
 .ft-unlock-task .ft-guided-pair{padding:24px;background:#f4f7f6;border:1px solid #e0e9e4;border-radius:18px;color:#20352b}.ft-unlock-task .ft-guided-english{font-size:clamp(22px,4vw,30px);font-weight:650}.ft-unlock-task .ft-guided-french{font-size:clamp(24px,4.5vw,34px);color:#245f4b}.ft-unlock-pron{font-size:14px;margin-top:8px}.ft-unlock-note{margin:10px 0}.ft-unlock-components{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}.ft-unlock-components>span{display:grid;gap:4px;max-width:100%;background:#edf4f0;color:#20352b;border:1px solid #dce8df;border-radius:12px;padding:10px 12px}.ft-unlock-components small{color:#586d60;font-size:12px}.ft-unlock-components strong{overflow-wrap:anywhere;font-size:17px}.ft-unlock-task .ft-actions button{white-space:normal}.ft-unlock-glossary{margin-top:16px}.ft-unlock-glossary-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:9px 0;border-bottom:1px solid #e0e6e3}.ft-unlock-glossary-row small{grid-column:2}
 
-.ft-app .ft-word-difference{color:inherit;background:#f4c4ba;border-radius:3px;padding:1px 2px;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
-.ft-app .ft-answer-expected .ft-word-difference,.ft-app .ft-audit-pair>div:nth-child(2) .ft-word-difference{background:#d6ead9;text-decoration-color:#43835d}
+.ft-app .ft-word-difference{color:#842f29;background:#f4c4ba;border-radius:3px;padding:0 1px;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.ft-app .ft-answer-expected .ft-word-difference,.ft-app .ft-audit-pair>div:nth-child(2) .ft-word-difference{color:#175237;background:#d6ead9;text-decoration-color:#43835d}
 
 .ft-app .ft-revision-row{border:1px solid var(--ft-line);border-radius:12px;padding:14px;margin-top:10px;overflow-wrap:anywhere}.ft-app .ft-revision-row .ft-row>strong{font-size:20px}.ft-app .ft-revision-row .ft-row>span{font-size:12px;color:#607467}.ft-app .ft-revision-errors{color:#842f29}.ft-app .ft-revision-task form,.ft-app .ft-revision-dashboard form{display:grid;gap:8px;margin:14px 0}.ft-app .ft-revision-task form button,.ft-app .ft-revision-dashboard form button{justify-self:start}.ft-app .ft-revision-task>button{margin:8px 8px 8px 0}
 

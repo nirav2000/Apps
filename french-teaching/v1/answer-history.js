@@ -1,7 +1,7 @@
 // Private French-only answer audit. It deliberately does not enter the shared
 // learning-evidence store or its accuracy/retention calculations.
 import {normaliseAnswer,DRILLS} from './data.js';
-import {compareFrench,correctionSummary} from './revision-signals.js';
+import {compareFrench,correctionSummary,differenceSegments} from './revision-signals.js';
 import {ALL_UNITS,guidedLesson} from './guided-lessons.js';
 import {STAGES,assessmentDeck} from './assessment.js';
 export const ANSWER_APP='next-french-answers';
@@ -48,7 +48,7 @@ export function exactAudit(answer,expected,correct,{normalize=normaliseAnswer,re
   let detail;
   if(correct)detail='Matched an accepted answer.';
   else if(!got)detail='No answer submitted.';
-  else if(unaccent(got)===unaccent(want))detail='The letters match, but an accent differs.';
+  else if(unaccent(got)===unaccent(want))detail=correctionSummary(answer,expected);
   else {
     const a=got.split(/\s+/),b=want.split(/\s+/);let i=0;
     while(i<Math.max(a.length,b.length)&&a[i]===b[i])i++;
@@ -95,7 +95,7 @@ export function visibleHistory(auditRows,evidence){
 }
 function markedHistory(value,changes){
  const src=text(value);let out='',cursor=0;
- for(const change of changes){out+=h(src.slice(cursor,change.start))+'<mark class="ft-word-difference">'+h(change.text)+'</mark>';cursor=change.end;}
+ for(const change of changes){out+=h(src.slice(cursor,change.start))+differenceSegments(change.text,change.counterpart).map(p=>p.changed?'<mark class="ft-word-difference">'+h(p.text)+'</mark>':h(p.text)).join('');cursor=change.end;}
  return out+h(src.slice(cursor));
 }
 export function answerHistoryPage(rows,filter='all',limit=50){
@@ -107,8 +107,10 @@ export function answerHistoryPage(rows,filter='all',limit=50){
     (filtered.length?filtered.slice(0,limit).map(x=>{
       const fr=x.targetLang==='fr'||!x.targetLang&&['guided-exact-v1','curriculum-v1','assessment-v1'].includes(x.marker);
       const diff=x.result==='incorrect'&&fr&&x.answer&&x.expected?compareFrench(x.answer,x.expected).filter(d=>d.kind!=='match'):[];
-      const left=diff.filter(d=>d.left).map(d=>d.left),right=diff.filter(d=>d.right).map(d=>d.right);
-      return '<article class="ft-audit-row '+h(x.result)+'"><div class="ft-audit-meta"><strong>'+h(labels[x.result]||x.result)+'</strong><small>'+h(new Date(x.at).toLocaleString('en-GB'))+' · '+h(x.activity)+'</small></div><p class="ft-audit-question">'+h(x.question)+'</p><div class="ft-audit-pair"><div><small>Your answer</small><p>'+markedHistory(x.answer==null?(x.legacy?'Not recorded in older version':x.result==='model'?'Spoken answer not recorded':'Not submitted'):x.answer||'—',left)+'</p></div><div><small>Expected answer</small><p>'+markedHistory(x.expected??(x.result==='withheld'?'Hidden until check complete':'Not retained'),right)+'</p></div></div><p class="ft-audit-reason">'+h(diff.length?correctionSummary(x.answer,x.expected):x.reason)+'</p>'+
+      const left=diff.filter(d=>d.left).map(d=>({...d.left,counterpart:d.near?d.right?.text:null})),right=diff.filter(d=>d.right).map(d=>({...d.right,counterpart:d.near?d.left?.text:null}));
+      const oldFormatting=x.result==='incorrect'&&fr&&x.answer?.trim()&&x.expected&&normaliseAnswer(x.answer)===normaliseAnswer(x.expected);
+      const feedback=oldFormatting?'This earlier result was rejected for formatting only. The current marker accepts it; the original record is retained.':diff.length?correctionSummary(x.answer,x.expected):x.reason;
+      return '<article class="ft-audit-row '+h(x.result)+'"><div class="ft-audit-meta"><strong>'+h(labels[x.result]||x.result)+'</strong><small>'+h(new Date(x.at).toLocaleString('en-GB'))+' · '+h(x.activity)+'</small></div><p class="ft-audit-question">'+h(x.question)+'</p><div class="ft-audit-pair"><div><small>Your answer</small><p>'+markedHistory(x.answer==null?(x.legacy?'Not recorded in older version':x.result==='model'?'Spoken answer not recorded':'Not submitted'):x.answer||'—',left)+'</p></div><div><small>Expected answer</small><p>'+markedHistory(x.expected??(x.result==='withheld'?'Hidden until check complete':'Not retained'),right)+'</p></div></div><p class="ft-audit-reason">'+h(feedback)+'</p>'+
       (x.normalizedAnswer!=null&&x.result!=='withheld'?'<details><summary>Marking details</summary><p>Marker: '+h(x.marker)+'</p><p>Compared input: '+h(x.normalizedAnswer||'—')+'</p><p>Accepted forms: '+h(x.accepted.join(' / '))+'</p><p>Support: '+h(x.support||'Not specified')+'</p></details>':'')+(x.typing?.length&&x.result!=='withheld'?'<details><summary>Word typing observations</summary>'+x.typing.map(w=>'<p>'+h(w.word)+' · '+w.msPerChar+' ms per character'+(w.startDelayMs!=null?' · '+w.startDelayMs+' ms before word':'')+(w.slow?' · '+(w.mode==='before-word'?'hesitated before word':'slower than other words'):'')+'</p>').join('')+'</details>':'')+'</article>';}).join(''):'<p>No matching answers yet.</p>')+
     (filtered.length>limit?'<button type="button" data-act="more-answers">Show more</button>':'')+'</section>';
 }
