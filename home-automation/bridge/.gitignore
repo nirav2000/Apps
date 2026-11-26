@@ -1,0 +1,6 @@
+# Keep all personal device mappings, access data and heating history private.
+config.local.json
+*.private.json
+heating-*.json
+__pycache__/
+*.pyc
