@@ -22,10 +22,10 @@ try{
   await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
  await page.locator('#ft-revision-add-word').fill('école');
  await page.locator('#ft-revision-add button').click();
+ // A request for untaught material is deferred; it must not become a drill.
  const bar=page.locator('.ft-learning-profile [role="meter"]');
- assert.equal(await bar.count(),1);assert.equal(await bar.getAttribute('aria-valuenow'),'20');
- assert.match(await bar.getAttribute('aria-valuetext'),/High priority/);
- assert.match(await page.locator('.ft-signal-next').innerText(),/Ready now/);
+ assert.equal(await bar.count(),0);
+ assert.match(await page.locator('.ft-revision-dashboard').innerText(),/Not selected for revision/);
  await page.locator('.ft-tabs [data-page="home"]').click();
  await page.locator('.ft-tabs [data-page="explore"]').click();
  await page.getByRole('button',{name:'Start guided lesson',exact:true}).click();
@@ -34,9 +34,20 @@ try{
   await page.locator('[data-guided-step="'+deck[i].id+'"]').waitFor();
   await page.locator('[data-gact="finish-model"]').click();
  }
+ await page.locator('[data-guided-step="'+deck[3].id+'"]').waitFor();
+ // After authentic teaching, a request for a word in the models is eligible.
+ await page.locator('.ft-tabs [data-page="explore"]').click();
+ await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
+ await page.locator('#ft-revision-add-word').fill('français');
+ await page.locator('#ft-revision-add button').click();
+ assert.equal(await bar.count(),1);assert.equal(await bar.getAttribute('aria-valuenow'),'20');
+ assert.match(await bar.getAttribute('aria-valuetext'),/High priority/);
+ assert.match(await page.locator('.ft-signal-next').innerText(),/Ready now/);
+ await page.locator('.ft-tabs [data-page="home"]').click();
+ await page.locator('[data-learning-path] [data-eact="daily"]').click();
  await page.locator('[data-guided-step^="adaptive-v1:"]').waitFor();
  const inserted=await stepId(),plan=(await local()).find(x=>x.answerAudit?.signal?.plan?.id===inserted).answerAudit.signal.plan;
- assert.equal(plan.target,'école');assert.equal(plan.mode,'dictation');assert.equal(plan.position,3);
+ assert.equal(plan.target,'français');assert.ok(['recall','dictation'].includes(plan.mode));assert.equal(plan.position,3);
  assert.match(await page.locator('.ft-progress-count').innerText(),/3\/64/);
  assert.equal(await page.locator('[data-cloud-status]').isVisible(),false);
  assert.doesNotMatch(await page.locator('.ft-guided-shell').innerText(),/saved to Firebase|first attempt is saved/i);
@@ -46,7 +57,7 @@ try{
   await page.locator('[data-learning-path] [data-eact="daily"]').click();
  await page.locator('[data-guided-step="'+inserted+'"]').waitFor();
  assert.equal(await stepId(),inserted);
- await page.locator('#ft-guided-input').fill('école');
+ await page.locator('#ft-guided-input').fill(plan.fr);
  await page.locator('#ft-guided-form button[type=submit]').click();
  await page.locator('.ft-answer-comparison.correct').waitFor();
  await page.locator('[data-gact="next"]').click();
@@ -55,7 +66,7 @@ try{
  const rows=await local();
  const answer=rows.find(x=>x.answerAudit?.ref===inserted+':first').answerAudit;
  assert.equal(answer.signal.kind,'review');assert.equal(answer.signal.correct,true);
- assert.equal(answer.signal.mode,'dictation');assert.ok(answer.context.sessionId);assert.equal(answer.context.unitId,'speak-and-listen');
+ assert.equal(answer.signal.mode,plan.mode);assert.ok(answer.context.sessionId);assert.equal(answer.context.unitId,'speak-and-listen');
  await page.locator('.ft-tabs [data-page="explore"]').click();
   await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
  assert.match(await page.locator('.ft-adaptive-log').innerText(),/Teaching adaptations/);
@@ -68,5 +79,5 @@ try{
  assert.equal(await page.locator('.ft-revision-row').count(),0);
  assert.equal(await page.locator('.ft-learning-profile [role="meter"]').count(),0);
  assert.deepEqual(errors,[]);
- console.log('Adaptive browser: inserted dictation, durable plan, reload, core resume, private outcome, clean screen and learner isolation');
+ console.log('Adaptive browser: untaught request deferred, eligible taught-word drill, durable plan, reload, core resume, private outcome, clean screen and learner isolation');
 }finally{await browser.close();}
