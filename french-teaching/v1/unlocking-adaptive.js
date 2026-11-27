@@ -5,16 +5,17 @@ const direction=s=>s.unlockAction==='reverse'?'understand':'say';
 export const skipRef=s=>s.id+':adaptive-skip';
 export const knownRef=s=>s.id+':oral-known';
 export const helpRef=s=>s.id+':oral-retry';
-export function repeatDecision(step,steps,entries){
+export function repeatDecision(step,steps,entries,ledger=null){
  if(!step||step.track!=='unlocking'||step.kind!=='model'||!['recall','build','reverse'].includes(step.unlockAction)||['repair','independent','transfer','review'].includes(step.stage))return false;
  const index=steps.findIndex(s=>s.id===step.id);if(index<1)return false;
  const refs=new Map();
  for(const e of entries){const ref=e.source?.ref;if(!ref)continue;const at=Number(e.at)||0;if(!refs.has(ref)||at>refs.get(ref))refs.set(ref,at);}
- const prior=steps.slice(0,index).filter(s=>s.kind==='model'&&key(s.fr)===key(step.fr));
+ const prior=steps.slice(0,index).filter(s=>s.kind==='model'&&practiceKey(s.fr)===practiceKey(step.fr));
  if(!prior.some(s=>refs.has(s.id+':complete')))return false;
- const same=prior.filter(s=>direction(s)===direction(step)&&key(s.en)===key(step.en));
+ // In production, I prepared / I have prepared are the same French target.
+ const same=prior.filter(s=>direction(s)===direction(step)&&(direction(step)==='say'||key(s.en)===key(step.en)));
  const wrong=entries.filter(e=>e.score?.total>0&&e.score.correct<e.score.total&&prior.some(s=>e.source?.ref===s.id+':first')).map(e=>Number(e.at)||0);
- const latestHelp=Math.max(-1,...wrong,...prior.map(s=>refs.get(helpRef(s))??-1));
+ const latestHelp=Math.max(-1,ledger?.lastFailure(step.fr)??-1,...wrong,...prior.map(s=>refs.get(helpRef(s))??-1));
  const successful=same.filter(s=>refs.has(knownRef(s))&&refs.has(s.id+':complete')&&refs.get(knownRef(s))>latestHelp);
  if(!successful.length)return false;
  const last=successful.at(-1),lastAt=steps.findIndex(s=>s.id===last.id);
@@ -38,10 +39,10 @@ export function suggestMix(step,history){
  return step.workshop.piles.map((p,i)=>{const missing=p.items.findIndex((_,j)=>!history.used[i].has(j));return missing<0?history.successes.length%p.items.length:missing;});
 }
 
-export function familiarIntro(step,steps,entries){
+export function familiarIntro(step,steps,entries,ledger=null){
  if(step?.track!=='unlocking'||step.unlockAction!=='introduce'||step.discovery)return step;
- const prior=steps.filter(s=>s.id!==step.id&&s.kind==='model'&&key(s.fr)===key(step.fr)&&key(s.en)===key(step.en));
- let known=-1,help=-1;
+ const prior=steps.filter(s=>s.id!==step.id&&s.kind==='model'&&practiceKey(s.fr)===practiceKey(step.fr)&&s.unlockAction!=='reverse');
+ let known=-1,help=ledger?.lastFailure(step.fr)??-1;
  const refs=new Set(entries.map(e=>e.source?.ref));
  for(const s of prior)for(const e of entries){
   const at=Number(e.at)||0;
@@ -49,4 +50,62 @@ export function familiarIntro(step,steps,entries){
   if(e.source?.ref===helpRef(s)||e.source?.ref===s.id+':first'&&e.score?.total>0&&!e.score.correct)help=Math.max(help,at);
  }
  return known>help?{...step,unlockAction:'recall',modelInitiallyShown:false,familiarRecall:true,prompt:'You have used this building block before. Can you still say it without looking?'}:step;
+}
+
+// Shared recency policy. Audit rows are already learner/account scoped.
+// Oral self-checks and dictation never count as independent translation.
+export const PRACTICE_COOLDOWN=30*60000, PRACTICE_DAY=24*60*60000;
+export const practiceKey=s=>String(s??'').normalize('NFC').toLowerCase().replace(/[’‘]/g,"'").replace(/[«»“”".!?,;:]+/g,' ').replace(/\s+/g,' ').trim();
+const containsPractice=(sentence,target)=>!!practiceKey(target)&&(' '+practiceKey(sentence)+' ').includes(' '+practiceKey(target)+' ');
+const isIndependent=a=>a.targetLang==='fr'&&a.result==='correct'&&a.support==='none'&&!!a.answer&&
+ !['transcribe','listen','choice','workshop','model'].includes(a.context?.kind)&&
+ !/^(?:Listen|Dictation|Which spelling)/i.test(a.question||'')&&
+ !['dictation','listening'].includes(a.signal?.mode)&&
+ !['revision-v1','listening-rebuild-v1','unscored','choice-v1','letter-v1'].includes(a.marker)&&
+ practiceKey(a.answer)===practiceKey(a.expected);
+export function practiceLedger(audits=[],track,now=Date.now()){
+ const rows=audits.map(x=>({a:x.answerAudit||x,at:Number(x.at)||Date.parse(x.at)||0})).filter(x=>x.at>0&&x.at<=now&&x.a.context?.track===track&&x.a.result!=='signal').sort((x,y)=>x.at-y.at);
+ const seen=new Map(),correct=new Map(),wrong=new Map();
+ for(const {a,at} of rows){
+  const fr=a.targetLang==='fr'?a.expected:a.context?.fr;
+  const k=practiceKey(fr);if(!k)continue;
+  seen.set(k,at);
+  if(a.targetLang==='fr'&&['incorrect','unknown','revealed'].includes(a.result))wrong.set(k,at);
+  if(isIndependent(a)){const refs=correct.get(k)||new Map();refs.set(a.ref||String(at),at);correct.set(k,refs);}
+ }
+ const lastSeen=fr=>seen.get(practiceKey(fr))??null;
+ const recentlySeen=fr=>lastSeen(fr)!==null&&now-lastSeen(fr)<PRACTICE_COOLDOWN;
+ const lastFailure=fr=>wrong.get(practiceKey(fr))??-1;
+ const recallCount=fr=>[...(correct.get(practiceKey(fr))?.values()||[])].filter(at=>at>lastFailure(fr)&&now-at<=PRACTICE_DAY).length;
+ const saturated=fr=>recallCount(fr)>=2;
+ const longest=Math.max(0,...[...correct.keys()].filter(s=>recallCount(s)>0).map(s=>s.split(' ').length));
+ function deferralUntil(row){
+  // Only postpone a current weak-spot drill, never cancel a delayed review,
+  // manual request or a separate listening/pronunciation skill.
+  if(!row?.lastDifficulty||!row.word||row.level>0||['pronunciation','manual','recognition'].includes(row.lastDifficulty.kind))return null;
+  const difficulty=Number(row.lastDifficulty.at)||0;if(!difficulty||now-difficulty>PRACTICE_DAY)return null;
+  const action=row.lastAction;
+  if(action?.kind==='review'&&action.correct&&action.at>=difficulty)return null;
+  const since=Math.max(difficulty,Number(action?.at)||0);
+  const contexts=[];
+  const lastTargetFailure=Math.max(since,...[...wrong].filter(([fr])=>containsPractice(fr,row.word)).map(([,at])=>at));
+  for(const [fr,attempts] of correct){
+   if(!containsPractice(fr,row.word))continue;
+   const first=Math.min(...[...attempts.values()].filter(at=>at>lastTargetFailure));
+   if(Number.isFinite(first))contexts.push(first);
+  }
+  contexts.sort((a,b)=>a-b);
+  return contexts.length>=2?contexts[1]+PRACTICE_DAY:null;
+ }
+ const targetSatisfied=row=>(deferralUntil(row)??0)>now;
+ return {lastSeen,recentlySeen,lastFailure,recallCount,saturated,longest,deferralUntil,targetSatisfied};
+}
+export function deferRepeatedTargets(rows,ledger,now=Date.now()){
+ return rows.map(row=>{const until=ledger.deferralUntil(row);return until&&until>now&&row.dueAt!==null&&row.dueAt<until?{...row,originalDueAt:row.dueAt,dueAt:until,due:false,practiceDeferred:true}:row;}).sort((a,b)=>Number(b.due)-Number(a.due)||(a.due&&b.due?b.score-a.score:0)||(a.dueAt??Infinity)-(b.dueAt??Infinity)||b.score-a.score||a.key.localeCompare(b.key));
+}
+export function sharedBypass(step,ledger){
+ if(!step||step.track!=='unlocking'||!ledger||['repair','independent','transfer','review'].includes(step.stage))return false;
+ if(step.kind==='model'&&['recall','build'].includes(step.unlockAction))return ledger.saturated(step.fr);
+ if(step.kind==='write'&&step.stage==='guided')return ledger.saturated(step.fr);
+ return false;
 }

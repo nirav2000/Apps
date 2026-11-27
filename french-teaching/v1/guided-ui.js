@@ -16,7 +16,7 @@ import {curriculumVariants,curriculumNormalize} from './curriculum-meta.js';
 import {activeRest,restForUnit,restMarkup} from './study-timing.js';
 import {patternsForModel,grammarPatternsFor} from './unlocking-builder.js';
 import {assemblePiles,pileCount} from './unlocking-expansion.js';
-import {repeatDecision,skipRef,knownRef,mixHistory,suggestMix,familiarIntro} from './unlocking-adaptive.js';
+import {repeatDecision,skipRef,knownRef,mixHistory,suggestMix,familiarIntro,practiceLedger,sharedBypass} from './unlocking-adaptive.js';
 
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const marker=row=>guidedCompletionRefs(row.id);
@@ -281,7 +281,7 @@ export function answerComparison({answer='',expected,result,lang='fr',replay=''}
     '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected,right)+'</p>'+replay+'</div></div>'+
     (detail?'<p class="ft-answer-detail" role="status">'+html(detail)+'</p>':'')+'</div>';
 }
-export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{},getAdaptivePlans=()=>[],planAdaptive=()=>null,signalContext=()=>({}),recordSignal=()=>true,getDifficulties=()=>[],resolveEnglish=(fr,en)=>verifiedListeningEnglish(en)}){
+export function createGuidedInterface({getEntries,getAudits=()=>[],recordPolicy=()=>{},getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{},getAdaptivePlans=()=>[],planAdaptive=()=>null,signalContext=()=>({}),recordSignal=()=>true,getDifficulties=()=>[],resolveEnglish=(fr,en)=>verifiedListeningEnglish(en)}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')
     throw Error('Guided lessons require evidence and speech adapters');
   const state={
@@ -295,19 +295,23 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
   const chooseNext=()=>{
     let status=currentStatus();
     if(status.teaching.completed===status.teaching.total&&restForUnit(status.unit.id,evidence()))return null;
-    const plan=planAdaptive(status);if(plan)return adaptiveStep(plan);
+    const ledger=practiceLedger(getAudits(),getTrack());
     // Persist a bypass separately: it resolves the authored candidate but
     // does not record a learning exposure or independent success.
-    while(status.next&&status.unit.incremental&&repeatDecision(status.next,guidedLesson(status.unit.id).steps,evidence())){
-      const step=status.next,ref=skipRef(step);
+    while(status.next&&status.unit.incremental){
+      const step=status.next,shared=sharedBypass(step,ledger);
+      if(!shared&&!repeatDecision(step,guidedLesson(status.unit.id).steps,evidence(),ledger))break;
+      const ref=skipRef(step);
       if(has(evidence(),ref))break;
       record({concept:step.concept,phase:'practice',support:'worked-example',sourceRef:ref,taughtAt:status.taughtAt||new Date().toISOString()});
+      recordPolicy({step,reason:shared?'Two distinct unaided recalls; move to a different construction':'Repeated oral target already self-checked'});
       const next=currentStatus();if(next.next?.id===step.id)break;status=next;
     }
     if(!status.next)return null;
+    const plan=planAdaptive(status);if(plan)return adaptiveStep(plan);
     if(status.unit.incremental&&status.next.unlockAction==='introduce'){
       const candidates=unitsForTrack(getTrack()).flatMap(u=>guidedLesson(u.id).steps);
-      return familiarIntro(status.next,candidates,evidence());
+      return familiarIntro(status.next,candidates,evidence(),ledger);
     }
     return status.next;
   };

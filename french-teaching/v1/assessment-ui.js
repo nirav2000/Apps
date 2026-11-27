@@ -1,4 +1,4 @@
-import {ALL_UNITS,unitsForTrack,lessonRows,guidedStatus} from './guided-lessons.js';
+import {ALL_UNITS,unitsForTrack,lessonRows,guidedStatus,guidedLesson} from './guided-lessons.js';
 import {STAGES,assessmentStats,baselineFor,pendingChecks,pendingRepairs,repairRef,nextCheckDate,markAssessment,ERROR_TIPS,availableExperiment,experimentStats,experimentDeck,assessmentDeck,teachingFinishedAt,assessmentComparison,checkResult} from './assessment.js';
 import {exactAudit} from './answer-history.js';
 import {spokenWords,answerComparison,learningAudioText} from './guided-ui.js';
@@ -7,6 +7,7 @@ import {magicTenPhrase} from './magic10.js';
 import {trackName} from './curriculum-meta.js';
 import {activeRest,prioritizedChecks,restMarkup,scheduledPractice,nextReviewMarkup,reviewStageDetails,reviewUnitTitle,reviewAvailability} from './study-timing.js';
 import {containsTarget} from './revision-signals.js';
+import {practiceLedger,practiceKey} from './unlocking-adaptive.js';
 
 const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const DEFAULT_ACTIONS=new Set(['daily','cover','oral-reveal','oral-next','continue-unit','experiment-next']);
@@ -101,7 +102,7 @@ export function sequenceStatus(plan,{checks=[],revisionCount=0,repair=false,adap
  });
 }
 
-export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),refresh,navigate,startGuided,focusTarget=()=>{},getRevisionItems=()=>[],getPatternItems=()=>[],getNextPatternReview=()=>null,getSession=()=>({}),onRevision=()=>{},onDailyPlan=()=>{},onPatterns=()=>{},onCheckComplete=()=>{},onRecallComplete=()=>{},onOralComplete=()=>{},onOralDifficulty=()=>{},onNewSession=()=>{}}){
+export function createAssessmentInterface({getEntries,getAudits=()=>[],getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),refresh,navigate,startGuided,focusTarget=()=>{},getRevisionItems=()=>[],getPatternItems=()=>[],getNextPatternReview=()=>null,getSession=()=>({}),onRevision=()=>{},onDailyPlan=()=>{},onPatterns=()=>{},onCheckComplete=()=>{},onRecallComplete=()=>{},onOralComplete=()=>{},onOralDifficulty=()=>{},onNewSession=()=>{}}){
   let state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};
   const entries=()=>getEntries()||[];
   const reset=()=>{state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};};
@@ -114,10 +115,16 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   const taughtOralDeck=(preferredUnit=null,limit=Infinity)=>{
     const es=entries(),signals=getRevisionItems(),units=unitsForTrack(getTrack())
       .filter(u=>(!preferredUnit||u.id===preferredUnit)&&teachingFinishedAt(u.id,es)!=null);
-    const rows=units.flatMap(u=>(u.incremental?u.blocks:lessonRows(u)).filter(r=>r.id!=='infinitive').map(r=>({...r,unitId:u.id})));
-    const distinct=[...new Map(rows.map(r=>[r.fr,r])).values()];
+    const unlocking=getTrack()==='unlocking',done=new Set(es.map(x=>x.source?.ref));
+    const rows=units.flatMap(u=>(u.incremental?[...u.blocks,...(unlocking?guidedLesson(u.id).steps.filter(s=>s.kind==='model'&&['guided','recap'].includes(s.stage)&&done.has(s.id+':complete')):[])]:lessonRows(u)).filter(r=>r.id!=='infinitive').map(r=>({...r,unitId:u.id})));
+    const distinct=[...new Map(rows.map(r=>[unlocking?practiceKey(r.fr):r.fr,r])).values()];
     const priority=r=>signals.reduce((n,x)=>n+(containsTarget(r.fr,x.word)?Number(x.strength||0):0),0);
-    return distinct.sort((a,b)=>priority(b)-priority(a)).slice(0,limit);
+    if(!unlocking)return distinct.sort((a,b)=>priority(b)-priority(a)).slice(0,limit);
+    const ledger=practiceLedger(getAudits(),getTrack());
+    const fresh=r=>!ledger.recentlySeen(r.fr)&&!ledger.saturated(r.fr);
+    const candidates=preferredUnit?distinct.filter(fresh):distinct;
+    const length=r=>Math.min(12,practiceKey(r.fr).split(' ').length);
+    return candidates.sort((a,b)=>Number(fresh(b))-Number(fresh(a))||priority(b)-priority(a)||length(b)-length(a)).slice(0,limit);
   };
   const dailyPlan=()=>{
     const es=entries(),now=Date.now(),session=getSession(),rest=activeRest(es,now,null);
@@ -277,7 +284,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
   const startOral=(auto=false)=>{
     if(auto&&prioritizedChecks(entries(),Date.now(),getTrack()).length){startDaily();return;}
     const deck=taughtOralDeck(auto?getSession().completedUnit:null,auto?3:12);
-    if(!deck.length){state.mode='done';state.doneUnit=null;state.item={};state.feedback='Oral practice unlocks after you have completed some teaching. Use Today to learn first.';navigate('assessment');return;}
+    if(!deck.length){if(auto){onOralComplete('skipped');navigate('home');return;}state.mode='done';state.doneUnit=null;state.item={};state.feedback='Oral practice unlocks after you have completed some teaching. Use Today to learn first.';navigate('assessment');return;}
     pick('oral',deck[0],{oralIndex:0,oralDeck:deck,autoOral:auto,stage:null});
   };
   const oralNext=(difficulty=false)=>{
@@ -316,6 +323,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
       case 'oral-reveal':{
         if(state.mode!=='oral'||state.feedback==='spoken')break;
         const item=state.item,sourceRef='oral-practice:'+item.unitId+':'+Date.now()+':'+state.oralIndex+':exposure';
+        if(getTrack()==='unlocking'&&!recordAttempt({ref:sourceRef,activity:'Rapid oral practice',question:item.en,expected:item.fr,result:'model',marker:'unscored',support:'worked-example',reason:'Oral self-check; no independent score',targetLang:'fr',context:{track:getTrack(),unitId:item.unitId,kind:'model',fr:item.fr,en:item.en}}))break;
         record({concept:item.concept,phase:'practice',support:'worked-example',sourceRef});
         state.feedback='spoken';refresh();playAudio('reveal',item.fr);focusTarget('[data-eact="oral-next"]');break;
       }

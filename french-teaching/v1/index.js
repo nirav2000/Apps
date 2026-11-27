@@ -12,6 +12,7 @@ import {roadmapPage,roadmapData,roadmapSettings,roadmapUnitMarkup,ROADMAP_VIEWS}
 import {ALL_UNITS,unitsForTrack,guidedStatus,guidedLesson} from './guided-lessons.js';
 import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget,revisionLabel,revisionEligibility} from './revision-signals.js';
 import {adaptivePlans,chooseAdaptivePlan} from './adaptive-teaching.js';
+import {practiceLedger,deferRepeatedTargets} from './unlocking-adaptive.js';
 import {activeRest,scheduledPractice,prioritizedChecks,overdueWords,noticeMarkup,updateStudyClocks,alertKeys,restMarkup} from './study-timing.js';
 import {ANSWER_APP,createAnswerHistory,exactAudit,visibleHistory,answerHistoryPage} from './answer-history.js';
 import {JOURNEY_APP,createJourneyRecorder,journeyControl,todaySnapshot,journeyEntries,journeyPage} from './session-journey.js';
@@ -157,7 +158,9 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   const revisionProfile=()=>{
     const history=historyRows(),evidence=state.store?.getEntries()||[];
     const steps=unitsForTrack(state.track).flatMap(u=>guidedLesson(u.id).steps.map(s=>({...s,unitName:u.name})));
-    return revisionEligibility({events:revisionEvents(answerStore?.getEntries()||[],history),history,evidence,steps,track:state.track});
+    const now=Date.now(),profile=revisionEligibility({events:revisionEvents(audits(),history),history,evidence,steps,track:state.track,now});
+    if(state.track!=='unlocking')return profile;
+    return {...profile,rows:deferRepeatedTargets(profile.rows,practiceLedger(audits(),state.track,now),now)};
   };
   const revisions=()=>revisionProfile().rows;
   const dailyRevisionItems=()=>revisions().filter(x=>x.due);
@@ -279,7 +282,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const proof=item.learningProof;if(!proof)return '';
     const title=proof.type==='teaching'?'First recorded teaching / model practice':'First recorded correct unassisted answer';
     const reason=({spelling:'spelling or word-form difficulty',pronunciation:'requested word audio',hesitation:'slower typing',manual:'your own revision request',hint:'requested help',reveal:'needed the model',construction:'phrase construction difficulty',recognition:'recognition difficulty',review:'earlier revision difficulty'})[item.lastDifficulty?.kind]||'scheduled practice';
-    return '<details class="ft-revision-why"><summary>Why am I revising this?</summary><p><strong>'+esc(title)+'</strong> · '+esc(revisionDate(proof.at))+(proof.unitName?' · '+esc(proof.unitName):'')+'</p><p>Selected because of '+esc(reason)+'. '+esc(item.counts.review)+' recorded revision attempt'+(item.counts.review===1?'':'s')+'.</p>'+
+    return '<details class="ft-revision-why"><summary>Why am I revising this?</summary>'+(item.practiceDeferred?'<p>Two independent uses in different sentences — revisit tomorrow, not again today.</p>':'')+'<p><strong>'+esc(title)+'</strong> · '+esc(revisionDate(proof.at))+(proof.unitName?' · '+esc(proof.unitName):'')+'</p><p>Selected because of '+esc(reason)+'. '+esc(item.counts.review)+' recorded revision attempt'+(item.counts.review===1?'':'s')+'.</p>'+
       (after?'<p>Recorded model: <span lang="fr">'+esc(proof.fr)+'</span></p>'+
         (item.firstTaught?'<p>First completed teaching: '+esc(revisionDate(item.firstTaught.at))+'</p>':'')+
         (item.firstCorrect?'<p>First independent correct answer: '+esc(revisionDate(item.firstCorrect.at))+'</p>':'')+
@@ -356,10 +359,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   // The new lesson engine writes only additional evidence events to the
   // established Firebase parent/learner scope. Existing lesson records stay as-is.
   const guidedUI=createGuidedInterface({
-    getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,requestStart:unit=>assessmentUI.startUnit(unit),record,recordAttempt,speak,playAudio,waitForSpeech,cancelSpeech,refresh:render,focusTarget,getAdaptivePlans:unit=>adaptivePlans(audits(),unit),planAdaptive,signalContext,recordSignal,getDifficulties:revisions,resolveEnglish:resolveListeningEnglish,
+    getEntries:()=>state.store?.getEntries()||[],getAudits:audits,recordPolicy:({step,reason})=>logJourney('practice-policy',{activity:reason,ref:step.id,unitId:step.unitId,stage:step.stage},false),getTrack:()=>state.track,requestStart:unit=>assessmentUI.startUnit(unit),record,recordAttempt,speak,playAudio,waitForSpeech,cancelSpeech,refresh:render,focusTarget,getAdaptivePlans:unit=>adaptivePlans(audits(),unit),planAdaptive,signalContext,recordSignal,getDifficulties:revisions,resolveEnglish:resolveListeningEnglish,
     navigate:page=>{state.page=page;render();}
   });
-  const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getTrack:()=>state.track,record,recordAttempt,speak,playAudio,refresh:render,focusTarget,
+  const assessmentUI=createAssessmentInterface({getEntries:()=>state.store?.getEntries()||[],getAudits:audits,getTrack:()=>state.track,record,recordAttempt,speak,playAudio,refresh:render,focusTarget,
     navigate:page=>{guidedUI.leave();state.page=page;render();},startGuided:unit=>{const rest=breakForCourse();if(rest)showBreak(rest);else guidedUI.start(unit);},getRevisionItems:dailyRevisionItems,getPatternItems:duePatterns,getNextPatternReview:nextPatternReview,getSession:()=>readSession()||{},onRevision:()=>startRevision(true),onDailyPlan:plan=>logJourney('plan',{mode:plan.mode,activity:plan.label,unitId:plan.unitId||plan.due?.unitId||plan.item?.unitId||'',stage:plan.due?.stage||plan.step,count:plan.count||0}),onCheckComplete:unit=>updateSession({completedUnit:unit,oralDone:false,oralStatus:null}),onRecallComplete:()=>updateSession({recallDone:true}),onOralComplete:status=>updateSession({oralDone:true,oralStatus:status}),onOralDifficulty:item=>recordSignal(item.fr,'manual',item.fr,{english:item.en,targetKind:'phrase'}),onNewSession:newLearningSession});
   // The break belongs to the learner across French tracks and is anchored
   // to completion evidence. Safe dashboard/settings navigation remains open.

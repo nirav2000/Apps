@@ -4,6 +4,7 @@ import {ALL_UNITS,guidedLesson} from './guided-lessons.js';
 import {assessmentDeck,STAGES} from './assessment.js';
 import {curriculumNormalize} from './curriculum-meta.js';
 import {wordKey,frenchTokens,containsTarget} from './revision-signals.js';
+import {practiceLedger} from './unlocking-adaptive.js';
 const MIN=60000,DAY=86400000;
 const norm=curriculumNormalize;
 const pair=(fr,en)=>({fr,en});
@@ -23,7 +24,15 @@ const variants=[
  pair("Je dois travailler le soir","I must work in the evening"),
  pair("Je veux étudier le français","I want to study French"),
  pair("Je peux étudier le français","I can study French"),
- pair("Je dois étudier le français, mais je veux écouter la radio","I must study French, but I want to listen to the radio")
+ pair("Je dois étudier le français, mais je veux écouter la radio","I must study French, but I want to listen to the radio"),
+ pair("Hier, nous avons préparé le dîner","Yesterday we prepared dinner"),
+ pair("J’ai préparé le dîner et j’ai réservé une chambre","I prepared dinner and booked a room"),
+ pair("J’ai réservé un billet et j’ai visité le musée","I booked a ticket and visited the museum"),
+ pair("Hier, j’ai réservé une chambre et demain, je vais visiter le musée","Yesterday I booked a room and tomorrow I am going to visit the museum"),
+ pair("J’ai préparé le déjeuner, mais je ne veux pas attendre","I prepared lunch, but I do not want to wait"),
+ pair("Je voudrais réserver une table pour deux","I would like to book a table for two"),
+ pair("Hier, j’ai préparé le bateau parce que je vais faire de la voile","Yesterday I prepared the boat because I am going to go sailing"),
+ pair("Je vais préparer le dîner et je voudrais réserver une chambre","I am going to prepare dinner and I would like to book a room")
 ];
 let reserved;
 function protectedSentences(){
@@ -58,7 +67,7 @@ function taughtPairs(evidence,track){
  return out;
 }
 const fingerprint=s=>{let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return (h>>>0).toString(36);};
-function sentenceChoices(row,known,planHistory,current,track){
+function sentenceChoices(row,known,planHistory,current,track,ledger){
  const prior=planHistory.filter(p=>p.key===row.key).map(p=>norm(p.fr));
  const targetKnown=known.filter(x=>containsTarget(x.fr,row.word));
  const words=new Set(known.flatMap(x=>frenchTokens(x.fr).map(t=>t.key)));
@@ -66,10 +75,11 @@ function sentenceChoices(row,known,planHistory,current,track){
  const source=row.sentence&&row.english&&!/^Dictation:|^Listen:|^Which |^Requested /i.test(row.english)&&allowed({fr:row.sentence})?[pair(row.sentence,row.english)]:[];
  const isClause=x=>/^(?:hier[, ]|demain[, ]|aujourd'hui[, ]|je |j'|tu |nous |vous |il |elle |ils |elles )/i.test(wordKey(x.fr))&&/^(?:Yesterday|Tomorrow|Today|I |You |We |He |She |They )/i.test(x.en)&&!/[?]/.test(x.en)&&frenchTokens(x.fr).length>=3;
  const combos=[];
+ const maxWords=ledger?Math.min(28,Math.max(10,ledger.longest+5)):15;
  const clauses=[...new Map(known.filter(isClause).map(x=>[norm(x.fr),x])).values()].slice(-100);
  if(words.has('et'))for(const x of [...source,...targetKnown].filter(isClause).slice(-16)){
   for(const y of clauses.slice(-24)){
-   if(norm(x.fr)===norm(y.fr)||frenchTokens(x.fr).length+frenchTokens(y.fr).length>15)continue;
+   if(norm(x.fr)===norm(y.fr)||frenchTokens(x.fr).length+frenchTokens(y.fr).length>maxWords)continue;
    combos.push(pair(clean(x.fr)+' et '+lower(clean(y.fr)),clean(x.en)+' and '+lower(clean(y.en))));
    if(combos.length>=120)break;
   }
@@ -81,10 +91,12 @@ function sentenceChoices(row,known,planHistory,current,track){
   seen.add(k);return true;
  });
  const sameSource=norm(row.sentence||'');
- return candidates.map(x=>({...x,rank:(prior.includes(norm(x.fr))?-30:0)+(norm(x.fr)!==sameSource?8:0)+(x.unitId===current?.unitId?4:x.track===track?2:0)+(frenchTokens(x.fr).length>=3?4:0)})).sort((a,b)=>b.rank-a.rank||norm(a.fr).localeCompare(norm(b.fr)));
+ return candidates.map(x=>({...x,rank:(prior.includes(norm(x.fr))?-30:0)+(ledger?.recentlySeen(x.fr)?-80:0)+(ledger?.saturated(x.fr)?-100:0)+(ledger&&frenchTokens(x.fr).length<=maxWords?Math.min(10,frenchTokens(x.fr).length):0)+(norm(x.fr)!==sameSource?8:0)+(x.unitId===current?.unitId?4:x.track===track?2:0)+(frenchTokens(x.fr).length>=3?4:0)})).sort((a,b)=>b.rank-a.rank||norm(a.fr).localeCompare(norm(b.fr)));
 }
 export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track,now=Date.now()}){
  if(!status?.unit||!['new','resume'].includes(status.mode))return null;
+ const ledger=track==='unlocking'?practiceLedger(audits,track,now):null;
+ if(ledger)queue=queue.filter(r=>!ledger.targetSatisfied(r));
  const unitId=status.unit.id,eligibleKeys=new Set(queue.map(r=>r.key)),plans=adaptivePlans(audits,unitId).filter(p=>p.complete||eligibleKeys.has(p.key)),pending=plans.find(p=>!p.complete&&eligibleKeys.has(p.key));
  if(pending&&status.next&&!['independent','transfer','review'].includes(status.next.stage))return {...pending,resume:true};
  const counts=status.teaching,position=counts.coreCompleted+counts.repairCompleted;
@@ -128,8 +140,13 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
   const serious=unaddressed&&['construction','reveal','recognition'].includes(row.lastDifficulty.kind);
   if(!serious&&upcoming.some(s=>s.kind==='write'&&containsTarget(s.fr,row.word)))continue;
   const previous=allPlans.filter(p=>p.key===row.key);
-  const candidates=sentenceChoices(row,known,previous,next,track);
-  const candidate=serious?(candidates.find(x=>norm(x.fr)===norm(row.word))||candidates[0]):candidates[0];
+  const candidates=sentenceChoices(row,known,previous,next,track,ledger);
+  const fresh=ledger?candidates.filter(x=>!ledger.recentlySeen(x.fr)&&!ledger.saturated(x.fr)):candidates;
+  // An actual missing expression still gets a model. For an isolated spelling
+  // error, practise the word, then retrieve it later in a different sentence.
+  const spellingOnly=!!ledger&&!serious&&row.targetKind==='word'&&row.lastDifficulty?.kind==='spelling'&&(!row.lastAction||row.lastAction.at<row.lastDifficulty.at||row.lastAction.kind==='review'&&!row.lastAction.correct);
+  const candidate=spellingOnly?null:serious?(candidates.find(x=>norm(x.fr)===norm(row.word))||fresh[0]||candidates[0]):fresh[0];
+  if(ledger&&!candidate&&!serious&&row.targetKind==='phrase')continue;
   if(!candidate&&!row.due&&row.lastAction?.mode==='dictation'&&row.lastAction.correct)continue;
   // A user-requested isolated word may not have a known bilingual context.
   // It can be practised as dictation, never given a guessed translation.
