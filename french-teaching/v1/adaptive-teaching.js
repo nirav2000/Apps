@@ -124,14 +124,16 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
  for(const row of eligible){
   const targetTaught=frenchTokens(row.word).every(t=>taughtWords.has(t.key));
   if(!targetTaught&&!row.learningProof)continue;
-  if(upcoming.some(s=>s.kind==='write'&&containsTarget(s.fr,row.word)))continue;
+  const unaddressed=row.lastDifficulty&&(!row.lastAction||row.lastDifficulty.at>row.lastAction.at)&&(!row.lastIndependentAt||row.lastDifficulty.at>row.lastIndependentAt);
+  const serious=unaddressed&&['construction','reveal','recognition'].includes(row.lastDifficulty.kind);
+  if(!serious&&upcoming.some(s=>s.kind==='write'&&containsTarget(s.fr,row.word)))continue;
   const previous=allPlans.filter(p=>p.key===row.key);
   const candidates=sentenceChoices(row,known,previous,next,track);
-  const candidate=candidates[0];
+  const candidate=serious?(candidates.find(x=>norm(x.fr)===norm(row.word))||candidates[0]):candidates[0];
   if(!candidate&&!row.due&&row.lastAction?.mode==='dictation'&&row.lastAction.correct)continue;
   // A user-requested isolated word may not have a known bilingual context.
   // It can be practised as dictation, never given a guessed translation.
-  const last=row.lastAction,needsModel=last?.kind==='review'&&!last.correct||(!last&&row.counts.reveal+row.counts.construction>=2);
+  const last=row.lastAction,needsModel=serious||last?.kind==='review'&&!last.correct||(!last&&row.counts.reveal+row.counts.construction>=2);
   let mode=needsModel&&candidate?'model':row.needsRecall&&candidate?'recall':
     row.level>0&&candidate?'recall':row.targetKind==='phrase'&&candidate?'recall':
     candidate&&(row.counts.spelling===0||previous.length>0)?'recall':'dictation';

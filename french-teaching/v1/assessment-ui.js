@@ -101,7 +101,7 @@ export function sequenceStatus(plan,{checks=[],revisionCount=0,repair=false,adap
  });
 }
 
-export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),refresh,navigate,startGuided,focusTarget=()=>{},getRevisionItems=()=>[],getPatternItems=()=>[],getNextPatternReview=()=>null,getSession=()=>({}),onRevision=()=>{},onPatterns=()=>{},onCheckComplete=()=>{},onRecallComplete=()=>{},onOralComplete=()=>{},onOralDifficulty=()=>{},onNewSession=()=>{}}){
+export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),refresh,navigate,startGuided,focusTarget=()=>{},getRevisionItems=()=>[],getPatternItems=()=>[],getNextPatternReview=()=>null,getSession=()=>({}),onRevision=()=>{},onDailyPlan=()=>{},onPatterns=()=>{},onCheckComplete=()=>{},onRecallComplete=()=>{},onOralComplete=()=>{},onOralDifficulty=()=>{},onNewSession=()=>{}}){
   let state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};
   const entries=()=>getEntries()||[];
   const reset=()=>{state={mode:null,unitId:null,stage:null,item:null,started:0,feedback:null,range:28,oralIndex:0};};
@@ -145,7 +145,7 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     return {...plan,label,sub,optionalPatternCount:patternCount,sequence:sequenceStatus(plan,{checks,revisionCount,repair:!!repair,adaptive:!!adaptive,session})};
   };
   const startDaily=()=>{
-    const plan=dailyPlan();
+    const plan=dailyPlan();onDailyPlan(plan);
     if(plan.mode==='check'){
       const d=plan.due,item=d.items.find(x=>!x.row);
       pick('check',item,{unitId:d.unitId,stage:d.stage,anchor:d.anchor});
@@ -331,5 +331,5 @@ export function createAssessmentInterface({getEntries,getTrack=()=> 'michaela',r
     event.preventDefault();const value=form.querySelector('[name="answer"]')?.value||'';
     if(value.trim())finishAnswer(value);return true;
   };
-  return {overview,dashboard,page:question,click,submit,reset,startDaily,startUnit,dailyPlan};
+  return {overview,dashboard,page:question,click,submit,reset,startDaily,startUnit,dailyPlan,activity:()=>[state.mode,state.unitId||state.item?.unitId,state.stage,state.item?.ref||state.item?.id].filter(Boolean).join(' · ')};
 }

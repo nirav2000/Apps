@@ -1,7 +1,8 @@
 // Read-only roadmap: actual core teaching, not predictions of fluency.
 import {TRACKS,trackName} from './curriculum-meta.js';
 import {unitsForTrack,guidedLesson,guidedStatus,guidedRefs} from './guided-lessons.js';
-import {assessmentStats,checkResult} from './assessment.js';
+import {assessmentStats,checkResult,assessmentDeck,STAGES} from './assessment.js';
+import {frenchTokens} from './revision-signals.js';
 import {normaliseAnswer} from './data.js';
 const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=normaliseAnswer;
@@ -146,6 +147,42 @@ function languageRow(r,data,hide,selectedUnit=''){
  '<small class="ft-language-exposure'+(r.covered?' covered':'')+'">'+(r.covered?'✓ ':'')+h(exposure)+'</small><small class="ft-language-evidence'+(r.written?.correct?' confirmed':'')+'">'+h(check)+'</small></div>'+
  (!hide&&r.components.length>1?'<details class="ft-language-pieces"><summary>How to build it</summary><div class="ft-road-chunks">'+r.components.map(c=>'<span>'+h(c.en)+'<br><b lang="fr">'+h(c.fr)+'</b></span>').join('')+'</div></details>':'')+'</div>';
 }
+// Original, grammatically authored exchanges. Only display a conversation
+// when every French token has occurred in a completed teaching model and
+// no line is an unseen/application assessment target. No guessed vocabulary.
+const KNOWN_CONVERSATIONS=[
+ {name:'Getting ready for sailing',turns:[['Adult','Are you ready?','Tu es prêt ?'],['Child','Not yet.','Pas encore.'],['Adult','Hurry up!','Dépêche-toi !'],['Child','I’m coming!','J’arrive !']]},
+ {name:'Checking equipment',turns:[['Adult','Have you got your bag?','Tu as ton sac ?'],['Child','I forgot my bag.','J’ai oublié mon sac.'],['Adult','And your water bottle?','Et ta gourde ?'],['Child','I forgot my water bottle.','J’ai oublié ma gourde.']]},
+ {name:'At the sailing club',turns:[['Adult','It is windy.','Il y a du vent.'],['Child','I am going sailing.','Je vais faire de la voile.'],['Adult','Are you ready?','Tu es prêt ?'],['Child','I am putting on my life jacket.','Je mets mon gilet de sauvetage.']]},
+ {name:'Getting the boat ready',turns:[['Adult','Are you ready?','Tu es prêt ?'],['Child','Not yet.','Pas encore.'],['Child','I’m going to rig the boat.','Je vais gréer le bateau.'],['Adult','Hurry up!','Dépêche-toi !']]},
+ {name:'After sailing',turns:[['Adult','Did it go well?','Ça s’est bien passé ?'],['Child','Yes, it went well.','Oui, ça s’est bien passé.'],['Child','Yesterday I went sailing.','Hier, j’ai fait de la voile.'],['Child','It was great.','C’était super.']]},
+ {name:'Making plans',turns:[['Person A','I want to visit the museum.','Je veux visiter le musée.'],['Person B','It is possible.','C’est possible.'],['Person A','I can’t wait.','Je ne peux pas attendre.'],['Person B','I am going to visit the museum.','Je vais visiter le musée.']]},
+ {name:'Getting help',turns:[['Person A','Where is the station?','Où est la gare ?'],['Person B','I don’t understand.','Je ne comprends pas.'],['Person B','Can you repeat?','Pouvez-vous répéter ?']]},
+ {name:'Checking preparations',turns:[['Adult A','Did you prepare the meal?','Tu as préparé le repas ?'],['Adult B','I prepared the meal.','J’ai préparé le repas.'],['Adult A','Did you book a room?','Tu as réservé une chambre ?'],['Adult B','I booked a room.','J’ai réservé une chambre.']]},
+ {name:'Before going on the water',turns:[['Adult','Are you nearly ready?','Tu es presque prêt ?'],['Child','Not yet.','Pas encore.'],['Child','I’m going to rig the boat.','Je vais gréer le bateau.'],['Adult','Hurry up!','Dépêche-toi !']]},
+ {name:'Arranging a meal',turns:[['Person A','I prepared the meal.','J’ai préparé le repas.'],['Person B','I booked a table.','J’ai réservé une table.']]},
+ {name:'Talking about yesterday',turns:[['Person A','Yesterday I visited the museum.','Hier, j’ai visité le musée.'],['Person B','I booked a table.','J’ai réservé une table.'],['Person A','I prepared lunch.','J’ai préparé le déjeuner.']]},
+ {name:'Sharing opinions',turns:[['Person A','It is interesting.','C’est intéressant.'],['Person B','It is different.','C’est différent.'],['Person A','It is practical.','C’est pratique.']]},
+ {name:'Before leaving',turns:[['Adult','Are you ready?','Tu es prêt ?'],['Child','I am almost ready.','Je suis presque prêt.']]},
+ {name:'A quick chat',turns:[['Adult','Are you ready?','Tu es prêt ?'],['Child','Not yet.','Pas encore.']]},
+ {name:'What we did',turns:[['Person A','I prepared.','J’ai préparé.'],['Person B','I booked.','J’ai réservé.']]}
+];
+export function coveredConversations(inventory,data){
+ const known=new Set(inventory.filter(r=>r.covered).flatMap(r=>frenchTokens(r.fr).map(t=>t.key)));
+ const reserved=new Set();
+ for(const u of data.units){
+  for(const stage of STAGES)for(const x of assessmentDeck(u.unit.id,stage.id))if(x.kind==='transfer'||x.kind==='application')reserved.add(norm(x.fr));
+  for(const x of u.steps)if(x.stage==='transfer'&&x.novel)reserved.add(norm(x.fr));
+ }
+ return KNOWN_CONVERSATIONS.filter(c=>c.turns.every(([,en,fr])=>!reserved.has(norm(fr))&&frenchTokens(fr).every(t=>known.has(t.key)))).map(c=>({...c,turns:c.turns.map(([role,en,fr])=>({role,en,fr}))}));
+}
+function conversationPreview(inventory,data,hide){
+ if(hide)return '<section class="ft-road-conversations"><h3>A conversation using your French</h3><p class="ft-road-note">Available after your independent checks, to avoid revealing the answers.</p></section>';
+ const chats=coveredConversations(inventory,data);
+ return '<section class="ft-road-conversations"><p class="ft-eyebrow">PUT YOUR FRENCH TO WORK</p><h3>A conversation using your French</h3><p class="ft-small">Original exchanges using only words and word forms from your completed teaching models. They illustrate possible conversation, not proof of independent speaking ability.</p>'+
+ (chats.length?chats.slice(0,8).map((c,n)=>'<details class="ft-road-dialogue"'+(!n?' open':'')+'><summary>'+h(c.name)+'</summary><div class="ft-road-dialogue-body">'+c.turns.map((t,j)=>'<div class="ft-road-dialogue-turn'+(j%2?' child':'')+'"><small>'+h(t.role)+'</small><div><strong lang="fr">'+h(t.fr)+'</strong>'+audio(t.fr)+'</div><span>'+h(t.en)+'</span></div>').join('')+'</div></details>').join(''):'<p class="ft-road-note">There isn’t yet enough recorded language for a complete exchange from these conversation templates. More appear as you learn.</p>')+'</section>';
+}
+
 function languageView(data,entries,now,p,protectedUnits){
  const inventory=languageInventory(data,entries,now),selected=selectLanguage(data,inventory,p),hide=protectedUnits.size>0;
  const q=norm(p.languageQuery),shown=selected.rows.filter(r=>!q||norm(r.translations.join(' ')+' '+(!hide?r.fr:'')).includes(q));
@@ -161,7 +198,7 @@ function languageView(data,entries,now,p,protectedUnits){
  '<div class="ft-language-metrics">'+stat('Covered so far',covered+' / '+inventory.length,'Whole course')+stat('Language in this view',selected.rows.length,p.scope==='module'?selected.newCount+' newly introduced in this module':modeLabels[p.scope])+stat('Latest written recall correct',measured?checked+' / '+measured:'Not measured',measured?measured+' of '+selected.rows.length+' items checked · not a speaking test':'No eligible written checks for these items')+'</div>'+
  '<p class="ft-road-note">Covered = a recorded model completion. Written recall = the latest eligible independent writing or completed recall check for that exact expression. Neither proves spoken confidence. Repetitions and spelling-case variants are combined; questions and statements remain distinct.</p>'+
  (hide?'<p class="ft-language-protected">You have an independent check due. The English checklist is available now; French text, audio and French search return after the check.</p>':'')+
- milestones+'<div class="ft-language-list-head"><h3>'+h(scopeLabel)+'</h3><form id="ft-language-search" class="ft-road-search"><label for="ft-language-query">Find a phrase or word</label><input id="ft-language-query" name="query" value="'+h(p.languageQuery)+'" placeholder="e.g. prepared, prêt, dinner"><button type="submit">Find</button></form></div>'+
+ (p.scope==='now'?conversationPreview(inventory,data,hide):'')+milestones+'<div class="ft-language-list-head"><h3>'+h(scopeLabel)+'</h3><form id="ft-language-search" class="ft-road-search"><label for="ft-language-query">Find a phrase or word</label><input id="ft-language-query" name="query" value="'+h(p.languageQuery)+'" placeholder="e.g. prepared, prêt, dinner"><button type="submit">Find</button></form></div>'+
  (q?'<p class="ft-road-note">'+shown.length+' of '+selected.rows.length+' matching expressions</p>':'')+
  (list||'<div class="ft-language-empty"><h3>'+(q?'No matching expressions':p.scope==='now'?'No completed teaching models recorded yet':'No expressions in this view')+'</h3><p>'+(q?'Try another word or clear the search.':'Use This module or Whole course to explore what is coming.')+'</p></div>')+
  '<p class="ft-road-note">These are modelled expressions, not every possible recombination of familiar words. Future independent assessment questions are deliberately excluded. The detailed curriculum still includes the full sequence of exercises.</p></section>';

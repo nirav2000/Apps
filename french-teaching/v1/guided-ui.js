@@ -11,6 +11,7 @@ import {markAnswer,normaliseAnswer} from './data.js';
 import {exactAudit} from './answer-history.js';
 import {compareFrench,correctionSummary,phraseTarget,frenchTokens,differenceSegments,writingConvention} from './revision-signals.js';
 import {adaptiveStep,adaptiveOutcome} from './adaptive-teaching.js';
+import {repairDecision} from './revision-repair.js';
 import {curriculumVariants,curriculumNormalize} from './curriculum-meta.js';
 import {activeRest,restForUnit,restMarkup} from './study-timing.js';
 import {patternsForModel,grammarPatternsFor} from './unlocking-builder.js';
@@ -278,12 +279,12 @@ export function answerComparison({answer='',expected,result,lang='fr',replay=''}
     '<p lang="'+html(lang)+'" class="ft-answer-value">' +content(expected,right)+'</p>'+replay+'</div></div>'+
     (detail?'<p class="ft-answer-detail" role="status">'+html(detail)+'</p>':'')+'</div>';
 }
-export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{},getAdaptivePlans=()=>[],planAdaptive=()=>null,signalContext=()=>({}),recordSignal=()=>true,resolveEnglish=(fr,en)=>verifiedListeningEnglish(en)}){
+export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',requestStart,record,recordAttempt=()=>true,speak,playAudio=(event,text,lang)=>speak(learningAudioText(event,text),lang),waitForSpeech=()=>Promise.resolve(),cancelSpeech=()=>{},refresh,navigate,focusTarget=()=>{},getAdaptivePlans=()=>[],planAdaptive=()=>null,signalContext=()=>({}),recordSignal=()=>true,getDifficulties=()=>[],resolveEnglish=(fr,en)=>verifiedListeningEnglish(en)}){
   if(typeof getEntries!=='function'||typeof record!=='function'||typeof speak!=='function'||typeof refresh!=='function')
     throw Error('Guided lessons require evidence and speech adapters');
   const state={
     unitId:null,step:null,answer:'',result:null,feedback:'',wrong:false,done:false,
-    hint:0,listeningLevel:0,revealed:false,wrongChoices:new Set(),selectedVerb:'parler',error:null,advancing:false
+    hint:0,listeningLevel:0,revealed:false,wrongChoices:new Set(),selectedVerb:'parler',error:null,advancing:false,relearn:null
   };
   let navigation=0;
   const evidence=()=>getEntries()||[];
@@ -293,7 +294,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
   const hintRef=step=>step.id+':hint';
   const resetStep=()=>{
     state.step=null;state.answer='';state.result=null;state.feedback='';state.wrong=false;
-    state.done=false;state.hint=0;state.listeningLevel=0;state.revealed=false;state.wrongChoices.clear();state.error=null;
+    state.done=false;state.hint=0;state.listeningLevel=0;state.revealed=false;state.wrongChoices.clear();state.error=null;state.relearn=null;
   };
   const announce=()=>refresh();
   const go=page=>typeof navigate==='function'?navigate(page):announce();
@@ -420,6 +421,20 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const pair=(english,french,covered=false)=>'<div class="ft-guided-pair'+(covered?' ft-pair-covered':'')+'"><p class="ft-guided-english">'+html(english)+'</p>'+
       (french?'<div class="ft-pair-french"><p lang="fr" class="ft-guided-french">'+spokenWords(french)+'</p><button type="button" data-gact="speak" aria-label="Hear the French again">▶</button></div>':
         covered?'<span class="ft-pair-placeholder">Say it from memory, then reveal.</span>':'')+'</div>';
+    if(state.relearn){
+      const r=state.relearn,covered=r.phase==='cover';
+      const meaning=step.kind==='transcribe'?resolveEnglish(step.fr,step.en):step.en;
+      return head+'<div class="ft-guided-task ft-relearn-task" data-guided-step="'+html(step.id)+'" data-relearn-phase="'+html(r.phase)+'"><p class="ft-eyebrow">A LITTLE EXTRA HELP</p><h3>'+html(r.label)+'</h3><p>'+html(r.reason)+'</p>'+
+       (covered?'<p class="ft-relearn-meaning">'+html(meaning||'Recall the French you just heard.')+'</p>'+
+        (r.oral?'<p>Say the French aloud without looking.</p>'+advanceButton('relearn-oral-reveal','Reveal and compare'):'<form id="ft-guided-rebuild"><label for="ft-guided-rebuild-answer">Your French</label><input id="ft-guided-rebuild-answer" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required><button type="submit" class="ft-primary">Check rebuild</button></form>'):
+       (state.result==='incorrect'&&r.phase==='model'&&!r.oral?answerComparison({answer:state.answer,expected:step.fr,result:'incorrect'}):'')+
+       pair(meaning||'Listen to the expression',step.fr)+
+       (r.phase==='checked'&&!r.oral?answerComparison({answer:r.answer,expected:step.fr,result:r.correct?'correct':'incorrect'}):'')+
+       (r.phase==='checked'?(r.oral?'<p>Compare with what you said. This is self-checked practice.</p>':r.correct?'<p>Rebuilt correctly with support.</p>':'<p>Still difficult? Try again or return to it later.</p>'):'')+
+       '<div class="ft-actions">'+(r.phase==='checked'&&(r.correct||r.oral)?advanceButton('relearn-finish',r.oral?'I have said it correctly → Next':'Continue →'):advanceButton('relearn-cover','Cover and try again'))+
+       (r.phase==='checked'?'<button type="button" data-gact="relearn-finish">Still difficult · revisit later</button>':'')+'</div>')+
+       '<p class="ft-small">Supported practice. Your original answer and score stay unchanged.</p><div class="ft-pause-row"><button type="button" data-gact="pause" class="ft-pause-control">Pause</button></div></div></section>';
+    }
     let body='<div class="ft-guided-task'+(unit.incremental?' ft-unlock-task':'')+'" data-guided-step="'+html(step.id)+'"'+(step.unlockAction?' data-unlock-action="'+html(step.unlockAction)+'"':'')+'><p class="ft-eyebrow">'+html(step.unlockAction?({introduce:'NEW BUILDING BLOCK',recall:'COVER & RECALL',build:'BUILD A SENTENCE',reverse:'FRENCH → ENGLISH',write:'INDEPENDENT WRITING'}[step.unlockAction]||style):style+phase)+'</p>'+
       '<h3>'+html(unit.incremental&&step.kind==='model'&&state.revealed&&step.unlockAction==='build'?'Compare your spoken answer with the model':step.prompt)+'</h3>';
     const showFrench=step.kind==='model'?Boolean(step.modelInitiallyShown||state.revealed):state.done||state.revealed;
@@ -585,6 +600,7 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     const answer=String(value??'');
     if(!answer.trim())return;
     const correct=current.track==='michaela'?markAnswer(answer,current.fr):current.kind==='transcribe'?curriculumNormalize(answer)===curriculumNormalize(current.fr):curriculumVariants(current.fr,current.en).includes(curriculumNormalize(answer));
+    const intervention=!correct&&!['independent','transfer','review'].includes(current.stage)?repairDecision(answer,current.fr,getDifficulties()):null;
     if(!logGuided(current,answer,correct))return;
     firstAttempt(current,correct);
     state.answer=answer;state.result=correct?'correct':'incorrect';
@@ -597,10 +613,11 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
       // assisted; the existing repair queue revisits missed main-deck items.
       state.feedback=answerFeedback(answer,current.fr);
       state.revealed=true;
+      if(intervention)state.relearn={...intervention,phase:'model',oral:false};
     }
     announce();
     playAudio('correction',current.fr);
-    focusTarget(correct?'[data-gact="next"]':'[data-gact="finish-revealed"]');
+    focusTarget(correct?'[data-gact="next"]':state.relearn?'[data-gact="relearn-cover"]':'[data-gact="finish-revealed"]');
   };
   const click=(target)=>{
     if(state.advancing&&(target.dataset.gchoice!==undefined||target.dataset.gact||target.dataset.gspeak!==undefined||target.dataset.gword!==undefined))return true;
@@ -687,21 +704,31 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
           announce();playAudio('reveal',current.kind==='model'?teacherModelAudio(current):current.fr);
           focusTarget(current.kind==='model'?'[data-gact="finish-model"]':'[data-gact="finish-revealed"]');
         }break;
+      case 'relearn-cover':
+        if(current&&state.relearn){state.relearn.phase='cover';announce();focusTarget(state.relearn.oral?'[data-gact="relearn-oral-reveal"]':'#ft-guided-rebuild-answer');}break;
+      case 'relearn-oral-reveal':
+        if(current&&state.relearn?.oral){state.relearn.phase='checked';announce();playAudio('model',current.fr);focusTarget('[data-gact="relearn-finish"]');}break;
+      case 'relearn-finish':
+        if(current&&state.relearn?.phase==='checked'){
+          if(state.relearn.oral&&!logGuided(current,null,false,{model:true}))break;
+          state.relearn=null;completion(current,'worked-example');void advance(current.fr);
+        }break;
       case 'oral-retry':
+        if(current?.kind==='model'&&!state.done&&!state.relearn){
+          if(!has(evidence(),current.id+':oral-retry'))record({concept:current.concept,phase:'practice',support:'worked-example',sourceRef:current.id+':oral-retry'});
+          const target={word:current.fr,sentence:current.fr,english:current.en,targetKind:'phrase',structure:current.structure};
+          if(!recordSignal(target.word,'reveal',target.sentence,{...target,context:signalContext(current)}))break;
+          state.relearn={...repairDecision('',current.fr,[],true),phase:'model',oral:true};state.revealed=true;announce();playAudio('model',current.fr);focusTarget('[data-gact="relearn-cover"]');
+        }break;
       case 'finish-model':
         if(current?.kind==='model'&&!state.done){
           if(current.unlockAction&&!current.modelInitiallyShown&&!state.revealed)break;
           if(!logGuided(current,null,false,{model:true}))break;
-          if(act==='oral-retry'&&!current.adaptivePlan){
-            if(!has(evidence(),current.id+':oral-retry'))record({concept:current.concept,phase:'practice',support:'worked-example',sourceRef:current.id+':oral-retry'});
-            const t=phraseTarget(current.fr,current.en,current.structure);
-            recordSignal(t.word,'reveal',t.sentence,{...t,context:signalContext(current)});
-          }
           state.revealed=true;completion(current,'worked-example');void advance(current.fr);
         }
         break;
       case 'finish-revealed':
-        if(current&&state.revealed&&!state.done){completion(current,'worked-example');void advance(current.fr);}
+        if(current&&state.revealed&&!state.done&&!state.relearn){completion(current,'worked-example');void advance(current.fr);}
         break;
       case 'next':
         if(state.done)void advance();
@@ -722,6 +749,13 @@ export function createGuidedInterface({getEntries,getTrack=()=> 'michaela',reque
     return false;
   };
   const submit=(form,event)=>{
+    if(form.id==='ft-guided-rebuild'){
+      event.preventDefault();const current=context().current,r=state.relearn,value=form.querySelector('input[name="answer"]')?.value||'';
+      if(!current||!r||r.phase!=='cover'||!value.trim())return true;
+      const correct=markAnswer(value,current.fr);
+      if(!recordAttempt(exactAudit(value,current.fr,correct,{ref:current.id+':supported-rebuild',activity:'Guided relearning',question:current.en,marker:'listening-rebuild-v1',support:'worked-example',targetLang:'fr',context:{...signalContext(current),fr:current.fr,en:current.en,kind:'write',listeningRebuild:true}})))return true;
+      Object.assign(r,{phase:'checked',answer:value,correct});announce();playAudio('correction',current.fr);focusTarget('[data-ft-advance]');return true;
+    }
     if(form.id!=='ft-guided-form')return false;
     event.preventDefault();
     const field=form.querySelector('input[name="answer"]');

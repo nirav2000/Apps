@@ -634,3 +634,29 @@
 .ft-app .ft-language-empty h3{margin:0 0 6px;font-size:17px}
 .ft-app .ft-road-milestone-actions{display:flex;flex-wrap:wrap;gap:8px}
 @media(max-width:520px){.ft-app .ft-language-scopes{grid-template-columns:repeat(2,minmax(0,1fr))}.ft-app .ft-language-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ft-app .ft-language-metrics .ft-road-stat:last-child{grid-column:1/-1}.ft-app .ft-language-row,.ft-app .ft-language-header{padding:10px;gap:8px}.ft-app .ft-language-row strong{font-size:14px}.ft-app .ft-language-fr [lang=fr]{font-size:15px}.ft-app .ft-language-module>summary{padding:12px}.ft-app .ft-language-row .ft-road-audio{min-width:34px;min-height:38px}}
+
+
+/* Quiet diagnostic timeline and correction review. */
+.ft-app .ft-journey-session{margin:15px 0;border:1px solid #d9e5dc;border-radius:12px;padding:12px;background:#fff}
+.ft-app .ft-journey-session>summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}
+.ft-app .ft-journey-session ol{list-style:none;padding:0;margin:12px 0}
+.ft-app .ft-journey-session li{display:grid;grid-template-columns:70px minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid #e4ebe4}
+.ft-app .ft-journey-session time,.ft-app .ft-journey-session small,.ft-app .ft-journey-card small{color:#4d685a;font-size:12px;display:block;overflow-wrap:anywhere}
+.ft-app .ft-journey-session li>div{min-width:0}
+.ft-app .ft-journey-card{padding:10px;border:1px solid #dce7de;background:#f7faf6;border-radius:9px;margin:7px 0;font-size:13px;overflow-wrap:anywhere}
+.ft-app .ft-journey-card p{margin:5px 0}
+.ft-app .ft-relearn,.ft-app .ft-relearn-task{margin:16px 0;padding:16px;border:1px solid #dce7de;border-radius:14px;background:#f5f8f4}
+.ft-app .ft-relearn-meaning{font-size:19px;font-weight:650;line-height:1.4}
+.ft-app .ft-relearn button{margin:5px 8px 0 0}
+.ft-app .ft-revision-results{max-width:840px;margin:16px auto}
+.ft-app .ft-revision-result{border:1px solid #dce7de;border-radius:13px;padding:13px;margin:12px 0;background:#fff}
+.ft-app .ft-revision-result.incorrect{border-left:4px solid #b57742}
+.ft-app .ft-revision-result.correct{border-left:4px solid #398267}
+.ft-app .ft-revision-result-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.ft-app .ft-revision-result-head small,.ft-app .ft-revision-result-pair small{color:#526b5a;font-size:12px;font-weight:600}
+.ft-app .ft-revision-result-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.ft-app .ft-revision-result-pair>div{padding:10px;background:#f5f8f5;border-radius:8px;min-width:0}
+.ft-app .ft-revision-result-pair p{font-size:17px;overflow-wrap:anywhere;margin:6px 0}
+.ft-app .ft-road-conversations{margin:22px 0;padding:16px;border:1px solid #dce7de;border-radius:14px;background:#f7faf6}
+.ft-app .ft-road-conversations h3{font-size:22px;letter-spacing:-.02em;margin:5px 0}
+@media(max-width:480px){.ft-app .ft-journey-session li{grid-template-columns:60px minmax(0,1fr);gap:6px}.ft-app .ft-revision-result-pair{gap:6px}.ft-app .ft-revision-result-pair p{font-size:15px}}

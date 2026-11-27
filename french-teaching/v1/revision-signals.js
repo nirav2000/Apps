@@ -105,6 +105,18 @@ export function auditSignals(x){
  }
  return out;
 }
+// Target the actual missing or substituted part, rather than automatically
+// practising the first verb frame when the learner forgot an object.
+export function missedLanguage(answer,expected,en='',structure=''){
+ const diffs=compareFrench(answer,expected),bad=diffs.filter(x=>x.right&&x.kind!=='match'&&!x.near);
+ if(!bad.length)return phraseTarget(expected,en,structure);
+ const tokens=frenchTokens(expected),first=tokens.findIndex(t=>t.start===bad[0].right.start),last=tokens.findIndex(t=>t.start===bad.at(-1).right.start);
+ if(first<0||last<first)return phraseTarget(expected,en,structure);
+ let start=first;
+ if(start>0&&/^(?:le|la|les|un|une|des|mon|ma|mes|ton|ta|tes)$/i.test(tokens[start-1].text))start--;
+ const word=String(expected).slice(tokens[start].start,tokens[last].end);
+ return {word,sentence:expected,english:en,targetKind:frenchTokens(word).length>1?'phrase':'word',structure};
+}
 // A phrase target is used when the difficulty is construction, not spelling.
 // Reusable frames are only extracted from the actual expected French.
 export function phraseTarget(fr,en='',structure=''){
@@ -162,7 +174,7 @@ export function revisionEvents(audits,visible){
    wordEvents.forEach(e=>add({...e,context,english,targetKind:'word'}));
    const diffs=compareFrench(x.answer,x.expected).filter(d=>d.kind!=='match');
    if(!diffs.length||diffs.some(d=>!d.near)){
-    const target=phraseTarget(fr,english,context.structure);
+    const target=missedLanguage(x.answer,fr,english,context.structure);
     if(!seen.has(first)){seen.add(first);add({...target,kind:'construction',id:x.id+':construction',ref:x.ref,at:x.at,context});}
    }
   }else if((x.result==='incorrect'&&!written&&['choice','listen'].includes(context.kind))||x.result==='unknown'||(x.result==='revealed'&&written)){

@@ -9,10 +9,10 @@ const copy=x=>JSON.parse(JSON.stringify(x));
 const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const text=x=>String(x??'');
 const uid=()=>globalThis.crypto?.randomUUID?.()||'answer-'+Date.now()+'-'+Math.random().toString(36).slice(2);
-export function createAnswerHistory({accountId,learnerId,storage=globalThis.localStorage}){
+export function createAnswerHistory({accountId,learnerId,appId=ANSWER_APP,storage=globalThis.localStorage}){
   if(!accountId||!learnerId)throw Error('Answer history requires a signed-in learner');
-  const scope={appId:ANSWER_APP,accountId,learnerId};
-  const key='next-french-answers-v1:'+accountId+':'+learnerId;
+  const scope={appId,accountId,learnerId};
+  const key=appId+'-v1:'+accountId+':'+learnerId;
   const belongs=x=>x?.schema===1&&x.appId===scope.appId&&x.accountId===accountId&&x.learnerId===learnerId&&typeof x.id==='string'&&x.answerAudit?.version===1;
   const saved=JSON.parse(storage.getItem(key)||'[]');
   let rows=Array.isArray(saved)?saved.filter(belongs):[];
