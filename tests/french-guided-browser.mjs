@@ -234,7 +234,9 @@ try{
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='français');
   // A genuine construction error requires a supported rebuild, not an
   // immediate repetition of the same unsupported test or a false pass.
-  assert.equal(await marked.evaluate(x=>getComputedStyle(x).backgroundColor),'rgb(255, 240, 237)');
+  // The current comparison design uses a neutral surface and red error mark.
+  assert.equal(await marked.getAttribute('aria-label'),'Incorrect');
+  assert.equal(await marked.locator('.ft-answer-mark').evaluate(x=>getComputedStyle(x).color),'rgb(132, 47, 41)');
   await page.locator('[data-gact="relearn-cover"]').focus();
   assert.equal(await page.evaluate(()=>document.activeElement?.dataset.gact),'relearn-cover');
   await page.keyboard.press('Enter');
