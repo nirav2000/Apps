@@ -45,15 +45,14 @@ jobs:
           server=$!
           trap 'kill $server 2>/dev/null || true' EXIT
           sleep 2
-          node tests/french-browser.mjs
-          node tests/french-auth-browser.mjs
-          node tests/french-ios-auth-browser.mjs
-          node tests/french-passkey-browser.mjs
-          node tests/french-extensions-browser.mjs
-          node tests/french-adaptive-browser.mjs
-          node tests/french-guided-browser.mjs
-          node tests/french-dictionary-browser.mjs
-          node tests/french-assessment-browser.mjs
-          node tests/french-curriculum-browser.mjs
-          node tests/french-study-timing-browser.mjs
-          node tests/french-learning-path-browser.mjs
+          # Collect every scenario result instead of hiding later failures behind
+          # the first failing test. The release gate still fails if any fails.
+          failed=0
+          for scenario in tests/french-browser.mjs tests/french-auth-browser.mjs tests/french-ios-auth-browser.mjs tests/french-passkey-browser.mjs tests/french-extensions-browser.mjs tests/french-adaptive-browser.mjs tests/french-guided-browser.mjs tests/french-dictionary-browser.mjs tests/french-assessment-browser.mjs tests/french-curriculum-browser.mjs tests/french-study-timing-browser.mjs tests/french-learning-path-browser.mjs; do
+            echo "=== $scenario ==="
+            if ! node "$scenario"; then
+              echo "::error::Failed: $scenario"
+              failed=1
+            fi
+          done
+          exit "$failed"

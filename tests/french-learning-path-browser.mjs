@@ -13,7 +13,11 @@ const seed=(finish)=>[
 const makeAudit=()=>{
  const store=new Map(),storage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)};
  const a=createAnswerHistory({accountId:'test-owner',learnerId:'adult',storage});
- a.record({ref:'revision:manual',activity:'Personal revision',question:'Word revision signal',expected:'école',result:'signal',marker:'revision-signal-v1',signal:{kind:'manual',word:'école'},context:{track:'michaela'}});
+ // 'utile' is explicitly taught in the first unit's connector model, but
+ // is not a required answer in that unit's delayed assessment.
+ assert.ok(steps.some(s=>s.fr.includes('utile')));
+ assert.ok(assessmentDeck(unit.id,'day7').every(x=>!x.fr.includes('utile')));
+ a.record({ref:'revision:manual',activity:'Personal revision',question:'Word revision signal',expected:'utile',result:'signal',marker:'revision-signal-v1',signal:{kind:'manual',word:'utile'},context:{track:'michaela'}});
  return a.getEntries();
 };
 async function open(finish,audits=[]){
@@ -73,9 +77,10 @@ try{
  await answerCheck(p,'day7');
  await p.locator('[data-eact="daily"]').click();
  await p.locator('.ft-revision-task').waitFor();
- await p.locator('#ft-revision-answer').fill('école');
+ await p.locator('#ft-revision-answer').fill('utile');
  await p.locator('#ft-revision-form button[type=submit]').click();
  await p.locator('[data-act="revision-next"]').click();
+ await p.locator('[data-act="revision-summary-continue"]').click();
  await p.locator('#ft-e-answer').waitFor();
  assert.match(await p.locator('.ft-e-question').innerText(),/Before teaching/i);
  assert.deepEqual(delayed.errors,[]);await p.close();

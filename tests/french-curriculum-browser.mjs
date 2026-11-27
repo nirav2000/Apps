@@ -13,7 +13,7 @@ try{
  assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),4);
  await page.locator('[data-track]').selectOption('unlocking');
  await page.locator('.ft-tabs [data-page="explore"]').click();
- assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),12);
+ assert.equal(await page.locator('.ft-guided-unit-summary>div').count(),16);
  await page.locator('[data-eact="unit:unlock2-past"]').click();
  await page.locator('[data-eact="skip-baseline"]').click();
  await page.locator('[data-unlock-action="introduce"]').waitFor();
@@ -89,5 +89,5 @@ try{
  assert.equal(await page.locator('.ft-e-chart circle').count(),1);
  const dims=await page.evaluate(()=>({w:document.documentElement.scrollWidth,v:document.documentElement.clientWidth}));
  assert.ok(dims.w<=dims.v+2,JSON.stringify(dims));assert.deepEqual(errors,[]);
- console.log('Track browser: 4/13/6 lessons, independent baseline, variable answer audit, switching, persistence, mobile and learner isolation');
+ console.log('Track browser: 4/13/16/6 lessons, independent baseline, variable answer audit, switching, persistence, mobile and learner isolation');
 }finally{await b.close();}
