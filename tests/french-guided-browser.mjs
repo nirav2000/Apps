@@ -107,8 +107,11 @@ try{
   await page.locator('.ft-tabs [data-page="explore"]').click();
   await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
   const signalRow=page.locator('.ft-revision-row').filter({has:page.locator('[data-gword="dois"]')});
-  assert.match(await signalRow.innerText(),/1 word plays/);
-  assert.match(await signalRow.innerText(),/Low/);
+  // Exploring a not-yet-taught reference word is recorded, but must not
+  // seed a revision drill before there is eligible learning evidence.
+  assert.equal(await signalRow.count(),0);
+  const deferred=page.locator('.ft-revision-why').filter({has:page.locator('summary',{hasText:'Not selected for revision'})});
+  assert.match(await deferred.textContent(),/dois/);
   await page.locator('.ft-tabs [data-page="home"]').click();
   await page.locator('.ft-tabs [data-page="explore"]').click();
   assert.equal(await page.locator('.ft-todays-lesson').count(),1);
@@ -228,21 +231,25 @@ try{
   assert.equal(await marked.locator('.ft-answer-submitted [data-gword="français"]').count(),2);
   await marked.locator('.ft-answer-submitted [data-gword="français"]').first().click();
   await page.waitForFunction(()=>window.__spoken.at(-1)?.text==='français');
-  await page.locator('[data-gact="finish-revealed"]').focus();
+  // A genuine construction error requires a supported rebuild, not an
+  // immediate repetition of the same unsupported test or a false pass.
   assert.equal(await marked.evaluate(x=>getComputedStyle(x).backgroundColor),'rgb(255, 240, 237)');
-  assert.equal(await page.locator('.ft-guided-feedback.incorrect').count(),1);
-  assert.equal(await page.evaluate(()=>document.activeElement?.dataset.gact),'finish-revealed');
+  await page.locator('[data-gact="relearn-cover"]').focus();
+  assert.equal(await page.evaluate(()=>document.activeElement?.dataset.gact),'relearn-cover');
   await page.keyboard.press('Enter');
+  await page.locator('#ft-guided-rebuild-answer').fill(wrongBuild.fr);
+  await page.locator('#ft-guided-rebuild button[type="submit"]').click();
+  await page.locator('[data-gact="relearn-finish"]').click();
   await waitCore(lesson.steps[firstBuild+2].id);
   await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref&&x.event?.score?.total===1&&x.event?.score?.correct===0),wrongBuild.id+':first',{timeout:12000});
   await page.waitForFunction(ref=>[...window.__testEvidence.values()].some(x=>x.event?.source?.ref===ref),build.id+':hint',{timeout:12000});
   // Manual additions enter the private queue and trigger actual practice.
   await page.locator('.ft-tabs [data-page="explore"]').click();
   await page.locator('.ft-explore-nav').getByRole('button',{name:'Revision signals',exact:true}).click();
-  await page.locator('#ft-revision-add-word').fill('école');
+  await page.locator('#ft-revision-add-word').fill('français');
   await page.locator('#ft-revision-add button[type="submit"],#ft-revision-add button:not([type])').click();
-  await page.locator('.ft-revision-row').filter({has:page.locator('[data-gword="école"]')}).waitFor();
-  await page.getByRole('button',{name:/Practise .* due words/}).click();
+  await page.locator('.ft-revision-row').filter({has:page.locator('[data-gword="français"]')}).first().waitFor();
+  await page.getByRole('button',{name:/Practise .* due targets/}).click();
   await page.locator('#ft-revision-answer').waitFor();
   const wordToReview=await page.evaluate(()=>window.__spoken.at(-1).text);
   await page.locator('#ft-revision-answer').fill(wordToReview);
