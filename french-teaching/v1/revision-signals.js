@@ -35,6 +35,86 @@ export function compareFrench(answer,expected){
  }
  return out.reverse();
 }
+
+// A narrow, conservative typing-slip detector, not an alternative answer marker.
+// Strong matching context is essential. Accent errors, different valid forms,
+// missing content and short isolated words must still receive normal teaching.
+const keyboardRows=['qwertyuiop','asdfghjkl','zxcvbnm','azertyuiop','qsdfghjklm','wxcvbn'];
+const adjacentKey=(a,b)=>a!==b&&keyboardRows.some(row=>row.includes(a)&&row.includes(b)&&Math.abs(row.indexOf(a)-row.indexOf(b))===1);
+const shortForms=new Set(("le la les un une des du de au aux ce cet cette ces je tu il elle on nous vous ils elles me te se ne pas et est ou où a as ai suis es sont avec sans en y mon ma mes ton ta tes son sa ses").split(' '));
+function singleKeySlip(actual,wanted){
+ if(actual.length!==wanted.length||shortForms.has(actual)||flat(actual)===flat(wanted))return false;
+ const d=[...wanted].map((c,i)=>c===actual[i]?-1:i).filter(i=>i>=0);
+ if(d.length===1)return adjacentKey(actual[d[0]],wanted[d[0]]);
+ return wanted.length>=5&&d.length===2&&d[1]===d[0]+1&&actual[d[0]]===wanted[d[1]]&&actual[d[1]]===wanted[d[0]];
+}
+export function likelyTypingSlip(answer,expected){
+ const a=frenchTokens(answer).map(t=>t.key),b=frenchTokens(expected).map(t=>t.key);
+ if(b.length<5||!a.length||a.length>b.length||b.length-a.length>2)return false;
+ let i=0,j=0,matches=0,errors=0;
+ while(i<a.length&&j<b.length){
+  if(a[i]===b[j]){i++;j++;matches++;continue;}
+  if(singleKeySlip(a[i],b[j])){i++;j++;errors++;continue;}
+  // Adjacent words accidentally joined, optionally with an adjacent stray key
+  // at the space: require both full words to remain present, not a guess.
+  if(j+1<b.length&&b[j+1].length>=4&&a[i].startsWith(b[j])&&a[i].endsWith(b[j+1])){
+   const extra=a[i].slice(b[j].length,a[i].length-b[j+1].length);
+   if(extra.length<=1&&(!extra||/^[a-z]$/.test(extra))){i++;j+=2;errors++;continue;}
+  }
+  return false;
+ }
+ return i===a.length&&j===b.length&&errors>0&&errors<=2&&matches>=Math.ceil(b.length*.65);
+}
+const determiners=new Set('le la les un une des du ce cet cette ces mon ma mes ton ta tes son sa ses notre nos votre vos leur leurs'.split(' '));
+const connectorWords=new Set('et mais ou donc car parce que puis alors'.split(' '));
+const isDeterminer=s=>determiners.has(wordKey(s));
+const isConnector=s=>connectorWords.has(wordKey(s));
+// A legacy automatic target can be a malformed slice across a clause.
+// It is retained as historical evidence, but cannot schedule a nonsensical
+// standalone article or a fragment ending mid-frame.
+export function malformedAutoTarget(word){
+ const a=frenchTokens(word).map(t=>t.key);
+ if(!a.length)return true;
+ if(a.length===1)return isDeterminer(a[0]);
+ // Explicit reusable frames are complete teaching objectives in their own right.
+ if(/^(?:je (?:vais|veux|dois|peux|voudrais|suis|ne)|tu (?:as|es|vas|veux|dois|peux)|nous (?:avons|sommes|allons|voulons|devons|pouvons)|vous (?:avez|êtes|allez|voulez|devez|pouvez)|(?:il|elle) (?:a|est|va|veut|doit|peut)|(?:ils|elles) (?:ont|sont|vont)|parce que|pas encore)$/.test(a.join(' ')))return false;
+ return isDeterminer(a.at(-1))||isConnector(a.at(-1))||
+  /^(?:j'ai|j'|n'|je|tu|il|elle|nous|vous|ils|elles|vais|veux|dois|peux|voudrais|avons|avez)$/.test(a.at(-1))||
+  isConnector(a[0])&&a.length>2;
+}
+export function isProtectedRevision(row){
+ return row.level>0||['manual','pronunciation'].includes(row.lastDifficulty?.kind)||
+  row.lastDifficulty?.kind==='review'&&!!row.lastAction;
+}
+const noise=new Set(("le la les un une des du de d' au aux l' ce cet cette ces je tu il elle on nous vous ils elles me te se ne pas et ou mais donc car parce que puis alors hier demain aujourd'hui matin soir encore déjà très bien à en y pour dans sur avec sans j'ai ai as a avons avez ont suis es est sommes êtes sont").split(' '));
+export function targetContent(s){
+ return [...new Set(frenchTokens(s).map(t=>t.key).filter(w=>!noise.has(w)&&!isDeterminer(w)))];
+}
+// Group only overlapping automatic targets, not every word that happened
+// to occur in the same sentence. Preserve distinct legitimate weaknesses.
+export function relatedRevisionTargets(a,b){
+ if(!a?.word||!b?.word)return false;
+ if(wordKey(a.word)===wordKey(b.word))return true;
+ const x=targetContent(a.word),y=targetContent(b.word);
+ if(!x.length||!y.length)return false;
+ const common=x.filter(w=>y.includes(w)).length;
+ return common>0&&(common===Math.min(x.length,y.length)||
+  common/Math.max(x.length,y.length)>=.75)&&
+  (containsTarget(a.word,b.word)||containsTarget(b.word,a.word)||
+   common===Math.min(x.length,y.length));
+}
+export function groupRevisionTargets(rows){
+ const chosen=[],out=[];
+ for(const row of rows){
+  if(!row.due||isProtectedRevision(row)){out.push(row);continue;}
+  if(malformedAutoTarget(row.word)){out.push({...row,due:false,groupedReason:'Incomplete automatic fragment — use a meaningful word or phrase instead.'});continue;}
+  const overlap=chosen.find(x=>relatedRevisionTargets(x,row));
+  if(overlap){out.push({...row,due:false,groupedWith:overlap.word,groupedReason:'Grouped with '+overlap.word+' for this practice opportunity.'});continue;}
+  chosen.push(row);out.push(row);
+ }
+ return out;
+}
+
 // Keep the learner's exact characters; for equal-length near spellings
 // highlight the changed letters only. Insertions/deletions mark the word.
 export function differenceSegments(value,other){
@@ -95,6 +175,7 @@ export function createTypingSample(initial=''){
 const frenchWritten=x=>!x.signal&&!['listening-rebuild-v1','pattern-practice-v1'].includes(x.marker)&&(x.targetLang==='fr'||!x.targetLang&&['guided-exact-v1','curriculum-v1','assessment-v1'].includes(x.marker));
 export function auditSignals(x){
  if(!frenchWritten(x)||!['correct','incorrect'].includes(x.result)||!x.answer||!x.expected)return [];
+ if(x.result==='incorrect'&&['guided','adaptive','repair'].includes(x.context?.stage)&&likelyTypingSlip(x.answer,x.expected))return [];
  const pairs=compareFrench(x.answer,x.expected),out=[];
  if(x.result==='incorrect')for(const d of pairs)if(d.near&&d.right&&d.left)out.push({kind:'spelling',word:d.right.text,actual:d.left.text,sentence:x.expected,ref:x.ref,at:x.at,id:x.id+':spelling:'+d.right.start});
  for(const timing of x.typing||[]){
@@ -107,15 +188,33 @@ export function auditSignals(x){
 }
 // Target the actual missing or substituted part, rather than automatically
 // practising the first verb frame when the learner forgot an object.
+export function missedLanguageTargets(answer,expected,en='',structure=''){
+ const tokens=frenchTokens(expected),diffs=compareFrench(answer,expected);
+ if(!tokens.length||likelyTypingSlip(answer,expected))return [];
+ const bad=diffs.filter(x=>x.right&&x.kind!=='match'&&!x.near);
+ if(!bad.length)return [phraseTarget(expected,en,structure)];
+ const positions=[...new Set(bad.map(d=>tokens.findIndex(t=>t.start===d.right.start)).filter(i=>i>=0))];
+ if(!positions.length)return [phraseTarget(expected,en,structure)];
+ // Split at matched words and clause boundaries, never take the entire
+ // span between the first and last error.
+ const runs=[];
+ for(const i of positions){
+  const last=runs.at(-1);
+  if(last&&i===last.at(-1)+1&&!isConnector(tokens[i].key)&&!isConnector(tokens[last.at(-1)].key))last.push(i);else runs.push([i]);
+ }
+ const out=[];
+ for(const run of runs){
+  let first=run[0],last=run.at(-1);
+  if(first>0&&isDeterminer(tokens[first-1].key))first--;
+  if(isDeterminer(tokens[last].key)&&last+1<tokens.length&&!isConnector(tokens[last+1].key))last++;
+  const word=String(expected).slice(tokens[first].start,tokens[last].end);
+  if(malformedAutoTarget(word))continue;
+  out.push({word,sentence:expected,english:en,targetKind:frenchTokens(word).length>1?'phrase':'word',structure});
+ }
+ return [...new Map(out.map(x=>[wordKey(x.word),x])).values()];
+}
 export function missedLanguage(answer,expected,en='',structure=''){
- const diffs=compareFrench(answer,expected),bad=diffs.filter(x=>x.right&&x.kind!=='match'&&!x.near);
- if(!bad.length)return phraseTarget(expected,en,structure);
- const tokens=frenchTokens(expected),first=tokens.findIndex(t=>t.start===bad[0].right.start),last=tokens.findIndex(t=>t.start===bad.at(-1).right.start);
- if(first<0||last<first)return phraseTarget(expected,en,structure);
- let start=first;
- if(start>0&&/^(?:le|la|les|un|une|des|mon|ma|mes|ton|ta|tes)$/i.test(tokens[start-1].text))start--;
- const word=String(expected).slice(tokens[start].start,tokens[last].end);
- return {word,sentence:expected,english:en,targetKind:frenchTokens(word).length>1?'phrase':'word',structure};
+ return missedLanguageTargets(answer,expected,en,structure)[0]||phraseTarget(expected,en,structure);
 }
 // A phrase target is used when the difficulty is construction, not spelling.
 // Reusable frames are only extracted from the actual expected French.
@@ -130,13 +229,14 @@ export function containsTarget(sentence,target){
  return b.length>0&&a.some((_,i)=>b.every((w,j)=>a[i+j]===w));
 }
 export function revisionEvents(audits,visible){
- const explicit=audits.filter(x=>x.answerAudit?.signal&&!['adaptive-plan','pattern-review'].includes(x.answerAudit.signal.kind)).map(x=>{
+ const explicit=audits.filter(x=>x.answerAudit?.signal&&!['adaptive-plan','pattern-review','typing-slip'].includes(x.answerAudit.signal.kind)).map(x=>{
   const a=x.answerAudit,s=a.signal;
   // Reinterpret legacy manual review false negatives for scheduling only.
   // The immutable original audit is retained for transparency.
   const formattingOnly=a.marker==='revision-v1'&&s.kind==='review'&&!s.correct&&!a.context?.listeningAssisted&&a.answer?.trim()&&a.expected&&markAnswer(a.answer,a.expected);
+  if(a.result==='incorrect'&&['guided','adaptive','repair'].includes(a.context?.stage)&&likelyTypingSlip(a.answer,a.expected))return null;
   return {...s,...(formattingOnly?{correct:true}:{}),context:a.context||{},id:x.id,at:x.at,ref:a.ref};
- });
+ }).filter(Boolean);
  // Use actual chronology. An independent answer can reduce an existing
  // difficulty; it cannot invent a difficulty or cancel a later event.
  const timeline=[...visible.filter(x=>!x.legacy&&x.result!=='withheld').map(x=>({at:x.at,id:x.id,audit:x})),...explicit.map(x=>({at:x.at,id:x.id,event:x}))].sort((a,b)=>a.at-b.at||String(a.id).localeCompare(String(b.id)));
@@ -158,6 +258,7 @@ export function revisionEvents(audits,visible){
   if(item.event){add(item.event);continue;}
   const x=item.audit;
   if(x.marker==='listening-rebuild-v1'||x.marker==='pattern-practice-v1')continue;
+  if(x.result==='incorrect'&&['guided','adaptive','repair'].includes(x.context?.stage)&&likelyTypingSlip(x.answer,x.expected))continue;
   if(x.signal){
    // In a personalised sentence, a second word can also reveal a spelling
    // difficulty. Record it, but do not double-count the targeted outcome.
@@ -174,8 +275,8 @@ export function revisionEvents(audits,visible){
    wordEvents.forEach(e=>add({...e,context,english,targetKind:'word'}));
    const diffs=compareFrench(x.answer,x.expected).filter(d=>d.kind!=='match');
    if(!diffs.length||diffs.some(d=>!d.near)){
-    const target=missedLanguage(x.answer,fr,english,context.structure);
-    if(!seen.has(first)){seen.add(first);add({...target,kind:'construction',id:x.id+':construction',ref:x.ref,at:x.at,context});}
+    const targets=missedLanguageTargets(x.answer,fr,english,context.structure);
+    if(!seen.has(first)){seen.add(first);for(const target of targets)add({...target,kind:'construction',id:x.id+':construction:'+wordKey(target.word),ref:x.ref,at:x.at,context});}
    }
   }else if((x.result==='incorrect'&&!written&&['choice','listen'].includes(context.kind))||x.result==='unknown'||(x.result==='revealed'&&written)){
    if(!seen.has(first)){seen.add(first);add({...phraseTarget(fr,english,context.structure),kind:x.result==='revealed'?'reveal':x.result==='unknown'?'construction':'recognition',id:x.id+':difficulty',ref:x.ref,at:x.at,context});}

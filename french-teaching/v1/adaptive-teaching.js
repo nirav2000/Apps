@@ -3,8 +3,8 @@
 import {ALL_UNITS,guidedLesson} from './guided-lessons.js';
 import {assessmentDeck,STAGES} from './assessment.js';
 import {curriculumNormalize} from './curriculum-meta.js';
-import {wordKey,frenchTokens,containsTarget} from './revision-signals.js';
-import {practiceLedger} from './unlocking-adaptive.js';
+import {wordKey,frenchTokens,containsTarget,likelyTypingSlip,relatedRevisionTargets,malformedAutoTarget,isProtectedRevision,targetContent} from './revision-signals.js';
+import {practiceLedger,meaningfulVariation,PRACTICE_COOLDOWN} from './unlocking-adaptive.js';
 const MIN=60000,DAY=86400000;
 const norm=curriculumNormalize;
 const pair=(fr,en)=>({fr,en});
@@ -32,7 +32,16 @@ const variants=[
  pair("J’ai préparé le déjeuner, mais je ne veux pas attendre","I prepared lunch, but I do not want to wait"),
  pair("Je voudrais réserver une table pour deux","I would like to book a table for two"),
  pair("Hier, j’ai préparé le bateau parce que je vais faire de la voile","Yesterday I prepared the boat because I am going to go sailing"),
- pair("Je vais préparer le dîner et je voudrais réserver une chambre","I am going to prepare dinner and I would like to book a room")
+ pair("Je vais préparer le dîner et je voudrais réserver une chambre","I am going to prepare dinner and I would like to book a room"),
+ pair("Je dois préparer le déjeuner avant de partir","I must prepare lunch before leaving"),
+ pair("Je voudrais préparer le repas avant de partir","I would like to prepare the meal before leaving"),
+ pair("Je dois partir, mais je n’ai pas encore préparé le déjeuner","I have to leave, but I have not prepared lunch yet"),
+ pair("Dépêche-toi, je dois réserver une table","Hurry up, I have to book a table"),
+ pair("Je dois préparer le repas et je dois aider","I must prepare the meal and I must help"),
+ pair("Je voudrais réserver une table pour ce soir","I would like to book a table for this evening"),
+ pair("J’ai préparé le repas, mais je dois encore réserver une table","I prepared the meal, but I still have to book a table"),
+ pair("Je vais préparer le déjeuner, puis je vais partir","I am going to prepare lunch, then I am going to leave"),
+ pair("Je dois aider à préparer le repas","I have to help prepare the meal")
 ];
 let reserved;
 function protectedSentences(){
@@ -71,15 +80,16 @@ function sentenceChoices(row,known,planHistory,current,track,ledger){
  const prior=planHistory.filter(p=>p.key===row.key).map(p=>norm(p.fr));
  const targetKnown=known.filter(x=>containsTarget(x.fr,row.word));
  const words=new Set(known.flatMap(x=>frenchTokens(x.fr).map(t=>t.key)));
- const allowed=x=>frenchTokens(x.fr).every(t=>words.has(t.key));
+ const allowed=x=>frenchTokens(x.fr).every(t=>words.has(t.key))&&(!ledger||['avant de','pas encore','aider à'].every(frame=>!containsTarget(x.fr,frame)||known.some(p=>containsTarget(p.fr,frame))));
  const source=row.sentence&&row.english&&!/^Dictation:|^Listen:|^Which |^Requested /i.test(row.english)&&allowed({fr:row.sentence})?[pair(row.sentence,row.english)]:[];
  const isClause=x=>/^(?:hier[, ]|demain[, ]|aujourd'hui[, ]|je |j'|tu |nous |vous |il |elle |ils |elles )/i.test(wordKey(x.fr))&&/^(?:Yesterday|Tomorrow|Today|I |You |We |He |She |They )/i.test(x.en)&&!/[?]/.test(x.en)&&frenchTokens(x.fr).length>=3;
  const combos=[];
  const maxWords=ledger?Math.min(28,Math.max(10,ledger.longest+5)):15;
- const clauses=[...new Map(known.filter(isClause).map(x=>[norm(x.fr),x])).values()].slice(-100);
- if(words.has('et'))for(const x of [...source,...targetKnown].filter(isClause).slice(-16)){
+ const singleClause=x=>isClause(x)&&(!ledger||!/(?:\s|,)(?:et|mais|donc|car|parce que|puis)\s/i.test(x.fr));
+ const clauses=[...new Map(known.filter(singleClause).map(x=>[norm(x.fr),x])).values()].slice(-100);
+ if(words.has('et'))for(const x of [...source,...targetKnown].filter(singleClause).slice(-16)){
   for(const y of clauses.slice(-24)){
-   if(norm(x.fr)===norm(y.fr)||frenchTokens(x.fr).length+frenchTokens(y.fr).length>maxWords)continue;
+   if(norm(x.fr)===norm(y.fr)||frenchTokens(x.fr).length+frenchTokens(y.fr).length>maxWords||ledger&&!meaningfulVariation(x.fr,y.fr))continue;
    combos.push(pair(clean(x.fr)+' et '+lower(clean(y.fr)),clean(x.en)+' and '+lower(clean(y.en))));
    if(combos.length>=120)break;
   }
@@ -91,31 +101,45 @@ function sentenceChoices(row,known,planHistory,current,track,ledger){
   seen.add(k);return true;
  });
  const sameSource=norm(row.sentence||'');
- return candidates.map(x=>({...x,rank:(prior.includes(norm(x.fr))?-30:0)+(ledger?.recentlySeen(x.fr)?-80:0)+(ledger?.saturated(x.fr)?-100:0)+(ledger&&frenchTokens(x.fr).length<=maxWords?Math.min(10,frenchTokens(x.fr).length):0)+(norm(x.fr)!==sameSource?8:0)+(x.unitId===current?.unitId?4:x.track===track?2:0)+(frenchTokens(x.fr).length>=3?4:0)})).sort((a,b)=>b.rank-a.rank||norm(a.fr).localeCompare(norm(b.fr)));
+ const currentContent=targetContent(current?.fr||'');
+ const bridges=x=>currentContent.some(w=>targetContent(x.fr).includes(w));
+ return candidates.map(x=>({...x,rank:(prior.includes(norm(x.fr))?-30:0)+(ledger?.recentlySimilar(x.fr)?-80:0)+(ledger&&bridges(x)?24:0)+(ledger?.saturated(x.fr)?-100:0)+(ledger&&frenchTokens(x.fr).length<=maxWords?Math.min(10,frenchTokens(x.fr).length):0)+(norm(x.fr)!==sameSource?8:0)+(x.unitId===current?.unitId?4:x.track===track?2:0)+(frenchTokens(x.fr).length>=3?4:0)})).sort((a,b)=>b.rank-a.rank||norm(a.fr).localeCompare(norm(b.fr)));
 }
 export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track,now=Date.now()}){
  if(!status?.unit||!['new','resume'].includes(status.mode))return null;
  const ledger=track==='unlocking'?practiceLedger(audits,track,now):null;
  if(ledger)queue=queue.filter(r=>!ledger.targetSatisfied(r));
- const unitId=status.unit.id,eligibleKeys=new Set(queue.map(r=>r.key)),plans=adaptivePlans(audits,unitId).filter(p=>p.complete||eligibleKeys.has(p.key)),pending=plans.find(p=>!p.complete&&eligibleKeys.has(p.key));
+ const unitId=status.unit.id,eligibleKeys=new Set(queue.map(r=>r.key));
+ const plans=adaptivePlans(audits,unitId).filter(p=>p.complete||eligibleKeys.has(p.key));
+ const pending=plans.find(p=>!p.complete&&eligibleKeys.has(p.key)&&(!ledger||p.policyVersion===2));
  if(pending&&status.next&&!['independent','transfer','review'].includes(status.next.stage))return {...pending,resume:true};
  const counts=status.teaching,position=counts.coreCompleted+counts.repairCompleted;
  const next=status.next;
  // Do not insert a model into an independent/transfer run. Preserve the
  // mandatory building-block order and the formal assessment windows.
  if(!next||['independent','transfer','review'].includes(next.stage))return null;
- if(position<3||plans.some(p=>position-p.position<3))return null;
- const max=Math.min(12,Math.ceil(counts.coreTotal/5));
- if(plans.length>=max)return null;
- const sessionPlans=audits.filter(a=>a.answerAudit?.signal?.kind==='adaptive-plan'&&a.answerAudit.signal.plan?.sessionId===sessionId);
- if(sessionPlans.length>=6)return null;
+ const gap=ledger?6:3;
+ const activePlans=plans.filter(p=>p.complete||!ledger||p.policyVersion===2);
+ if(position<3||activePlans.some(p=>position-p.position<gap))return null;
+ const max=ledger?3:Math.min(12,Math.ceil(counts.coreTotal/5));
+ if(activePlans.filter(p=>p.sessionId===sessionId||!ledger).length>=max)return null;
+ const sessionPlans=audits.filter(a=>a.answerAudit?.signal?.kind==='adaptive-plan'&&a.answerAudit.signal.plan?.sessionId===sessionId&&(!ledger||a.answerAudit.signal.plan.track===track));
+ if(sessionPlans.length>=(ledger?3:6))return null;
  const allPlans=ALL_UNITS.filter(u=>(u.track||'michaela')===track).flatMap(u=>adaptivePlans(audits,u.id)).filter(p=>p.complete||eligibleKeys.has(p.key));
+ const priorPlans=allPlans.filter(p=>p.complete||!ledger||p.policyVersion===2);
+ const recentPlans=priorPlans.filter(p=>now-(p.at||p.plannedAt||0)<PRACTICE_COOLDOWN);
+ const origin=row=>row.lastDifficulty?.context?.unitId||row.learningProof?.unitId||'';
+ const foreign=row=>!!origin(row)&&origin(row)!==unitId;
+ const crossCount=sessionPlans.filter(a=>{const p=a.answerAudit.signal.plan;return p.sourceUnitId&&p.sourceUnitId!==p.unitId;}).length;
  const eligible=queue.filter(row=>{
-  if(row.dueAt===null)return false;
+  if(row.dueAt===null||ledger&&row.groupedReason)return false;
+  if(ledger&&!isProtectedRevision(row)&&malformedAutoTarget(row.word))return false;
+  if(ledger&&foreign(row)&&(counts.coreCompleted<8||crossCount>=1))return false;
+  if(ledger&&recentPlans.some(p=>relatedRevisionTargets(row,{word:p.target})))return false;
   const difficulty=row.lastDifficulty,action=row.lastAction;
   const local=difficulty?.context?.unitId===unitId&&difficulty.context.sessionId===sessionId;
-  if(local&&position-(difficulty.context.position??position)<3)return false;
-  const earlier=allPlans.filter(p=>p.key===row.key).at(-1);
+  if(local&&position-(difficulty.context.position??position)<gap)return false;
+  const earlier=priorPlans.filter(p=>p.key===row.key).at(-1);
   if(earlier&&!earlier.complete)return false;
   // Recent strong signals can be brought forward within this lesson after
   // three other steps, including a failed or modelled adaptive exercise.
@@ -139,14 +163,16 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
   const unaddressed=row.lastDifficulty&&(!row.lastAction||row.lastDifficulty.at>row.lastAction.at)&&(!row.lastIndependentAt||row.lastDifficulty.at>row.lastIndependentAt);
   const serious=unaddressed&&['construction','reveal','recognition'].includes(row.lastDifficulty.kind);
   if(!serious&&upcoming.some(s=>s.kind==='write'&&containsTarget(s.fr,row.word)))continue;
-  const previous=allPlans.filter(p=>p.key===row.key);
+  const previous=priorPlans.filter(p=>p.key===row.key);
   const candidates=sentenceChoices(row,known,previous,next,track,ledger);
-  const fresh=ledger?candidates.filter(x=>!ledger.recentlySeen(x.fr)&&!ledger.saturated(x.fr)):candidates;
+  const fresh=ledger?candidates.filter(x=>!ledger.recentlySimilar(x.fr)&&!ledger.saturated(x.fr)&&!recentPlans.some(p=>frenchTokens(p.fr).length>=3&&frenchTokens(x.fr).length>=3&&!meaningfulVariation(x.fr,p.fr))):candidates;
   // An actual missing expression still gets a model. For an isolated spelling
   // error, practise the word, then retrieve it later in a different sentence.
   const spellingOnly=!!ledger&&!serious&&row.targetKind==='word'&&row.lastDifficulty?.kind==='spelling'&&(!row.lastAction||row.lastAction.at<row.lastDifficulty.at||row.lastAction.kind==='review'&&!row.lastAction.correct);
-  const candidate=spellingOnly?null:serious?(candidates.find(x=>norm(x.fr)===norm(row.word))||fresh[0]||candidates[0]):fresh[0];
-  if(ledger&&!candidate&&!serious&&row.targetKind==='phrase')continue;
+  // Never fall back to a recently repeated whole sentence just because
+  // the signal was strong. A small exact target may still need its model.
+  const candidate=spellingOnly?null:serious?(fresh.find(x=>norm(x.fr)===norm(row.word))||fresh[0]||(!ledger?candidates[0]:null)):fresh[0];
+  if(ledger&&!candidate&&row.targetKind==='phrase')continue;
   if(!candidate&&!row.due&&row.lastAction?.mode==='dictation'&&row.lastAction.correct)continue;
   // A user-requested isolated word may not have a known bilingual context.
   // It can be practised as dictation, never given a guessed translation.
@@ -158,10 +184,11 @@ export function chooseAdaptivePlan({status,queue,audits,evidence,sessionId,track
   // Avoid translating an arbitrary target with an invented English gloss.
   if(!candidate)mode='dictation';
   const fr=mode==='dictation'?row.word:candidate.fr,en=mode==='dictation'?'Listen and spell the French.':candidate.en;
+  if(ledger&&(ledger.recentlySeen(fr)||mode!=='dictation'&&ledger.recentlySimilar(fr)))continue;
   if(protectedSentences().fr.has(norm(fr))||protectedSentences().en.has(norm(en)))continue;
   const reason=row.lastDifficulty?.kind||'scheduled recall';
-  const id='adaptive-v1:'+unitId+':'+position+':'+fingerprint(row.key+':'+previous.length);
-  return {id,unitId,track,sessionId,position,key:row.key,target:row.word,targetKind:row.targetKind,structure:row.structure||'',mode,fr,en,reason,priority:row.score,signalIds:row.signals.slice(-8).map(e=>e.id),newContext:mode!=='dictation'&&!!candidate&&norm(fr)!==norm(row.sentence||''),plannedAt:now};
+  const id='adaptive-v1:'+unitId+':'+position+':'+fingerprint(row.key+':'+allPlans.filter(p=>p.key===row.key).length+':v2');
+  return {id,unitId,track,sessionId,position,key:row.key,target:row.word,targetKind:row.targetKind,structure:row.structure||'',mode,fr,en,reason,priority:row.score,signalIds:row.signals.slice(-8).map(e=>e.id),newContext:mode!=='dictation'&&!!candidate&&(ledger?meaningfulVariation(fr,row.sentence||''):norm(fr)!==norm(row.sentence||'')),plannedAt:now,policyVersion:2,sourceUnitId:origin(row)||unitId};
  }
  return null;
 }
@@ -172,8 +199,9 @@ export function adaptiveStep(plan){
 }
 export function adaptiveOutcome(plan,{correct=false,reveal=false,model=false,support='none',answer=''}={}){
  const targetPresent=containsTarget(answer,plan.target);
+ const slip=!correct&&!reveal&&!model&&plan.track==='unlocking'&&likelyTypingSlip(answer,plan.fr);
  // A different accepted translation that avoids the target is not a
  // successful recall of the target. Neither is a supplied model.
  const success=correct&&targetPresent&&!reveal&&!model&&support==='none';
- return {kind:model?'exposure':reveal||correct&&!success?'assisted':'review',word:plan.target,targetKind:plan.targetKind,structure:plan.structure,sentence:plan.fr,english:plan.mode==='dictation'?'':plan.en,correct:success,mode:plan.mode,adaptive:true,planId:plan.id,newContext:plan.newContext};
+ return {kind:slip?'typing-slip':model?'exposure':reveal||correct&&!success?'assisted':'review',word:plan.target,targetKind:plan.targetKind,structure:plan.structure,sentence:plan.fr,english:plan.mode==='dictation'?'':plan.en,correct:success,mode:plan.mode,adaptive:true,planId:plan.id,newContext:plan.newContext};
 }

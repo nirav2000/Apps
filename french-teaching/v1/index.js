@@ -10,7 +10,7 @@ import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
 import {roadmapPage,roadmapData,roadmapSettings,roadmapUnitMarkup,ROADMAP_VIEWS} from './roadmap.js';
 import {ALL_UNITS,unitsForTrack,guidedStatus,guidedLesson} from './guided-lessons.js';
-import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget,revisionLabel,revisionEligibility} from './revision-signals.js';
+import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget,revisionLabel,revisionEligibility,groupRevisionTargets} from './revision-signals.js';
 import {adaptivePlans,chooseAdaptivePlan} from './adaptive-teaching.js';
 import {practiceLedger,deferRepeatedTargets} from './unlocking-adaptive.js';
 import {activeRest,scheduledPractice,prioritizedChecks,overdueWords,noticeMarkup,updateStudyClocks,alertKeys,restMarkup} from './study-timing.js';
@@ -160,7 +160,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const steps=unitsForTrack(state.track).flatMap(u=>guidedLesson(u.id).steps.map(s=>({...s,unitName:u.name})));
     const now=Date.now(),profile=revisionEligibility({events:revisionEvents(audits(),history),history,evidence,steps,track:state.track,now});
     if(state.track!=='unlocking')return profile;
-    return {...profile,rows:deferRepeatedTargets(profile.rows,practiceLedger(audits(),state.track,now),now)};
+    return {...profile,rows:groupRevisionTargets(deferRepeatedTargets(profile.rows,practiceLedger(audits(),state.track,now),now))};
   };
   const revisions=()=>revisionProfile().rows;
   const dailyRevisionItems=()=>revisions().filter(x=>x.due);
@@ -329,6 +329,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const nextAction=x=>{
       const planned=plans.find(p=>p.key===x.key&&!p.complete);
       if(planned)return 'Planned: '+(planned.mode==='model'?'listen and repeat':planned.mode==='dictation'?'listen and spell':'recall in a sentence');
+      if(x.groupedReason)return x.groupedReason;
       if(x.due)return 'Ready now · eligible for upcoming practice';
       if(x.dueAt!==null)return 'Next review: '+date(x.dueAt);
       if(x.level>=5)return 'Scheduled revision complete';

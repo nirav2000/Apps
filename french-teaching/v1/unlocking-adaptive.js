@@ -56,6 +56,28 @@ export function familiarIntro(step,steps,entries,ledger=null){
 // Oral self-checks and dictation never count as independent translation.
 export const PRACTICE_COOLDOWN=30*60000, PRACTICE_DAY=24*60*60000;
 export const practiceKey=s=>String(s??'').normalize('NFC').toLowerCase().replace(/[’‘]/g,"'").replace(/[«»“”".!?,;:]+/g,' ').replace(/\s+/g,' ').trim();
+
+// Compare substantive content and the first grammatical frame. Appending a
+// familiar clause, swapping meal/lunch in a long sentence or adding "hier"
+// is not a genuinely new context. Changing person/tense can be meaningful.
+const variationNoise=new Set(("le la les un une des du de au aux ce cet cette ces je tu il elle on nous vous ils elles me te se ne pas et ou mais donc car parce que puis alors hier demain aujourd'hui encore déjà à en y pour dans sur avec sans j'ai ai as a avons avez ont suis es est sommes êtes sont vais vas va allons allez vont veux veut dois doit peux peut voudrais").split(' '));
+const contentSet=s=>new Set(practiceKey(s).split(' ').filter(w=>w&&!variationNoise.has(w)));
+const primaryFrame=s=>practiceKey(s).replace(/^(?:hier|demain|aujourd'hui|ce matin|ce soir)\s+/,'').match(/^(?:j'ai|j'avais|j'étais|j'aurai|je (?:vais|veux|dois|peux|voudrais|suis|ne|n'ai)|(?:nous|vous|tu|il|elle|ils|elles|on)\s+\S+|je)\b/)?.[0]||'';
+const clauseCount=s=>practiceKey(s).split(/\s+(?:et|mais|donc|car|parce que|puis)\s+/).length;
+export function meaningfulVariation(a,b){
+ const x=practiceKey(a),y=practiceKey(b);
+ if(!x||!y||x===y)return false;
+ const A=contentSet(x),B=contentSet(y);
+ if(!A.size||!B.size)return false;
+ const common=[...A].filter(w=>B.has(w)).length,small=Math.min(A.size,B.size),large=Math.max(A.size,B.size);
+ const frameA=primaryFrame(x),frameB=primaryFrame(y);
+ // A different explicit grammatical frame is useful for a single clause.
+ if(clauseCount(x)===1&&clauseCount(y)===1&&frameA&&frameB&&frameA!==frameB)return true;
+ // One sentence is merely an extension of another or mostly the same.
+ if(common===small||common/large>=.7||common/small>=.8)return false;
+ return true;
+}
+
 const containsPractice=(sentence,target)=>!!practiceKey(target)&&(' '+practiceKey(sentence)+' ').includes(' '+practiceKey(target)+' ');
 const isIndependent=a=>a.targetLang==='fr'&&a.result==='correct'&&a.support==='none'&&!!a.answer&&
  !['transcribe','listen','choice','workshop','model'].includes(a.context?.kind)&&
@@ -75,6 +97,7 @@ export function practiceLedger(audits=[],track,now=Date.now()){
  }
  const lastSeen=fr=>seen.get(practiceKey(fr))??null;
  const recentlySeen=fr=>lastSeen(fr)!==null&&now-lastSeen(fr)<PRACTICE_COOLDOWN;
+ const recentlySimilar=fr=>recentlySeen(fr)||practiceKey(fr).split(' ').length>=3&&[...seen].some(([other,at])=>now-at<PRACTICE_COOLDOWN&&other.split(' ').length>=3&&!meaningfulVariation(fr,other));
  const lastFailure=fr=>wrong.get(practiceKey(fr))??-1;
  const recallCount=fr=>[...(correct.get(practiceKey(fr))?.values()||[])].filter(at=>at>lastFailure(fr)&&now-at<=PRACTICE_DAY).length;
  const saturated=fr=>recallCount(fr)>=2;
@@ -92,13 +115,14 @@ export function practiceLedger(audits=[],track,now=Date.now()){
   for(const [fr,attempts] of correct){
    if(!containsPractice(fr,row.word))continue;
    const first=Math.min(...[...attempts.values()].filter(at=>at>lastTargetFailure));
-   if(Number.isFinite(first))contexts.push(first);
+   if(Number.isFinite(first))contexts.push({fr,at:first});
   }
-  contexts.sort((a,b)=>a-b);
-  return contexts.length>=2?contexts[1]+PRACTICE_DAY:null;
+  contexts.sort((a,b)=>a.at-b.at);
+  for(let i=1;i<contexts.length;i++)if(contexts.slice(0,i).some(x=>meaningfulVariation(x.fr,contexts[i].fr)))return contexts[i].at+PRACTICE_DAY;
+  return null;
  }
  const targetSatisfied=row=>(deferralUntil(row)??0)>now;
- return {lastSeen,recentlySeen,lastFailure,recallCount,saturated,longest,deferralUntil,targetSatisfied};
+ return {lastSeen,recentlySeen,recentlySimilar,lastFailure,recallCount,saturated,longest,deferralUntil,targetSatisfied};
 }
 export function deferRepeatedTargets(rows,ledger,now=Date.now()){
  return rows.map(row=>{const until=ledger.deferralUntil(row);return until&&until>now&&row.dueAt!==null&&row.dueAt<until?{...row,originalDueAt:row.dueAt,dueAt:until,due:false,practiceDeferred:true}:row;}).sort((a,b)=>Number(b.due)-Number(a.due)||(a.due&&b.due?b.score-a.score:0)||(a.dueAt??Infinity)-(b.dueAt??Infinity)||b.score-a.score||a.key.localeCompare(b.key));

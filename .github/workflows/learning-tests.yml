@@ -62,4 +62,4 @@ jobs:
       - run: node --check learning-evidence/v1/assessment.js
       - run: node --check french-teaching/v1/assessment.js
       - run: node --check french-teaching/v1/assessment-ui.js
-      - run: node --test tests/learning.test.mjs tests/learning-sync.test.mjs tests/learning-evidence.test.mjs tests/french-course.test.mjs tests/french-extensions.test.mjs tests/french-dictionary.test.mjs tests/french-auth-context.test.mjs tests/french-guided.test.mjs tests/french-assessment.test.mjs tests/french-curriculum.test.mjs tests/french-study-timing.test.mjs tests/french-learning-path.test.mjs tests/french-expansion.test.mjs tests/french-practice-manager.test.mjs
+      - run: node --test tests/learning.test.mjs tests/learning-sync.test.mjs tests/learning-evidence.test.mjs tests/french-course.test.mjs tests/french-extensions.test.mjs tests/french-dictionary.test.mjs tests/french-auth-context.test.mjs tests/french-guided.test.mjs tests/french-assessment.test.mjs tests/french-curriculum.test.mjs tests/french-study-timing.test.mjs tests/french-learning-path.test.mjs tests/french-expansion.test.mjs tests/french-practice-manager.test.mjs tests/french-journey.test.mjs

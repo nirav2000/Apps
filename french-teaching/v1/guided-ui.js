@@ -9,7 +9,7 @@ import {
 } from './guided-lessons.js';
 import {markAnswer,normaliseAnswer} from './data.js';
 import {exactAudit} from './answer-history.js';
-import {compareFrench,correctionSummary,phraseTarget,frenchTokens,differenceSegments,writingConvention} from './revision-signals.js';
+import {compareFrench,correctionSummary,phraseTarget,frenchTokens,differenceSegments,writingConvention,likelyTypingSlip} from './revision-signals.js';
 import {adaptiveStep,adaptiveOutcome} from './adaptive-teaching.js';
 import {repairDecision} from './revision-repair.js';
 import {curriculumVariants,curriculumNormalize} from './curriculum-meta.js';
@@ -479,12 +479,14 @@ export function createGuidedInterface({getEntries,getAudits=()=>[],recordPolicy=
     if(state.relearn){
       const r=state.relearn,covered=r.phase==='cover';
       const meaning=step.kind==='transcribe'?resolveEnglish(step.fr,step.en):step.en;
+      const repairFrench=r.target||step.fr;
+      const repairPrompt=r.target?'Recall just the corrected expression from this sentence: '+meaning:meaning;
       return head+'<div class="ft-guided-task ft-relearn-task" data-guided-step="'+html(step.id)+'" data-relearn-phase="'+html(r.phase)+'"><p class="ft-eyebrow">A LITTLE EXTRA HELP</p><h3>'+html(r.label)+'</h3><p>'+html(r.reason)+'</p>'+
-       (covered?'<p class="ft-relearn-meaning">'+html(meaning||'Recall the French you just heard.')+'</p>'+
+       (covered?'<p class="ft-relearn-meaning">'+html(repairPrompt||'Recall the French you just heard.')+'</p>'+
         (r.oral?'<p>Say the French aloud without looking.</p>'+advanceButton('relearn-oral-reveal','Reveal and compare'):'<form id="ft-guided-rebuild"><label for="ft-guided-rebuild-answer">Your French</label><input id="ft-guided-rebuild-answer" name="answer" lang="fr" type="text" '+EXACT_ANSWER_ATTRIBUTES+' required><button type="submit" class="ft-primary">Check rebuild</button></form>'):
        (state.result==='incorrect'&&r.phase==='model'&&!r.oral?answerComparison({answer:state.answer,expected:step.fr,result:'incorrect'}):'')+
-       pair(meaning||'Listen to the expression',step.fr)+
-       (r.phase==='checked'&&!r.oral?answerComparison({answer:r.answer,expected:step.fr,result:r.correct?'correct':'incorrect'}):'')+
+       pair(r.target?'Focus on this expression':meaning||'Listen to the expression',repairFrench)+
+       (r.phase==='checked'&&!r.oral?answerComparison({answer:r.answer,expected:repairFrench,result:r.correct?'correct':'incorrect'}):'')+
        (r.phase==='checked'?(r.oral?'<p>Compare with what you said. This is self-checked practice.</p>':r.correct?'<p>Rebuilt correctly with support.</p>':'<p>Still difficult? Try again or return to it later.</p>'):'')+
        '<div class="ft-actions">'+(r.phase==='checked'&&(r.correct||r.oral)?advanceButton('relearn-finish',r.oral?'I have said it correctly → Next':'Continue →'):advanceButton('relearn-cover','Cover and try again'))+
        (r.phase==='checked'?'<button type="button" data-gact="relearn-defer">Still difficult · revisit later</button>':'')+'</div>')+
@@ -615,7 +617,9 @@ export function createGuidedInterface({getEntries,getAudits=()=>[],recordPolicy=
     if(step.adaptivePlan)info.signal=adaptiveOutcome(step.adaptivePlan,{correct,reveal,model,support,answer});
     if(reveal||model)return recordAttempt({...info,answer,expected,result:model?'model':'revealed',reason:model?'Oral repetition, not automatically marked.':'Model revealed; not an independent success.',marker:'unscored'});
     const custom=step.track&&step.track!=='michaela'&&!isChoice(step);
-    const audit=exactAudit(answer,expected,correct,{...info,marker:isChoice(step)?'choice-v1':custom?'curriculum-v1':'guided-exact-v1',normalize:isChoice(step)?x=>String(x??''):custom?curriculumNormalize:normaliseAnswer});
+    const slip=step.track==='unlocking'&&!correct&&['guided','adaptive','repair'].includes(step.stage)&&likelyTypingSlip(answer,expected);
+    if(slip)info.context.typingSlip=true;
+    const audit=exactAudit(answer,expected,correct,{...info,...(slip?{reason:'Possible keyboard slip; original mark retained. Brief correction, no full-sentence relearning.'}:{}),marker:isChoice(step)?'choice-v1':custom?'curriculum-v1':'guided-exact-v1',normalize:isChoice(step)?x=>String(x??''):custom?curriculumNormalize:normaliseAnswer});
     if(custom)audit.accepted=step.kind==='transcribe'?[curriculumNormalize(expected)]:curriculumVariants(expected,step.en);
     return recordAttempt(audit);
   };
@@ -656,6 +660,7 @@ export function createGuidedInterface({getEntries,getAudits=()=>[],recordPolicy=
     const answer=String(value??'');
     if(!answer.trim())return;
     const correct=current.track==='michaela'?markAnswer(answer,current.fr):current.kind==='transcribe'?curriculumNormalize(answer)===curriculumNormalize(current.fr):curriculumVariants(current.fr,current.en).includes(curriculumNormalize(answer));
+    const slip=!correct&&current.track==='unlocking'&&['guided','adaptive','repair'].includes(current.stage)&&likelyTypingSlip(answer,current.fr);
     const intervention=!correct&&!['independent','transfer','review'].includes(current.stage)?repairDecision(answer,current.fr,getDifficulties()):null;
     if(!logGuided(current,answer,correct))return;
     firstAttempt(current,correct);
@@ -667,9 +672,14 @@ export function createGuidedInterface({getEntries,getAudits=()=>[],recordPolicy=
       state.wrong=true;
       // Record the unaided failure before showing the model. Completion is
       // assisted; the existing repair queue revisits missed main-deck items.
-      state.feedback=answerFeedback(answer,current.fr);
+      state.feedback=slip?'Possible typing slip. Check the highlighted letters and continue. Your original answer is still marked incorrect.':answerFeedback(answer,current.fr);
       state.revealed=true;
-      if(intervention)state.relearn={...intervention,phase:'model',oral:false};
+      if(slip&&!current.adaptivePlan)record({concept:current.concept,phase:'practice',support:'worked-example',sourceRef:current.id+':typing-slip'});
+      if(intervention){
+        const target=current.track==='unlocking'&&intervention.targets?.length===1?intervention.targets[0]:null;
+        const focused=target&&frenchTokens(target).length<frenchTokens(current.fr).length?target:null;
+        state.relearn={...intervention,phase:'model',oral:false,...(focused?{target:focused,label:'Focus on the missing expression',reason:'Look at the highlighted correction. Rebuild only the missing or incorrect French, not the whole sentence.'}:{})};
+      }
     }
     announce();
     playAudio('correction',current.fr);
@@ -825,9 +835,9 @@ export function createGuidedInterface({getEntries,getAudits=()=>[],recordPolicy=
     if(form.id==='ft-guided-rebuild'){
       event.preventDefault();const current=context().current,r=state.relearn,value=form.querySelector('input[name="answer"]')?.value||'';
       if(!current||!r||r.phase!=='cover'||!value.trim())return true;
-      const correct=markAnswer(value,current.fr);
-      if(!recordAttempt(exactAudit(value,current.fr,correct,{ref:current.id+':supported-rebuild',activity:'Guided relearning',question:current.en,marker:'listening-rebuild-v1',support:'worked-example',targetLang:'fr',context:{...signalContext(current),fr:current.fr,en:current.en,kind:'write',listeningRebuild:true}})))return true;
-      Object.assign(r,{phase:'checked',answer:value,correct});announce();playAudio('correction',current.fr);focusTarget('[data-ft-advance]');return true;
+      const expected=r.target||current.fr,correct=markAnswer(value,expected);
+      if(!recordAttempt(exactAudit(value,expected,correct,{ref:current.id+':supported-rebuild',activity:'Guided relearning',question:r.target?'Rebuild the corrected expression':current.en,marker:'listening-rebuild-v1',support:'worked-example',targetLang:'fr',context:{...signalContext(current),fr:expected,en:r.target?'':current.en,kind:'write',listeningRebuild:true}})))return true;
+      Object.assign(r,{phase:'checked',answer:value,correct});announce();playAudio('correction',expected);focusTarget('[data-ft-advance]');return true;
     }
     if(form.id!=='ft-guided-form')return false;
     event.preventDefault();

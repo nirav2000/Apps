@@ -43,3 +43,72 @@ test('French oral target identity ignores equivalent English gloss but respects 
  const ledger=practiceLedger([audit('later',fr,{result:'incorrect',answer:'wrong'},now-1)],'unlocking',now);
  assert.equal(repeatDecision(b,[a,b],entries,ledger),false);
 });
+
+import {meaningfulVariation} from '../french-teaching/v1/unlocking-adaptive.js';
+import {likelyTypingSlip,missedLanguageTargets,relatedRevisionTargets,groupRevisionTargets,revisionEvents} from '../french-teaching/v1/revision-signals.js';
+import {repairDecision} from '../french-teaching/v1/revision-repair.js';
+test('a long correct construction with two keyboard slips gets feedback, not a whole sentence rebuild',()=>{
+ const expected="J'ai préparé le repas et j'ai réservé une chambre";
+ const answer="J'ai préparé levrepas rt j'ai réservé une chambre";
+ assert.equal(likelyTypingSlip(answer,expected),true);
+ assert.equal(repairDecision(answer,expected),null);
+ const audit={id:'synthetic-typo',ref:'x',at:now,targetLang:'fr',result:'incorrect',answer,expected,context:{track:'unlocking',stage:'adaptive',kind:'write'}};
+ assert.deepEqual(revisionEvents([], [audit]),[]);
+ assert.equal(likelyTypingSlip("J'ai préparé le musée et j'ai réservé une chambre",expected),false);
+ assert.equal(likelyTypingSlip("J'ai prepare le repas et j'ai réservé une chambre",expected),false);
+ assert.equal(likelyTypingSlip("le repa","le repas"),false);
+ assert.equal(repairDecision("J'ai préparé le musée et j'ai réservé une chambre",expected).kind,'meaning');
+});
+test('nonadjacent real mistakes create small targets, not a huge overlapping span',()=>{
+ const expected="J'ai préparé le repas et j'ai réservé une chambre";
+ const got="J'ai préparé le musée et j'ai réservé une table";
+ const targets=missedLanguageTargets(got,expected).map(x=>x.word);
+ assert.deepEqual(targets,['le repas','une chambre']);
+ assert.equal(relatedRevisionTargets({word:"le repas"},{word:"le repas et j'ai"}),true);
+ assert.equal(relatedRevisionTargets({word:"le repas"},{word:"une chambre"}),false);
+ const row=(word,kind='construction',level=0)=>({word,key:word,due:true,dueAt:now,score:4,level,lastDifficulty:{kind}});
+ const rows=groupRevisionTargets([row('le repas'),row('repas'),row("le repas et j'ai réservé une"),row('le'),row('une chambre'),row('le','manual'),row('repas','review',1)]);
+ assert.deepEqual(rows.filter(x=>x.due).map(x=>x.word),['le repas','une chambre','le','repas']);
+ assert.ok(rows[1].groupedWith);assert.ok(rows[2].groupedReason);assert.ok(rows[3].groupedReason);
+});
+test('a pasted-on museum clause, time word or meal synonym is not meaningful variety',()=>{
+ const first="J'ai préparé le déjeuner et j'ai réservé une table";
+ assert.equal(meaningfulVariation(first,"Hier, "+first),false);
+ assert.equal(meaningfulVariation(first,first+" et hier j'ai visité le musée"),false);
+ assert.equal(meaningfulVariation(first,"J'ai préparé le repas et j'ai réservé une table"),false);
+ assert.equal(meaningfulVariation("J'ai préparé le déjeuner","Nous avons préparé le déjeuner"),true);
+ assert.equal(meaningfulVariation(first,"Je dois préparer le déjeuner avant de partir"),true);
+ const ledger=practiceLedger([audit('seen',first,{result:'model',answer:null,support:'worked-example'})],'unlocking',now);
+ assert.equal(ledger.recentlySimilar(first+" et hier j'ai visité le musée"),true);
+});
+test('trivial extensions cannot count as two independently demonstrated contexts',()=>{
+ const a="J'ai préparé le déjeuner et j'ai réservé une table",b=a+" et j'ai visité le musée";
+ const ledger=practiceLedger([audit('first',a,{},now-1000),audit('second',b,{},now-500)],'unlocking',now);
+ assert.equal(ledger.targetSatisfied({word:'déjeuner',level:0,lastDifficulty:{kind:'spelling',at:now-2000}}),false);
+});
+
+import {malformedAutoTarget,revisionQueue} from '../french-teaching/v1/revision-signals.js';
+import {chooseAdaptivePlan,adaptiveOutcome} from '../french-teaching/v1/adaptive-teaching.js';
+import {guidedLesson,guidedStatus,guidedTeachingRef,guidedCompletionRefs,unitsForTrack} from '../french-teaching/v1/guided-lessons.js';
+test('valid reusable structures remain eligible; dangling fragments do not',()=>{
+ for(const fr of ['je dois','je veux','je voudrais','nous avons','parce que','pas encore',"j'ai"])assert.equal(malformedAutoTarget(fr),false,fr);
+ for(const fr of ['le','une',"le repas et j'ai","le repas et j'ai réservé une"])assert.equal(malformedAutoTarget(fr),true,fr);
+});
+test('protected early teaching and prior-unit insert budget prevent a barrage of old material',()=>{
+ const units=unitsForTrack('unlocking'),old=units.find(u=>u.id==='unlock2-past'),next=units.find(u=>u.id!==old.id&&u.incremental&&u.blocks.some(b=>/partir/.test(b.fr)));
+ assert.ok(next);
+ const deck=guidedLesson(next.id).steps;
+ const ev=(ref,at=now)=>({at,source:{ref},score:{total:0,correct:0}});
+ const evidence=n=>[ev(guidedTeachingRef(next.id)),...guidedLesson(old.id).steps.filter(s=>!['independent','transfer','review'].includes(s.stage)).map(s=>ev(guidedCompletionRefs(s.id).complete)),...deck.slice(0,n).map(s=>ev(guidedCompletionRefs(s.id).complete))];
+ const difficulty={id:'synthetic-error',word:'préparé',kind:'spelling',at:now-1000,context:{sessionId:'earlier',unitId:old.id,position:4},sentence:"J'ai préparé le repas",english:'I prepared the meal'};
+ const row=revisionQueue([difficulty],now)[0];
+ const options=(n,audits=[],queue=[row])=>({status:guidedStatus(next.id,evidence(n),now),queue,audits,evidence:evidence(n),sessionId:'current',track:'unlocking',now});
+ assert.equal(chooseAdaptivePlan(options(3)),null);
+ const p=chooseAdaptivePlan(options(8));assert.ok(p);assert.equal(p.sourceUnitId,old.id);assert.equal(p.policyVersion,2);assert.equal(p.fr,'préparé');
+ const saved={id:'plan',at:now,answerAudit:{signal:{kind:'adaptive-plan',plan:p}}};
+ const done={id:'answer',at:now,answerAudit:{ref:p.id+':first',result:'correct'}};
+ const other=revisionQueue([{...difficulty,id:'other-error',word:'réservé',sentence:"J'ai réservé une table",english:'I booked a table'}],now)[0];
+ assert.equal(chooseAdaptivePlan(options(15,[saved,done],[other])),null);
+ const slip=adaptiveOutcome({...p,fr:"J'ai préparé le repas et j'ai réservé une chambre"},{answer:"J'ai préparé levrepas rt j'ai réservé une chambre",correct:false});
+ assert.equal(slip.kind,'typing-slip');assert.equal(slip.correct,false);
+});

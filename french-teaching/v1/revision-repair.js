@@ -1,14 +1,15 @@
-import {compareFrench,containsTarget,wordKey} from './revision-signals.js';
+import {compareFrench,containsTarget,wordKey,likelyTypingSlip,missedLanguageTargets} from './revision-signals.js';
 import {markAnswer} from './data.js';
 const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Distinguish a missing/wrong word or phrase from a first near-spelling error.
 // These are teaching decisions, not diagnoses of a person's memory.
 export function repairDecision(answer,expected,prior=[],revealed=false){
  if(!revealed&&markAnswer(answer,expected))return null;
+ if(!revealed&&likelyTypingSlip(answer,expected))return null;
  const changes=compareFrench(answer,expected).filter(x=>x.kind!=='match');
- if(revealed||!String(answer||'').trim()||!changes.length||changes.some(x=>!x.near))return {kind:'meaning',label:'Relearn this expression',reason:'A word or expression was missing or different. Look at its meaning, hear it and try again without the model.'};
+ if(revealed||!String(answer||'').trim()||!changes.length||changes.some(x=>!x.near))return {kind:'meaning',label:'Relearn this expression',reason:'A word or expression was missing or different. Look at its meaning, hear it and try again without the model.',targets:revealed?[]:missedLanguageTargets(answer,expected).map(t=>t.word)};
  const repeated=changes.some(c=>prior.some(r=>r.counts?.spelling>=1&&containsTarget(c.right?.text||'',r.word)||r.signals?.some(s=>s.kind==='review'&&!s.correct)&&containsTarget(expected,r.word)));
- return repeated?{kind:'spelling',label:'Practise the spelling again',reason:'This spelling has caused difficulty before. Notice the changed letters, then cover the model and rebuild it.'}:null;
+ return repeated?{kind:'spelling',label:'Practise the spelling again',reason:'This spelling has caused difficulty before. Notice the changed letters, then cover the model and rebuild it.',targets:[...new Set(changes.filter(c=>c.near&&c.right).map(c=>c.right.text))]}:null;
 }
 export function revisionResultsMarkup(rows,{summary=false,partial=false,auto=true}={}){
  const correct=rows.filter(r=>r.result==='correct'&&!r.assisted).length,assisted=rows.filter(r=>r.result==='correct'&&r.assisted).length,wrong=rows.length-correct-assisted;

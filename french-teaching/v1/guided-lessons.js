@@ -216,7 +216,7 @@ export function guidedStatus(unitId,entries,now=Date.now()){
   const firstWrong=rows.filter(e=>e.source?.ref?.endsWith(':first')&&
     e.source.ref.startsWith(GUIDED_PREFIX+unitId+':')&&e.score?.total>0&&
     e.score.correct===0);
-  const repairBase=lesson.steps.filter(x=>(firstWrong.some(e=>e.source.ref===guidedRefs(x.id).first)||(lesson.unit.incremental&&refs.has(x.id+':oral-retry')))&&
+  const repairBase=lesson.steps.filter(x=>(firstWrong.some(e=>e.source.ref===guidedRefs(x.id).first)&&!(lesson.unit.incremental&&['guided','repair'].includes(x.stage)&&refs.has(x.id+':typing-slip'))||(lesson.unit.incremental&&refs.has(x.id+':oral-retry')))&&
     refs.has(guidedRefs(x.id).complete));
   const repairs=repairBase.map(x=>{
     const repairId=idOf(unitId,'repair',x.id.slice(GUIDED_PREFIX.length));
