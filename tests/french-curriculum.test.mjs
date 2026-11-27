@@ -11,10 +11,10 @@ let seq=0;
 const ev=(ref,at,extra={})=>normalizeEvidence({id:'curr-'+(++seq),concept:'french:test',at,phase:'practice',support:'none',source:{kind:'french-course',ref},...extra},{appId:'next-french',accountId:'owner',learnerId:'sai'});
 const lesson=u=>[ev(guidedTeachingRef(u.id),t),...guidedLesson(u.id).steps.map((s,i)=>ev(guidedCompletionRefs(s.id).complete,t+(i+1)*1000,{concept:s.concept}))];
 const attempt=(u,stage,at)=>assessmentDeck(u.id,stage).map(x=>ev(x.ref,at,{concept:x.concept,phase:stage==='baseline'?'diagnostic':x.kind==='transfer'?'transfer':'retrieval',novel:stage!=='baseline'&&x.kind==='transfer',correctCount:1,total:1}));
-test('three tracks preserve the original four lessons and add nineteen fully usable decks',()=>{
- assert.deepEqual(['michaela','sai','unlocking','unlocking-archive'].map(x=>unitsForTrack(x).length),[4,13,12,6]);
- assert.equal(ALL_UNITS.length,35);
- assert.equal(new Set(ALL_UNITS.map(x=>x.id)).size,35);
+test('three active tracks and the archive preserve original lessons and all 16 Unlocking chapters',()=>{
+ assert.deepEqual(['michaela','sai','unlocking','unlocking-archive'].map(x=>unitsForTrack(x).length),[4,13,16,6]);
+ assert.equal(ALL_UNITS.length,39);
+ assert.equal(new Set(ALL_UNITS.map(x=>x.id)).size,39);
  assert.equal(GUIDED_UNITS.length,4);
  for(const u of ORIGINAL_UNITS){
    const rows=lessonRows(u),steps=guidedLesson(u.id).steps;
@@ -87,7 +87,10 @@ test('audio context distinguishes written forms which sound the same',()=>{
 });
 
 test('incremental chapters introduce exactly one component before any use, cover answers, and revisit every block',()=>{
- const units=unitsForTrack('unlocking');
+ // The original 12 incremental chapters have a stricter block-by-block contract.
+ // The four added workshops are independently tested in french-expansion.test.mjs.
+ const all=unitsForTrack('unlocking'),units=all.filter(u=>!u.expansion);
+ assert.equal(all.filter(u=>u.expansion).length,4);
  assert.equal(units.length,12);
  for(const u of units){
    const seen=new Set(), steps=guidedLesson(u.id).steps;
