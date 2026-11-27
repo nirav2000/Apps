@@ -219,7 +219,8 @@ try{
   await page.keyboard.press('Enter');
   const wrongBuild=lesson.steps[firstBuild+1];
   await waitCore(wrongBuild.id);
-  assert.equal(await page.evaluate(()=>document.activeElement?.id),'ft-guided-input');
+  // The next question renders before its two animation-frame focus handoff.
+  await page.waitForFunction(()=>document.activeElement?.id==='ft-guided-input');
   const incorrect="je parle français, mais j’aime le français";
   assert.equal(await page.locator('#ft-guided-input').getAttribute('autocorrect'),'off');
   await page.locator('#ft-guided-input').fill(incorrect);
