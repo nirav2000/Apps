@@ -4,6 +4,8 @@ import {magicTenFor,magicTenPhrase} from './magic10.js';
 import {SAI_UNITS} from './sai-curriculum.js';
 import {UNLOCKING_UNITS} from './unlocking-curriculum.js';
 import {UNLOCKING_BUILDER_UNITS,unlockingSteps} from './unlocking-builder.js';
+import {withExpansions} from './unlocking-expansion.js';
+import {skipRef} from './unlocking-adaptive.js';
 export const GUIDED_VERSION='2.0.0';
 export const GUIDED_PREFIX='guided-v2:';
 export const GUIDED_REVIEW_DAYS=Object.freeze([1,3,7]);
@@ -77,7 +79,7 @@ const LESSONS=Object.freeze([
 ]);
 export const GUIDED_UNITS=LESSONS; // compatibility: original four foundations
 export const ORIGINAL_UNITS=Object.freeze([...LESSONS,...SAI_UNITS,...UNLOCKING_UNITS.map(u=>({...u,track:'unlocking-archive'}))]);
-export const ALL_UNITS=Object.freeze([...ORIGINAL_UNITS,...UNLOCKING_BUILDER_UNITS]);
+export const ALL_UNITS=Object.freeze([...ORIGINAL_UNITS,...withExpansions(UNLOCKING_BUILDER_UNITS)]);
 export const unitsForTrack=(track='michaela')=>ALL_UNITS.filter(u=>(u.track||'michaela')===track);
 const idOf=(unit,stage,part)=>GUIDED_PREFIX+unit+':'+stage+':'+part;
 export const guidedRefs=id=>({
@@ -207,7 +209,7 @@ export function guidedStatus(unitId,entries,now=Date.now()){
   const lesson=guidedLesson(unitId);
   const rows=entriesFor(entries),refs=refSet(rows);
   const taughtAt=firstTaught(rows,unitId);
-  const main=lesson.steps.map(step=>({...step,completed:refs.has(guidedRefs(step.id).complete)}));
+  const main=lesson.steps.map(step=>{const actual=refs.has(guidedRefs(step.id).complete),skipped=lesson.unit.incremental&&!actual&&refs.has(skipRef(step));return {...step,completed:actual||skipped,skipped};});
   const unfinished=main.filter(x=>!x.completed);
   // Repairs must run even after the last primary question. They never masquerade
   // as independent or unseen assessment and are never permitted to vanish.
@@ -226,7 +228,7 @@ export function guidedStatus(unitId,entries,now=Date.now()){
   });
   const repairPending=repairs.filter(x=>!x.completed);
   const interleaved=lesson.unit.incremental?repairPending.find(r=>{const i=lesson.steps.findIndex(s=>r.id.endsWith(s.id.slice(GUIDED_PREFIX.length)));return i>=0&&main.slice(i+1,i+4).filter(s=>s.completed).length>=2;}):null;
-  const teaching={coreTotal:main.length,coreCompleted:main.length-unfinished.length,repairTotal:repairs.length,repairCompleted:repairs.length-repairPending.length};
+  const teaching={coreTotal:main.length,coreCompleted:main.length-unfinished.length,repairTotal:repairs.length,repairCompleted:repairs.length-repairPending.length,...(lesson.unit.incremental?{adaptiveSkipped:main.filter(s=>s.skipped).length}:{})};
   teaching.total=teaching.coreTotal+teaching.repairTotal;
   teaching.completed=teaching.coreCompleted+teaching.repairCompleted;
   if(unfinished.length||repairPending.length){

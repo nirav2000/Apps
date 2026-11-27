@@ -74,8 +74,10 @@ function buildBank(u){
 // distinct application prompts per assessment stage. Familiar strings in a new
 // context are application, not unseen transfer.
 const allTaught=new Set([...known,...ORIGINAL_UNITS.flatMap(u=>guidedLesson(u.id).steps.map(s=>curriculumNormalize(s.fr)))]);
-const incrementalTaught=new Set([...allTaught,...ALL_UNITS.filter(u=>u.incremental).flatMap(u=>guidedLesson(u.id).steps.map(s=>curriculumNormalize(s.fr)))]);
-const repeatedApplication=new Map();for(const u of ALL_UNITS.filter(u=>u.incremental))for(const x of u.application){const n=curriculumNormalize(x.fr);repeatedApplication.set(n,(repeatedApplication.get(n)||0)+1);}
+// Preserve the original assessment classification and IDs. Workshop examples
+// are application, never advertised as unseen transfer.
+const incrementalTaught=new Set([...allTaught,...ALL_UNITS.filter(u=>u.incremental&&!u.expansion).flatMap(u=>guidedLesson(u.id).steps.map(s=>curriculumNormalize(s.fr)))]);
+const repeatedApplication=new Map();for(const u of ALL_UNITS.filter(u=>u.incremental&&!u.expansion))for(const x of u.application){const n=curriculumNormalize(x.fr);repeatedApplication.set(n,(repeatedApplication.get(n)||0)+1);}
 function customBank(u){
   const rows=rowsFor(u),pairs=u.incremental?u.application:applicationPairs(u.id),out=new Map(),seen=new Set();
   const taught=u.incremental?incrementalTaught:allTaught;
@@ -83,7 +85,7 @@ function customBank(u){
     const deck=rows.map((r,i)=>({...r,track:u.track,unitId:u.id,stage:stage.id,kind:'recall',ref:key(u.id,stage.id,i,'recall'),index:i}));
     for(let k=0;k<2;k++){
       const q=pairs[j*2+k],norm=curriculumNormalize(q.fr);
-      const novel=norm.split(' ').length>2&&!seen.has(norm)&&(!u.incremental||repeatedApplication.get(norm)===1)&&![...taught].some(x=>(' '+x+' ').includes(' '+norm+' '));
+      const novel=!u.expansion&&norm.split(' ').length>2&&!seen.has(norm)&&(!u.incremental||repeatedApplication.get(norm)===1)&&![...taught].some(x=>(' '+x+' ').includes(' '+norm+' '));
       seen.add(norm);
       const i=rows.length+k,kind=novel?'transfer':'application';
       deck.push({...q,track:u.track,unitId:u.id,stage:stage.id,kind,index:i,id:u.id,verbId:u.id,concept:'french:'+u.id+':application:'+j+':'+k,ref:key(u.id,stage.id,i,kind),hint:u.incremental?'Build the sentence from the components learned in this chapter.':u.soundFocus.note});
@@ -131,8 +133,10 @@ export function teachingFinishedAt(unitId,entries,now=Date.now()){
   const status=guidedStatus(unitId,entries,now),m=firstByRef(entries);
   if(!status.taughtAt||status.teaching?.completed!==status.teaching?.total)return null;
   const prefix='guided-v2:'+unitId+':';
-  const completed=[...m.values()].filter(e=>ref(e).startsWith(prefix)&&ref(e).endsWith(':complete')&&!ref(e).includes(':review-'));
-  if(completed.length<guidedLesson(unitId).steps.length)return null;
+  const steps=guidedLesson(unitId).steps;
+  const resolved=steps.map(s=>m.get(s.id+':complete')||(status.unit.incremental?m.get(s.id+':adaptive-skip'):null));
+  if(resolved.some(e=>!e))return null;
+  const completed=[...resolved,...[...m.values()].filter(e=>ref(e).startsWith(prefix+'repair:')&&ref(e).endsWith(':complete'))];
   return Math.max(...completed.map(e=>Number(e.at)));
 }
 function eligibleRow(row,stage,anchor,start){

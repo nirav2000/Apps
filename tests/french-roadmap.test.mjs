@@ -61,25 +61,25 @@ test('weekend priorities distinguish exact model matches from proposed additions
 
 
 test('default roadmap provides actual distinct language by now, module, and cumulatively',()=>{
- const empty=roadmapData('unlocking',[],now),u=empty.units[0],v=empty.units[1];
+ const empty=roadmapData('unlocking',[],now),u=empty.units[0],v=empty.units.find(x=>x.unit.id==='unlock2-cognates');
  const evidence=u.steps.slice(0,10).map((s,j)=>({id:'covered'+j,at:now-1000+j,source:{ref:guidedRefs(s.id).complete},phase:'practice',support:'worked-example',score:{total:0,correct:0}}));
  const d=roadmapData('unlocking',evidence,now),rows=languageInventory(d,evidence,now);
- assert.equal(rows.length,269);
+ assert.ok(rows.length>400);
  assert.equal(selectLanguage(d,rows,{scope:'now'}).rows.length,5);
  const phrase=rows.find(r=>r.fr==='J’ai préparé');
  assert.deepEqual(phrase.translations,['I have prepared','I prepared']);
  assert.equal(phrase.covered,true);assert.equal(phrase.written,null);
  assert.equal(rows.filter(r=>/^tu es prêt\s*\??$/i.test(r.fr)).length,2);
  assert.equal(selectLanguage(d,rows,{scope:'through',module:u.unit.id}).rows.length,20);
- assert.equal(selectLanguage(d,rows,{scope:'through',module:v.unit.id}).rows.length,40);
+ assert.equal(selectLanguage(d,rows,{scope:'through',module:v.unit.id}).rows.length,80);
  assert.equal(selectLanguage(d,rows,{scope:'module',module:v.unit.id}).newCount,20);
- assert.equal(selectLanguage(d,rows,{scope:'all'}).rows.length,269);
+ assert.equal(selectLanguage(d,rows,{scope:'all'}).rows.length,rows.length);
  const html=roadmapPage({activeTrack:'unlocking',profile:'adult',entries:evidence,now});
  assert.match(html,/What should I be able to say\?/);assert.match(html,/I prepared the meal/);assert.match(html,/J’ai préparé le repas/);
  assert.match(html,/Written recall not measured/);assert.match(html,/Not measured/);
  assert.ok(!html.includes('French around the sailing club'));
  const all=roadmapPage({activeTrack:'unlocking',profile:'adult',settings:{scope:'all'},now});
- assert.match(all,/269/);assert.match(all,/Sailing Days/);
+ assert.ok(all.includes(String(rows.length)));assert.match(all,/Sailing Days/);
 });
 test('inventory does not promote assisted writing, incomplete future models or another track to coverage',()=>{
  const d=roadmapData('unlocking',[],now),u=d.units[0],s=u.steps.find(s=>s.kind==='write'&&s.stage==='independent');

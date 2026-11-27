@@ -660,3 +660,22 @@
 .ft-app .ft-road-conversations{margin:22px 0;padding:16px;border:1px solid #dce7de;border-radius:14px;background:#f7faf6}
 .ft-app .ft-road-conversations h3{font-size:22px;letter-spacing:-.02em;margin:5px 0}
 @media(max-width:480px){.ft-app .ft-journey-session li{grid-template-columns:60px minmax(0,1fr);gap:6px}.ft-app .ft-revision-result-pair{gap:6px}.ft-app .ft-revision-result-pair p{font-size:15px}}
+
+
+/* Unlocking French: spoken four-pile construction. */
+.ft-app .ft-mix-task{max-width:900px;margin:0 auto}
+.ft-app .ft-mix-piles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}
+.ft-app .ft-mix-pile{border:1px solid #dce6de;border-radius:12px;background:#f8faf7;padding:10px;min-width:0}
+.ft-app .ft-mix-pile h4{display:flex;align-items:center;gap:6px;font-size:14px;line-height:1.35;margin:2px 0 12px}
+.ft-app .ft-mix-pile h4 span{width:23px;height:23px;flex:0 0 23px;border-radius:50%;background:#e5eee5;color:#285b4d;display:grid;place-items:center;font-weight:750}
+.ft-app .ft-mix-pile button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;margin:6px 0;padding:10px 8px;text-align:left;line-height:1.35;min-height:44px;background:#fff;border:1px solid #dce6de;color:#243d32;overflow-wrap:anywhere;font-size:14px}
+.ft-app .ft-mix-pile button.selected{background:#e1efe5;border:2px solid #397960;padding:9px 7px;font-weight:650;color:#244d3d}
+.ft-app .ft-mix-pile button:disabled{opacity:1}
+.ft-app .ft-mix-pile button b{font-size:14px;color:#285b4d;font-weight:650}
+.ft-app .ft-mix-pile button small{font-size:10px;color:#39745b}
+.ft-app .ft-mix-sentence{border:1px solid #dce6de;border-radius:15px;background:#fff;padding:18px;margin:18px 0;display:grid;gap:10px}
+.ft-app .ft-mix-sentence strong{font-size:clamp(18px,3vw,24px);line-height:1.45}
+.ft-app .ft-mix-french{font-size:clamp(20px,3.5vw,29px);font-weight:650;color:#285b4d;line-height:1.4}
+.ft-app .ft-mix-sentence button{justify-self:start}
+.ft-app .ft-unlock-discovery{font-weight:650;color:#315f4b}
+@media(max-width:760px){.ft-app .ft-mix-piles{grid-template-columns:repeat(2,minmax(0,1fr))}.ft-app .ft-mix-pile{padding:8px}.ft-app .ft-mix-pile button{font-size:13px}}
