@@ -586,3 +586,51 @@
 .ft-app .ft-road-dialogue-turn span{font-size:13px;color:#405d51}
 .ft-app .ft-road-mix{display:grid;gap:5px;margin:9px 0}
 .ft-app .ft-road-mix>div{display:flex;gap:10px;justify-content:space-between;border-bottom:1px solid var(--road-line);padding:5px 0;font-size:13px}
+
+
+/* Language inventory: a compact bilingual checklist, rather than hundreds
+   of repeated teaching cards. All module headings can be collapsed. */
+.ft-app .ft-language{scroll-margin-top:12px;margin:24px 0 0}
+.ft-app .ft-language h2{font-size:clamp(25px,4vw,35px);letter-spacing:-.035em;margin:4px 0 8px}
+.ft-app .ft-language-course label,.ft-app .ft-language-module-select{display:grid;gap:6px;color:#405d51;font-size:13px;font-weight:650;max-width:470px;margin:14px 0}
+.ft-app .ft-language-course select,.ft-app .ft-language-module-select select{width:100%;min-width:0;font-size:14px}
+.ft-app .ft-language-scopes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:18px 0}
+.ft-app .ft-language-scopes button{padding:11px 5px;font-size:13px;color:#3c594b;background:#fff;border-color:#d9e5db;line-height:1.3}
+.ft-app .ft-language-scopes button.active{background:#285b4d;border-color:#285b4d;color:#fff;font-weight:750}
+.ft-app .ft-language-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0}
+.ft-app .ft-language-metrics .ft-road-stat{padding:11px}
+.ft-app .ft-language-metrics .ft-road-stat strong{font-size:clamp(19px,3vw,25px)}
+.ft-app .ft-language-overview{border:1px solid #dce7de;border-radius:12px;background:#f7faf7;margin:18px 0 24px;padding:12px}
+.ft-app .ft-language-overview>summary{cursor:pointer;font-weight:650;color:#315c48}
+.ft-app .ft-language-milestones{margin-top:12px}
+.ft-app .ft-language-milestones>div{display:flex;gap:10px;align-items:center;border-top:1px solid #dce7de;padding:7px 0}
+.ft-app .ft-language-milestones button{flex:1;display:grid;text-align:left;gap:3px;background:transparent;border:0;padding:7px 0;min-width:0}
+.ft-app .ft-language-milestones button strong{font-size:14px;color:#244d3d}
+.ft-app .ft-language-milestones small,.ft-app .ft-language-milestones>div>span{font-size:11px;color:#4d6859}
+.ft-app .ft-language-list-head{scroll-margin-top:12px;margin:22px 0 10px}
+.ft-app .ft-language-list-head h3{font-size:21px;margin:0}
+.ft-app .ft-language-list-head .ft-road-search{margin:12px 0}
+.ft-app .ft-language-module{border:1px solid #dce7de;border-radius:14px;background:#fff;margin:14px 0;padding:0;overflow:hidden}
+.ft-app .ft-language-module>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;background:#eff5ef;padding:14px 16px}
+.ft-app .ft-language-module>summary>span:first-child{display:grid;gap:4px}
+.ft-app .ft-language-module>summary strong{font-size:16px;color:#214a3a;line-height:1.35}
+.ft-app .ft-language-module>summary small{font-size:12px;color:#50695a}
+.ft-app .ft-language-chevron{font-size:23px;color:#536e5e;line-height:1}
+.ft-app .ft-language-module[open] .ft-language-chevron{transform:rotate(90deg)}
+.ft-app .ft-language-header,.ft-app .ft-language-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;padding:10px 16px;border-top:1px solid #e6ece6}
+.ft-app .ft-language-header{font-size:11px;color:#4b6556;font-weight:700;background:#fbfcfa}
+.ft-app .ft-language-row>div{min-width:0}
+.ft-app .ft-language-row strong{font-size:15px;line-height:1.4;overflow-wrap:anywhere;letter-spacing:-.01em}
+.ft-app .ft-language-en,.ft-app .ft-language-fr{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.ft-app .ft-language-fr>div{display:flex;align-items:center;gap:6px;width:100%;justify-content:space-between}
+.ft-app .ft-language-fr [lang=fr]{color:#285b4d;font-size:17px}
+.ft-app .ft-language-row .ft-road-audio{min-width:32px;min-height:34px;padding:5px;font-size:12px}
+.ft-app .ft-language-row small,.ft-app .ft-language-hidden{font-size:11px;line-height:1.4;color:#526b5d}
+.ft-app .ft-language-exposure.covered,.ft-app .ft-language-evidence.confirmed{color:#276149;font-weight:650}
+.ft-app .ft-language-pieces{grid-column:1/-1;padding:0;margin:0;border:0;background:transparent}
+.ft-app .ft-language-pieces>summary{font-size:12px;color:#456958;cursor:pointer;padding:4px 0}
+.ft-app .ft-language-pieces .ft-road-chunks{margin-top:6px}
+.ft-app .ft-language-protected,.ft-app .ft-language-empty{background:#f5f8f4;border:1px solid #dce7de;border-radius:12px;padding:12px;color:#3d5a4d}
+.ft-app .ft-language-empty h3{margin:0 0 6px;font-size:17px}
+.ft-app .ft-road-milestone-actions{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:520px){.ft-app .ft-language-scopes{grid-template-columns:repeat(2,minmax(0,1fr))}.ft-app .ft-language-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ft-app .ft-language-metrics .ft-road-stat:last-child{grid-column:1/-1}.ft-app .ft-language-row,.ft-app .ft-language-header{padding:10px;gap:8px}.ft-app .ft-language-row strong{font-size:14px}.ft-app .ft-language-fr [lang=fr]{font-size:15px}.ft-app .ft-language-module>summary{padding:12px}.ft-app .ft-language-row .ft-road-audio{min-width:34px;min-height:38px}}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {roadmapData,roadmapPage,roadmapUnitMarkup,roadmapSettings,teachingDays,goalCoverage,WEEKEND_GOALS,ROADMAP_VIEWS} from '../french-teaching/v1/roadmap.js';
+import {roadmapData,roadmapPage,roadmapUnitMarkup,roadmapSettings,teachingDays,goalCoverage,WEEKEND_GOALS,ROADMAP_VIEWS,LANGUAGE_SCOPES,languageInventory,selectLanguage} from '../french-teaching/v1/roadmap.js';
 import {unitsForTrack,guidedLesson,guidedRefs} from '../french-teaching/v1/guided-lessons.js';
 const now=1700000000000;
 test('roadmap is generated from all tracks and every ordered core teaching step',()=>{
@@ -22,7 +22,7 @@ test('forecast adjusts to the pace and recorded progress but is not mastery',()=
  assert.equal(d.days,teachingDays(d.remaining,30,30));assert.ok(d.days<base.days);
  assert.equal(roadmapData('michaela',entries,now).coreCompleted,0);
  assert.equal(roadmapSettings({minutes:-1,seconds:0,view:'bad'}).minutes,15);
- assert.equal(roadmapSettings({minutes:-1,seconds:0,view:'bad'}).view,'journey');
+ assert.equal(roadmapSettings({minutes:-1,seconds:0,view:'bad'}).view,'language');
 });
 test('roadmap has expandable chapters and every core step, retaining repeated practice',()=>{
  const d=roadmapData('unlocking',[],now),u=d.units[0];
@@ -51,10 +51,59 @@ test('weekend priorities distinguish exact model matches from proposed additions
  assert.equal(g.length,WEEKEND_GOALS.length);
  assert.ok(g.flatMap(x=>x.pairs).some(x=>x.match&&!x.match.completed));
  assert.ok(g.flatMap(x=>x.pairs).some(x=>!x.match));
- const html=roadmapPage({activeTrack:'unlocking',profile:'adult',now});
+ const html=roadmapPage({activeTrack:'unlocking',profile:'adult',settings:{view:'journey'},now});
  assert.match(html,/French around the sailing club/);assert.match(html,/Proposed addition · reference only/);
  assert.match(html,/Example conversation · parent\/child/);
  assert.match(html,/Go and get changed/);assert.match(html,/Eat up/);
- assert.ok(!roadmapPage({activeTrack:'sai',profile:'sai',now}).includes('French around the sailing club'));
+ assert.ok(!roadmapPage({activeTrack:'sai',profile:'sai',settings:{view:'journey'},now}).includes('French around the sailing club'));
  assert.match(roadmapPage({activeTrack:'unlocking',profile:'adult',settings:{view:'analysis'},now}),/Not measured/);
+});
+
+
+test('default roadmap provides actual distinct language by now, module, and cumulatively',()=>{
+ const empty=roadmapData('unlocking',[],now),u=empty.units[0],v=empty.units[1];
+ const evidence=u.steps.slice(0,10).map((s,j)=>({id:'covered'+j,at:now-1000+j,source:{ref:guidedRefs(s.id).complete},phase:'practice',support:'worked-example',score:{total:0,correct:0}}));
+ const d=roadmapData('unlocking',evidence,now),rows=languageInventory(d,evidence,now);
+ assert.equal(rows.length,269);
+ assert.equal(selectLanguage(d,rows,{scope:'now'}).rows.length,5);
+ const phrase=rows.find(r=>r.fr==='J’ai préparé');
+ assert.deepEqual(phrase.translations,['I have prepared','I prepared']);
+ assert.equal(phrase.covered,true);assert.equal(phrase.written,null);
+ assert.equal(rows.filter(r=>/^tu es prêt\s*\??$/i.test(r.fr)).length,2);
+ assert.equal(selectLanguage(d,rows,{scope:'through',module:u.unit.id}).rows.length,20);
+ assert.equal(selectLanguage(d,rows,{scope:'through',module:v.unit.id}).rows.length,40);
+ assert.equal(selectLanguage(d,rows,{scope:'module',module:v.unit.id}).newCount,20);
+ assert.equal(selectLanguage(d,rows,{scope:'all'}).rows.length,269);
+ const html=roadmapPage({activeTrack:'unlocking',profile:'adult',entries:evidence,now});
+ assert.match(html,/What should I be able to say\?/);assert.match(html,/I prepared the meal/);assert.match(html,/J’ai préparé le repas/);
+ assert.match(html,/Written recall not measured/);assert.match(html,/Not measured/);
+ assert.ok(!html.includes('French around the sailing club'));
+ const all=roadmapPage({activeTrack:'unlocking',profile:'adult',settings:{scope:'all'},now});
+ assert.match(all,/269/);assert.match(all,/Sailing Days/);
+});
+test('inventory does not promote assisted writing, incomplete future models or another track to coverage',()=>{
+ const d=roadmapData('unlocking',[],now),u=d.units[0],s=u.steps.find(s=>s.kind==='write'&&s.stage==='independent');
+ const exposure=u.steps.find(x=>x.fr===s.fr&&x.kind==='model');
+ const row=(ref,support,correct,at)=>({id:ref,at,source:{ref},phase:'practice',support,score:{total:1,correct}});
+ const e=[row(guidedRefs(s.id).first,'small-prompt',1,now-2000),row(guidedRefs(exposure.id).complete,'worked-example',0,now-1000)];
+ const rows=languageInventory(d,e,now);
+ assert.equal(rows.find(x=>x.fr===s.fr).written,null);
+ assert.equal(rows.find(x=>x.fr===s.fr).covered,true);
+ const independent=[row(guidedRefs(s.id).first,'none',1,now-2000),e[1]];
+ assert.equal(languageInventory(d,independent,now).find(x=>x.fr===s.fr).written.correct,true);
+ const future=[{...e[1],at:now+1}];
+ assert.ok(languageInventory(d,future,now).every(x=>!x.covered));
+ assert.ok(languageInventory(roadmapData('sai',e,now),e,now).every(x=>!x.covered));
+});
+test('all language filters hide French and audio when independent checks are due',()=>{
+ const d=roadmapData('unlocking',[],now),unit=d.units[0].unit.id;
+ for(const scope of LANGUAGE_SCOPES){
+  const html=roadmapPage({activeTrack:'unlocking',profile:'adult',settings:{scope,module:unit},protectedUnits:new Set([unit]),now});
+  assert.ok(!html.includes('data-roadmap-audio'));
+  assert.ok(!html.includes('J’ai préparé'));
+  assert.match(html,/English checklist is available/);
+ }
+ const safe=roadmapPage({activeTrack:'unlocking',profile:'adult',settings:{scope:'through',module:unit,languageQuery:'meal'},now});
+ assert.match(safe,/I prepared the meal/);
+ assert.ok(!safe.includes('>I booked a table</strong>')); // a longer sentence about the meal may contain these words
 });

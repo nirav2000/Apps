@@ -447,7 +447,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     state.cloudAt=null;
     try{localStorage.setItem('next-french:profile',profile);}catch{}
     await syncNow();
-    if(importedWords.length)state.page='signals';else if(window.location.hash==='#roadmap'&&!breakForCourse()){roadmap={...roadmap,track:state.track,view:'journey'};state.page='roadmap';}
+    if(importedWords.length)state.page='signals';else if(window.location.hash==='#roadmap'&&!breakForCourse()){roadmap={...roadmap,track:state.track,view:'language',scope:'now',languageQuery:''};state.page='roadmap';}
   }
   function nav(){
     const tabs=[['home','Today'],['lesson',"Today's lesson"],['roadmap','Learning roadmap'],['evidence','Learning dashboard'],['history','Answer history'],['signals','Revision signals'],['patterns','Patterns & grammar'],['magic','Magic 10'],['alphabet','Alphabet'],
@@ -1055,7 +1055,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     cancelPendingAdvance();patternReview=null;
     if(page==='lesson'){revision=null;startDailyWithSignals(true);return;}
     revision=null;
-    if(page==='roadmap'){roadmapOpenUnit='';roadmap={...roadmap,track:state.track};state.page=page;render();return;}
+    if(page==='roadmap'){roadmapOpenUnit='';roadmap={...roadmap,track:state.track,view:'language',scope:'now',languageQuery:''};state.page=page;render();return;}
     if(page==='alphabet'){teach('alphabet');state.page=page;}
     else if(page==='sounds'){teach('sounds');state.page=page;}
     else if(page==='knowledge'||page==='workshop'){teach('connectives');state.page=page;}
@@ -1130,6 +1130,8 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(b.dataset.act?.startsWith('roadmap-view:')&&state.page==='roadmap'){
       const view=b.dataset.act.slice(13);if(ROADMAP_VIEWS.includes(view)){roadmap={...roadmap,view};roadmapOpenUnit='';saveRoadmapSettings();render();}return;
     }
+    if(b.dataset.act==='roadmap-language-scope'&&state.page==='roadmap'){roadmap=roadmapSettings({...roadmap,scope:b.dataset.languageScope,languageQuery:''});saveRoadmapSettings();render();return;}
+    if(b.dataset.act==='roadmap-language-unit'&&state.page==='roadmap'){const module=b.dataset.roadmapUnitId;if(unitsForTrack(roadmap.track||state.track).some(u=>u.id===module)){roadmap=roadmapSettings({...roadmap,view:'language',scope:'module',module,languageQuery:''});saveRoadmapSettings();render();el().querySelector('.ft-language')?.scrollIntoView({block:'start'});}return;}
     if(b.dataset.act==='roadmap-browse'&&state.page==='roadmap'){const track=b.dataset.roadmapTrack;if(validTrack(track)){roadmap={...roadmap,track,view:'curriculum',query:''};roadmapOpenUnit='';saveRoadmapSettings();render();}return;}
     if(b.dataset.act==='roadmap-open-unit'&&state.page==='roadmap'){const unit=b.dataset.roadmapUnitId;if(unitsForTrack(roadmap.track||state.track).some(u=>u.id===unit)){roadmap={...roadmap,view:'curriculum',query:''};roadmapOpenUnit=unit;saveRoadmapSettings();render();Array.from(el().querySelectorAll('[data-roadmap-unit]')).find(n=>n.dataset.roadmapUnit===unit)?.scrollIntoView({block:'start'});}return;}
     if(b.dataset.act==='roadmap-audio'&&state.page==='roadmap'){if(b.dataset.roadmapAudio)speak(b.dataset.roadmapAudio);return;}
@@ -1373,6 +1375,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   async function onSubmit(e){
     if(!['ft-revision-add','ft-revision-lookup','ft-login','ft-login-form','ft-reset-form'].includes(e.target.id)&&breakForCourse()){e.preventDefault();enforceBreak();return;}
+    if(e.target.id==='ft-language-search'&&state.page==='roadmap'){e.preventDefault();roadmap=roadmapSettings({...roadmap,languageQuery:e.target.querySelector('[name="query"]')?.value||''});saveRoadmapSettings();render();el().querySelector('.ft-language-list-head')?.scrollIntoView({block:'start'});return;}
     if(e.target.id==='ft-roadmap-search'&&state.page==='roadmap'){e.preventDefault();roadmap=roadmapSettings({...roadmap,query:e.target.querySelector('[name="query"]')?.value||''});roadmapOpenUnit='';saveRoadmapSettings();render();return;}
     if(e.target.id==='ft-pattern-search'){
       e.preventDefault();patternQuery=e.target.querySelector('[name="query"]')?.value||'';render();return;
@@ -1421,7 +1424,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
   }
   async function onChange(e){
-    if(e.target.matches('[data-roadmap-setting]')&&state.page==='roadmap'){if(enforceBreak())return;const key=e.target.dataset.roadmapSetting;if(['track','minutes','seconds'].includes(key)){roadmap=roadmapSettings({...roadmap,[key]:e.target.value,query:key==='track'?'':roadmap.query});roadmapOpenUnit='';saveRoadmapSettings();render();}return;}
+    if(e.target.matches('[data-roadmap-setting]')&&state.page==='roadmap'){if(enforceBreak())return;const key=e.target.dataset.roadmapSetting;if(['track','minutes','seconds','module'].includes(key)){roadmap=roadmapSettings({...roadmap,[key]:e.target.value,...(key==='track'?{query:'',languageQuery:'',module:''}:key==='module'?{languageQuery:''}:{})});roadmapOpenUnit='';saveRoadmapSettings();render();}return;}
     if(e.target.matches('[data-track]')){changeTrack(e.target.value);return;}
     if(e.target.matches('[data-history-filter]')){historyFilter=e.target.value;historyLimit=50;render();return;}
     if(e.target.matches('[data-french-voice]')){
