@@ -506,3 +506,83 @@
 .ft-app .ft-no-review{font-size:14px}
 .ft-app .ft-path-row.done .ft-path-status{color:#285b4b;font-weight:650}
 @media(max-width:430px){.ft-app .ft-next-review{padding:13px}.ft-app .ft-next-review-title{font-size:17px}.ft-app .ft-next-review-unit{font-size:14px}.ft-app .ft-path-row.done .ft-path-status{font-size:11px}}
+
+
+/* Roadmap: quiet, responsive, with progressively disclosed details. */
+.ft-app .ft-roadmap{--road-line:#dfe8e0;--road-muted:#4c6556;--road-surface:#f5f8f4;max-width:1020px;margin:16px auto}
+.ft-app .ft-roadmap p{line-height:1.55}
+.ft-app .ft-road-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ft-app .ft-road-head h2{font-size:clamp(26px,5vw,39px);letter-spacing:-.04em;margin:4px 0}
+.ft-app .ft-road-head h3{font-size:20px;line-height:1.3;margin:4px 0}
+.ft-app .ft-road-tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 0 15px;margin:10px 0;border-bottom:1px solid var(--road-line)}
+.ft-app .ft-road-tabs button{white-space:nowrap;flex:0 0 auto;font-size:14px;background:#fff;color:#365346;border:1px solid #d7e3d9}
+.ft-app .ft-road-tabs button.active{background:#e2efe5;color:#214d3d;border-color:#b9d5c2;font-weight:750}
+.ft-app .ft-road-controls{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:10px;margin:20px 0 5px}
+.ft-app .ft-road-controls label{display:grid;gap:5px;font-size:12px;color:var(--road-muted);min-width:0;font-weight:650}
+.ft-app .ft-road-controls select{width:100%;min-width:0;font-size:14px;padding:11px 9px}
+.ft-app .ft-road-note{font-size:13px;color:var(--road-muted);margin:8px 0;line-height:1.5}
+.ft-app .ft-road-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
+.ft-app .ft-road-stat{display:grid;align-content:start;gap:5px;background:var(--road-surface);border:1px solid var(--road-line);border-radius:14px;padding:15px;min-width:0}
+.ft-app .ft-road-stat small{font-size:12px;color:var(--road-muted);font-weight:650}
+.ft-app .ft-road-stat strong{font-size:clamp(20px,3vw,27px);line-height:1.3;letter-spacing:-.035em;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.ft-app .ft-road-stat span{font-size:12px;color:var(--road-muted);line-height:1.4}
+.ft-app .ft-road-progress{height:7px;background:#e3eae2;border-radius:20px;overflow:hidden;margin:10px 0}
+.ft-app .ft-road-progress>span{display:block;background:#397960;height:100%;border-radius:20px}
+.ft-app .ft-road-goals{margin:28px 0;padding:20px;background:#f7faf6;border:1px solid #dce7dc;border-radius:18px}
+.ft-app .ft-road-goals h2{font-size:clamp(23px,4vw,31px);letter-spacing:-.03em;margin:5px 0 12px}
+.ft-app .ft-road-detail{background:transparent;border:0;border-top:1px solid var(--road-line);border-radius:0;margin:0;padding:0}
+.ft-app .ft-road-detail>summary{display:flex;align-items:center;gap:12px;padding:16px 0;list-style:none;cursor:pointer;min-height:44px}
+.ft-app .ft-roadmap summary::-webkit-details-marker{display:none}
+.ft-app .ft-road-detail>summary::after{content:'›';margin-left:auto;font-size:23px;font-weight:400;color:#587263}
+.ft-app .ft-road-detail[open]>summary::after{transform:rotate(90deg)}
+.ft-app .ft-road-detail>summary>span:not(.ft-road-num):not(.ft-road-pill){display:grid;gap:4px;min-width:0;flex:1}
+.ft-app .ft-roadmap summary small{font-size:12px;color:var(--road-muted);font-weight:500}
+.ft-app .ft-road-num{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;background:#e5eee6;border-radius:50%;font-size:13px;color:#315b46;font-weight:750;font-variant-numeric:tabular-nums}
+.ft-app .ft-road-body{padding:0 0 16px}
+.ft-app .ft-road-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid var(--road-line);background:white;border-radius:12px;padding:13px;margin:8px 0}
+.ft-app .ft-road-pair>div{display:grid;gap:4px;min-width:0}
+.ft-app .ft-road-pair small{font-size:10px;letter-spacing:.06em;font-weight:650;color:var(--road-muted)}
+.ft-app .ft-road-pair strong{font-size:clamp(15px,2.5vw,19px);line-height:1.35;overflow-wrap:anywhere}
+.ft-app .ft-road-pair [lang=fr]{color:#285b4d}
+.ft-app .ft-road-audio{min-width:40px;min-height:40px;padding:6px 9px;background:white;color:#285b4d}
+.ft-app .ft-road-timeline{margin:20px 0}
+.ft-app .ft-road-milestone{position:relative;display:flex;align-items:flex-start;gap:13px;padding-bottom:20px}
+.ft-app .ft-road-milestone:not(:last-child)::before{content:'';position:absolute;left:15px;top:32px;bottom:0;width:2px;background:#dce9de}
+.ft-app .ft-road-milestone>.ft-road-num{position:relative;z-index:1}
+.ft-app .ft-road-milestone>div{flex:1;min-width:0;padding:0 0 16px;border-bottom:1px solid var(--road-line)}
+.ft-app .ft-road-pill{flex-shrink:0;background:#edf3ec;border:1px solid #e1e9df;border-radius:20px;padding:6px 9px;font-size:11px;color:#456353;line-height:1.3;font-weight:650}
+.ft-app .ft-road-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.ft-app .ft-road-compare>article,.ft-app .ft-road-analysis{border:1px solid var(--road-line);padding:16px;border-radius:14px;min-width:0;margin:8px 0}
+.ft-app .ft-road-compare h3{margin:5px 0;font-size:20px}
+.ft-app .ft-road-compare .ft-road-stat{padding:10px}
+.ft-app .ft-road-compare .ft-road-stat strong{font-size:21px}
+.ft-app .ft-road-compare details{margin:12px 0}
+.ft-app .ft-road-compare ol{padding-left:20px;line-height:1.7}
+.ft-app .ft-road-search{display:grid;grid-template-columns:1fr auto;align-items:end;gap:8px;margin:16px 0 24px}
+.ft-app .ft-road-search label{grid-column:1/-1;font-size:13px;color:var(--road-muted)}
+.ft-app .ft-road-search input{min-width:0;width:100%}
+.ft-app .ft-road-chapter{scroll-margin-top:20px}
+.ft-app .ft-road-chapter>summary strong{font-size:18px}
+.ft-app .ft-road-step>summary{padding:10px 0}
+.ft-app .ft-road-step>summary strong{font-size:14px;line-height:1.4}
+.ft-app .ft-road-step .ft-road-num{border-radius:8px}
+.ft-app .ft-road-step-body{padding-left:12px}
+.ft-app .ft-road-chunks{display:flex;gap:6px;flex-wrap:wrap}
+.ft-app .ft-road-chunks span{font-size:12px;background:#edf4ef;border-radius:8px;padding:8px}
+.ft-app .ft-road-analysis .ft-road-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin:10px 0}
+.ft-app .ft-road-analysis .ft-road-stat{padding:9px}
+.ft-app .ft-road-analysis .ft-road-stat strong{font-size:16px}
+.ft-app .ft-road-tip{padding:12px 14px;border-left:3px solid #94b29d;background:var(--road-surface);border-radius:0 8px 8px 0}
+@media(max-width:650px){.ft-app .ft-road-controls{grid-template-columns:1fr 1fr}.ft-app .ft-road-controls label:first-child{grid-column:1/-1}.ft-app .ft-road-compare{grid-template-columns:1fr}.ft-app .ft-road-goals{padding:13px}.ft-app .ft-road-pair{grid-template-columns:minmax(0,1fr) auto;gap:7px}.ft-app .ft-road-pair>div:first-child{grid-column:1/-1}.ft-app .ft-road-pair>div:nth-child(2){grid-column:1}.ft-app .ft-road-stat{padding:11px}.ft-app .ft-road-analysis .ft-road-grid{grid-template-columns:1fr}.ft-app .ft-road-chapter>summary{gap:8px}.ft-app .ft-road-chapter>summary .ft-road-pill{max-width:90px;text-align:center}}
+
+.ft-app .ft-road-dialogue{border:1px solid var(--road-line);border-radius:13px;padding:12px;margin:18px 0 4px;background:white}
+.ft-app .ft-road-dialogue summary{cursor:pointer;color:#315c48;font-weight:650;padding:3px}
+.ft-app .ft-road-dialogue-body{display:grid;gap:10px;margin:13px 0 0}
+.ft-app .ft-road-dialogue-turn{display:grid;gap:5px;max-width:88%;background:#eef4ee;border-radius:12px;padding:12px;justify-self:start}
+.ft-app .ft-road-dialogue-turn.child{background:#f3f4f1;justify-self:end}
+.ft-app .ft-road-dialogue-turn small{color:var(--road-muted);font-weight:650;font-size:11px}
+.ft-app .ft-road-dialogue-turn>div{display:flex;gap:10px;align-items:center}
+.ft-app .ft-road-dialogue-turn strong{color:#285b4d;font-size:16px;line-height:1.4}
+.ft-app .ft-road-dialogue-turn span{font-size:13px;color:#405d51}
+.ft-app .ft-road-mix{display:grid;gap:5px;margin:9px 0}
+.ft-app .ft-road-mix>div{display:flex;gap:10px;justify-content:space-between;border-bottom:1px solid var(--road-line);padding:5px 0;font-size:13px}

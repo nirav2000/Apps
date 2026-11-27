@@ -8,6 +8,7 @@ import {ALL_LANGUAGE_PATTERNS,patternReviewSchedule,patternExampleKey,PATTERN_CO
 import {optionalVerbTimeline} from './magic10.js';
 import {createAssessmentInterface} from './assessment-ui.js';
 import {TRACKS,validTrack} from './curriculum-meta.js';
+import {roadmapPage,roadmapData,roadmapSettings,roadmapUnitMarkup,ROADMAP_VIEWS} from './roadmap.js';
 import {ALL_UNITS,unitsForTrack,guidedStatus,guidedLesson} from './guided-lessons.js';
 import {wordKey,revisionEvents,revisionQueue,clozeFor,createTypingSample,correctionSummary,revisionImport,containsTarget,revisionLabel,revisionEligibility} from './revision-signals.js';
 import {adaptivePlans,chooseAdaptivePlan} from './adaptive-teaching.js';
@@ -96,6 +97,14 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     return plan;
   }
   let importedWords=revisionImport(window.location.hash),revisionLookup='',patternReview=null,patternQuery='';
+  let roadmap=roadmapSettings(),roadmapOpenUnit='',roadmapSignature='';
+  function loadRoadmapSettings(){try{roadmap=roadmapSettings(JSON.parse(localStorage.getItem('next-french:roadmap:'+state.profile)||'{}'));}catch{roadmap=roadmapSettings();}roadmapOpenUnit='';}
+  function saveRoadmapSettings(){try{localStorage.setItem('next-french:roadmap:'+state.profile,JSON.stringify(roadmap));}catch{}}
+  function roadmapProtected(){const es=state.store.getEntries(),now=Date.now();return new Set(TRACKS.flatMap(t=>prioritizedChecks(es,now,t.id).map(c=>c.unitId)));}
+  function roadmapEvidenceSignature(entries,protectedUnits){return entries.length+':'+entries.reduce((n,e)=>Math.max(n,Number(e.at)||0),0)+':'+[...protectedUnits].sort().join(',');}
+  function roadmapRender(){const entries=state.store.getEntries(),protectedUnits=roadmapProtected();roadmapSignature=roadmapEvidenceSignature(entries,protectedUnits);return roadmapPage({activeTrack:state.track,profile:state.profile,entries,settings:roadmap,openUnit:roadmapOpenUnit,protectedUnits});}
+  function roadmapToggle(e){const node=e.target;if(state.page!=='roadmap'||!node.matches?.('[data-roadmap-unit]')||!node.open)return;if(enforceBreak())return;roadmapOpenUnit=node.dataset.roadmapUnit;if(node.dataset.loaded==='1')return;const d=roadmapData(roadmap.track||state.track,state.store.getEntries(),Date.now(),roadmap),u=d.units.find(x=>x.unit.id===node.dataset.roadmapUnit),content=node.querySelector('[data-roadmap-content]');if(u&&content){content.innerHTML=roadmapUnitMarkup(u,d.refs,roadmapProtected().has(u.unit.id));node.dataset.loaded='1';}}
+
   const revisionProfile=()=>{
     const history=historyRows(),evidence=state.store?.getEntries()||[];
     const steps=unitsForTrack(state.track).flatMap(u=>guidedLesson(u.id).steps.map(s=>({...s,unitName:u.name})));
@@ -347,6 +356,11 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(!state.store||state.loading||(!force&&now-lastTimingPoll<15000))return;
     lastTimingPoll=now;
     const entries=state.store.getEntries(),schedule=scheduledPractice(entries,now,state.track),words=overdueWords(revisions(),now),rest=activeRest(entries,now,null);
+    if(state.page==='roadmap'){
+      if(rest){showBreak(rest);return;}
+      const protectedUnits=roadmapProtected(),sig=roadmapEvidenceSignature(entries,protectedUnits);
+      if(sig!==roadmapSignature){render();return;}
+    }
     const slot=el().querySelector('[data-study-notice]');
     if(slot){
       const show=SAFE_BREAK_PAGES.has(state.page)&&!revision;
@@ -422,7 +436,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     if(!state.context?.auth?.currentUser)return;
     const {auth,db,firestore,ownerUid}=state.context;
     if(auth.currentUser.uid!==ownerUid){state.cloudStatus='Wrong account; no evidence will be mixed';return;}
-    state.profile=profile;state.track=preferredTrack(profile);revisionLookup='';patternReview=null;patternQuery='';revision=null;session=null;alertNotice='';typingSamples=new WeakMap();pendingTyping=[];
+    state.profile=profile;state.track=preferredTrack(profile);loadRoadmapSettings();revisionLookup='';patternReview=null;patternQuery='';revision=null;session=null;alertNotice='';typingSamples=new WeakMap();pendingTyping=[];
     state.soundLastResult=null;state.soundQueue=[];state.soundQuestion=0;
     state.store=createEvidenceStore({appId:APP_ID,learnerId:profile,accountId:ownerUid});
     guidedUI.reset();assessmentUI.reset();
@@ -433,10 +447,10 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     state.cloudAt=null;
     try{localStorage.setItem('next-french:profile',profile);}catch{}
     await syncNow();
-    if(importedWords.length)state.page='signals';
+    if(importedWords.length)state.page='signals';else if(window.location.hash==='#roadmap'&&!breakForCourse()){roadmap={...roadmap,track:state.track,view:'journey'};state.page='roadmap';}
   }
   function nav(){
-    const tabs=[['home','Today'],['lesson',"Today's lesson"],['evidence','Learning dashboard'],['history','Answer history'],['signals','Revision signals'],['patterns','Patterns & grammar'],['magic','Magic 10'],['alphabet','Alphabet'],
+    const tabs=[['home','Today'],['lesson',"Today's lesson"],['roadmap','Learning roadmap'],['evidence','Learning dashboard'],['history','Answer history'],['signals','Revision signals'],['patterns','Patterns & grammar'],['magic','Magic 10'],['alphabet','Alphabet'],
       ['sounds','Sounds'],['knowledge','Knowledge grid'],['workshop','Sentence workshop'],
       ['practice','Sentence practice'],['review','Review'],['pronunciation','Speak'],['explore','Explore']];
     return '<nav class="ft-tabs" aria-label="French activities">'+tabs.map(([p,t])=>'<button type="button" data-page="'+p+'" class="'+(state.page===p||(p==='lesson'&&state.page==='assessment')||(p==='sounds'&&state.page==='sound-quiz')||(p==='alphabet'&&state.page==='alphabet-quiz')?'active':'')+'">'+t+'</button>').join('')+'</nav>';
@@ -899,7 +913,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const ready=!!state.store;
     el().innerHTML=top()+(state.loading?'<section class="ft-card">Checking your Firebase session…</section>':
       (!ready?login():nav()+'<div data-study-notice></div>'+
-      (state.page==='home'?overview():state.page==='explore'?explore():state.page==='evidence'?assessmentUI.dashboard():state.page==='history'?answerHistoryPage(historyRows(),historyFilter,historyLimit):state.page==='signals'?revisionPage():state.page==='patterns'?patternPage():state.page==='assessment'?assessmentUI.page():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
+      (state.page==='home'?overview():state.page==='explore'?explore():state.page==='evidence'?assessmentUI.dashboard():state.page==='roadmap'?roadmapRender():state.page==='history'?answerHistoryPage(historyRows(),historyFilter,historyLimit):state.page==='signals'?revisionPage():state.page==='patterns'?patternPage():state.page==='assessment'?assessmentUI.page():state.page==='settings'?settings():state.page==='lesson'?guidedUI.page():state.page==='magic'?guidedUI.reference():
        state.page==='alphabet'?alphabet():state.page==='sounds'?sounds():state.page==='sound-quiz'?soundQuiz():state.page==='knowledge'?knowledge():
        state.page==='workshop'?workshop():state.page==='practice'||state.page==='review'?practice():state.page==='alphabet-quiz'?alphaQuiz():pronounce())+(explorePages.some(([p])=>state.page===p)||['alphabet-quiz','sound-quiz'].includes(state.page)?exploreNav():'')))+
       '<p class="ft-foot">Original lessons informed by Barry Smith, Jessica Lund’s published Michaela work, and general repeat-and-build principles described by Paul Noble. Not affiliated with or a reproduction of their courses. <a href="https://jlmfl.wordpress.com/2022/11/27/teaching-grammar-rote-vs-rules/">Lund on rote &amp; rules</a> · <a href="https://jlmfl.wordpress.com/2017/01/15/aides-memoire-1-cuddles/">CUDDLES</a></p>';
@@ -1041,6 +1055,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     cancelPendingAdvance();patternReview=null;
     if(page==='lesson'){revision=null;startDailyWithSignals(true);return;}
     revision=null;
+    if(page==='roadmap'){roadmapOpenUnit='';roadmap={...roadmap,track:state.track};state.page=page;render();return;}
     if(page==='alphabet'){teach('alphabet');state.page=page;}
     else if(page==='sounds'){teach('sounds');state.page=page;}
     else if(page==='knowledge'||page==='workshop'){teach('connectives');state.page=page;}
@@ -1112,6 +1127,12 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     const b=e.target.closest('[data-act],[data-page],[data-letter],[data-say],[data-word],[data-sound-group],[data-sound-play],[data-sound-compare],[data-sound-sentence],[data-sound-answer],[data-cuddle-word]');
     if(!b)return;
     if(b.dataset.act==='practice-alerts'){await togglePracticeAlerts();return;}
+    if(b.dataset.act?.startsWith('roadmap-view:')&&state.page==='roadmap'){
+      const view=b.dataset.act.slice(13);if(ROADMAP_VIEWS.includes(view)){roadmap={...roadmap,view};roadmapOpenUnit='';saveRoadmapSettings();render();}return;
+    }
+    if(b.dataset.act==='roadmap-browse'&&state.page==='roadmap'){const track=b.dataset.roadmapTrack;if(validTrack(track)){roadmap={...roadmap,track,view:'curriculum',query:''};roadmapOpenUnit='';saveRoadmapSettings();render();}return;}
+    if(b.dataset.act==='roadmap-open-unit'&&state.page==='roadmap'){const unit=b.dataset.roadmapUnitId;if(unitsForTrack(roadmap.track||state.track).some(u=>u.id===unit)){roadmap={...roadmap,view:'curriculum',query:''};roadmapOpenUnit=unit;saveRoadmapSettings();render();Array.from(el().querySelectorAll('[data-roadmap-unit]')).find(n=>n.dataset.roadmapUnit===unit)?.scrollIntoView({block:'start'});}return;}
+    if(b.dataset.act==='roadmap-audio'&&state.page==='roadmap'){if(b.dataset.roadmapAudio)speak(b.dataset.roadmapAudio);return;}
     if(b.dataset.act?.startsWith('track:')){changeTrack(b.dataset.act.slice(6));return;}
     if(b.dataset.page){setPage(b.dataset.page);return;}
     if(b.dataset.letter!==undefined){
@@ -1352,6 +1373,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   }
   async function onSubmit(e){
     if(!['ft-revision-add','ft-revision-lookup','ft-login','ft-login-form','ft-reset-form'].includes(e.target.id)&&breakForCourse()){e.preventDefault();enforceBreak();return;}
+    if(e.target.id==='ft-roadmap-search'&&state.page==='roadmap'){e.preventDefault();roadmap=roadmapSettings({...roadmap,query:e.target.querySelector('[name="query"]')?.value||''});roadmapOpenUnit='';saveRoadmapSettings();render();return;}
     if(e.target.id==='ft-pattern-search'){
       e.preventDefault();patternQuery=e.target.querySelector('[name="query"]')?.value||'';render();return;
     }
@@ -1399,6 +1421,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     }
   }
   async function onChange(e){
+    if(e.target.matches('[data-roadmap-setting]')&&state.page==='roadmap'){if(enforceBreak())return;const key=e.target.dataset.roadmapSetting;if(['track','minutes','seconds'].includes(key)){roadmap=roadmapSettings({...roadmap,[key]:e.target.value,query:key==='track'?'':roadmap.query});roadmapOpenUnit='';saveRoadmapSettings();render();}return;}
     if(e.target.matches('[data-track]')){changeTrack(e.target.value);return;}
     if(e.target.matches('[data-history-filter]')){historyFilter=e.target.value;historyLimit=50;render();return;}
     if(e.target.matches('[data-french-voice]')){
@@ -1457,6 +1480,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
   el().addEventListener('click',onClick);
   el().addEventListener('submit',onSubmit);
   el().addEventListener('change',onChange);
+  el().addEventListener('toggle',roadmapToggle,true);
   const onOnline=()=>syncNow();
   const onVisible=()=>{if(document.visibilityState==='visible'){timingTick(true);void syncNow();}else typingSamples=new WeakMap();};
   const timingInterval=setInterval(()=>timingTick(),1000);
@@ -1481,7 +1505,7 @@ export function mountFrenchCourse({target,connect,signIn,signOut,signInGoogle,li
     el().removeEventListener('contextmenu',onWordContext);
     window.removeEventListener('scroll',cancelWordPress,true);
     cancelWordPress();clearWordSelection();
-    el().removeEventListener('click',onClick);el().removeEventListener('submit',onSubmit);el().removeEventListener('change',onChange);
+    el().removeEventListener('click',onClick);el().removeEventListener('submit',onSubmit);el().removeEventListener('change',onChange);el().removeEventListener('toggle',roadmapToggle,true);
     if(wordDialog){try{wordDialog.close();}catch{}wordDialog.remove();wordDialog=null;}
     cancelPendingAdvance();
     if(state.coach)Promise.resolve(state.coach.destroy()).catch(()=>{});
